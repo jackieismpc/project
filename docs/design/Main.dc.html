@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>工作台</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#E9EDEC;color:#16282C;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+a{color:#0E5A66}a:hover{color:#16282C}
+.shell{display:flex;flex-wrap:wrap;min-height:800px}
+.side{flex:0 0 208px;background:#12343B;color:#D8E6E6;padding:20px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.brand{font-weight:700;font-size:16px;color:#fff;padding:4px 12px 18px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;color:#D8E6E6;text-decoration:none}
+.nav:hover{background:#1B4750;color:#fff}.nav.on{background:#E9EDEC;color:#12343B;font-weight:500}
+.nav svg{width:18px;height:18px;flex:none}
+.main{flex:999 1 560px;min-width:0;padding:20px 24px 28px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+h1{margin:0;font-size:22px;font-weight:700;flex:1 1 auto}
+.meta{color:#566B70;font-size:13px}.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;border:1px solid #B9C6C5;background:#FBFCFB;color:#16282C;font:inherit;font-weight:500;text-decoration:none;cursor:pointer}
+.btn.pri{background:#0E5A66;border-color:#0E5A66;color:#fff}.btn.pri:hover{background:#0A4650;color:#fff}
+.card{background:#FBFCFB;border:1px solid #D3DBDA;border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12px;color:#566B70;letter-spacing:.04em}.h2{font-size:15px;font-weight:700;margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{font-weight:500;color:#566B70;text-align:left;padding:8px 10px;border-bottom:1px solid #D3DBDA}td{padding:9px 10px;border-bottom:1px solid #E6EBEA}
+.mark{display:inline-block;width:12px;height:12px;border-radius:50%;box-sizing:border-box;vertical-align:-1px;margin-right:6px}
+.pos{background:#B4480F}.neg{border:2px solid #2B6CB0}.rev{border:1px solid #6D3FB5;background:linear-gradient(to top,#6D3FB5 50%,transparent 50%)}
+.ok{color:#1E6B4A;font-weight:500}.warn{color:#8A5A00;font-weight:500}
+.mini{display:grid;grid-template-columns:repeat(10,16px);grid-auto-flow:column;grid-template-rows:repeat(8,16px);gap:4px}
+.m{width:16px;height:16px;border-radius:50%;box-sizing:border-box;border:1px solid #CBD5D4}
+.m.pos{border:0}.m.neg{border:2px solid #2B6CB0}.m.rev{border:1px solid #6D3FB5}.m.read{border:2px solid #0E5A66;background:#CFE3E5}.m.wait{border:1px dashed #0E5A66}
+.bar{height:8px;background:#E0E6E5;border-radius:4px;overflow:hidden}.fill{height:8px;width:24%;background:#0E5A66}
+</style>
+</helmet>
+<div class="shell">
+<nav class="side" aria-label="主导航">
+<div class="brand">凝胶智检系统</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a class="nav {{n.cls}}" href="{{n.h}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.t}}</a></sc-for>
+</nav>
+<main class="main">
+<div class="top">
+<h1>工作台</h1>
+<span class="meta">仪器 <span class="mono">00010001</span> · <span class="ok">已连接</span></span>
+<span class="meta">简体 ▾</span>
+<span class="meta">张工 · 实验员</span>
+<a class="btn pri" href="Wizard.dc.html">新建试验</a>
+</div>
+<div class="grid">
+<section class="card" style="grid-column: span 2; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end">
+<div>
+<div class="lab">检测室温度</div>
+<div class="mono" style="font-size: 56px; line-height: 1.1; color: #0E5A66">37.0<span style="font-size: 22px"> ℃</span></div>
+<div class="meta">要求 37 ± 1 ℃ · <span class="ok">正常</span></div>
+</div>
+<div style="flex: 1 1 320px; min-width: 0">
+<svg viewBox="0 0 640 132" role="img" aria-label="最近 60 分钟温度曲线，保持在 36.9 到 37.2 摄氏度之间" style="display: block; width: 100%; height: auto">
+<rect x="44" y="4" width="592" height="104" fill="#EEF4F3"></rect>
+<line x1="44" y1="56" x2="636" y2="56" stroke="#C4D0CF" stroke-dasharray="3 4"></line>
+<path d="{{area}}" fill="#0E5A66" fill-opacity="0.12"></path>
+<path d="{{line}}" fill="none" stroke="#0E5A66" stroke-width="2"></path>
+<circle cx="636" cy="{{endY}}" r="4" fill="#0E5A66"></circle>
+<text x="38" y="9" text-anchor="end" font-size="11" fill="#566B70">38</text>
+<text x="38" y="60" text-anchor="end" font-size="11" fill="#566B70">37</text>
+<text x="38" y="111" text-anchor="end" font-size="11" fill="#566B70">36</text>
+<text x="44" y="128" font-size="11" fill="#566B70">60 分钟前</text>
+<text x="636" y="128" text-anchor="end" font-size="11" fill="#566B70">现在</text>
+</svg>
+</div>
+</div>
+</section>
+<section class="card">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><h2 class="h2">进行中的试验</h2><span class="meta mono">FileId 65</span></div>
+<div style="display: flex; gap: 16px; flex-wrap: wrap">
+<div class="mini" role="img" aria-label="孔板缩略图：第 1 排已读数，第 2 排读数中，第 3 排孵育中">
+<sc-for list="{{mini}}" as="w" hint-placeholder-count="80"><span class="m {{w.c}}"></span></sc-for>
+</div>
+</div>
+<div><strong>灵敏度复核 (2λ:1)</strong><div class="meta">17 管 · 第 2 排读数中</div></div>
+<div class="bar"><div class="fill"></div></div>
+<a class="btn" href="Monitor.dc.html">打开监控</a>
+</section>
+</div>
+<div class="grid">
+<section class="card" style="grid-column: span 2; min-width: 0">
+<h2 class="h2">最近结果</h2>
+<div style="overflow-x: auto">
+<table>
+<thead><tr><th>试验</th><th>类型</th><th>试管</th><th>结果</th><th>状态</th><th>完成时间</th></tr></thead>
+<tbody>
+<tr><td class="mono">FileId 64</td><td>限度试验</td><td class="mono">8</td><td><span class="mark neg"></span>全部阴性</td><td class="ok">已签署</td><td class="mono">11-04 10:42</td></tr>
+<tr><td class="mono">FileId 63</td><td>灵敏度复核</td><td class="mono">17</td><td class="mono">λc 0.59 EU/ml</td><td class="ok">已签署</td><td class="mono">11-04 08:15</td></tr>
+<tr><td class="mono">FileId 62</td><td>半定量试验</td><td class="mono">16</td><td><span class="mark rev"></span>1 管待复核</td><td class="warn">待复核</td><td class="mono">11-03 17:26</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="card">
+<h2 class="h2">需要处理</h2>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="TubeDetail.dc.html"><span class="mark rev"></span>FileId 62 有 1 管待复核</a>
+<div><span class="warn">鲎试剂 2605-01</span> 还有 12 天过期</div>
+<div>视频存储已用 <span class="mono">62%</span></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ICON = {
+      dash: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
+      add: 'M12 5v14M5 12h14',
+      live: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+      tpl: 'M4 4h6v16H4zM14 4h6v16h-6z',
+      reag: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+      rep: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7',
+      aud: 'M4 5h16M4 12h16M4 19h10',
+      user: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+      set: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3'
+    };
+    const nav = [['dash','工作台','Main.dc.html'],['add','新试验','Wizard.dc.html'],['live','试验监控','Monitor.dc.html'],['hist','历史记录','Main.dc.html'],['tpl','模板管理','Main.dc.html'],['reag','试剂溯源','Main.dc.html'],['rep','报告中心','Report.dc.html'],['aud','审计追踪','Main.dc.html'],['user','用户与权限','Main.dc.html'],['set','仪器设置','Main.dc.html']]
+      .map(([k,t,h]) => ({ t, h, d: ICON[k], cls: k === 'dash' ? 'on' : '' }));
+    const T = [37.0,37.1,37.0,36.9,37.0,37.1,37.2,37.1,37.0,37.0,36.9,37.0,37.1,37.1,37.0,37.0,37.1,37.0,36.9,37.0,37.0];
+    const X = (i) => 44 + i * (592 / (T.length - 1));
+    const Y = (t) => 4 + (38 - t) * 52;
+    const pts = T.map((t, i) => X(i).toFixed(1) + ' ' + Y(t).toFixed(1));
+    const line = 'M' + pts.join('L');
+    const area = line + 'L636 108L44 108Z';
+    const mini = [];
+    for (let i = 1; i <= 80; i++) {
+      let c = '';
+      if (i <= 7) c = i === 7 ? 'rev' : (i <= 6 ? 'pos' : '');
+      if (i === 8) c = 'neg';
+      if (i >= 9 && i <= 16) c = 'read';
+      if (i === 17) c = 'wait';
+      mini.push({ c });
+    }
+    return { nav, line, area, endY: Y(T[T.length - 1]).toFixed(1), mini };
+  }
+}
+</script>
+</body>
+</html>

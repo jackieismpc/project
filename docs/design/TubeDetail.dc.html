@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>单管详情与人工复核</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#E9EDEC;color:#16282C;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+a{color:#0E5A66}a:hover{color:#16282C}
+.shell{display:flex;flex-wrap:wrap;min-height:800px}
+.side{flex:0 0 208px;background:#12343B;color:#D8E6E6;padding:20px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.brand{font-weight:700;font-size:16px;color:#fff;padding:4px 12px 18px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;color:#D8E6E6;text-decoration:none}
+.nav:hover{background:#1B4750;color:#fff}.nav.on{background:#E9EDEC;color:#12343B;font-weight:500}
+.nav svg{width:18px;height:18px;flex:none}
+.main{flex:999 1 560px;min-width:0;padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+h1{margin:0;font-size:22px;font-weight:700}
+.meta{color:#566B70;font-size:13px}.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;border:1px solid #B9C6C5;background:#FBFCFB;color:#16282C;font:inherit;font-weight:500;text-decoration:none;cursor:pointer}
+.btn:focus-visible{outline:3px solid #6FB2BC;outline-offset:2px}
+.btn.posb{background:#B4480F;border-color:#B4480F;color:#fff}.btn.negb{border:2px solid #2B6CB0;color:#1F5288}
+.btn.on{box-shadow:0 0 0 3px #0E5A66}
+.card{background:#FBFCFB;border:1px solid #D3DBDA;border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12px;color:#566B70;letter-spacing:.04em}.h2{font-size:15px;font-weight:700;margin:0}
+.work{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.view{background:#0B1618;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;color:#CFE0E1}
+.view svg{display:block;width:100%;height:auto;border-radius:3px}
+.vcap{display:flex;justify-content:space-between;font-size:12px;gap:8px}
+.metric{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mc{padding:10px 12px;background:#F2F5F4;border-radius:6px;display:flex;flex-direction:column;gap:2px}
+.mv{font-size:22px;font-family:"IBM Plex Mono",monospace}.unit{font-size:12px;color:#566B70}
+.verdict{display:flex;align-items:center;gap:12px;padding:12px;background:#F0EAFA;border-radius:6px}
+.halfdot{width:36px;height:36px;border-radius:50%;box-sizing:border-box;border:2px solid #6D3FB5;background:linear-gradient(to top,#CDB9F0 50%,#FBFCFB 50%);flex:none}
+.scoreT{height:10px;background:#E0E6E5;border-radius:5px;overflow:hidden}.scoreF{height:10px;width:46%;background:#6D3FB5}
+.switch{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:13px;cursor:pointer}
+label{display:flex;flex-direction:column;gap:6px}
+textarea{font:inherit;border:1px solid #B9C6C5;border-radius:6px;padding:8px 10px;min-height:68px;background:#fff;color:#16282C;resize:vertical}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}.kv dt{color:#566B70}.kv dd{margin:0}
+dl{margin:0}
+</style>
+</helmet>
+<div class="shell">
+<nav class="side" aria-label="主导航">
+<div class="brand">凝胶智检系统</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a class="nav {{n.cls}}" href="{{n.h}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.t}}</a></sc-for>
+</nav>
+<main class="main">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<a class="btn" href="Monitor.dc.html">返回孔板</a>
+<h1>7 号管</h1>
+<span class="meta">Row01 · 灵敏度复核 · 外加内毒素 <span class="mono">0.5</span> EU/ml · FileId <span class="mono">65</span></span>
+<span style="flex: 1 1 auto"></span>
+<span class="meta">李工 · 分析员</span>
+</div>
+<div class="work">
+<section class="card" style="grid-column: span 2; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+<h2 class="h2">翻转前后对比</h2>
+<label class="switch" style="flex-direction: row"><input id="mask-toggle" type="checkbox" checked="{{maskOn}}" onChange="{{toggleMask}}">显示算法掩码</label>
+</div>
+<div class="pair">
+<figure class="view" style="margin: 0">
+<svg viewBox="0 0 240 340" role="img" aria-label="翻转前：凝胶位于管底">
+<rect width="240" height="340" fill="#CFE2E4"></rect>
+<path d="M76 24h88v250a44 44 0 0 1-88 0z" fill="#EAF4F5" stroke="#4F6F74" stroke-width="3"></path>
+<path d="M78 132h84v142a42 42 0 0 1-84 0z" fill="#7FA3A8"></path>
+<sc-if value="{{maskOn}}" hint-placeholder-val="{{ true }}"><path d="M78 132h84v142a42 42 0 0 1-84 0z" fill="#E0671A" fill-opacity="0.38" stroke="#B4480F" stroke-width="2"></path><path d="M76 24h88v250a44 44 0 0 1-88 0z" fill="none" stroke="#0E5A66" stroke-width="2" stroke-dasharray="6 5"></path></sc-if>
+</svg>
+<figcaption class="vcap"><span>翻转前 · 0.0°</span><span class="mono">13:49:58</span></figcaption>
+</figure>
+<figure class="view" style="margin: 0">
+<svg viewBox="0 0 240 340" role="img" aria-label="翻转后：管口方向朝下，部分液相流向管口">
+<rect width="240" height="340" fill="#CFE2E4"></rect>
+<path d="M76 316h88V66a44 44 0 0 0-88 0z" fill="#EAF4F5" stroke="#4F6F74" stroke-width="3"></path>
+<path d="M78 66a42 42 0 0 1 84 0v62c-20 14-58 10-84 0z" fill="#7FA3A8"></path>
+<path d="M78 262h84v52H78z" fill="#A9C4C8"></path>
+<sc-if value="{{maskOn}}" hint-placeholder-val="{{ true }}"><path d="M78 66a42 42 0 0 1 84 0v62c-20 14-58 10-84 0z" fill="#E0671A" fill-opacity="0.38" stroke="#B4480F" stroke-width="2"></path><path d="M76 316h88V66a44 44 0 0 0-88 0z" fill="none" stroke="#0E5A66" stroke-width="2" stroke-dasharray="6 5"></path></sc-if>
+</svg>
+<figcaption class="vcap"><span>翻转后 · 180.2°</span><span class="mono">13:50:04</span></figcaption>
+</figure>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><button class="btn" type="button">回放翻转视频</button><button class="btn" type="button">查看 3 帧序列</button></div>
+</section>
+<div style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+<section class="card">
+<div class="verdict"><span class="halfdot"></span><div><strong>部分凝固</strong><div class="meta">算法结果 · 需要人工复核后才能签署</div></div></div>
+<div><div style="display: flex; justify-content: space-between" class="meta"><span>融合评分 Score</span><span class="mono">0.46</span></div><div class="scoreT"><div class="scoreF"></div></div></div>
+<div class="metric">
+<div class="mc"><span class="lab">面积变化率 ΔA</span><span class="mv">38.6<span class="unit"> %</span></span></div>
+<div class="mc"><span class="lab">质心偏移 Δs</span><span class="mv">21.4<span class="unit"> px</span></span></div>
+<div class="mc"><span class="lab">面积波动 σ_A</span><span class="mv">0.082</span></div>
+<div class="mc"><span class="lab">位置波动 σ_s</span><span class="mv">1.37</span></div>
+</div>
+</section>
+<section class="card">
+<h2 class="h2">人工复核</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button class="btn posb {{posOn}}" type="button" onClick="{{pickPos}}">判为阳性</button>
+<button class="btn negb {{negOn}}" type="button" onClick="{{pickNeg}}">判为阴性</button>
+</div>
+<label for="review-note"><span class="lab">复核意见（必填）</span><textarea id="review-note" placeholder="说明判定依据，会写入审计追踪"></textarea></label>
+<button class="btn" type="button" style="background: #0E5A66; border-color: #0E5A66; color: #fff">提交复核</button>
+</section>
+<section class="card">
+<h2 class="h2">判读来源</h2>
+<dl class="kv"><dt>模型版本</dt><dd class="mono">gel-seg 0.3.1</dd><dt>阈值配置</dt><dd class="mono">cal-2026-10</dd><dt>判读耗时</dt><dd class="mono">1.4 s（本排 8 支）</dd></dl>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { maskOn: true, pick: '' };
+  }
+  renderVals() {
+    const ICON = {
+      dash: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z', add: 'M12 5v14M5 12h14', live: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', tpl: 'M4 4h6v16H4zM14 4h6v16h-6z', reag: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+      rep: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7', aud: 'M4 5h16M4 12h16M4 19h10', user: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', set: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3'
+    };
+    const nav = [['dash','工作台','Main.dc.html'],['add','新试验','Wizard.dc.html'],['live','试验监控','Monitor.dc.html'],['hist','历史记录','Main.dc.html'],['tpl','模板管理','Main.dc.html'],['reag','试剂溯源','Main.dc.html'],['rep','报告中心','Report.dc.html'],['aud','审计追踪','Main.dc.html'],['user','用户与权限','Main.dc.html'],['set','仪器设置','Main.dc.html']]
+      .map(([k,t,h]) => ({ t, h, d: ICON[k], cls: k === 'live' ? 'on' : '' }));
+    return {
+      nav,
+      maskOn: this.state.maskOn,
+      toggleMask: () => this.setState({ maskOn: !this.state.maskOn }),
+      posOn: this.state.pick === 'pos' ? 'on' : '',
+      negOn: this.state.pick === 'neg' ? 'on' : '',
+      pickPos: () => this.setState({ pick: 'pos' }),
+      pickNeg: () => this.setState({ pick: 'neg' })
+    };
+  }
+}
+</script>
+</body>
+</html>

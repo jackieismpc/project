@@ -193,6 +193,7 @@ class TubeResult:
         reviewed_by: 复核人用户名。
         reviewed_at: 复核时间。
         review_note: 复核备注。
+        elapsed_ms: 算法分析该排的耗时（毫秒），同一排的试管取同一个值。
     """
 
     tube_no: int
@@ -210,6 +211,7 @@ class TubeResult:
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
     review_note: str | None = None
+    elapsed_ms: float | None = None
 
     @classmethod
     def from_analysis(
@@ -225,6 +227,7 @@ class TubeResult:
         model_version: str | None = None,
         config_version: str | None = None,
         message: str | None = None,
+        elapsed_ms: float | None = None,
     ) -> TubeResult:
         """由算法输出构造单管结果，并得出判读和复核状态。
 
@@ -239,6 +242,7 @@ class TubeResult:
             model_version: 模型版本。
             config_version: 阈值配置版本。
             message: 失败原因。
+            elapsed_ms: 分析耗时（毫秒）。
 
         Returns:
             单管结果。判读为待复核时，复核状态为 ``PENDING``。
@@ -264,6 +268,7 @@ class TubeResult:
             model_version=model_version,
             config_version=config_version,
             message=message,
+            elapsed_ms=elapsed_ms,
         )
 
     @property

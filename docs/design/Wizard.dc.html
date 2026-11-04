@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>新试验向导</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#E9EDEC;color:#16282C;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+a{color:#0E5A66}a:hover{color:#16282C}
+.shell{display:flex;flex-wrap:wrap;min-height:800px}
+.side{flex:0 0 208px;background:#12343B;color:#D8E6E6;padding:20px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.brand{font-weight:700;font-size:16px;color:#fff;padding:4px 12px 18px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;color:#D8E6E6;text-decoration:none}
+.nav:hover{background:#1B4750;color:#fff}.nav.on{background:#E9EDEC;color:#12343B;font-weight:500}
+.nav svg{width:18px;height:18px;flex:none}
+.main{flex:999 1 560px;min-width:0;padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+h1{margin:0;font-size:22px;font-weight:700}
+.meta{color:#566B70;font-size:13px}.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;border:1px solid #B9C6C5;background:#FBFCFB;color:#16282C;font:inherit;font-weight:500;text-decoration:none;cursor:pointer}
+.btn.pri{background:#0E5A66;border-color:#0E5A66;color:#fff}.btn.pri:hover{background:#0A4650;color:#fff}
+.card{background:#FBFCFB;border:1px solid #D3DBDA;border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12px;color:#566B70;letter-spacing:.04em}.h2{font-size:15px;font-weight:700;margin:0}
+.steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.step{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;background:#DDE4E3;color:#566B70;font-size:13px}
+.step .no{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FBFCFB;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.step.done{background:#DCEBEC;color:#0A4650}.step.now{background:#0E5A66;color:#fff;font-weight:500}.step.now .no{color:#0E5A66}
+.reag{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.rc{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:#F2F5F4;border-radius:6px}
+.ok{color:#1E6B4A;font-size:12px;font-weight:500}
+.work{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px}
+.tw{overflow:auto;max-height:420px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{font-weight:500;color:#566B70;text-align:left;padding:7px 10px;border-bottom:1px solid #D3DBDA;white-space:nowrap;position:sticky;top:0;background:#FBFCFB}td{padding:6px 10px;border-bottom:1px solid #E6EBEA;white-space:nowrap}
+.pw{overflow-x:auto}
+.plate{display:grid;grid-auto-flow:column;grid-template-rows:repeat(8,44px);grid-template-columns:repeat(10,44px);gap:3px;width:max-content}
+.well{width:44px;height:44px;border-radius:50%;box-sizing:border-box;border:1px solid #C7D2D1;background:#F2F5F4;color:#566B70;font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer;padding:0}
+.well:hover{border-color:#0E5A66}.well.sel{background:#0E5A66;border-color:#0E5A66;color:#fff}
+.well:focus-visible,.btn:focus-visible{outline:3px solid #6FB2BC;outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.count{font-size:13px;color:#566B70}.match{color:#1E6B4A;font-weight:500}.miss{color:#8A5A00;font-weight:500}
+</style>
+</helmet>
+<div class="shell">
+<nav class="side" aria-label="主导航">
+<div class="brand">凝胶智检系统</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a class="nav {{n.cls}}" href="{{n.h}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.t}}</a></sc-for>
+</nav>
+<main class="main">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between">
+<h1>新试验</h1>
+<ol class="steps">
+<li class="step done"><span class="no">1</span>选择模板</li>
+<li class="step done"><span class="no">2</span>校验试剂</li>
+<li class="step now" aria-current="step"><span class="no">3</span>录入样品和管位</li>
+<li class="step"><span class="no">4</span>确认启动</li>
+</ol>
+</div>
+<section class="card">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center">
+<div><div class="lab">模板</div><strong>灵敏度复核 (2λ:1)</strong> <span class="meta">· 17 管 · 标示灵敏度 0.5 EU/ml</span></div>
+<a href="#">更换模板</a>
+</div>
+<div class="reag">
+<div class="rc"><span class="lab">鲎试剂</span><span class="mono">2605-01</span><span class="ok">已备案 · 效期至 2026-11-16</span></div>
+<div class="rc"><span class="lab">内毒素</span><span class="mono">E2604-3</span><span class="ok">已备案 · 效期至 2027-04-30</span></div>
+<div class="rc"><span class="lab">检查用水</span><span class="mono">W2610-11</span><span class="ok">已备案 · 效期至 2027-10-31</span></div>
+</div>
+</section>
+<div class="work">
+<section class="card">
+<h2 class="h2">样品</h2>
+<div class="tw">
+<table>
+<thead><tr><th>序号</th><th>样品名称</th><th>样品批号</th><th>外加内毒素</th><th>管号</th></tr></thead>
+<tbody>
+<sc-for list="{{samples}}" as="s" hint-placeholder-count="17"><tr><td class="mono">{{s.i}}</td><td>{{s.name}}</td><td class="meta">点击录入</td><td class="mono">{{s.spike}}</td><td class="mono">{{s.tube}}</td></tr></sc-for>
+</tbody>
+</table>
+</div>
+</section>
+<section class="card">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+<h2 class="h2">管位</h2>
+<span class="count">已选 <span class="mono">{{picked}}</span> / <span class="mono">17</span> · <span class="{{matchCls}}">{{matchText}}</span></span>
+</div>
+<div class="pw">
+<div class="plate" role="group" aria-label="8 乘 10 管位">
+<sc-for list="{{wells}}" as="w" hint-placeholder-count="80"><button class="well {{w.c}}" type="button" aria-pressed="{{w.on}}" onClick="{{w.toggle}}">{{w.n}}</button></sc-for>
+</div>
+</div>
+<div class="actions">
+<button class="btn" type="button" onClick="{{auto}}">自动选择</button>
+<button class="btn" type="button" onClick="{{clear}}">全部清除</button>
+<span style="flex: 1 1 auto"></span>
+<a class="btn" href="Main.dc.html">上一步</a>
+<a class="btn pri" href="Monitor.dc.html">下一步：确认启动</a>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: Array.from({ length: 17 }, (_, i) => i + 1) };
+  }
+  renderVals() {
+    const ICON = {
+      dash: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z', add: 'M12 5v14M5 12h14', live: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', tpl: 'M4 4h6v16H4zM14 4h6v16h-6z', reag: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+      rep: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7', aud: 'M4 5h16M4 12h16M4 19h10', user: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', set: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3'
+    };
+    const nav = [['dash','工作台','Main.dc.html'],['add','新试验','Wizard.dc.html'],['live','试验监控','Monitor.dc.html'],['hist','历史记录','Main.dc.html'],['tpl','模板管理','Main.dc.html'],['reag','试剂溯源','Main.dc.html'],['rep','报告中心','Report.dc.html'],['aud','审计追踪','Main.dc.html'],['user','用户与权限','Main.dc.html'],['set','仪器设置','Main.dc.html']]
+      .map(([k,t,h]) => ({ t, h, d: ICON[k], cls: k === 'add' ? 'on' : '' }));
+    const sel = [...this.state.sel].sort((a, b) => a - b);
+    const spikes = [1,1,1,1,0.5,0.5,0.5,0.5,0.25,0.25,0.25,0.25,0.125,0.125,0.125,0.125,'0.0'];
+    const samples = spikes.map((spike, i) => ({ i: i + 1, name: i === 16 ? '阴性对照' : '灵敏度复核', spike, tube: sel[i] ?? '–' }));
+    const wells = Array.from({ length: 80 }, (_, i) => {
+      const n = i + 1, on = sel.includes(n);
+      return { n, on: String(on), c: on ? 'sel' : '', toggle: () => this.setState({ sel: on ? sel.filter((x) => x !== n) : [...sel, n] }) };
+    });
+    const picked = sel.length;
+    const left = 17 - picked;
+    return {
+      nav, samples, wells, picked,
+      matchCls: left === 0 ? 'match' : 'miss',
+      matchText: left === 0 ? '管位已对应' : (left > 0 ? '还差 ' + left + ' 个' : '多选了 ' + (-left) + ' 个'),
+      auto: () => this.setState({ sel: Array.from({ length: 17 }, (_, i) => i + 1) }),
+      clear: () => this.setState({ sel: [] })
+    };
+  }
+}
+</script>
+</body>
+</html>

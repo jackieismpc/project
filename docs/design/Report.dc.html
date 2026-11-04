@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>报告中心</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#E9EDEC;color:#16282C;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+a{color:#0E5A66}a:hover{color:#16282C}
+.shell{display:flex;flex-wrap:wrap;min-height:800px}
+.side{flex:0 0 208px;background:#12343B;color:#D8E6E6;padding:20px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.brand{font-weight:700;font-size:16px;color:#fff;padding:4px 12px 18px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;color:#D8E6E6;text-decoration:none}
+.nav:hover{background:#1B4750;color:#fff}.nav.on{background:#E9EDEC;color:#12343B;font-weight:500}
+.nav svg{width:18px;height:18px;flex:none}
+.main{flex:999 1 560px;min-width:0;padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+h1{margin:0;font-size:22px;font-weight:700}
+.meta{color:#566B70;font-size:13px}.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;border:1px solid #B9C6C5;background:#FBFCFB;color:#16282C;font:inherit;font-weight:500;text-decoration:none;cursor:pointer}
+.btn.pri{background:#0E5A66;border-color:#0E5A66;color:#fff}.btn.pri:hover{background:#0A4650;color:#fff}
+.card{background:#FBFCFB;border:1px solid #D3DBDA;border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12px;color:#566B70;letter-spacing:.04em}.h2{font-size:15px;font-weight:700;margin:0}
+.layout{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.desk{flex:999 1 560px;min-width:0;background:#D7DEDD;border-radius:8px;padding:20px;display:flex;justify-content:center;overflow-x:auto}
+.paper{background:#fff;width:640px;flex:none;box-sizing:border-box;padding:44px 48px;display:flex;flex-direction:column;gap:18px;color:#111}
+.rt{font-size:21px;font-weight:700;text-align:center;margin:0}
+.rf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 28px;font-size:12px}
+.rf div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #E5E5E5;padding-bottom:3px}
+.rf span:first-child{color:#555}
+.rtab{width:100%;border-collapse:collapse;font-size:11px}.rtab th{border-top:1.5px solid #111;border-bottom:1px solid #111;padding:5px 6px;text-align:left;font-weight:500}.rtab td{border-bottom:1px solid #E5E5E5;padding:3px 6px}
+.concl{border:1px solid #111;padding:10px 12px;font-size:12px;display:flex;flex-direction:column;gap:3px}
+.foot{font-size:10px;color:#555;border-top:1px solid #111;padding-top:8px;display:flex;flex-direction:column;gap:3px}
+.panel{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.sig{display:flex;align-items:center;gap:10px;padding:12px;background:#E3F1EA;border-radius:6px;color:#14553A;font-weight:500}
+.sig svg{width:24px;height:24px;flex:none}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;font-size:13px;margin:0}.kv dt{color:#566B70}.kv dd{margin:0;overflow-wrap:anywhere}
+.stack{display:flex;flex-direction:column;gap:8px}
+.vok{color:#1E6B4A;font-weight:500;font-size:13px}
+</style>
+</helmet>
+<div class="shell">
+<nav class="side" aria-label="主导航">
+<div class="brand">凝胶智检系统</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a class="nav {{n.cls}}" href="{{n.h}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.t}}</a></sc-for>
+</nav>
+<main class="main">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<h1>报告中心</h1>
+<span class="meta">FileId <span class="mono">65</span> · 灵敏度复核 (2λ:1)</span>
+</div>
+<div class="layout">
+<div class="desk">
+<article class="paper" aria-label="报告预览">
+<h2 class="rt">自动凝胶检测报告</h2>
+<div class="rf">
+<div><span>文件名</span><span class="mono">FileId 65</span></div>
+<div><span>仪器编号</span><span class="mono">00010001</span></div>
+<div><span>检测日期</span><span class="mono">2026-11-04 13:49</span></div>
+<div><span>温度范围</span><span class="mono">36.9–37.2 ℃</span></div>
+<div><span>操作人</span><span>张工</span></div>
+<div><span>签署人 / 日期</span><span>李工 / <span class="mono">11-04 15:12</span></span></div>
+<div><span>鲎试剂灵敏度</span><span class="mono">0.5 EU/ml</span></div>
+<div><span>鲎试剂批号</span><span class="mono">2605-01</span></div>
+<div><span>内毒素批号</span><span class="mono">E2604-3</span></div>
+<div><span>检测用水批号</span><span class="mono">W2610-11</span></div>
+</div>
+<table class="rtab">
+<thead><tr><th>试管编号</th><th>样品名称</th><th>序列号</th><th>样品批号</th><th>稀释倍数</th><th>外加内毒素</th><th>阴阳性</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="17"><tr><td class="mono">{{r.n}}</td><td>{{r.name}}</td><td>–</td><td>–</td><td>–</td><td class="mono">{{r.s}}</td><td>{{r.v}}</td></tr></sc-for>
+</tbody>
+</table>
+<div class="concl"><strong>结论：实测灵敏度 λc = <span class="mono">0.59</span> EU/ml</strong><span>在标示灵敏度的 0.5λ–2λ 范围内。其中 7 号管由算法判为部分凝固，经人工复核判为阳性。</span></div>
+<div class="foot"><span>本报告已使用数字签名，任何修改都会导致验签失败。 © [版权方名称]，未经许可不得复制。</span><span class="mono">SHA-256 7c41…e09a · 第 1 页 / 共 1 页</span></div>
+</article>
+</div>
+<div class="panel">
+<section class="card">
+<div class="sig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.500-1-8-4-8-9V6zM8.500 12l2.500 2.500 4.500-5"></path></svg>已签署，内容未被修改</div>
+<dl class="kv">
+<dt>签署人</dt><dd>李工 · 分析员</dd>
+<dt>签署时间</dt><dd class="mono">2026-11-04 15:12:08</dd>
+<dt>证书</dt><dd class="mono">GelInspect Local CA</dd>
+</dl>
+<button class="btn" type="button" onClick="{{verify}}">{{verifyText}}</button>
+</section>
+<section class="card">
+<h2 class="h2">导出</h2>
+<div class="stack">
+<button class="btn pri" type="button">打印</button>
+<button class="btn" type="button">导出已签名 PDF</button>
+<button class="btn" type="button">导出 Excel 数据</button>
+</div>
+</section>
+<section class="card">
+<h2 class="h2">单批次报告</h2>
+<div class="meta">把同一批次的多次试验汇总到一份报告。</div>
+<button class="btn" type="button">选择批次</button>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { checked: false };
+  }
+  renderVals() {
+    const ICON = {
+      dash: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z', add: 'M12 5v14M5 12h14', live: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', tpl: 'M4 4h6v16H4zM14 4h6v16h-6z', reag: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+      rep: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7', aud: 'M4 5h16M4 12h16M4 19h10', user: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', set: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3'
+    };
+    const nav = [['dash','工作台','Main.dc.html'],['add','新试验','Wizard.dc.html'],['live','试验监控','Monitor.dc.html'],['hist','历史记录','Main.dc.html'],['tpl','模板管理','Main.dc.html'],['reag','试剂溯源','Main.dc.html'],['rep','报告中心','Report.dc.html'],['aud','审计追踪','Main.dc.html'],['user','用户与权限','Main.dc.html'],['set','仪器设置','Main.dc.html']]
+      .map(([k,t,h]) => ({ t, h, d: ICON[k], cls: k === 'rep' ? 'on' : '' }));
+    const spikes = [1,1,1,1,0.5,0.5,0.5,0.5,0.25,0.25,0.25,0.25,0.125,0.125,0.125,0.125,'0.0'];
+    const rows = spikes.map((s, i) => {
+      const n = i + 1;
+      const pos = n <= 7;
+      return { n, s, name: n === 17 ? '阴性对照' : '灵敏度复核', v: pos ? (n === 7 ? '阳性（已复核）' : '阳性') : '阴性' };
+    });
+    return {
+      nav, rows,
+      verifyText: this.state.checked ? '验签通过' : '重新验签',
+      verify: () => this.setState({ checked: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>试验监控</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+body{margin:0;background:#E9EDEC;color:#16282C;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+a{color:#0E5A66}a:hover{color:#16282C}
+.shell{display:flex;flex-wrap:wrap;min-height:800px}
+.side{flex:0 0 208px;background:#12343B;color:#D8E6E6;padding:20px 12px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box}
+.brand{font-weight:700;font-size:16px;color:#fff;padding:4px 12px 18px}
+.nav{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;color:#D8E6E6;text-decoration:none}
+.nav:hover{background:#1B4750;color:#fff}.nav.on{background:#E9EDEC;color:#12343B;font-weight:500}
+.nav svg{width:18px;height:18px;flex:none}
+.main{flex:999 1 560px;min-width:0;padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+h1{margin:0;font-size:22px;font-weight:700}
+.meta{color:#566B70;font-size:13px}.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:6px;border:1px solid #B9C6C5;background:#FBFCFB;color:#16282C;font:inherit;font-weight:500;text-decoration:none;cursor:pointer}
+.btn.dan{border-color:#B3261E;color:#B3261E}.btn.dan:hover{background:#B3261E;color:#fff}
+.card{background:#FBFCFB;border:1px solid #D3DBDA;border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12px;color:#566B70;letter-spacing:.04em}.h2{font-size:15px;font-weight:700;margin:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:12px 20px}
+.val{font-size:15px;font-weight:500}
+.status{display:inline-flex;align-items:center;gap:8px;background:#DCEBEC;color:#0A4650;padding:4px 12px;border-radius:999px;font-weight:500;font-size:13px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #C9D3D2}
+.tab{min-height:44px;padding:0 16px;border:0;border-bottom:3px solid transparent;background:none;font:inherit;color:#566B70;cursor:pointer}
+.tab.on{color:#0E5A66;border-bottom-color:#0E5A66;font-weight:700}
+.work{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.plateWrap{overflow-x:auto}
+.plate{display:grid;grid-template-columns:repeat(10,minmax(44px,1fr));gap:8px 6px;min-width:500px}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px}
+.rowh{font-size:12px;font-weight:500;color:#16282C}.cd{font-size:12px;color:#566B70;height:18px}.cd.act{color:#0E5A66;font-weight:500}
+.well{width:38px;height:38px;border-radius:50%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:"IBM Plex Mono",monospace;text-decoration:none;color:#566B70;border:1px solid #D3DBDA;background:#F2F5F4}
+.well.pos{background:#B4480F;border-color:#B4480F;color:#fff}
+.well.neg{background:#FBFCFB;border:3px solid #2B6CB0;color:#16282C}
+.well.rev{background:linear-gradient(to top,#CDB9F0 50%,#FBFCFB 50%);border:2px solid #6D3FB5;color:#16282C}
+.well.read{background:#CFE3E5;border:2px solid #0E5A66;color:#0A4650}
+.well.wait{background:#FBFCFB;border:2px dashed #0E5A66;color:#0A4650}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:#566B70}
+.lg{display:inline-flex;align-items:center;gap:6px}.dot{width:14px;height:14px;border-radius:50%;box-sizing:border-box;display:inline-block}
+.dot.pos{background:#B4480F}.dot.neg{border:3px solid #2B6CB0}.dot.rev{background:linear-gradient(to top,#CDB9F0 50%,#FBFCFB 50%);border:2px solid #6D3FB5}.dot.read{background:#CFE3E5;border:2px solid #0E5A66}.dot.wait{border:2px dashed #0E5A66}
+.video{background:#0B1618;border-radius:6px;padding:18px 14px 10px;display:flex;flex-direction:column;gap:10px;color:#CFE0E1}
+.strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;background:linear-gradient(#E4F0F1,#B7D2D5);padding:12px 8px;border-radius:3px}
+.tube{height:112px;border:1px solid #57767B;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:rgba(255,255,255,.35);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.gel{background:rgba(35,86,94,.62)}
+.vmeta{display:flex;justify-content:space-between;gap:8px;font-size:12px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}th{font-weight:500;color:#566B70;text-align:left;padding:8px 10px;border-bottom:1px solid #D3DBDA;white-space:nowrap}td{padding:8px 10px;border-bottom:1px solid #E6EBEA;white-space:nowrap}
+.pv{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+</style>
+</helmet>
+<div class="shell">
+<nav class="side" aria-label="主导航">
+<div class="brand">凝胶智检系统</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="10"><a class="nav {{n.cls}}" href="{{n.h}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.t}}</a></sc-for>
+</nav>
+<main class="main">
+<div class="top">
+<h1>灵敏度复核 (2λ:1)</h1>
+<span class="meta mono">FileId 65</span>
+<span class="status">第 2 排读数中</span>
+<span style="flex: 1 1 auto"></span>
+<span class="mono" style="font-size: 26px; color: #0E5A66">37.1 ℃</span>
+<button class="btn dan" type="button">停止试验</button>
+</div>
+<section class="card">
+<div class="facts">
+<div><div class="lab">鲎试剂批号</div><div class="val mono">2605-01</div></div>
+<div><div class="lab">内毒素批号</div><div class="val mono">E2604-3</div></div>
+<div><div class="lab">检查用水批号</div><div class="val mono">W2610-11</div></div>
+<div><div class="lab">标示灵敏度 λ</div><div class="val mono">0.5 EU/ml</div></div>
+<div><div class="lab">实测灵敏度 λc</div><div class="val mono">待完成</div></div>
+<div><div class="lab">操作人</div><div class="val">张工</div></div>
+<div><div class="lab">开始时间</div><div class="val mono">13:49:42</div></div>
+</div>
+</section>
+<div class="tabs" role="tablist">
+<button class="tab on" type="button" role="tab">试验数据记录</button>
+<button class="tab" type="button" role="tab">图像显示</button>
+<a class="tab" role="tab" href="Report.dc.html" style="display: inline-flex; align-items: center; text-decoration: none">报告打印预览</a>
+<a class="tab" role="tab" href="Report.dc.html" style="display: inline-flex; align-items: center; text-decoration: none">单批次报告</a>
+</div>
+<div class="work">
+<section class="card" style="grid-column: span 2; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center">
+<h2 class="h2">孔板 8 × 10</h2>
+<div class="legend">
+<span class="lg"><span class="dot pos"></span>阳性</span><span class="lg"><span class="dot neg"></span>阴性</span><span class="lg"><span class="dot rev"></span>待复核</span><span class="lg"><span class="dot read"></span>读数中</span><span class="lg"><span class="dot wait"></span>孵育中</span>
+</div>
+</div>
+<div class="plateWrap">
+<div class="plate">
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="10">
+<div class="col">
+<div class="rowh mono">{{c.name}}</div>
+<div class="cd mono {{c.cdc}}">{{c.cd}}</div>
+<sc-for list="{{c.wells}}" as="w" hint-placeholder-count="8"><a class="well {{w.c}}" href="{{w.h}}" aria-label="{{w.a}}">{{w.n}}</a></sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+<section class="card" style="min-width: 0">
+<div style="display: flex; justify-content: space-between; gap: 8px"><h2 class="h2">实时视频</h2><span class="meta">翻转录制中</span></div>
+<div class="video">
+<div class="strip" role="img" aria-label="当前一排 8 支试管的实时画面">
+<sc-for list="{{tubes}}" as="t" hint-placeholder-count="8"><div class="tube"><div class="gel" style="height: {{t.h}}"></div></div></sc-for>
+</div>
+<div class="vmeta mono"><span>Row02 · 翻转后</span><span>4000×3000 · 15 fps</span></div>
+</div>
+<div class="meta">算法判读 <span class="mono">1.4 s</span> · 翻转角度 <span class="mono">180.2°</span></div>
+<button class="btn" type="button">回放第 1 排</button>
+</section>
+</div>
+<section class="card">
+<h2 class="h2">试验数据记录</h2>
+<div style="overflow-x: auto">
+<table>
+<thead><tr><th>试管编号</th><th>样品名称</th><th>序列号</th><th>批号</th><th>稀释倍数</th><th>外加内毒素</th><th>阴阳性</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5"><tr><td class="mono">{{r.n}}</td><td>灵敏度复核</td><td class="mono">–</td><td class="mono">–</td><td class="mono">–</td><td class="mono">{{r.s}}</td><td><span class="pv"><span class="dot {{r.c}}"></span>{{r.v}}</span></td></tr></sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ICON = {
+      dash: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z', add: 'M12 5v14M5 12h14', live: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2', tpl: 'M4 4h6v16H4zM14 4h6v16h-6z', reag: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3',
+      rep: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7', aud: 'M4 5h16M4 12h16M4 19h10', user: 'M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', set: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3'
+    };
+    const nav = [['dash','工作台','Main.dc.html'],['add','新试验','Wizard.dc.html'],['live','试验监控','Monitor.dc.html'],['hist','历史记录','Main.dc.html'],['tpl','模板管理','Main.dc.html'],['reag','试剂溯源','Main.dc.html'],['rep','报告中心','Report.dc.html'],['aud','审计追踪','Main.dc.html'],['user','用户与权限','Main.dc.html'],['set','仪器设置','Main.dc.html']]
+      .map(([k,t,h]) => ({ t, h, d: ICON[k], cls: k === 'live' ? 'on' : '' }));
+    const state = (n) => n <= 6 ? 'pos' : n === 7 ? 'rev' : n === 8 ? 'neg' : n <= 16 ? 'read' : n === 17 ? 'wait' : '';
+    const word = { pos: '阳性', neg: '阴性', rev: '待复核', read: '读数中', wait: '孵育中', '': '空' };
+    const cd = ['已读数', '读数中', '12:48', '', '', '', '', '', '', ''];
+    const cols = [];
+    for (let c = 0; c < 10; c++) {
+      const wells = [];
+      for (let r = 1; r <= 8; r++) {
+        const n = c * 8 + r, s = state(n);
+        wells.push({ n, c: s, h: n === 7 ? 'TubeDetail.dc.html' : '#', a: n + ' 号管，' + word[s] });
+      }
+      cols.push({ name: 'Row' + String(c + 1).padStart(2, '0'), cd: cd[c], cdc: c === 1 ? 'act' : '', wells });
+    }
+    const spike = [1,1,1,1,0.5,0.5,0.5,0.5];
+    const rows = spike.map((s, i) => { const n = i + 1, c = state(n); return { n, s, c, v: word[c] }; });
+    const tubes = ['62%','62%','60%','62%','61%','62%','60%','61%'].map((h) => ({ h }));
+    return { nav, cols, rows, tubes };
+  }
+}
+</script>
+</body>
+</html>

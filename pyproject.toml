@@ -70,3 +70,6 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 qt_api = "pyside6"
+markers = [
+    "perf: 性能测试（造 10 万条审计和 1 万管结果）。默认运行，可用 -m \"not perf\" 跳过。",
+]
