@@ -1,0 +1,12 @@
+# MockAnalyzer 的配置，传给 GelAnalyzer.load。全部为可选项。
+scripted: false          # true：按下面的场景给出状态，而不是测量图像
+seed: 0
+state_ratios: [0.5, 0.2, 0.3]   # 完全凝固 / 部分凝固 / 未凝固
+tube_states:             # 按管号指定状态（脚本化模式使用）；null 表示没有试管
+  1: fully_gelled
+  7: partially_gelled
+  8: not_gelled
+tube_faults: {}          # 例如 { 3: low_quality, 5: failed, 6: tube_not_found }
+delay_ms: 0              # 模拟每排耗时
+fail_load: false
+fail_all: false          # true：analyze_row 抛 AnalyzerError

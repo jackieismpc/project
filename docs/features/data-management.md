@@ -18,11 +18,11 @@
 ```python
 from gelinspect.infrastructure.db import open_database, seed_defaults, verify_audit_chain
 
-db = open_database(path)                       # 创建或升级到最新版本，启用 WAL 与外键
-seed_defaults(db, admin_password=password)     # 首次启动：内置模板与管理员（密码由调用方传入）
-db.experiments.save(experiment)                # 各仓储通过 db.users / templates / experiments /
-db.audit.append(event)                         #   audit / media / reports / telemetry 访问
-verify_audit_chain(db)                         # 校验审计哈希链
+db = open_database(path)  # 创建或升级到最新版本，启用 WAL 与外键
+seed_defaults(db, admin_password=password)  # 首次启动：内置模板与管理员（密码由调用方传入）
+db.experiments.save(experiment)  # 各仓储通过 db.users / templates / experiments /
+db.audit.append(event)  #   audit / media / reports / telemetry 访问
+verify_audit_chain(db)  # 校验审计哈希链
 ```
 
 `open_database` 依次：创建父目录 → 建立引擎并在每个连接上设置 `journal_mode=WAL`、`foreign_keys=ON`、`synchronous=NORMAL`、`busy_timeout=5000` → 运行 Alembic `upgrade head`。迁移脚本以包内路径（`migrations/`）定位，**不使用 `alembic.ini`，也不依赖当前工作目录**；连接通过 `config.attributes["connection"]` 传给 `migrations/env.py`。数据库版本比程序新（`alembic_version` 指向未知版本）时抛 `DatabaseVersionError`，不降级。

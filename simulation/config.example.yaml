@@ -1,0 +1,16 @@
+# 把三个后端指向 simulation 里的模拟实现。格式见 docs/architecture.md 第 3 节。
+# 接入真实后端时，只需把下面的类路径换成真实实现，其余业务配置不变。
+analysis:
+  backend: "simulation.mock_analyzer:MockAnalyzer"
+  config_path: "simulation/analyzer.example.yaml"  # 可为空，空则使用默认参数
+  timeout_ms: 2000
+
+video:
+  source: "simulation.sim_video:SimVideoSource"
+  device: "sim"           # 模拟视频源忽略该值，但接口要求非空
+  width: 1920             # 可以改为 4000 / 3000 做压力测试
+  height: 1080
+  fps: 15
+
+device:
+  backend: "simulation.sim_device:SimDevice"
