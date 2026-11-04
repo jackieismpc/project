@@ -80,4 +80,5 @@ testpaths = ["tests"]
 qt_api = "pyside6"
 markers = [
     "perf: 性能测试（造 10 万条审计和 1 万管结果）。默认运行，可用 -m \"not perf\" 跳过。",
+    "video_perf: 视频管线 4000×3000 压测（约 40 秒）。默认跳过，设置 GELINSPECT_PERF_VIDEO=1 或 -m video_perf 运行。",
 ]
