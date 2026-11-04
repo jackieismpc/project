@@ -44,6 +44,12 @@ path = "src/gelinspect/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gelinspect", "simulation"]
+# 字体（OFL）、Lucide 图标（ISC）及其许可证随包发布。
+artifacts = [
+    "src/gelinspect/ui/assets/**/*.ttf",
+    "src/gelinspect/ui/assets/**/*.svg",
+    "src/gelinspect/ui/assets/**/*.txt",
+]
 
 [tool.ruff]
 line-length = 100
@@ -61,6 +67,8 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
+# QSS 模板中每条规则写在一行，便于对照设计稿。
+"src/gelinspect/ui/theme/stylesheet.py" = ["E501"]
 
 [tool.mypy]
 strict = true
