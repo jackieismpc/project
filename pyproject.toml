@@ -1,0 +1,72 @@
+[project]
+name = "gelinspect"
+dynamic = ["version"]
+description = "凝胶智检系统 / GelInspect：凝胶法细菌内毒素检测上位机软件（离线，Windows + macOS）"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "PySide6-Essentials~=6.12",
+    "pyqtgraph>=0.14",
+    "SQLAlchemy>=2.1",
+    "alembic",
+    "pydantic>=2",
+    "pyyaml",
+    "numpy",
+    "opencv-python-headless>=4.10,<5",
+    "cryptography",
+    "pyhanko",
+    "argon2-cffi",
+    "openpyxl",
+]
+
+[project.optional-dependencies]
+# 真实算法推理所需的 ONNX 运行时；骨架阶段不安装。
+inference = ["onnxruntime"]
+
+[project.scripts]
+gelinspect = "gelinspect.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-qt",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/gelinspect/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gelinspect", "simulation"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "D"]
+
+# D415 只识别 ASCII 句末标点，中文 docstring 使用全角“。”，故关闭。
+ignore = ["D415"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.mypy]
+strict = true
+files = ["src", "simulation", "tests"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
