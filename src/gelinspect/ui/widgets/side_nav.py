@@ -7,7 +7,14 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPaintEvent, QPen
-from PySide6.QtWidgets import QAbstractButton, QFrame, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QFrame,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from gelinspect.ui.theme.fonts import sans_font
 from gelinspect.ui.theme.tokens import current_tokens
@@ -146,16 +153,98 @@ class NavItem(QAbstractButton):
         p.end()
 
 
+class PinButton(QAbstractButton):
+    """品牌行右侧的固定按钮：44px 触控目标，深色底上的图标按钮。
+
+    未固定时显示 ``pin``（点击固定），已固定时显示 ``pin-off``（点击取消固定）。
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """创建按钮，初始为未固定。
+
+        Args:
+            parent: 父控件。
+        """
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        side = current_tokens().space.touch
+        self.setFixedSize(side, side)
+        self._hover = False
+        self._pinned = False
+        self.set_pinned(False)
+
+    def set_pinned(self, pinned: bool) -> None:
+        """更新图标与无障碍名称。
+
+        Args:
+            pinned: 侧栏当前是否为固定模式。
+        """
+        self._pinned = pinned
+        text = self.tr("取消固定侧栏") if pinned else self.tr("固定侧栏")
+        self.setAccessibleName(text)
+        self.setToolTip(text)
+        self.update()
+
+    def enterEvent(self, event: object) -> None:  # noqa: N802
+        """记录悬停。
+
+        Args:
+            event: 进入事件。
+        """
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, event: object) -> None:  # noqa: N802
+        """清除悬停。
+
+        Args:
+            event: 离开事件。
+        """
+        self._hover = False
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """绘制圆角底色、图标与焦点环。
+
+        Args:
+            event: 绘制事件。
+        """
+        c = current_tokens().colors
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        rect = QRectF(self.rect())
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(c.sidebar_hover if self._hover else c.sidebar))
+        p.drawRoundedRect(rect, 6, 6)
+        pix = IconLoader.pixmap("pin-off" if self._pinned else "pin", 18, c.sidebar_text)
+        p.drawPixmap(int((rect.width() - 18) / 2), int((rect.height() - 18) / 2), pix)
+        if self.hasFocus():
+            p.setPen(QPen(QColor(c.focus), 2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 6, 6)
+        p.end()
+
+
 class SideNav(QFrame):
-    """侧栏。点击导航项发出 :attr:`currentChanged`。"""
+    """侧栏。点击导航项发出 :attr:`currentChanged`（选中变化）与 :attr:`itemActivated`（每次点击）。
+
+    Signals:
+        currentChanged: 选中项变化，参数为导航项 key。
+        itemActivated: 用户点击了某项（含已选中项），参数为导航项 key。
+        pinToggled: 用户点了品牌行的固定按钮。
+    """
 
     currentChanged = Signal(str)  # noqa: N815
+    itemActivated = Signal(str)  # noqa: N815
+    pinToggled = Signal()  # noqa: N815
 
     def __init__(
         self,
         entries: Sequence[NavEntry],
         *,
         brand: str = "凝胶智检系统",
+        pinnable: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         """创建侧栏。
@@ -163,6 +252,7 @@ class SideNav(QFrame):
         Args:
             entries: 导航项，按显示顺序。
             brand: 顶部品牌名。
+            pinnable: 品牌行右侧是否显示固定按钮（由 AppShell 使用）。
             parent: 父控件。
         """
         super().__init__(parent)
@@ -172,16 +262,49 @@ class SideNav(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 20, 12, 20)
         layout.setSpacing(4)
+        brand_row = QHBoxLayout()
+        brand_row.setContentsMargins(12, 0, 0, 14)
+        brand_row.setSpacing(0)
         title = Label(brand, "brand")
-        title.setContentsMargins(12, 4, 12, 18)
-        layout.addWidget(title)
+        brand_row.addWidget(title, 1)
+        self.pin_button = PinButton()
+        self.pin_button.clicked.connect(self.pinToggled)
+        self.pin_button.setVisible(pinnable)
+        brand_row.addWidget(self.pin_button)
+        brand_row.setAlignment(self.pin_button, Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(brand_row)
         self._items: dict[str, NavItem] = {}
         for entry in entries:
             item = NavItem(entry)
-            item.clicked.connect(lambda _=False, k=entry.key: self.set_current(k))
+            item.clicked.connect(lambda _=False, k=entry.key: self._on_clicked(k))
             self._items[entry.key] = item
             layout.addWidget(item)
         layout.addStretch(1)
+
+    def _on_clicked(self, key: str) -> None:
+        """处理点击：先更新选中，再通知激活。
+
+        Args:
+            key: 导航项标识。
+        """
+        self.set_current(key)
+        self.itemActivated.emit(key)
+
+    def set_pinned(self, pinned: bool) -> None:
+        """同步固定按钮的图标与名称。
+
+        Args:
+            pinned: 是否处于固定模式。
+        """
+        self.pin_button.set_pinned(pinned)
+
+    def items(self) -> list[NavItem]:
+        """按显示顺序返回全部导航项（供焦点管理与测试使用）。
+
+        Returns:
+            导航项列表。
+        """
+        return list(self._items.values())
 
     def current(self) -> str | None:
         """返回选中项的标识。

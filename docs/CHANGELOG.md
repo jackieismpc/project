@@ -11,3 +11,4 @@
 - P3：SQLite + SQLAlchemy 数据层、Alembic 迁移（不依赖 alembic.ini）、仓储接口与实现；SHA-256 哈希链审计日志，可定位被篡改或删除的第一条记录；`seed_defaults()` 写入内置模板和首次登录须改密的管理员。
 - P4：`simulation/` 模拟数据目录（主代码不导入）：背光试管图合成器、`MockAnalyzer`、`SimDevice`、`SimVideoSource`、试剂白名单和示例数据，支持时间加速和故障注入。
 - P2：Qt 设计系统（token、QSS 生成、内置 Noto Sans SC 子集与 IBM Plex Mono、Lucide 图标）和组件库（含 8×10 PlateGrid、TubeStrip、Sparkline）；组件展示页 `python -m gelinspect.ui.gallery`，支持离屏截图。
+- 顶部快捷栏 `QuickToolbar`（6 个带权限和键盘快捷键的操作，窄屏收进「更多」）和应用外壳 `AppShell`（侧栏默认自动隐藏，可固定，模式持久化）。

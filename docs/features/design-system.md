@@ -6,6 +6,7 @@
 
 - 提供 token、全局 QSS、内置字体与图标，保证离线、Windows 与 macOS 显示一致。
 - 提供 Card、StatCard、ReadoutCard、Button、StatusBadge、DataTable、Toast、ConfirmDialog、StepIndicator、SideNav、Tabs、Sparkline、IconLoader 和 PlateGrid、TubeStrip。
+- 应用外壳（P2 评审后追加）：QuickToolbar（顶部快捷栏）与 AppShell（快捷栏、可自动隐藏的侧栏和内容区），详见 [app-shell.md](app-shell.md)。
 - 提供组件展示页，供视觉评审和回归对照。
 
 ## 流程
@@ -23,17 +24,28 @@ PlateGrid 要点：
 - 键盘：Tab 进入后方向键移动，空格或回车触发，Home/End 跳到首尾，键盘聚焦才画 3px 焦点环。读屏名称为「孔板 8 乘 10」，描述随焦点孔更新（如「7 号管，待复核」）。逐孔的 QAccessible 子对象尚未实现。
 - QPainter 自绘并开启抗锯齿，随 Qt 高 DPI 缩放；孔径随控件宽度在 16px 至 1.5 倍基准之间变化。
 
+应用外壳要点（详见 [app-shell.md](app-shell.md)）：
+
+- 页面不再自己摆侧栏，统一用 `AppShell(content)`：顶部 56px 的 `QuickToolbar`，下方左侧 `SideNav`，右侧内容区。
+- 侧栏默认自动隐藏（覆盖层滑出，不挤压内容），可在品牌行用图钉按钮固定（208px，占布局）。模式由 `ShellSettings` 持久化。
+- 快捷操作在 `quick_toolbar.DEFAULT_ACTIONS` 中声明式定义，带权限与快捷键；宽度不足时收进「更多」。
+- 新增图标（Lucide 手写路径，ISC）：`menu`、`pin`、`pin-off`、`folder-open`、`plug`、`unplug`、`languages`、`ellipsis`。
+- 新增 QSS 角色：`QFrame[role="toolbar"]`、`QFrame[role="vsep"]`、`QToolButton[role="quick"]`、`QLabel[role="status"]`，以及 `QMenu` 样式，均来自 token。
+
 展示页：
 
 ```bash
 uv run python -m gelinspect.ui.gallery
 QT_QPA_PLATFORM=offscreen uv run python -m gelinspect.ui.gallery \
-    --screenshot out.png --size 1280x800 [--page gallery|monitor] [--full] [--scale 2]
+    --screenshot out.png --size 1280x800 [--page gallery|monitor] [--full] [--scale 2] \
+    [--nav-mode auto|pinned] [--nav-open]
 ```
+
+`--nav-mode` 指定侧栏模式，`--nav-open` 在自动隐藏模式下展开侧栏，两者用于截图。截图时使用内存设置并关闭动画，不读写本机偏好。
 
 ## 权限
 
-无。本阶段只提供组件，不涉及角色与权限。
+组件本身不判断角色。快捷栏按调用方传入的权限集合（`set_user_permissions`）启用或禁用操作，权限矩阵见 `domain/permissions.py` 与 [permissions.md](permissions.md)。
 
 ## 数据
 
@@ -55,6 +67,7 @@ Noto Sans SC 的裁剪方法：从 google/fonts 仓库的可变字体 `NotoSansS
 
 - `test_plate_grid.py`：编号与 domain 一致、点击与选择信号、选择上限、键盘、六种状态与两种模式绘制、非法管号。
 - `test_widgets.py`：DataTable 空状态、Toast 显示与消失、按钮高度、SideNav、步骤条等绘制、全部图标可加载。
+- `test_quick_toolbar.py`、`test_app_shell.py`：快捷栏与应用外壳，场景见 [app-shell.md](app-shell.md)。
 - `test_theme.py`：QSS 无未解析占位符、组件无硬编码色值、字体文件齐全且已加载、UI 不导入 simulation 与数据库。
 
-人工：对照 `docs/design` 看展示页和监控小样截图；Windows 实机检查字体与高 DPI。
+人工：对照 `docs/design` 看展示页和监控小样截图；Windows 实机检查字体与高 DPI；触摸屏与真实窗口的悬停行为见 app-shell.md。

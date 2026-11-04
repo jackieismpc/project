@@ -99,6 +99,27 @@ QHeaderView::section {
 }
 QTableCornerButton::section { background: $surface; border: 0; }
 
+QFrame[role="toolbar"] { background: $surface; border: 0; border-bottom: 1px solid $border; }
+QFrame[role="vsep"] { background: $border; border: 0; min-width: 1px; max-width: 1px; }
+QToolButton[role="quick"] {
+    min-height: ${touch}px; padding: 0 12px; border: 2px solid transparent;
+    border-radius: ${button}px; background: transparent; color: $ink; font-weight: 500;
+}
+QToolButton[role="quick"][iconOnly="true"] { padding: 0; min-width: ${touch}px; }
+QToolButton[role="quick"]:hover { background: $surface_alt; }
+QToolButton[role="quick"]:pressed { background: $track; }
+QToolButton[role="quick"]:focus { border-color: $focus; }
+QToolButton[role="quick"]:disabled { color: $ink_muted; background: transparent; }
+QToolButton[role="quick"]::menu-indicator { image: none; width: 0; }
+QLabel[role="status"] { font-size: ${small}px; color: $ink; }
+QLabel[role="status"][tone="ok"] { color: $success; font-weight: 500; }
+QLabel[role="status"][tone="bad"] { color: $danger; font-weight: 500; }
+
+QMenu { background: $surface; border: 1px solid $border; border-radius: ${button}px; padding: 4px; }
+QMenu::item { padding: 10px 18px 10px 12px; min-height: 24px; border-radius: ${tile}px; }
+QMenu::item:selected { background: $primary_soft; }
+QMenu::item:disabled { color: $ink_muted; background: transparent; }
+
 QFrame[role="toast"] {
     background: $surface; border: 1px solid $border; border-left: 4px solid $primary;
     border-radius: ${card}px;

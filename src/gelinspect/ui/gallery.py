@@ -4,7 +4,8 @@
 离屏截图::
 
     QT_QPA_PLATFORM=offscreen uv run python -m gelinspect.ui.gallery --screenshot out.png
-    可选参数：--size 1280x800、--page gallery|monitor、--full、--scale 2
+    可选参数：--size 1280x800、--page gallery|monitor、--full、--scale 2、
+    --nav-mode auto|pinned（侧栏模式）、--nav-open（自动隐藏模式下展开侧栏）
 """
 
 from __future__ import annotations
@@ -28,10 +29,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gelinspect.ui.monitor_sample import MonitorSample, monitor_states
+from gelinspect.ui.monitor_sample import (
+    MonitorPage,
+    MonitorSample,
+    configure_demo_toolbar,
+    monitor_states,
+)
 from gelinspect.ui.theme.fonts import FontReport, last_report
 from gelinspect.ui.theme.stylesheet import apply_theme
 from gelinspect.ui.theme.tokens import current_tokens
+from gelinspect.ui.widgets.app_shell import AppShell, MemoryShellSettings, NavMode, ShellSettings
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -491,36 +498,57 @@ class GalleryPage(QWidget):
 
 
 class GalleryWindow(QWidget):
-    """展示窗口：顶部标签切换「组件」与「监控小样」。"""
+    """展示窗口：AppShell 内容区顶部用标签切换「组件」与「试验监控小样」。"""
 
-    def __init__(self, report: FontReport | None = None) -> None:
+    def __init__(
+        self,
+        report: FontReport | None = None,
+        *,
+        settings: ShellSettings | None = None,
+        mode: NavMode | None = None,
+        animations_enabled: bool = True,
+    ) -> None:
         """创建窗口。
 
         Args:
             report: 字体加载报告。
+            settings: 侧栏模式持久化接口，默认 ``QSettings``。
+            mode: 强制初始侧栏模式（截图用）。
+            animations_enabled: 是否启用侧栏动画。
         """
         super().__init__()
         self.setProperty("role", "root")
         self.setWindowTitle("GelInspect 组件展示")
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        content = QWidget()
+        content.setProperty("role", "root")
+        column = QVBoxLayout(content)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(0)
         bar = QWidget()
         bar_layout = QHBoxLayout(bar)
         bar_layout.setContentsMargins(24, 8, 24, 0)
         self.tabs = Tabs(["组件", "试验监控小样"])
         bar_layout.addWidget(self.tabs, 1)
-        layout.addWidget(bar)
+        column.addWidget(bar)
         self.stack = QStackedWidget()
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.page = GalleryPage(report)
         self.scroll_area.setWidget(self.page)
-        self.sample = MonitorSample()
+        self.sample = MonitorPage()
         self.stack.addWidget(self.scroll_area)
         self.stack.addWidget(self.sample)
-        layout.addWidget(self.stack, 1)
+        column.addWidget(self.stack, 1)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
+
+        self.shell = AppShell(
+            content, settings=settings, mode=mode, animations_enabled=animations_enabled
+        )
+        self.shell.nav.set_current("monitor")
+        configure_demo_toolbar(self.shell.toolbar)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.addWidget(self.shell)
 
 
 def _parse_size(text: str) -> tuple[int, int]:
@@ -557,6 +585,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--size", type=_parse_size, default=(1280, 800), help="窗口尺寸，如 1280x800"
     )
     parser.add_argument("--page", choices=("gallery", "monitor"), default="gallery")
+    parser.add_argument(
+        "--nav-mode",
+        choices=("auto", "pinned"),
+        default=None,
+        help="侧栏模式：auto 自动隐藏、pinned 固定（默认读取已保存的设置，缺省 auto）",
+    )
+    parser.add_argument("--nav-open", action="store_true", help="自动隐藏模式下展开侧栏（截图用）")
     parser.add_argument("--full", action="store_true", help="截图时窗口高度撑满整个页面")
     parser.add_argument(
         "--scale", type=float, default=1.0, help="高 DPI 缩放倍数（QT_SCALE_FACTOR）"
@@ -570,13 +605,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     app = QApplication(sys.argv[:1])
     report = apply_theme(app)
+    mode = NavMode(args.nav_mode) if args.nav_mode else None
+    shot = bool(args.screenshot)
+    # 截图时用内存设置并关闭动画，不读写用户的真实偏好。
+    settings: ShellSettings | None = MemoryShellSettings(mode) if shot else None
     window: MonitorSample | GalleryWindow
-    is_monitor = args.page == "monitor"
-    window = MonitorSample() if is_monitor else GalleryWindow(last_report() or report)
+    if args.page == "monitor":
+        window = MonitorSample(settings=settings, mode=mode, animations_enabled=not shot)
+    else:
+        window = GalleryWindow(
+            last_report() or report, settings=settings, mode=mode, animations_enabled=not shot
+        )
     width, height = args.size
     window.resize(width, height)
     window.show()
     app.processEvents()
+    if args.nav_open:
+        window.shell.open_nav(sticky=True)
+        app.processEvents()
     if (focused := app.focusWidget()) is not None:
         focused.clearFocus()  # 初始焦点不画焦点环，截图更稳定
 

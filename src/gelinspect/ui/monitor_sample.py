@@ -13,7 +13,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gelinspect.domain.enums import Role
+from gelinspect.domain.permissions import permissions_of
 from gelinspect.ui.theme.fonts import load_fonts
+from gelinspect.ui.widgets.app_shell import AppShell, NavMode, ShellSettings
 from gelinspect.ui.widgets.badge import StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -21,7 +24,7 @@ from gelinspect.ui.widgets.data_table import Column, DataTable
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.marks import WellState
 from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend, TubeStrip
-from gelinspect.ui.widgets.side_nav import DEFAULT_NAV, SideNav
+from gelinspect.ui.widgets.quick_toolbar import QuickToolbar
 from gelinspect.ui.widgets.tabs import Tabs
 
 
@@ -58,33 +61,39 @@ def monitor_states() -> dict[int, WellState]:
     return states
 
 
-class MonitorSample(QWidget):
-    """试验监控页小样：侧栏加顶部信息、标签、孔板、视频卡和数据表。"""
+def configure_demo_toolbar(toolbar: QuickToolbar) -> None:
+    """给快捷栏填入演示用的状态：仪器已连接、简体中文、实验员张工及其权限。
+
+    Args:
+        toolbar: 要配置的快捷栏。
+    """
+    toolbar.set_instrument_status(True)
+    toolbar.set_language("简体中文")
+    toolbar.set_user("张工", "实验员")
+    toolbar.set_user_permissions(permissions_of(Role.EXPERIMENTER))
+
+
+class MonitorPage(QWidget):
+    """试验监控页内容：标题行、信息卡、标签、孔板、视频卡和数据表（可滚动）。"""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """创建小样。
+        """创建页面内容。
 
         Args:
             parent: 父控件。
         """
         super().__init__(parent)
         self.setProperty("role", "root")
-        self.setWindowTitle("试验监控 - 小样")
-        root = QHBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
-        self.nav = SideNav(DEFAULT_NAV)
-        self.nav.set_current("monitor")
-        root.addWidget(self.nav)
-
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(scroll.Shape.NoFrame)
         self.scroll_area = scroll
+        outer.addWidget(scroll)
         page = QWidget()
         page.setProperty("role", "root")
         scroll.setWidget(page)
-        root.addWidget(scroll, 1)
 
         col = QVBoxLayout(page)
         col.setContentsMargins(24, 20, 24, 28)
@@ -224,3 +233,39 @@ class MonitorSample(QWidget):
         )
         card.body.addWidget(table)
         return card
+
+
+class MonitorSample(QWidget):
+    """试验监控页小样：AppShell（快捷栏、侧栏）加 :class:`MonitorPage`。"""
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        settings: ShellSettings | None = None,
+        mode: NavMode | None = None,
+        animations_enabled: bool = True,
+    ) -> None:
+        """创建小样。
+
+        Args:
+            parent: 父控件。
+            settings: 侧栏模式持久化接口，默认 ``QSettings``。
+            mode: 强制初始侧栏模式（截图用）。
+            animations_enabled: 是否启用侧栏动画。
+        """
+        super().__init__(parent)
+        self.setProperty("role", "root")
+        self.setWindowTitle("试验监控 - 小样")
+        self.page = MonitorPage()
+        self.shell = AppShell(
+            self.page, settings=settings, mode=mode, animations_enabled=animations_enabled
+        )
+        self.shell.nav.set_current("monitor")
+        configure_demo_toolbar(self.shell.toolbar)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.shell)
+        self.nav = self.shell.nav
+        self.scroll_area = self.page.scroll_area
+        self.plate = self.page.plate
