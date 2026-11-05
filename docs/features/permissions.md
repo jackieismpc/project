@@ -8,8 +8,8 @@
 
 ## 流程
 
-1. 用户登录后，会话持有其角色（P7）。
-2. 服务层在执行操作前调用 `has_permission(role, permission)`。没有权限时拒绝操作，并写审计事件。
+1. 用户登录后，会话持有其角色（P7，`services/auth.py` 的 `Session`）。
+2. 服务层在执行操作前调用 `AuthService.authorize(session, permission)`（内部用 `has_permission`，并重新读取用户）。没有权限时拒绝操作，并写 `permission_denied` 审计事件。
 3. 界面根据同一函数隐藏或禁用入口。界面控制只是便利，真正的检查在服务层。
 
 新增功能时，先在 `Permission` 中增加权限，再在 `PERMISSION_ROLES` 中声明角色。`tests/domain/test_permissions.py` 要求每个权限都出现在矩阵中，并把矩阵内容固定下来，防止无意的修改。
@@ -56,4 +56,6 @@
 |---|---|
 | `tests/domain/test_permissions.py` | 矩阵覆盖全部权限；矩阵与规格完全一致；逐一检查「角色 × 权限」；反查函数；矩阵只读；实验员不能复核和签署 |
 
-需要人工验证：P7 完成后，用三个角色分别登录，确认页面入口与矩阵一致。
+P7 已落地：`tests/ui/test_main_window.py` 逐角色检查侧栏和快捷栏与矩阵一致，`tests/services/test_auth.py` 检查服务层的再校验（见 [auth-and-i18n.md](auth-and-i18n.md)）。
+
+需要人工验证：在真实窗口里用三个角色分别登录，确认页面入口与矩阵一致。

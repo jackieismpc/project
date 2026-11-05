@@ -105,6 +105,15 @@ class ReadoutCard(Card):
         self._note.setVisible(bool(note))
         self.set_value(value, unit)
 
+    def set_label(self, label: str) -> None:
+        """修改顶部说明（语言切换时使用）。
+
+        Args:
+            label: 新说明。
+        """
+        self._label_text = label
+        self._label.setText(label)
+
     def set_value(self, value: str, unit: str) -> None:
         """更新读数。
 
@@ -116,6 +125,7 @@ class ReadoutCard(Card):
         self._value.setText(
             f'{escape(value)}<span style="font-size:{unit_px}px"> {escape(unit)}</span>'
         )
+        self._value_text = (value, unit)
         self.setAccessibleName(f"{self._label_text} {value} {unit}")
 
     def set_note(self, note: str) -> None:

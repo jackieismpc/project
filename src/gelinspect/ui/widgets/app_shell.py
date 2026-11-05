@@ -185,7 +185,17 @@ class _HotZone(QWidget):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
-        self.setAccessibleName("侧栏热区")
+        self.setAccessibleName(self.tr("侧栏热区"))
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新无障碍名称。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self.setAccessibleName(self.tr("侧栏热区"))
+        super().changeEvent(event)
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
         """鼠标进入：请求悬停展开。
@@ -608,6 +618,16 @@ class AppShell(QWidget):
         else:
             text = self.tr("收起侧栏")
         self.toolbar.set_menu_hint(text)
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新菜单按钮提示。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_menu_hint()
+        super().changeEvent(event)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """处理侧栏与热区的鼠标进出，以及覆盖层展开时的外部点击。

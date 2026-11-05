@@ -10,8 +10,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QSize, Qt, Signal
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QResizeEvent, QShortcut
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSize, Qt, Signal
+from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence, QResizeEvent, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -170,6 +170,41 @@ class _StatusChip(QWidget):
         self.updateGeometry()
 
 
+class _MenuChip(QToolButton):
+    """状态区里带下拉菜单的一项（语言、当前用户）：图标加文字，点击弹出菜单。"""
+
+    def __init__(self, icon: str, text: str = "", parent: QWidget | None = None) -> None:
+        """创建按钮。
+
+        Args:
+            icon: Lucide 图标名。
+            text: 文字。
+            parent: 父控件。
+        """
+        super().__init__(parent)
+        self.setProperty("role", "quick")
+        self.setProperty("iconOnly", False)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setFixedHeight(current_tokens().space.touch)
+        self.set_content(icon, text)
+
+    def set_content(self, icon: str, text: str) -> None:
+        """更新图标和文字。
+
+        Args:
+            icon: Lucide 图标名。
+            text: 文字。
+        """
+        self.setIcon(_icon(icon))
+        self.setText(text)
+        self.updateGeometry()
+
+
 class QuickToolbar(QFrame):
     """全局常驻的顶部快捷栏，高度 56px。
 
@@ -179,10 +214,15 @@ class QuickToolbar(QFrame):
     Signals:
         actionTriggered: 某快捷操作被触发（点击或快捷键），参数为操作 id。
         menuRequested: 点击了菜单按钮，由 AppShell 决定展开或收起侧栏。
+        languageSelected: 在语言菜单里选了某种语言，参数为语言代码（如 ``zh_CN``）。
+        userActionRequested: 在用户菜单里选了某项，参数为 ``change_password``、
+            ``lock`` 或 ``logout``。
     """
 
     actionTriggered = Signal(str)  # noqa: N815
     menuRequested = Signal()  # noqa: N815
+    languageSelected = Signal(str)  # noqa: N815
+    userActionRequested = Signal(str)  # noqa: N815
 
     def __init__(
         self,
@@ -249,16 +289,39 @@ class QuickToolbar(QFrame):
         status_layout.setContentsMargins(0, 0, 0, 0)
         status_layout.setSpacing(16)
         self._instrument = _StatusChip("unplug", "")
-        self._language = _StatusChip("languages", self.tr("简体中文"))
-        self._user = _StatusChip("user", "")
+        self._language = _MenuChip("languages", "")
+        self._user = _MenuChip("user", "")
         for chip in (self._instrument, self._language, self._user):
             status_layout.addWidget(chip)
         self._layout.addWidget(self.status_area)
+
+        self._connected = False
+        self._language_name = ""
+        self._user_name = ""
+        self._user_role = ""
+        self._language_group = QActionGroup(self)
+        self._language_group.setExclusive(True)
+        self._language_menu = QMenu(self._language)
+        self._language.setMenu(self._language_menu)
+        self._user_menu = QMenu(self._user)
+        self._user.setMenu(self._user_menu)
+        self._user_actions: dict[str, QAction] = {}
+        for action_id, icon_name in (
+            ("change_password", "key-round"),
+            ("lock", "lock"),
+            ("logout", "log-out"),
+        ):
+            if action_id == "logout":
+                self._user_menu.addSeparator()
+            entry = self._user_menu.addAction(_icon(icon_name), "")
+            entry.triggered.connect(lambda _=False, i=action_id: self.userActionRequested.emit(i))
+            self._user_actions[action_id] = entry
 
         self.set_instrument_status(False)
         self.set_user("", "")
         self.set_menu_hint(self.tr("展开或收起侧栏"))
         self._refresh_actions()
+        self._retranslate_static()
 
     # ------------------------------------------------------------------ 构建
 
@@ -373,6 +436,7 @@ class QuickToolbar(QFrame):
         Args:
             connected: 仪器是否已连接。
         """
+        self._connected = connected
         if connected:
             self._instrument.set_content(
                 "plug", self.tr("仪器已连接"), icon_color="success", tone="ok"
@@ -391,9 +455,29 @@ class QuickToolbar(QFrame):
         Args:
             text: 语言名，例如「简体中文」。
         """
+        self._language_name = text
         self._language.set_content("languages", text)
         self._language.setAccessibleName(self.tr("界面语言：") + text)
         self._after_status_change()
+
+    def set_language_options(self, options: Sequence[tuple[str, str]], current: str) -> None:
+        """设置语言菜单的选项。选项用各语言自己的名字，不翻译。
+
+        Args:
+            options: ``(语言代码, 显示名)`` 序列。
+            current: 当前语言代码，菜单里对应项打勾，状态区显示它的名字。
+        """
+        self._language_menu.clear()
+        for action in list(self._language_group.actions()):
+            self._language_group.removeAction(action)
+        for code, name in options:
+            entry = self._language_menu.addAction(name)
+            entry.setCheckable(True)
+            entry.setChecked(code == current)
+            self._language_group.addAction(entry)
+            entry.triggered.connect(lambda _=False, c=code: self.languageSelected.emit(c))
+            if code == current:
+                self.set_language(name)
 
     def set_user(self, name: str, role: str) -> None:
         """更新当前用户。
@@ -402,13 +486,45 @@ class QuickToolbar(QFrame):
             name: 用户名，空串表示未登录。
             role: 角色显示名。
         """
+        self._user_name = name
+        self._user_role = role
         label = f"{name} · {role}" if role else name
         text = label if name else self.tr("未登录")
         self._user.set_content("user", text)
         self._user.setAccessibleName(self.tr("当前用户：") + text)
+        self._user.setEnabled(bool(name))
         self._after_status_change()
 
     # ------------------------------------------------------------------ 内部
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新全部文字。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._retranslate_static()
+        super().changeEvent(event)
+
+    def _retranslate_static(self) -> None:
+        """按当前语言重写所有文字、提示和无障碍名称（菜单按钮的提示由 AppShell 负责）。"""
+        self.setAccessibleName(self.tr("快捷操作栏"))
+        self.menu_button.setAccessibleName(self.tr("菜单"))
+        self.more_button.setText(self.tr("更多"))
+        self.more_button.setAccessibleName(self.tr("更多操作"))
+        for spec in self._specs:
+            name = self.tr(spec.text)
+            self._actions[spec.id].setText(name)
+            self._buttons[spec.id].setAccessibleName(name)
+        self._refresh_actions()
+        self._user_actions["change_password"].setText(self.tr("修改密码"))
+        self._user_actions["lock"].setText(self.tr("锁定屏幕"))
+        self._user_actions["logout"].setText(self.tr("退出登录"))
+        self.set_instrument_status(self._connected)
+        self.set_user(self._user_name, self._user_role)
+        if self._language_name:
+            self.set_language(self._language_name)
 
     def _refresh_actions(self) -> None:
         """按权限刷新各操作的可用状态与提示。"""

@@ -88,3 +88,61 @@ def test_experiment_engine_does_not_depend_on_qt_or_infrastructure() -> None:
         if module.split(".")[0] == "PySide6" or module.startswith("gelinspect.infrastructure")
     ]
     assert violations == []
+
+
+UI_ALLOWED = (
+    "gelinspect.ui",
+    "gelinspect.services",
+    "gelinspect.domain",
+    "gelinspect.interfaces",
+    "PySide6",
+    "pyqtgraph",
+    "numpy",
+)
+"""界面只依赖服务、领域、接口和 Qt；不直接碰数据库、视频、设备实现或组装根。"""
+
+
+def test_ui_depends_only_on_services_and_never_on_infrastructure() -> None:
+    violations = [
+        f"{path.relative_to(SRC)}: {module}"
+        for path in modules_in("ui")
+        for module in imported_roots(path)
+        if module != "gelinspect" and not is_allowed(module, UI_ALLOWED)  # 包本身只用于取版本号
+    ]
+    assert violations == []
+
+
+def test_ui_does_not_touch_engine_threads_or_databases() -> None:
+    forbidden = ("sqlalchemy", "sqlite3", "cv2", "threading", "concurrent", "multiprocessing")
+    allowed = {"bridge.py": {"threading"}}  # 桥接器只取线程号，不创建线程
+    violations = [
+        f"{path.relative_to(SRC)}: {module}"
+        for path in modules_in("ui")
+        for module in imported_roots(path)
+        if module.split(".")[0] in forbidden and module not in allowed.get(path.name, set())
+    ]
+    assert violations == []
+
+
+def test_new_services_do_not_depend_on_qt_or_infrastructure() -> None:
+    modules = [
+        SRC / "services" / name
+        for name in ("auth.py", "queries.py", "instrument_monitor.py", "app_services.py")
+    ]
+    violations = [
+        f"{path.name}: {module}"
+        for path in modules
+        for module in imported_roots(path)
+        if module.split(".")[0] == "PySide6" or module.startswith("gelinspect.infrastructure")
+    ]
+    assert violations == []
+
+
+def test_only_the_composition_root_knows_infrastructure_and_ui_together() -> None:
+    """组装根（包根下的模块）之外，没有任何层同时依赖 ui 与 infrastructure。"""
+    for layer in ("services", "ui"):
+        for path in modules_in(layer):
+            roots = set(imported_roots(path))
+            assert not any(m.startswith("gelinspect.app_context") for m in roots), path
+            assert not any(m.startswith("gelinspect.startup") for m in roots), path
+            assert not any(m.startswith("gelinspect.bootstrap") for m in roots), path

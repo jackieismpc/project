@@ -6,7 +6,7 @@
 """
 
 from gelinspect.infrastructure.db.database import Database, open_database
-from gelinspect.infrastructure.db.seed import SeedResult, seed_defaults
+from gelinspect.infrastructure.db.seed import SeedResult, seed_builtin_templates, seed_defaults
 from gelinspect.interfaces.storage import ChainVerification
 
 
@@ -22,4 +22,11 @@ def verify_audit_chain(database: Database) -> ChainVerification:
     return database.audit.verify_chain()
 
 
-__all__ = ["Database", "SeedResult", "open_database", "seed_defaults", "verify_audit_chain"]
+__all__ = [
+    "Database",
+    "SeedResult",
+    "open_database",
+    "seed_builtin_templates",
+    "seed_defaults",
+    "verify_audit_chain",
+]

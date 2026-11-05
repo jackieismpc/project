@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -19,7 +20,7 @@ from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.permissions import Permission, has_permission
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.interfaces.analysis import GelAnalyzer
-from gelinspect.interfaces.device import DeviceController
+from gelinspect.interfaces.device import DeviceController, DeviceError, DeviceStatus
 from gelinspect.interfaces.storage import ExperimentQuery, PageRequest, TransactionalStorage
 from gelinspect.services.engine_run import ACTIVE_STATES, SYSTEM_ACTOR, EngineDeps, EngineRun
 from gelinspect.services.engine_types import (
@@ -281,6 +282,26 @@ class ExperimentEngine:
             run.request_shutdown()
             finished = run.join(timeout_s)
         return self._events.stop(5.0 if timeout_s is None else timeout_s) and finished
+
+    def probe_device(self) -> DeviceStatus | None:
+        """空闲时探测设备状态，供界面显示连接和温度。
+
+        与运行中的试验互斥：拿不到引擎锁或试验在运行时直接返回 None，不会与引擎线程同时访问设备。
+
+        Returns:
+            设备状态；试验运行中、或正在启动时为 None。
+        """
+        if not self._lock.acquire(blocking=False):
+            return None
+        try:
+            if self._run is not None and self._run.alive:
+                return None
+            device = self._deps.device
+            with contextlib.suppress(DeviceError):  # 连不上时 read_status 返回 connected=False
+                device.connect()
+            return device.read_status()
+        finally:
+            self._lock.release()
 
     # ------------------------------------------------------------------ 恢复
 

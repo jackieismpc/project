@@ -13,6 +13,7 @@
 - 每个模块、公共类和公共函数都需要 docstring；`tests/` 目录不强制。
 - 行宽上限 100 字符，格式化与检查由 ruff 执行，类型检查由 mypy（strict 模式）执行。
 - 功能性文档放在 `docs/features/`，统一包含：目的、流程、权限、数据、测试。
+- 界面可见文字一律用 `tr()`（源语言为简体中文）；修改后运行 `uv run python scripts/update_translations.py` 并补全英文译文，步骤见 `docs/features/auth-and-i18n.md`。
 
 示例：
 

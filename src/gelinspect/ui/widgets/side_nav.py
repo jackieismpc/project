@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QEvent, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPaintEvent, QPen
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -40,19 +40,24 @@ class NavEntry:
     icon: str
 
 
+def _nav(key: str, label: str, icon: str) -> NavEntry:
+    return NavEntry(key, label, icon)
+
+
 DEFAULT_NAV: tuple[NavEntry, ...] = (
-    NavEntry("dashboard", "工作台", "layout-dashboard"),
-    NavEntry("new", "新试验", "circle-plus"),
-    NavEntry("monitor", "试验监控", "video"),
-    NavEntry("history", "历史记录", "history"),
-    NavEntry("templates", "模板管理", "columns-2"),
-    NavEntry("reagents", "试剂溯源", "flask-conical"),
-    NavEntry("reports", "报告中心", "file-text"),
-    NavEntry("audit", "审计追踪", "text-align-start"),
-    NavEntry("users", "用户与权限", "user"),
-    NavEntry("settings", "仪器设置", "settings"),
+    _nav("dashboard", str(QT_TRANSLATE_NOOP("SideNav", "工作台")), "layout-dashboard"),
+    _nav("new", str(QT_TRANSLATE_NOOP("SideNav", "新试验")), "circle-plus"),
+    _nav("monitor", str(QT_TRANSLATE_NOOP("SideNav", "试验监控")), "video"),
+    _nav("history", str(QT_TRANSLATE_NOOP("SideNav", "历史记录")), "history"),
+    _nav("templates", str(QT_TRANSLATE_NOOP("SideNav", "模板管理")), "columns-2"),
+    _nav("reagents", str(QT_TRANSLATE_NOOP("SideNav", "试剂溯源")), "flask-conical"),
+    _nav("reports", str(QT_TRANSLATE_NOOP("SideNav", "报告中心")), "file-text"),
+    _nav("audit", str(QT_TRANSLATE_NOOP("SideNav", "审计追踪")), "text-align-start"),
+    _nav("users", str(QT_TRANSLATE_NOOP("SideNav", "用户与权限")), "user"),
+    _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "仪器设置")), "settings"),
+    _nav("about", str(QT_TRANSLATE_NOOP("SideNav", "关于")), "info"),
 )
-"""设计稿中的 10 个主导航项。"""
+"""设计稿中的 10 个主导航项，加上「关于」。label 是简体中文源文本，显示时经翻译。"""
 
 
 class NavItem(QAbstractButton):
@@ -67,14 +72,44 @@ class NavItem(QAbstractButton):
         """
         super().__init__(parent)
         self.entry = entry
-        self.setText(entry.label)
         self.setCheckable(True)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(current_tokens().space.touch)
-        self.setAccessibleName(entry.label)
         self._hover = False
+        self._denied_reason = ""
+        self.retranslate()
+
+    def retranslate(self) -> None:
+        """按当前语言刷新文字、无障碍名称与提示。"""
+        label = QCoreApplication.translate("SideNav", self.entry.label)
+        self.setText(label)
+        self.setAccessibleName(label)
+        self.setToolTip(self._denied_reason and f"{label}：{self._denied_reason}")
+
+    def set_denied(self, denied: bool) -> None:
+        """标记当前角色无权进入：置灰并禁用，提示原因。
+
+        Args:
+            denied: True 表示无权限。
+        """
+        self._denied_reason = (
+            QCoreApplication.translate("SideNav", "当前角色无此权限") if denied else ""
+        )
+        self.setEnabled(not denied)
+        self.retranslate()
+        self.update()
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新文字。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self.set_denied(bool(self._denied_reason))
+        super().changeEvent(event)
 
     def sizeHint(self) -> QSize:  # noqa: N802
         """建议尺寸。
@@ -124,7 +159,10 @@ class NavItem(QAbstractButton):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         rect = QRectF(self.rect())
         checked = self.isChecked()
-        if checked:
+        if not self.isEnabled():
+            bg, fg = QColor(c.sidebar), QColor(c.sidebar_text)
+            fg.setAlpha(110)
+        elif checked:
             bg, fg = QColor(c.bg), QColor(c.sidebar)
         elif self._hover:
             bg, fg = QColor(c.sidebar_hover), QColor(c.on_accent)
@@ -135,6 +173,7 @@ class NavItem(QAbstractButton):
         p.drawRoundedRect(rect, 6, 6)
         icon_color = fg.name()
         pix = IconLoader.pixmap(self.entry.icon, 18, icon_color)
+        p.setOpacity(fg.alphaF())
         p.drawPixmap(12, int((rect.height() - 18) / 2), pix)
         weight = sans_font(14)
         if checked:
@@ -185,6 +224,16 @@ class PinButton(QAbstractButton):
         self.setAccessibleName(text)
         self.setToolTip(text)
         self.update()
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新提示。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self.set_pinned(self._pinned)
+        super().changeEvent(event)
 
     def enterEvent(self, event: object) -> None:  # noqa: N802
         """记录悬停。
@@ -243,7 +292,7 @@ class SideNav(QFrame):
         self,
         entries: Sequence[NavEntry],
         *,
-        brand: str = "凝胶智检系统",
+        brand: str | None = None,
         pinnable: bool = False,
         parent: QWidget | None = None,
     ) -> None:
@@ -251,21 +300,23 @@ class SideNav(QFrame):
 
         Args:
             entries: 导航项，按显示顺序。
-            brand: 顶部品牌名。
+            brand: 顶部品牌名，``None`` 使用「凝胶智检系统」（随语言切换）。
             pinnable: 品牌行右侧是否显示固定按钮（由 AppShell 使用）。
             parent: 父控件。
         """
         super().__init__(parent)
         self.setProperty("role", "sidebar")
         self.setFixedWidth(NAV_WIDTH)
-        self.setAccessibleName("主导航")
+        self.setAccessibleName(self.tr("主导航"))
+        self._custom_brand = brand
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 20, 12, 20)
         layout.setSpacing(4)
         brand_row = QHBoxLayout()
         brand_row.setContentsMargins(12, 0, 0, 14)
         brand_row.setSpacing(0)
-        title = Label(brand, "brand")
+        title = Label(brand or self.tr("凝胶智检系统"), "brand")
+        self._brand_label = title
         brand_row.addWidget(title, 1)
         self.pin_button = PinButton()
         self.pin_button.clicked.connect(self.pinToggled)
@@ -280,6 +331,28 @@ class SideNav(QFrame):
             self._items[entry.key] = item
             layout.addWidget(item)
         layout.addStretch(1)
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新品牌名和无障碍名称。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self.setAccessibleName(self.tr("主导航"))
+            if self._custom_brand is None:
+                self._brand_label.setText(self.tr("凝胶智检系统"))
+        super().changeEvent(event)
+
+    def set_denied(self, denied_keys: Sequence[str]) -> None:
+        """按权限置灰导航项。
+
+        Args:
+            denied_keys: 当前角色无权进入的导航项 key，其余恢复可用。
+        """
+        denied = set(denied_keys)
+        for key, item in self._items.items():
+            item.set_denied(key in denied)
 
     def _on_clicked(self, key: str) -> None:
         """处理点击：先更新选中，再通知激活。

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
 
 from gelinspect.domain.enums import Interpretation
@@ -33,14 +33,26 @@ class WellState(Enum):
 
 
 STATE_LABELS: dict[WellState, str] = {
-    WellState.EMPTY: "空",
-    WellState.INCUBATING: "孵育中",
-    WellState.READING: "读数中",
-    WellState.POSITIVE: "阳性",
-    WellState.NEGATIVE: "阴性",
-    WellState.REVIEW: "待复核",
+    WellState.EMPTY: str(QT_TRANSLATE_NOOP("WellState", "空")),
+    WellState.INCUBATING: str(QT_TRANSLATE_NOOP("WellState", "孵育中")),
+    WellState.READING: str(QT_TRANSLATE_NOOP("WellState", "读数中")),
+    WellState.POSITIVE: str(QT_TRANSLATE_NOOP("WellState", "阳性")),
+    WellState.NEGATIVE: str(QT_TRANSLATE_NOOP("WellState", "阴性")),
+    WellState.REVIEW: str(QT_TRANSLATE_NOOP("WellState", "待复核")),
 }
-"""状态的中文名，用于无障碍名称和表格。"""
+"""状态的源文本（简体中文），翻译用 :func:`state_label`。"""
+
+
+def state_label(state: WellState) -> str:
+    """状态的当前语言名称，用于无障碍名称、图例和表格。
+
+    Args:
+        state: 孔状态。
+
+    Returns:
+        翻译后的名称。
+    """
+    return QCoreApplication.translate("WellState", STATE_LABELS[state])
 
 
 def well_state_from_interpretation(value: Interpretation) -> WellState:

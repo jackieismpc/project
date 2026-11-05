@@ -9,11 +9,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from gelinspect.bootstrap import (
+    Argon2Hasher,
+    DatabaseFirstAdminSeeder,
+    initialize_accounts,
+    load_bootstrap_hook,
+)
 from gelinspect.infrastructure.db import Database, open_database
 from gelinspect.infrastructure.video.factory import VideoSourceConfigError, create_video_source
 from gelinspect.interfaces.analysis import GelAnalyzer
+from gelinspect.interfaces.bootstrap import DemoAccount
 from gelinspect.interfaces.device import DeviceController
 from gelinspect.interfaces.video import VideoSource
+from gelinspect.services.app_services import AppServices
+from gelinspect.services.auth import AuthService, LoginPolicy
 from gelinspect.services.config import (
     AppConfig,
     ConfigError,
@@ -23,6 +32,8 @@ from gelinspect.services.config import (
 )
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
+from gelinspect.services.instrument_monitor import InstrumentMonitor
+from gelinspect.services.queries import QueryService
 from gelinspect.services.video import VideoPipeline
 
 
@@ -39,6 +50,11 @@ class AppContext:
         analyzer: 算法。
         engine: 试验引擎。
         recovered: 启动恢复时被标记为异常的试验。
+        auth: 登录与权限服务。
+        queries: 只读查询服务。
+        instrument: 仪器状态监视器，由界面决定何时启动。
+        demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
+        first_run: 本次是否为首次启动（用户表原本为空）。
     """
 
     config: AppConfig
@@ -49,11 +65,48 @@ class AppContext:
     analyzer: GelAnalyzer
     engine: ExperimentEngine
     recovered: list[RecoveredExperiment]
+    auth: AuthService
+    queries: QueryService
+    instrument: InstrumentMonitor
+    demo_accounts: tuple[DemoAccount, ...] = ()
+    first_run: bool = False
+
+    def services(self, *, log_dir: Path | None = None) -> AppServices:
+        """生成界面使用的服务集合。
+
+        Args:
+            log_dir: 日志目录，默认数据目录下的 ``logs``。
+
+        Returns:
+            服务集合。
+        """
+        config = self.config
+        return AppServices(
+            auth=self.auth,
+            queries=self.queries,
+            engine=self.engine,
+            instrument=self.instrument,
+            demo_accounts=self.demo_accounts,
+            idle_lock_minutes=config.security.idle_lock_minutes,
+            recovered=tuple(self.recovered),
+            data_dir=config.data_dir,
+            log_dir=log_dir or config.data_dir / "logs",
+            backends={
+                "device": config.device.backend,
+                "video": config.video.source,
+                "analysis": config.analysis.backend,
+            },
+        )
 
     def close(self) -> None:
-        """释放全部资源，可重复调用。还在进行的试验转异常。"""
+        """有序释放全部资源，可重复调用。
+
+        顺序：仪器监视线程、试验引擎（还在进行的试验转异常）、视频管线、设备、数据库。
+        """
+        self.instrument.stop(5.0)
         self.engine.shutdown(30.0)
         self.pipeline.stop()
+        self.device.close()
         self.database.close()
 
 
@@ -102,9 +155,21 @@ def build_app_context(
         GelAnalyzer,  # type: ignore[type-abstract]
         settings.analysis.options,
     )
+    hook = load_bootstrap_hook(settings)
     pipeline = VideoPipeline(source, settings.pipeline_config())
     database = open_database(settings.database_path)
     try:
+        first_run = initialize_accounts(database, hook)
+        security = settings.security
+        auth = AuthService(
+            database,
+            Argon2Hasher(),
+            policy=LoginPolicy(
+                max_attempts=security.max_login_attempts,
+                lockout_s=security.lockout_minutes * 60.0,
+            ),
+            seeder=DatabaseFirstAdminSeeder(database),
+        )
         engine = ExperimentEngine(
             device,
             pipeline,
@@ -128,4 +193,9 @@ def build_app_context(
         analyzer=analyzer,
         engine=engine,
         recovered=recovered,
+        auth=auth,
+        queries=QueryService(auth, database),
+        instrument=InstrumentMonitor(engine),
+        demo_accounts=tuple(hook.accounts()) if hook is not None else (),
+        first_run=first_run,
     )

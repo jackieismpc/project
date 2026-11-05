@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from enum import Enum
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QCoreApplication, QEvent, QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFocusEvent,
@@ -36,10 +36,10 @@ from gelinspect.domain.plate import (
 from gelinspect.ui.theme.fonts import mono_font, sans_font
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.marks import (
-    STATE_LABELS,
     WellState,
     paint_focus_ring,
     paint_well,
+    state_label,
 )
 
 
@@ -69,8 +69,12 @@ def well_accessible_name(tube_no: int, state: WellState, *, selected: bool = Fal
     Returns:
         例如 ``7 号管，待复核``。
     """
-    suffix = "，已选中" if selected else ""
-    return f"{tube_no} 号管，{STATE_LABELS[state]}{suffix}"
+    text = QCoreApplication.translate("PlateGrid", "{no} 号管，{state}").format(
+        no=tube_no, state=state_label(state)
+    )
+    if selected:
+        text += QCoreApplication.translate("PlateGrid", "，已选中")
+    return text
 
 
 class PlateGrid(QWidget):
@@ -494,11 +498,21 @@ class PlateGrid(QWidget):
 
     def _update_accessible(self) -> None:
         """刷新无障碍名称与描述（读屏软件读出当前孔）。"""
-        self.setAccessibleName("孔板 8 乘 10")
+        self.setAccessibleName(self.tr("孔板 8 乘 10"))
         tube = self._current
         self.setAccessibleDescription(
             well_accessible_name(tube, self.state(tube), selected=tube in self._selected)
         )
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新无障碍文字。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_accessible()
+        super().changeEvent(event)
 
     # ------------------------------------------------------------------ 绘制
 
@@ -573,7 +587,25 @@ class PlateLegend(QWidget):
         super().__init__(parent)
         self._states = list(states)
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        self.setAccessibleName("图例：" + "、".join(STATE_LABELS[s] for s in self._states))
+        self._update_accessible()
+
+    def _update_accessible(self) -> None:
+        """刷新无障碍名称。"""
+        self.setAccessibleName(
+            self.tr("图例：") + self.tr("、").join(state_label(s) for s in self._states)
+        )
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新文字宽度和无障碍名称。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_accessible()
+            self.updateGeometry()
+            self.update()
+        super().changeEvent(event)
 
     def _item_widths(self) -> list[float]:
         """各图例项宽度（圆点 14 + 间距 6 + 文字）。
@@ -582,7 +614,7 @@ class PlateLegend(QWidget):
             宽度列表。
         """
         fm = QFontMetrics(sans_font(12))
-        return [14 + 6 + fm.horizontalAdvance(STATE_LABELS[s]) for s in self._states]
+        return [14 + 6 + fm.horizontalAdvance(state_label(s)) for s in self._states]
 
     def sizeHint(self) -> QSize:  # noqa: N802
         """建议尺寸。
@@ -618,7 +650,7 @@ class PlateLegend(QWidget):
             p.drawText(
                 QRectF(x + 20, 0, width - 20 + 4, self.height()),
                 int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
-                STATE_LABELS[state],
+                state_label(state),
             )
             x += width + 16
         p.end()
@@ -674,7 +706,17 @@ class TubeStrip(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(18 + 12 + 112 + 12 + 10 + 16 + 10)
         self.set_levels(levels)
-        self.setAccessibleName("当前一排 8 支试管的实时画面")
+        self.setAccessibleName(self.tr("当前一排 8 支试管的实时画面"))
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新无障碍名称。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self.setAccessibleName(self.tr("当前一排 8 支试管的实时画面"))
+        super().changeEvent(event)
 
     def set_levels(self, levels: Sequence[float]) -> None:
         """设置 8 支管的凝胶高度。

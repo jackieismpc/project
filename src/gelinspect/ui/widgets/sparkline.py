@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
@@ -29,7 +29,7 @@ class Sparkline(QWidget):
         y_range: tuple[float, float] = (35.6, 38.4),
         band: tuple[float, float] | None = (36.0, 38.0),
         ticks: Sequence[float] = (38.0, 37.0, 36.0),
-        x_labels: tuple[str, str] = ("60 分钟前", "现在"),
+        x_labels: tuple[str, str] | None = None,
         compact: bool = False,
         parent: QWidget | None = None,
     ) -> None:
@@ -40,7 +40,7 @@ class Sparkline(QWidget):
             y_range: Y 轴显示范围（下限，上限）。
             band: 允许范围带，``None`` 不画。
             ticks: Y 轴刻度，同时画中间刻度的虚线基准。
-            x_labels: 左右两端的时间说明。
+            x_labels: 左右两端的时间说明，``None`` 使用「60 分钟前」「现在」（随语言切换）。
             compact: 紧凑模式，不画坐标文字。
             parent: 父控件。
         """
@@ -78,11 +78,35 @@ class Sparkline(QWidget):
         """刷新无障碍描述。"""
         if self._values:
             self.setAccessibleName(
-                f"趋势曲线，最近值 {self._values[-1]:.1f}，"
-                f"范围 {min(self._values):.1f} 到 {max(self._values):.1f}"
+                self.tr("趋势曲线，最近值 {last}，范围 {low} 到 {high}").format(
+                    last=f"{self._values[-1]:.1f}",
+                    low=f"{min(self._values):.1f}",
+                    high=f"{max(self._values):.1f}",
+                )
             )
         else:
-            self.setAccessibleName("趋势曲线，暂无数据")
+            self.setAccessibleName(self.tr("趋势曲线，暂无数据"))
+
+    def x_labels(self) -> tuple[str, str]:
+        """当前使用的左右端时间说明。
+
+        Returns:
+            自定义值，或翻译后的默认值。
+        """
+        if self._x_labels is not None:
+            return self._x_labels
+        return (self.tr("60 分钟前"), self.tr("现在"))
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新无障碍名称并重绘。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_accessible()
+            self.update()
+        super().changeEvent(event)
 
     def sizeHint(self) -> QSize:  # noqa: N802
         """建议尺寸。
@@ -155,6 +179,6 @@ class Sparkline(QWidget):
                     f"{tick:g}",
                 )
             label_rect = QRectF(plot.left(), plot.bottom() + 4, plot.width(), 16)
-            p.drawText(label_rect, int(Qt.AlignmentFlag.AlignLeft), self._x_labels[0])
-            p.drawText(label_rect, int(Qt.AlignmentFlag.AlignRight), self._x_labels[1])
+            p.drawText(label_rect, int(Qt.AlignmentFlag.AlignLeft), self.x_labels()[0])
+            p.drawText(label_rect, int(Qt.AlignmentFlag.AlignRight), self.x_labels()[1])
         p.end()

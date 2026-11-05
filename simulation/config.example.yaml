@@ -21,3 +21,15 @@ device:
 engine:
   incubation_minutes: 60
   time_scale: 60          # 60 分钟孵育约 1 分钟跑完，与 SimDevice 的默认加速倍数一致
+
+# 首次启动（数据库里还没有账号）时运行的初始化钩子：创建演示账号 admin / experimenter / analyst，
+# 密码见 simulation/demo_accounts.py，也显示在登录页的「演示账号」提示里。
+# 真实配置删掉整个 bootstrap 段：首次启动时界面会要求创建管理员，数据库里不会有任何默认密码。
+bootstrap:
+  hook: "simulation.demo_accounts:DemoAccounts"
+
+# 账号安全（可选，下面是默认值，不属于默认配置的必写项）：
+# security:
+#   idle_lock_minutes: 15     # 空闲多久自动锁屏，0 表示不锁；锁屏时试验在后台继续
+#   max_login_attempts: 5     # 连续失败几次后锁定
+#   lockout_minutes: 5        # 锁定多久

@@ -52,8 +52,9 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
     },
     "device": {"backend": "simulation.sim_device:SimDevice"},
     "engine": {"incubation_minutes": 60, "time_scale": 60},
+    "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
 }
-"""默认配置：模拟后端，时间加速 60 倍。"""
+"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号。"""
 
 
 class ConfigError(Exception):
@@ -130,6 +131,33 @@ class DeviceSection(_Section):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+class SecuritySection(_Section):
+    """账号安全配置。
+
+    Attributes:
+        idle_lock_minutes: 空闲多久自动锁屏，0 表示不自动锁屏。
+        max_login_attempts: 连续失败多少次后锁定。
+        lockout_minutes: 锁定时长。
+    """
+
+    idle_lock_minutes: float = Field(default=15.0, ge=0)
+    max_login_attempts: int = Field(default=5, ge=1)
+    lockout_minutes: float = Field(default=5.0, gt=0)
+
+
+class BootstrapSection(_Section):
+    """首次启动的初始化钩子。
+
+    Attributes:
+        hook: 实现 ``BootstrapHook`` 的类路径。留空表示没有默认账号，
+            首次启动时在界面创建管理员。
+        options: 构造函数的关键字参数。
+    """
+
+    hook: str | None = None
+    options: dict[str, Any] = Field(default_factory=dict)
+
+
 class AppConfig(_Section):
     """软件的完整配置。加载后路径都已是绝对路径。
 
@@ -140,6 +168,8 @@ class AppConfig(_Section):
         device: 设备后端。
         engine: 试验引擎。``analysis_timeout_s`` 由 ``analysis.timeout_ms`` 决定。
         interpretation: 三态到阴阳性的映射，未写的状态用默认值。
+        security: 账号安全。
+        bootstrap: 首次启动初始化钩子。
     """
 
     data_dir: Path = Path("data")
@@ -148,6 +178,8 @@ class AppConfig(_Section):
     device: DeviceSection
     engine: EngineConfig = EngineConfig()
     interpretation: dict[str, str] = Field(default_factory=dict)
+    security: SecuritySection = SecuritySection()
+    bootstrap: BootstrapSection = BootstrapSection()
 
     @property
     def database_path(self) -> Path:

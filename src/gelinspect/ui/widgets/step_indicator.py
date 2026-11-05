@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from PySide6.QtCore import QRectF, QSize, Qt
+from PySide6.QtCore import QEvent, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPaintEvent
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
@@ -57,8 +57,32 @@ class StepIndicator(QWidget):
         """刷新无障碍名称。"""
         if self._steps:
             self.setAccessibleName(
-                f"步骤 {self._current + 1} / {len(self._steps)}：{self._steps[self._current]}"
+                self.tr("步骤 {no} / {total}：{name}").format(
+                    no=self._current + 1, total=len(self._steps), name=self._steps[self._current]
+                )
             )
+
+    def set_steps(self, steps: Sequence[str]) -> None:
+        """替换步骤文字（语言切换后由使用方调用）。
+
+        Args:
+            steps: 新的步骤名称，数量应与创建时一致。
+        """
+        self._steps = list(steps)
+        self._current = max(0, min(self._current, len(self._steps) - 1))
+        self._refresh_accessible()
+        self.updateGeometry()
+        self.update()
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新无障碍名称。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            self._refresh_accessible()
+        super().changeEvent(event)
 
     def _widths(self) -> list[float]:
         """计算每个胶囊的宽度。

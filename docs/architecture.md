@@ -39,6 +39,7 @@ ui → services → interfaces → domain
 | 试验引擎线程 `experiment-engine` | 每次运行 1 个 | 状态机、10 排调度、`DeviceController` 的全部方法、结果写库 | 访问界面对象、直接调用算法 |
 | 分析工作线程 `engine-analysis` | 每次运行 1 个 | `GelAnalyzer` 的全部方法，重试时从磁盘读回原图 | 访问界面对象、数据库和设备 |
 | 事件分发线程 `engine-events` | 每次运行 1 个 | 调用引擎事件的监听者 | 访问设备；监听者阻塞不影响引擎 |
+| 仪器监视线程 `instrument-monitor` | 1 | 试验空闲时每 2 秒调用 `ExperimentEngine.probe_device()`（与运行中的试验互斥），回调仪器状态 | 访问界面对象；与引擎线程同时访问设备 |
 
 通信方式：
 
@@ -51,7 +52,7 @@ Qt 主线程 ←─────────────────── 试验
 采集线程 → 环形缓冲 ──抓帧──→ 试验引擎线程 ──RowAnalysisRequest──→ 分析工作线程
 ```
 
-- **界面和引擎**：引擎是纯 Python，不依赖 Qt。界面直接调用引擎的命令（都不阻塞），引擎通过回调发布不可变的 `EngineEvent`，P9 在回调里转成 `Signal`（排队连接）切回主线程。界面不持有 `Experiment` 对象，也不直接修改它，初始状态读 `engine.snapshot()`。
+- **界面和引擎**：引擎是纯 Python，不依赖 Qt。界面直接调用引擎的命令（都不阻塞），引擎通过回调发布不可变的 `EngineEvent`，P7 的 `ui/bridge.py:EngineBridge` 在回调里发内部信号，Qt 用排队连接切回主线程，再分发成带类型的信号。界面不持有 `Experiment` 对象，也不直接修改它，初始状态读 `engine.snapshot()`。
 - **一致性**：引擎每次写库都先改内存聚合，再把状态、结果、媒体和审计放进一个 `UnitOfWork` 提交，失败就撤销，提交成功后才发事件。详见 `docs/features/experiment-engine.md`。
 - **状态所有权**：`Experiment` 只在引擎线程上读写，因此领域层不需要加锁。
 - **采集和其他线程**：环形缓冲是唯一的共享结构，内部加锁，并限制内存上限。超过上限时丢预览帧，不丢抓拍帧。预览帧缩放后通过 `Signal` 送到界面，约 15 fps，只保留最新一帧。

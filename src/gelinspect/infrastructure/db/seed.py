@@ -36,6 +36,32 @@ class SeedResult:
     templates_added: tuple[str, ...]
 
 
+def seed_builtin_templates(database: Database) -> tuple[str, ...]:
+    """写入缺失的内置模板，可重复调用，已存在的不覆盖。
+
+    Args:
+        database: 已打开的数据库。
+
+    Returns:
+        本次新增的内置模板标识。
+    """
+    added: list[str] = []
+    for template in BUILTIN_TEMPLATES.values():
+        if database.templates.get(template.template_id) is None:
+            database.templates.save(template, builtin=True)
+            added.append(template.template_id)
+            database.audit.append(
+                AuditEvent(
+                    occurred_at=datetime.now(UTC),
+                    actor=SYSTEM_ACTOR,
+                    actor_role=None,
+                    action=AuditAction.TEMPLATE_CHANGED,
+                    detail=f"初始化内置模板 {template.template_id}",
+                )
+            )
+    return tuple(added)
+
+
 def seed_defaults(
     database: Database,
     *,
@@ -65,20 +91,7 @@ def seed_defaults(
     if not admin_username.strip():
         raise ValueError("管理员登录名不能为空")
 
-    templates_added: list[str] = []
-    for template in BUILTIN_TEMPLATES.values():
-        if database.templates.get(template.template_id) is None:
-            database.templates.save(template, builtin=True)
-            templates_added.append(template.template_id)
-            database.audit.append(
-                AuditEvent(
-                    occurred_at=datetime.now(UTC),
-                    actor=SYSTEM_ACTOR,
-                    actor_role=None,
-                    action=AuditAction.TEMPLATE_CHANGED,
-                    detail=f"初始化内置模板 {template.template_id}",
-                )
-            )
+    templates_added = seed_builtin_templates(database)
 
     admin_created = database.users.get_by_username(admin_username) is None
     if admin_created:
@@ -101,4 +114,4 @@ def seed_defaults(
                 detail=f"初始化管理员 {admin_username}，首次登录须修改密码",
             )
         )
-    return SeedResult(admin_created=admin_created, templates_added=tuple(templates_added))
+    return SeedResult(admin_created=admin_created, templates_added=templates_added)

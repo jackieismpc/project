@@ -63,6 +63,11 @@ QPushButton[variant="danger"] { border-color: $danger; color: $danger; }
 QPushButton[variant="danger"]:hover { background: $danger; border-color: $danger; color: $on_accent; }
 QPushButton[variant="danger"]:focus { border: 3px solid $focus; }
 
+QPushButton[role="link"] { min-height: 32px; padding: 0 8px; border: 0; background: transparent; color: $ink_muted; font-weight: 400; }
+QPushButton[role="link"]:hover { background: transparent; color: $ink; }
+QPushButton[role="link"]:checked { color: $ink; font-weight: 700; }
+QPushButton[role="link"]:focus { border: 0; padding: 0 8px; text-decoration: underline; }
+
 QLabel[role="badge"] { border-radius: 13px; padding: 4px 12px; font-size: ${small}px; font-weight: 500; }
 QLabel[role="badge"][tone="info"] { background: $primary_soft; color: $primary_hover; }
 QLabel[role="badge"][tone="success"] { background: $success_bg; color: $success; }

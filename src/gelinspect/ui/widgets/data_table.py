@@ -8,6 +8,7 @@ from typing import Any
 
 from PySide6.QtCore import (
     QAbstractTableModel,
+    QEvent,
     QModelIndex,
     QPersistentModelIndex,
     QRectF,
@@ -32,7 +33,7 @@ from gelinspect.ui.theme.fonts import mono_font, sans_font
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
-from gelinspect.ui.widgets.marks import STATE_LABELS, WellState, paint_well
+from gelinspect.ui.widgets.marks import WellState, paint_well, state_label
 
 ROW_HEIGHT = 38
 """数据行高（px）。"""
@@ -131,7 +132,7 @@ class RecordTableModel(QAbstractTableModel):
         value = self.rows[index.row()].get(column.key, "")
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.AccessibleTextRole):
             if isinstance(value, WellState):
-                return STATE_LABELS[value]
+                return state_label(value)
             return "–" if value in ("", None) else str(value)
         if role == Qt.ItemDataRole.UserRole:
             return value
@@ -244,7 +245,7 @@ class DataTable(QWidget):
         self,
         columns: Sequence[Column] = (),
         *,
-        empty_title: str = "暂无数据",
+        empty_title: str | None = None,
         empty_hint: str = "",
         fit_content: bool = False,
         parent: QWidget | None = None,
@@ -253,7 +254,7 @@ class DataTable(QWidget):
 
         Args:
             columns: 列定义。
-            empty_title: 空状态标题。
+            empty_title: 空状态标题，``None`` 使用「暂无数据」（随语言切换）。
             empty_hint: 空状态提示。
             fit_content: 为 True 时表格高度随行数增长，不出现内部滚动条。
             parent: 父控件。
@@ -290,7 +291,8 @@ class DataTable(QWidget):
         icon = Label()
         icon.setPixmap(IconLoader.pixmap("inbox", 32, "ink_muted"))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._empty_title = Label(empty_title, "val")
+        self._custom_empty_title = empty_title
+        self._empty_title = Label(empty_title or self.tr("暂无数据"), "val")
         self._empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_hint = Label(empty_hint, "meta")
         self._empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -346,6 +348,7 @@ class DataTable(QWidget):
             title: 标题。
             hint: 提示，空串则隐藏。
         """
+        self._custom_empty_title = title
         self._empty_title.setText(title)
         self._empty_hint.setText(hint)
         self._empty_hint.setVisible(bool(hint))
@@ -356,4 +359,18 @@ class DataTable(QWidget):
         if self._fit and self.model.rowCount() > 0:
             height = self.view.horizontalHeader().height() or 36
             self.view.setFixedHeight(height + self.model.rowCount() * ROW_HEIGHT + 2)
-        self.setAccessibleName("数据表格" if self.model.rowCount() else self._empty_title.text())
+        self.setAccessibleName(
+            self.tr("数据表格") if self.model.rowCount() else self._empty_title.text()
+        )
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """语言切换时刷新默认的空状态标题。
+
+        Args:
+            event: 事件。
+        """
+        if event.type() == QEvent.Type.LanguageChange:
+            if self._custom_empty_title is None:
+                self._empty_title.setText(self.tr("暂无数据"))
+            self._refresh()
+        super().changeEvent(event)

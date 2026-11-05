@@ -1,0 +1,105 @@
+"""界面读取数据的服务入口：每个入口先校验权限，再查询存储。
+
+界面只能通过这里读数据，不直接碰数据库。权限在这里再校验一次，
+所以即使界面的入口没有被禁用（或被绕过），无权限的调用也会被拒绝。
+"""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+from gelinspect.domain.permissions import Permission
+from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.interfaces.storage import (
+    AuditQuery,
+    AuditRecord,
+    AuditRepository,
+    ExperimentQuery,
+    ExperimentRepository,
+    ExperimentSummary,
+    Page,
+    PageRequest,
+)
+from gelinspect.services.auth import AuthService, Session
+
+
+class QueryStorage(Protocol):
+    """查询需要的存储。"""
+
+    @property
+    def experiments(self) -> ExperimentRepository:
+        """试验仓储。"""
+        ...
+
+    @property
+    def audit(self) -> AuditRepository:
+        """审计仓储。"""
+        ...
+
+
+class QueryService:
+    """工作台等页面的只读查询。"""
+
+    def __init__(self, auth: AuthService, storage: QueryStorage) -> None:
+        """创建服务。
+
+        Args:
+            auth: 认证服务，用来校验权限。
+            storage: 存储。
+        """
+        self._auth = auth
+        self._storage = storage
+
+    def recent_experiments(
+        self, session: Session | None, limit: int = 8
+    ) -> list[ExperimentSummary]:
+        """最近创建的试验。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+            limit: 最多返回几条。
+
+        Returns:
+            按创建时间倒序的试验摘要。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        page = self._storage.experiments.query(ExperimentQuery(), PageRequest(limit=limit))
+        return list(page.items)
+
+    def faulted_experiments(
+        self, session: Session | None, limit: int = 10
+    ) -> list[ExperimentSummary]:
+        """处于异常状态、需要人工处理的试验。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+            limit: 最多返回几条。
+
+        Returns:
+            异常试验摘要。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        query = ExperimentQuery(state=ExperimentState.FAULTED)
+        return list(self._storage.experiments.query(query, PageRequest(limit=limit)).items)
+
+    def recent_audit(self, session: Session | None, limit: int = 20) -> Page[AuditRecord]:
+        """最近的审计记录。
+
+        Args:
+            session: 调用者的会话，需要 ``audit_view`` 权限。
+            limit: 最多返回几条。
+
+        Returns:
+            一页审计记录。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.AUDIT_VIEW)
+        return self._storage.audit.query(AuditQuery(), PageRequest(limit=limit))
