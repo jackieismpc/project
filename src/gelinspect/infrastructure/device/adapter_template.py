@@ -38,6 +38,18 @@ class DeviceControllerAdapter:
         # 步骤：发送移动指令 → 轮询到位信号 → 超时抛 DeviceTimeoutError。
         raise NotImplementedError("请在协议确定后实现")
 
+    def select_row(self, row_index: int) -> None:
+        """让相机对准一排。相机固定时实现为空操作。
+
+        Args:
+            row_index: 排号，1–10。
+
+        Raises:
+            NotImplementedError: 模板尚未实现。
+        """
+        # 步骤：发送定位指令 → 轮询到位信号 → 超时抛 DeviceTimeoutError。
+        raise NotImplementedError("请在协议确定后实现")
+
     def flip_row(self, row_index: int) -> FlipResult:
         """翻转一排并保持翻转状态。
 
@@ -65,7 +77,7 @@ class DeviceControllerAdapter:
         Raises:
             NotImplementedError: 模板尚未实现。
         """
-        # 步骤：与 flip_row 相同，方向相反。
+        # 步骤：与 flip_row 相同，方向相反。已在原位时直接成功（必须幂等）。
         raise NotImplementedError("请在协议确定后实现")
 
     def read_status(self) -> DeviceStatus:

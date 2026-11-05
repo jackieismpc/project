@@ -1,5 +1,8 @@
 # 把三个后端指向 simulation 里的模拟实现。格式见 docs/architecture.md 第 3 节。
-# 接入真实后端时，只需把下面的类路径换成真实实现，其余业务配置不变。
+# 接入真实后端时，把下面的类路径换成真实实现，并删除 engine.time_scale（真实设备不加速）。
+# 不指定配置文件时，程序使用 services/config.py 里内容相同的默认配置。
+data_dir: "data"          # 相对路径都相对仓库根目录
+
 analysis:
   backend: "simulation.mock_analyzer:MockAnalyzer"
   config_path: "simulation/analyzer.example.yaml"  # 可为空，空则使用默认参数
@@ -14,3 +17,7 @@ video:
 
 device:
   backend: "simulation.sim_device:SimDevice"
+
+engine:
+  incubation_minutes: 60
+  time_scale: 60          # 60 分钟孵育约 1 分钟跑完，与 SimDevice 的默认加速倍数一致

@@ -36,7 +36,12 @@ from gelinspect.services.video.preview import PreviewFrame, PreviewWorker
 from gelinspect.services.video.quality import QualityMonitor, QualityStats
 from gelinspect.services.video.recorder import RecorderStats, SegmentRecord, SegmentRecorder
 from gelinspect.services.video.ring_buffer import BufferStats, FrameRingBuffer
-from gelinspect.services.video.snapshot import SavedImage, SnapshotGrabber, SnapshotResult
+from gelinspect.services.video.snapshot import (
+    SavedImage,
+    SnapshotGrabber,
+    SnapshotResult,
+    load_saved_frames,
+)
 
 __all__ = [
     "BufferConfig",
@@ -77,6 +82,7 @@ __all__ = [
     "VideoPipeline",
     "VideoPipelineConfig",
     "VideoPipelineError",
+    "load_saved_frames",
     "segment_to_media_file",
     "snapshot_to_media_files",
 ]

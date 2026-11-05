@@ -68,3 +68,23 @@ def test_infrastructure_templates_do_not_import_heavy_drivers() -> None:
     ]
     for path in templates:
         assert not {module.split(".")[0] for module in imported_roots(path)} & forbidden
+
+
+def test_experiment_engine_does_not_depend_on_qt_or_infrastructure() -> None:
+    modules = [
+        SRC / "services" / name
+        for name in (
+            "experiment_engine.py",
+            "engine_run.py",
+            "engine_types.py",
+            "engine_workers.py",
+            "config.py",
+        )
+    ]
+    violations = [
+        f"{path.name}: {module}"
+        for path in modules
+        for module in imported_roots(path)
+        if module.split(".")[0] == "PySide6" or module.startswith("gelinspect.infrastructure")
+    ]
+    assert violations == []

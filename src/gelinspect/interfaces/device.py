@@ -116,6 +116,22 @@ class DeviceController(Protocol):
         """
         ...
 
+    def select_row(self, row_index: int) -> None:
+        """让相机对准一排，到位后返回。翻转前的帧必须拍到这一排，所以引擎在抓帧前调用。
+
+        相机固定、一次能看到整板的设备可以实现为空操作。
+
+        Args:
+            row_index: 排号，1–10。
+
+        Raises:
+            ValueError: 排号超出范围。
+            DeviceConnectionError: 通信断开。
+            DeviceTimeoutError: 未在规定时间内到位。
+            DeviceFaultError: 设备故障或拒绝执行。
+        """
+        ...
+
     def flip_row(self, row_index: int) -> FlipResult:
         """翻转一排并保持翻转状态，到位静止后返回，软件随后抓取翻转后的帧。
 
@@ -135,6 +151,8 @@ class DeviceController(Protocol):
 
     def restore_row(self, row_index: int) -> FlipResult:
         """把一排复位到翻转前的姿态，到位静止后返回。
+
+        必须幂等：翻转失败时引擎不知道动作走到哪一步，会尝试复位，已在原位时应直接成功。
 
         Args:
             row_index: 排号，1–10。

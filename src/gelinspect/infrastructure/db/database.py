@@ -12,6 +12,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from gelinspect.infrastructure.db.repositories.audit import SqlAuditRepository
@@ -20,7 +21,7 @@ from gelinspect.infrastructure.db.repositories.files import SqlMediaRepository, 
 from gelinspect.infrastructure.db.repositories.telemetry import SqlTelemetryRepository
 from gelinspect.infrastructure.db.repositories.templates import SqlTemplateRepository
 from gelinspect.infrastructure.db.repositories.users import SqlUserRepository
-from gelinspect.interfaces.storage import DatabaseVersionError
+from gelinspect.interfaces.storage import DatabaseVersionError, StorageError
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 """迁移脚本目录，用包内路径定位。打包时必须把整个目录作为数据文件带上。"""
@@ -65,6 +66,76 @@ def _migrate(engine: Engine) -> None:
         raise DatabaseVersionError(f"数据库迁移失败，可能由更新版本的程序创建：{error}") from error
 
 
+class SqlUnitOfWork:
+    """绑定到同一会话的仓储集合，实现 ``interfaces.storage.UnitOfWork``。
+
+    仓储通过会话提供者取会话，这里的提供者只交出同一个会话并 ``flush``，
+    不提交，所以完整性错误仍在仓储方法内抛出并被转换，提交由 ``Database.unit_of_work`` 负责。
+    """
+
+    def __init__(self, session: Session) -> None:
+        """绑定会话。
+
+        Args:
+            session: 已开始事务的会话。
+        """
+        self._session = session
+        self._open = True
+        self._poisoned = False
+        self._experiments = SqlExperimentRepository(self._bound)
+        self._audit = SqlAuditRepository(self._bound)
+        self._media = SqlMediaRepository(self._bound)
+        self._telemetry = SqlTelemetryRepository(self._bound)
+
+    @contextmanager
+    def _bound(self) -> Iterator[Session]:
+        """交出本事务的会话；异常穿过时记下，防止调用方吞掉后提交半截写入。
+
+        Yields:
+            本事务的会话。
+
+        Raises:
+            StorageError: 工作单元已结束。
+        """
+        if not self._open:
+            raise StorageError("工作单元已结束，不能继续使用")
+        try:
+            yield self._session
+            self._session.flush()
+        except BaseException:
+            self._poisoned = True
+            raise
+
+    @property
+    def poisoned(self) -> bool:
+        """是否有写入失败过。为真时事务不能提交。"""
+        return self._poisoned
+
+    def close(self) -> None:
+        """结束工作单元，之后再用其中的仓储会报错。"""
+        self._open = False
+
+    @property
+    def experiments(self) -> SqlExperimentRepository:
+        """本事务的试验仓储。"""
+        return self._experiments
+
+    @property
+    def audit(self) -> SqlAuditRepository:
+        """本事务的审计仓储。"""
+        return self._audit
+
+    @property
+    def media(self) -> SqlMediaRepository:
+        """本事务的媒体文件记录仓储。"""
+        return self._media
+
+    @property
+    def telemetry(self) -> SqlTelemetryRepository:
+        """本事务的温度与设备日志仓储。"""
+        return self._telemetry
+
+
 class Database:
     """已打开的数据库，持有引擎并提供会话和各仓储。
 
@@ -90,6 +161,33 @@ class Database:
         """
         with self._sessions.begin() as session:
             yield session
+
+    @contextmanager
+    def unit_of_work(self) -> Iterator[SqlUnitOfWork]:
+        """开启工作单元：多个仓储的写入在同一事务提交，异常时全部回滚。
+
+        事务以 ``BEGIN IMMEDIATE`` 开始，进入时就持有写锁。这样事务内先读后写（例如审计链头）
+        不会读到过期的快照，也不会在升级写锁时才失败。等待写锁最多 ``busy_timeout``。
+
+        Yields:
+            绑定到本事务的仓储集合。
+
+        Raises:
+            StorageError: 取不到写锁、提交失败，或事务内有写入失败却被调用方吞掉。
+        """
+        uow: SqlUnitOfWork | None = None
+        try:
+            with self._sessions.begin() as session:
+                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                uow = SqlUnitOfWork(session)
+                yield uow
+                if uow.poisoned:
+                    raise StorageError("工作单元内有写入失败，事务已回滚")
+        except (SQLAlchemyError, sqlite3.Error) as error:
+            raise StorageError(f"工作单元提交失败：{error}") from error
+        finally:
+            if uow is not None:
+                uow.close()
 
     def close(self) -> None:
         """关闭全部连接。"""

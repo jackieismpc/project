@@ -116,7 +116,8 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 - 时间列统一用 `UtcDateTime`：UTC 定长文本，拒绝不带时区的时间。
 - `TubeResult.elapsed_ms` 是 P3 为存储耗时新增的字段（见 `docs/CHANGELOG.md`），取该排 `RowAnalysisResult.elapsed_ms`。
 - 数据库只存媒体和报告文件的路径与哈希，不存内容。文件落盘、路径约定和哈希计算由 P5、P11 负责。
-- `ExperimentRepository.save` 整体覆盖试验及其管位、试剂和结果；引擎按排写入用 `save_results`。多个仓储之间目前没有共享事务（例如「保存结果并写审计」是两个事务），P6 需要时再增加工作单元。
+- `ExperimentRepository.save` 整体覆盖试验及其管位、试剂和结果；引擎按排写入用 `save_results`，状态转换用 `update_state`（可带预期状态做比较后更新，不符时抛 `StateConflictError`）。
+- 单个仓储方法各自是一个事务。需要多个仓储一起生效时用 `Database.unit_of_work()`（`interfaces.storage.UnitOfWork`，P6 新增）：以 `BEGIN IMMEDIATE` 开始，全部仓储共用一个会话，正常退出提交，异常回滚。用法和约束见 [experiment-engine.md](experiment-engine.md)。
 
 审计事件：数据层本身只写初始化事件（`template_changed`、`user_changed`，操作者 `system`）。其余事件由各服务按 `AuditAction` 写入。
 
@@ -131,6 +132,7 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 | `test_audit_chain.py` | 与独立实现的哈希一致；直接用 SQL 篡改内容、重算单条哈希、改 `prev_hash`、删除开头/中间/尾部/全部、改链头，都能定位；跨批次校验；并发写入不分叉；仓储无更新删除方法 |
 | `test_queries.py` | 审计按时间、操作者、事件、试验、关键字（含 `%`、`_`）过滤与分页；历史按类型、时间、批号、状态过滤与分页；查询计划用到索引 |
 | `test_seed.py` | 模板与管理员、argon2 哈希与改密标记、幂等、不重置密码、无默认密码、弱密码被拒、审计链有效 |
+| `test_unit_of_work.py` | 工作单元：回滚、每一步失败、提交失败、吞掉异常不提交、写锁、并发下的哈希链、真实进程在事务各点被杀 |
 | `test_layering.py` | ORM 与 SQLAlchemy 不被上层导入；数据层不依赖权限矩阵；仓储返回 domain 对象 |
 | `test_perf.py`（`@pytest.mark.perf`） | 10 万条审计 + 1 万管结果，各类分页查询小于 1 秒，并校验整条哈希链 |
 

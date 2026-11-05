@@ -133,6 +133,7 @@ class AuditAction(StrEnum):
     EXPERIMENT_STATE_CHANGED = "experiment_state_changed"
     ROW_ANALYZED = "row_analyzed"
     ANALYSIS_TIMEOUT = "analysis_timeout"
+    ENGINE_ALERT = "engine_alert"
     TUBE_REVIEWED = "tube_reviewed"
     EXPERIMENT_SIGNED = "experiment_signed"
     REPORT_EXPORTED = "report_exported"

@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Literal
 
 import cv2
+import numpy as np
 
 from gelinspect.interfaces.analysis import CapturedFrame
 from gelinspect.interfaces.video import VideoFrame
@@ -105,6 +106,41 @@ class SnapshotResult:
 class _Mark:
     started_at: datetime
     pin_id: int | None
+
+
+def load_saved_frames(
+    files: Sequence[SavedImage],
+) -> tuple[list[CapturedFrame], list[CapturedFrame]]:
+    """从磁盘读回一次抓帧的原图，用于重试分析。读取时核对 SHA-256，被改动的原图不能用。
+
+    用 ``np.fromfile`` 读文件，路径可以含中文。
+
+    Args:
+        files: :attr:`SnapshotResult.files`。
+
+    Returns:
+        ``(翻转前的帧, 翻转后的帧)``，都按序号升序。
+
+    Raises:
+        SnapshotError: 文件缺失、哈希不符或无法解码。
+    """
+    frames: dict[Phase, list[CapturedFrame]] = {"before": [], "after": []}
+    for item in sorted(files, key=lambda saved: (saved.phase, saved.index)):
+        try:
+            data = np.fromfile(item.path, dtype=np.uint8)
+        except OSError as exc:
+            raise SnapshotError(f"无法读取原图 {item.path}：{exc}") from exc
+        if hashlib.sha256(data.tobytes()).hexdigest() != item.sha256:
+            raise SnapshotError(f"原图 {item.path} 与入库的 SHA-256 不符，可能已被改动")
+        decoded = cv2.imdecode(data, cv2.IMREAD_COLOR)
+        if decoded is None:
+            raise SnapshotError(f"无法解码原图 {item.path}")
+        image = np.asarray(decoded, dtype=np.uint8)
+        image.flags.writeable = False
+        frames[item.phase].append(
+            CapturedFrame(image=image, captured_at=item.captured_at, source_path=item.path)
+        )
+    return frames["before"], frames["after"]
 
 
 class SnapshotGrabber:

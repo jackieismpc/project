@@ -173,7 +173,9 @@ class SqlAuditRepository(AuditRepository):
                 .where(AuditChainHeadRow.id == 1)
                 .values(last_seq=AuditChainHeadRow.last_seq)
             )
-            head = session.get(AuditChainHeadRow, 1)
+            # 工作单元内多次追加共用一个会话。显式跳过身份映射的缓存，读本事务最新的链头，
+            # 不依赖 ORM 批量更新对会话的同步。
+            head = session.get(AuditChainHeadRow, 1, populate_existing=True)
             if head is None:
                 raise RuntimeError("audit_chain_head 缺失，数据库已损坏")
             seq, prev_hash = head.last_seq, head.last_hash

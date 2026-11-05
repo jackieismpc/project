@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import ColumnElement, delete, exists, func, or_, select
+from sqlalchemy import ColumnElement, CursorResult, delete, exists, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from gelinspect.domain.entities import (
@@ -44,6 +44,7 @@ from gelinspect.interfaces.storage import (
     NotFoundError,
     Page,
     PageRequest,
+    StateConflictError,
 )
 
 
@@ -258,6 +259,36 @@ class SqlExperimentRepository(ExperimentRepository):
             if session.get(ExperimentRow, experiment_id) is None:
                 raise NotFoundError(f"试验不存在：{experiment_id}")
             _upsert_results(session, experiment_id, results)
+
+    def update_state(
+        self,
+        experiment_id: str,
+        state: ExperimentState,
+        *,
+        expected: ExperimentState | None = None,
+    ) -> None:
+        """只更新试验状态，不触碰子记录。
+
+        Args:
+            experiment_id: 试验标识。
+            state: 新状态。
+            expected: 预期的当前状态，不为 None 时做比较后更新。
+
+        Raises:
+            NotFoundError: 试验不存在。
+            StateConflictError: 当前状态与 ``expected`` 不符。
+        """
+        statement = update(ExperimentRow).where(ExperimentRow.experiment_id == experiment_id)
+        if expected is not None:
+            statement = statement.where(ExperimentRow.state == expected.value)
+        with self._sessions() as session:
+            result = cast("CursorResult[Any]", session.execute(statement.values(state=state.value)))
+            if result.rowcount == 0:
+                if session.get(ExperimentRow, experiment_id) is None:
+                    raise NotFoundError(f"试验不存在：{experiment_id}")
+                raise StateConflictError(
+                    f"试验 {experiment_id} 的状态不是预期的 {expected}，可能已被其他操作修改"
+                )
 
     def get(self, experiment_id: str) -> Experiment | None:
         """按标识加载完整试验。

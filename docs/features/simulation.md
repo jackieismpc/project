@@ -40,7 +40,7 @@
      backend: "simulation.sim_device:SimDevice"
    ```
 
-   三个类都可以无参构造。同一进程里 `SimVideoSource` 默认跟随最近创建的 `SimDevice`，因此设备翻转时视频画面同步翻转。配置加载由 P6 实现，架构约定见 `docs/architecture.md` 第 3 节。
+   三个类都可以无参构造。同一进程里 `SimVideoSource` 默认跟随最近创建的 `SimDevice`，因此设备翻转时视频画面同步翻转。配置由 `services/config.py` 加载，不指定文件时的默认配置就是这份内容，架构约定见 `docs/architecture.md` 第 3 节。
 
 2. 代码中直接使用：
 
@@ -92,7 +92,7 @@
 
 ### 替换为真实实现
 
-把配置中的三个类路径换成真实实现（例如 `gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer`），业务和界面不改。启动时不会回退到模拟实现，`--simulate` 才加载模拟配置。真实算法接入后，用同一套契约测试自检：
+把配置中的三个类路径换成真实实现（例如 `gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer`），业务和界面不改。启动时不会回退到模拟实现：配置文件是完整配置，不与默认的模拟配置合并。真实算法接入后，用同一套契约测试自检：
 
 ```bash
 uv run pytest tests/contract --analyzer-backend=simulation.mock_analyzer:MockAnalyzer   # 模拟实现

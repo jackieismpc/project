@@ -395,18 +395,21 @@ class VideoPipeline:
 
     # ------------------------------------------------------------------ 抓帧
 
-    def mark_flip_start(self, started_at: datetime, row_index: int | None = None) -> None:
+    def mark_flip_start(
+        self, started_at: datetime, row_index: int | None = None, *, n: int | None = None
+    ) -> None:
         """标记翻转开始，保护翻转前最近的帧。参见 :meth:`SnapshotGrabber.mark_flip_start`。
 
         Args:
             started_at: 翻转开始时间（带时区）。
             row_index: 排号。
+            n: 保护的帧数，默认配置的 ``frames_per_side``。
 
         Raises:
             PipelineStateError: 管线未启动。
         """
         self._require_running()
-        self._snapshots.mark_flip_start(started_at, row_index)
+        self._snapshots.mark_flip_start(started_at, row_index, n=n)
 
     def grab(
         self,

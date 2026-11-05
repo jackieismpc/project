@@ -4,7 +4,7 @@
 
 定义一个试验从创建到签署的全部状态、合法转换和前置条件，保证试剂不合格的试验不能启动、有待复核试管的试验不能签署。本文对应 P1 的契约，P6（试验引擎）和 P8–P11（界面、判定、报告）依赖它。
 
-代码：`src/gelinspect/domain/state_machine.py`、`src/gelinspect/domain/entities.py`。
+代码：`src/gelinspect/domain/state_machine.py`、`src/gelinspect/domain/entities.py`。运行期的调度、停止、故障和恢复由试验引擎驱动，见 [experiment-engine.md](experiment-engine.md)。
 
 ## 流程
 
@@ -68,6 +68,14 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 | `draft`、`reagent_check`、`reagent_locked`、`ready`、`incubating`、`reading`、`analyzing`、`faulted` | `stop` | `stopped` |
 
 其他组合都是非法转换，抛 `IllegalTransitionError`。`pending_review` 和 `completed` 不接受 `stop`：试验已经跑完，结论只能通过复核确定。
+
+### 引擎如何使用这些转换
+
+- `analyzing` 一直保持到所有在途的分析都有结局，所以「某排分析中、下一排到时」走 `analyzing → reading → analyzing`，全部结局到齐后才发 `row_analyzed` 或 `all_analyzed_*`。
+- `record_result` 只能在 `analyzing` 调用。异常期间到达的结果留在内存，恢复（`resume_analysis`）后再写入。
+- `fault` 的原因：设备、视频、温度、写库，以及「全部排读完但有排分析失败」。单排分析失败不会立刻转异常，其他排继续读数。
+- 恢复时有待处理的分析就发 `resume_analysis`，否则发 `resume_incubation`；读数失败的排回到等待状态，再走 `row_due`。`resume_reading` 目前没有使用。
+- 软件启动时，库内停留在 `incubating`、`reading`、`analyzing` 的试验走 `fault` 转异常，不自动继续。
 
 ### 前置条件
 
@@ -136,7 +144,7 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 | `ReagentBatch` | 种类、批号、有效期、备案状态、标示灵敏度 | P3 数据库 |
 | `TubeResult` | 算法状态、三态、评分、置信度、特征快照、模型和配置版本、自动判读、复核信息 | P3 数据库 |
 
-审计事件（`AuditAction`）：`experiment_created`、`reagent_checked`、`experiment_state_changed`、`row_analyzed`、`analysis_timeout`、`tube_reviewed`、`experiment_signed`。写入由 P6 的服务层负责。
+审计事件（`AuditAction`）：`experiment_created`、`reagent_checked`、`experiment_state_changed`、`row_analyzed`、`analysis_timeout`、`engine_alert`、`tube_reviewed`、`experiment_signed`。运行期的状态转换和它的审计、结果、媒体记录在同一事务提交（`UnitOfWork`）；其余事件由后续阶段的服务层写入。
 
 ## 测试
 
@@ -147,4 +155,4 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 | `tests/domain/test_interpretation.py` | 默认映射；配置映射；失败结果固定待复核 |
 | `tests/domain/test_templates.py` | 五类模板的管数和数值；推定模板的标记 |
 
-需要人工验证：P6 完成后，用模拟运行检查故障注入场景（过期试剂被锁定、算法失败转人工复核）。
+运行期的状态路径和故障注入（算法失败转待复核等）由 `tests/services/test_experiment_engine*.py` 覆盖。需要人工验证：P9 完成后在界面上检查过期试剂被锁定。

@@ -4,11 +4,15 @@
 是否有权限执行某个操作由服务层用 ``domain.permissions`` 检查。
 
 审计仓储只提供追加和查询，**不提供更新和删除**。
+
+单个仓储方法各自是一个事务。需要让多个写入一起生效时使用 :class:`UnitOfWork`：
+试验状态、单管结果、媒体记录和审计事件在同一事务提交，要么都生效，要么都不生效。
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -42,6 +46,10 @@ class DuplicateError(StorageError):
 
 class DatabaseVersionError(StorageError):
     """数据库版本比当前程序更新，或迁移失败。"""
+
+
+class StateConflictError(StorageError):
+    """试验在库中的状态与调用方预期不符，说明有别的写入者改过它。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -403,6 +411,26 @@ class ExperimentRepository(Protocol):
         """
         ...
 
+    def update_state(
+        self,
+        experiment_id: str,
+        state: ExperimentState,
+        *,
+        expected: ExperimentState | None = None,
+    ) -> None:
+        """只更新试验状态，不触碰子记录。
+
+        Args:
+            experiment_id: 试验标识。
+            state: 新状态。
+            expected: 预期的当前状态，不为 None 时做比较后更新。
+
+        Raises:
+            NotFoundError: 试验不存在。
+            StateConflictError: 当前状态与 ``expected`` 不符。
+        """
+        ...
+
     def get(self, experiment_id: str) -> Experiment | None:
         """按标识加载完整试验。"""
         ...
@@ -520,6 +548,54 @@ class TelemetryRepository(Protocol):
         ...
 
 
+class UnitOfWork(Protocol):
+    """一个事务内的仓储集合。通过它写入的内容一起提交或一起回滚。
+
+    从进入事务起就持有数据库写锁，所以应尽快结束，不要在其中调用设备、算法或等待。
+    只能在事务内使用；事务内抛出的异常必须传出 ``with`` 块，吞掉后事务不会提交。
+    """
+
+    @property
+    def experiments(self) -> ExperimentRepository:
+        """本事务的试验仓储。"""
+        ...
+
+    @property
+    def audit(self) -> AuditRepository:
+        """本事务的审计仓储。"""
+        ...
+
+    @property
+    def media(self) -> MediaRepository:
+        """本事务的媒体文件记录仓储。"""
+        ...
+
+    @property
+    def telemetry(self) -> TelemetryRepository:
+        """本事务的温度与设备日志仓储。"""
+        ...
+
+
+class TransactionalStorage(Protocol):
+    """试验引擎需要的存储：读试验，加上开启工作单元。"""
+
+    @property
+    def experiments(self) -> ExperimentRepository:
+        """试验仓储，每个方法各自是一个事务。"""
+        ...
+
+    def unit_of_work(self) -> AbstractContextManager[UnitOfWork]:
+        """开启工作单元：正常退出 ``with`` 块时提交，异常时回滚。
+
+        Returns:
+            进入后得到 :class:`UnitOfWork` 的上下文管理器。
+
+        Raises:
+            StorageError: 无法取得写锁或提交失败。
+        """
+        ...
+
+
 __all__ = [
     "GENESIS_HASH",
     "MAX_PAGE_SIZE",
@@ -542,10 +618,13 @@ __all__ = [
     "PageRequest",
     "ReportRecord",
     "ReportRepository",
+    "StateConflictError",
     "StorageError",
     "TelemetryRepository",
     "TemperatureSample",
     "TemplateRepository",
+    "TransactionalStorage",
+    "UnitOfWork",
     "UserCredentials",
     "UserRepository",
 ]

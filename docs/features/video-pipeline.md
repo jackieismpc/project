@@ -56,6 +56,7 @@ pipeline.stop()
 - **时间约定**：`VideoFrame.captured_at` 与 `FlipResult.started_at/completed_at` 使用同一个本机时钟。
 - **帧只读**：缓冲里的 `ndarray` 都设为不可写，`CapturedFrame.image` 直接引用，不复制。
 - **断流**：`read` 抛 `VideoDisconnectedError`（或实时源连续 `stall_disconnect_s` 读不到帧）后，采集线程按指数退避重连。进行中的录制段被封存为 `interrupted=True`（文件可播放、有哈希），**重连后不会自动续录**，由调用方决定是否重录该排；重连期间看门狗暂停。
+- **重新读回原图**：`load_saved_frames(snapshot.files)` 从磁盘读回一次抓帧并核对 SHA-256，试验引擎重试分析时使用，内存里不必保留失败排的帧。
 - **文件回放结束**：`read` 返回 `None` 且 `is_live=False` 时，状态变为 `ENDED`，发 `END_OF_STREAM`，缓冲和抓帧仍可用。
 
 ### 内存策略
