@@ -5,21 +5,26 @@
 调用方通过 ``gelinspect.interfaces.storage`` 的仓储接口与 domain 实体交互。
 """
 
+from collections.abc import Callable
+
 from gelinspect.infrastructure.db.database import Database, open_database
 from gelinspect.infrastructure.db.seed import SeedResult, seed_builtin_templates, seed_defaults
 from gelinspect.interfaces.storage import ChainVerification
 
 
-def verify_audit_chain(database: Database) -> ChainVerification:
+def verify_audit_chain(
+    database: Database, progress: Callable[[int], None] | None = None
+) -> ChainVerification:
     """校验审计哈希链，定位第一条被篡改或删除的记录。
 
     Args:
         database: 已打开的数据库。
+        progress: 每校验完一批记录后调用，参数是已校验到的序号。
 
     Returns:
         校验结果；``first_bad_seq`` 是第一处异常的序号。
     """
-    return database.audit.verify_chain()
+    return database.audit.verify_chain(progress)
 
 
 __all__ = [

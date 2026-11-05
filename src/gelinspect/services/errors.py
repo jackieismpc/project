@@ -51,6 +51,18 @@ class ServiceErrorCode(StrEnum):
     BATCH_NOT_SIGNABLE = "batch_not_signable"
     EXPORT_EMPTY = "export_empty"
     EXPORT_FAILED = "export_failed"
+    USER_NOT_FOUND = "user_not_found"
+    USER_DUPLICATE = "user_duplicate"
+    USER_LAST_ADMIN = "user_last_admin"
+    USER_SELF_DISABLE = "user_self_disable"
+    USER_SELF_RESET = "user_self_reset"
+    USER_NAME_REQUIRED = "user_name_required"
+    SETTINGS_INVALID = "settings_invalid"
+    SETTINGS_BUSY = "settings_busy"
+    SETTINGS_SAVE_FAILED = "settings_save_failed"
+    SETTINGS_PREVIEW_FAILED = "settings_preview_failed"
+    LIMITS_INVALID = "limits_invalid"
+    AUDIT_QUERY_INVALID = "audit_query_invalid"
 
 
 class ServiceError(Exception):

@@ -19,6 +19,7 @@ from PySide6.QtCore import QEvent, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
+    QLineEdit,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
@@ -266,6 +267,30 @@ class NewExperimentPage(QWidget):
         self.sample_problem.setWordWrap(True)
         self.sample_problem.setVisible(False)
         self.sample_card.body.addWidget(self.sample_problem)
+        limits = QHBoxLayout()
+        limits.setSpacing(12)
+        self.mvd_label = Label("", "lab")
+        self.mvd_edit = QLineEdit()
+        self.mvd_edit.setMinimumHeight(44)
+        self.limit_label = Label("", "lab")
+        self.limit_edit = QLineEdit()
+        self.limit_edit.setMinimumHeight(44)
+        for label, edit in ((self.mvd_label, self.mvd_edit), (self.limit_label, self.limit_edit)):
+            box = QVBoxLayout()
+            box.setSpacing(4)
+            box.addWidget(label)
+            box.addWidget(edit)
+            limits.addLayout(box, 1)
+        self.sample_card.body.addLayout(limits)
+        self.limit_hint = Label("", "meta")
+        self.limit_hint.setWordWrap(True)
+        self.sample_card.body.addWidget(self.limit_hint)
+        self.limit_problem = Label("", "warn")
+        self.limit_problem.setWordWrap(True)
+        self.limit_problem.setVisible(False)
+        self.sample_card.body.addWidget(self.limit_problem)
+        self.mvd_edit.textChanged.connect(self._on_limits_edited)
+        self.limit_edit.textChanged.connect(self._on_limits_edited)
         work.addWidget(self.sample_card, 1)
 
         self.plate_card = Card(" ")
@@ -376,6 +401,11 @@ class NewExperimentPage(QWidget):
         self.summary_lab.setText(self.tr("模板"))
         self.change_template.setText(self.tr("更换模板"))
         self.sample_card.set_title(self.tr("样品"))
+        self.mvd_label.setText(self.tr("MVD（可选）"))
+        self.limit_label.setText(self.tr("内毒素限值 EU/mL（可选）"))
+        self.mvd_edit.setPlaceholderText(self.tr("留空则报告里不填"))
+        self.limit_edit.setPlaceholderText(self.tr("留空则报告里不填"))
+        self.limit_hint.setText(self.tr("录入后写入试验记录并显示在报告里；试验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
         self.plate_card.set_title(self.tr("管位"))
         self.plate.setAccessibleName(self.tr("8 乘 10 管位"))
@@ -674,8 +704,21 @@ class NewExperimentPage(QWidget):
                     item = self.sample_table.cell_item(i, COL_SPIKE)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.plate.set_selected(self._draft.selected)
+            for edit, text in (
+                (self.mvd_edit, self._draft.mvd_text),
+                (self.limit_edit, self._draft.limit_text),
+            ):
+                if edit.text() != text:
+                    edit.setText(text)
         finally:
             self._syncing = False
+
+    def _on_limits_edited(self) -> None:
+        if self._syncing:
+            return
+        self._draft.mvd_text = self.mvd_edit.text()
+        self._draft.limit_text = self.limit_edit.text()
+        self._render()
 
     def _tube_text(self, index: int) -> str:
         tube = self._draft.tube_of_row(index)
@@ -755,7 +798,17 @@ class NewExperimentPage(QWidget):
                 )
             )
         self.sample_problem.setVisible(bool(empty))
-        self.sample_next.setEnabled(draft.tubes_match and not empty)
+        bad_limits = draft.limit_problems()
+        names = {"mvd": self.tr("MVD"), "endotoxin_limit": self.tr("内毒素限值")}
+        self.limit_problem.setText(
+            self.tr("「{names}」必须是大于 0 的数字，或者留空").format(
+                names=self.tr("、").join(names[f] for f in bad_limits)
+            )
+            if bad_limits
+            else ""
+        )
+        self.limit_problem.setVisible(bool(bad_limits))
+        self.sample_next.setEnabled(draft.tubes_match and not empty and not bad_limits)
         if not self.sample_next.isEnabled():
             self.sample_next.setToolTip(self.tr("管位数量要与模板一致，样品名称不能为空"))
         else:
@@ -805,6 +858,10 @@ class NewExperimentPage(QWidget):
             ),
             (self.tr("操作人"), f"{user.display_name} · {role_label(user.role)}", False),
         ]
+        if draft.mvd is not None:
+            facts.append((self.tr("MVD"), f"{draft.mvd:g}", True))
+        if draft.endotoxin_limit is not None:
+            facts.append((self.tr("内毒素限值"), f"{draft.endotoxin_limit:g} EU/mL", True))
         for kind in ReagentKind:
             scan = self._scans.get(kind)
             if scan is not None and scan.batch_no:
@@ -978,7 +1035,9 @@ class NewExperimentPage(QWidget):
             if step >= STEP_SAMPLES and not self.reagents_ready():
                 return
             if step >= STEP_CONFIRM and not (
-                self._draft.tubes_match and not self._draft.sample_problems()
+                self._draft.tubes_match
+                and not self._draft.sample_problems()
+                and not self._draft.limit_problems()
             ):
                 return
         self._show_step(step)

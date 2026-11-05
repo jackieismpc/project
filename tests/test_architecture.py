@@ -144,6 +144,12 @@ def test_new_services_do_not_depend_on_qt_or_infrastructure() -> None:
             "review_service.py",
             "dashboard_service.py",
             "replay.py",
+            "user_service.py",
+            "audit_service.py",
+            "settings_service.py",
+            "user_settings.py",
+            "export_service.py",
+            "excel_export.py",
         )
     ]
     violations = [

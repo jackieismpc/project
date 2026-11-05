@@ -75,9 +75,9 @@ strict = true
 files = ["src", "simulation", "tests"]
 mypy_path = "src"
 
-# pyHanko 依赖 asn1crypto，后者没有类型标注。
+# pyHanko 依赖 asn1crypto，后者没有类型标注；openpyxl 也没有随包的类型标注。
 [[tool.mypy.overrides]]
-module = ["asn1crypto", "asn1crypto.*"]
+module = ["asn1crypto", "asn1crypto.*", "openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

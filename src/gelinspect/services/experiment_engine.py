@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import threading
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 
@@ -133,6 +134,23 @@ class ExperimentEngine:
     def config(self) -> EngineConfig:
         """引擎配置。"""
         return self._config
+
+    def update_config(self, config: EngineConfig) -> None:
+        """更换引擎配置（仪器设置保存后调用），下一次启动试验起生效。
+
+        Args:
+            config: 新配置。
+
+        Raises:
+            EngineBusyError: 有试验正在运行：运行中不能改孵育时长、读数参数和温度范围。
+        """
+        with self._lock:
+            if self._run is not None and self._run.alive:
+                raise EngineBusyError(
+                    f"试验 {self._run.experiment_id} 正在运行，现在不能改引擎设置"
+                )
+            self._config = config
+            self._deps = replace(self._deps, config=config)
 
     def add_listener(self, listener: EngineEventListener) -> None:
         """添加事件监听者。

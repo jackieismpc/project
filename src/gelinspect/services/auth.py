@@ -33,6 +33,28 @@ _MAX_TRACKED_NAMES = 1000
 """内存里最多跟踪多少个登录名的失败记录，防止被无穷多的假用户名撑大。"""
 
 
+def validate_username(username: str) -> str:
+    """检查并规整登录名：不能为空、不能含空白、不超过 :data:`MAX_USERNAME_LENGTH` 个字符。
+
+    Args:
+        username: 输入的登录名。
+
+    Returns:
+        去掉首尾空白后的登录名。
+
+    Raises:
+        PasswordPolicyError: 登录名不合要求。
+    """
+    name = username.strip()
+    if not name or len(name) > MAX_USERNAME_LENGTH or any(ch.isspace() for ch in name):
+        raise PasswordPolicyError(
+            "登录名不能为空、不能含空白，且不超过 32 个字符",
+            AuthErrorCode.USERNAME_INVALID,
+            max=MAX_USERNAME_LENGTH,
+        )
+    return name
+
+
 class AuthErrorCode(StrEnum):
     """账号错误的分类，界面据此生成当前语言的提示（异常信息本身是简体中文，写审计和日志用）。"""
 
@@ -423,6 +445,45 @@ class AuthService:
         user, _ = self._verify(session.user.username, password, purpose=purpose)
         return user
 
+    # ------------------------------------------------------------------ 用户管理的配合
+
+    def refresh_sessions(self, user: User) -> None:
+        """账号的角色或显示名被改动后，让它已登录的会话立即采用新值。
+
+        Args:
+            user: 数据库里最新的用户。
+        """
+        with self._lock:
+            for session in self._sessions.values():
+                if session.user.user_id == user.user_id:
+                    session.user = user
+
+    def revoke_sessions(self, user_id: str) -> int:
+        """让某账号的全部会话失效（账号被停用或重置密码时），之后的操作都要重新登录。
+
+        Args:
+            user_id: 用户标识。
+
+        Returns:
+            被注销的会话数。
+        """
+        with self._lock:
+            ids = [sid for sid, s in self._sessions.items() if s.user.user_id == user_id]
+            for sid in ids:
+                del self._sessions[sid]
+        return len(ids)
+
+    def hash_password(self, password: str) -> str:
+        """用登录同一套参数计算密码哈希，供用户管理创建账号和重置密码。
+
+        Args:
+            password: 明文密码。
+
+        Returns:
+            哈希字符串。
+        """
+        return self._hasher.hash(password)
+
     # ------------------------------------------------------------------ 权限
 
     def authorize(self, session: Session | None, permission: Permission) -> User:
@@ -492,13 +553,7 @@ class AuthService:
             raise SetupNotAllowedError(
                 "当前配置不允许在界面创建管理员", AuthErrorCode.SETUP_DISABLED
             )
-        name = username.strip()
-        if not name or len(name) > MAX_USERNAME_LENGTH or any(ch.isspace() for ch in name):
-            raise PasswordPolicyError(
-                "登录名不能为空、不能含空白，且不超过 32 个字符",
-                AuthErrorCode.USERNAME_INVALID,
-                max=MAX_USERNAME_LENGTH,
-            )
+        name = validate_username(username)
         if len(password) < self._policy.min_password_length:
             raise PasswordPolicyError(
                 f"密码不能少于 {self._policy.min_password_length} 个字符",

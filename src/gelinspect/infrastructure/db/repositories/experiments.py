@@ -398,6 +398,47 @@ class SqlExperimentRepository(ExperimentRepository):
             row.signed_by = signed_by
             row.signed_at = signed_at
 
+    def update_limits(
+        self, experiment_id: str, *, mvd: float | None, endotoxin_limit: float | None
+    ) -> None:
+        """只更新 MVD 和内毒素限值，已签署的试验拒绝改动。
+
+        Args:
+            experiment_id: 试验标识。
+            mvd: 最大有效稀释倍数，None 表示清空。
+            endotoxin_limit: 内毒素限值，None 表示清空。
+
+        Raises:
+            NotFoundError: 试验不存在。
+            StateConflictError: 试验已签署，内容已锁定。
+        """
+        with translate_lock_errors(), self._sessions() as session:
+            row = session.get(ExperimentRow, experiment_id)
+            if row is None:
+                raise NotFoundError(f"试验不存在：{experiment_id}")
+            if row.state == ExperimentState.SIGNED.value:
+                raise StateConflictError(f"试验 {experiment_id} 已签署，MVD 和限值不能再修改")
+            row.mvd = mvd
+            row.endotoxin_limit = endotoxin_limit
+
+    def latest_analyzer_versions(self) -> tuple[str, str] | None:
+        """最近一个有算法结果的试验所用的模型版本和配置版本。
+
+        Returns:
+            ``(模型版本, 配置版本)``，没有任何算法结果时为 None。
+        """
+        with self._sessions() as session:
+            found = session.execute(
+                select(TubeResultRow.model_version, TubeResultRow.config_version)
+                .join(ExperimentRow, ExperimentRow.experiment_id == TubeResultRow.experiment_id)
+                .where(TubeResultRow.model_version.is_not(None))
+                .order_by(ExperimentRow.created_at.desc())
+                .limit(1)
+            ).first()
+        if found is None or found[0] is None:
+            return None
+        return found[0], found[1] or ""
+
     def get(self, experiment_id: str) -> Experiment | None:
         """按标识加载完整试验。
 

@@ -183,3 +183,6 @@ class AuditAction(StrEnum):
     REPORT_VERIFIED = "report_verified"
     REPORT_PRINTED = "report_printed"
     DATA_EXPORTED = "data_exported"
+    AUDIT_VIEWED = "audit_viewed"
+    AUDIT_VERIFIED = "audit_verified"
+    LIMITS_CHANGED = "limits_changed"

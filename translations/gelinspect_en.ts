@@ -106,6 +106,153 @@
     </message>
 </context>
 <context>
+    <name>AuditPage</name>
+    <message>
+        <source>没有符合条件的审计记录</source>
+        <translation>No audit records match</translation>
+    </message>
+    <message>
+        <source>调整查询条件，或点「重置」清除条件后再查</source>
+        <translation>Adjust the filters, or click Reset to clear them and search again</translation>
+    </message>
+    <message>
+        <source>还没有审计记录</source>
+        <translation>No audit records yet</translation>
+    </message>
+    <message>
+        <source>正在查询……</source>
+        <translation>Searching...</translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation>Your role does not have this permission</translation>
+    </message>
+    <message>
+        <source>正在校验完整性……</source>
+        <translation>Verifying integrity...</translation>
+    </message>
+    <message>
+        <source>正在校验完整性：{done} / {total}</source>
+        <translation>Verifying integrity: {done} / {total}</translation>
+    </message>
+    <message>
+        <source>校验通过：哈希链完好</source>
+        <translation>Verification passed: the hash chain is intact</translation>
+    </message>
+    <message>
+        <source>共校验 {count} 条记录，没有发现被改动或删除的记录。</source>
+        <translation>{count} records verified. No record was altered or deleted.</translation>
+    </message>
+    <message>
+        <source>链头记录缺失</source>
+        <translation>The chain head record is missing</translation>
+    </message>
+    <message>
+        <source>第一处异常在序号 {seq}</source>
+        <translation>The first problem is at No. {seq}</translation>
+    </message>
+    <message>
+        <source>校验未通过：审计记录可能被改动或删除</source>
+        <translation>Verification failed: audit records may have been altered or deleted</translation>
+    </message>
+    <message>
+        <source>校验没有完成</source>
+        <translation>Verification did not complete</translation>
+    </message>
+    <message>
+        <source>这条记录的内容与它的哈希不符，内容可能被改动。</source>
+        <translation>This record&apos;s content does not match its hash; it may have been altered.</translation>
+    </message>
+    <message>
+        <source>这条记录与上一条的哈希衔接不上，前一条可能被改动。</source>
+        <translation>This record does not link to the previous one; the previous record may have been altered.</translation>
+    </message>
+    <message>
+        <source>序号不连续，这个序号的记录可能被删除。</source>
+        <translation>The numbering has a gap; the record with this number may have been deleted.</translation>
+    </message>
+    <message>
+        <source>链头与最后一条记录不符，末尾的记录可能被删除。</source>
+        <translation>The chain head does not match the last record; trailing records may have been deleted.</translation>
+    </message>
+    <message>
+        <source>导出审计追踪</source>
+        <translation>Export audit trail</translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
+        <translation>Excel files (*.xlsx)</translation>
+    </message>
+    <message>
+        <source>已导出 {rows} 条：{name}</source>
+        <translation>Exported {rows} records: {name}</translation>
+    </message>
+    <message>
+        <source>操作失败：{reason}</source>
+        <translation>Operation failed: {reason}</translation>
+    </message>
+    <message>
+        <source>序号</source>
+        <translation>No.</translation>
+    </message>
+    <message>
+        <source>操作者</source>
+        <translation>Actor</translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation>Time</translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation>Permission</translation>
+    </message>
+    <message>
+        <source>操作记录</source>
+        <translation>Action</translation>
+    </message>
+    <message>
+        <source>审计追踪</source>
+        <translation>Audit Trail</translation>
+    </message>
+    <message>
+        <source>校验完整性</source>
+        <translation>Verify integrity</translation>
+    </message>
+    <message>
+        <source>导出 Excel…</source>
+        <translation>Export Excel...</translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation>From date</translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation>To date</translation>
+    </message>
+    <message>
+        <source>全部操作者</source>
+        <translation>All actors</translation>
+    </message>
+    <message>
+        <source>关键字</source>
+        <translation>Keyword</translation>
+    </message>
+    <message>
+        <source>操作记录或试验编号</source>
+        <translation>Action or experiment ID</translation>
+    </message>
+    <message>
+        <source>查询</source>
+        <translation>Search</translation>
+    </message>
+    <message>
+        <source>重置</source>
+        <translation>Reset</translation>
+    </message>
+</context>
+<context>
     <name>AuthError</name>
     <message>
         <source>用户名或密码错误，还可以尝试 {remaining} 次</source>
@@ -460,6 +607,33 @@
     </message>
 </context>
 <context>
+    <name>CredentialDialog</name>
+    <message>
+        <source>临时密码</source>
+        <translation>Temporary password</translation>
+    </message>
+    <message>
+        <source>{name} 的临时密码</source>
+        <translation>Temporary password for {name}</translation>
+    </message>
+    <message>
+        <source>请当面告知用户。对方首次登录时必须先修改密码。</source>
+        <translation>Tell the user in person. They must change it at their first sign-in.</translation>
+    </message>
+    <message>
+        <source>这个密码只显示这一次，关闭后无法再查看；忘了只能重新重置。</source>
+        <translation>This password is shown only once and cannot be viewed again after closing; if it is lost, reset it again.</translation>
+    </message>
+    <message>
+        <source>复制</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>Close</translation>
+    </message>
+</context>
+<context>
     <name>DashboardPage</name>
     <message>
         <source>试验</source>
@@ -687,6 +861,332 @@
     </message>
 </context>
 <context>
+    <name>Export</name>
+    <message>
+        <source>试验</source>
+        <translation>Experiment</translation>
+    </message>
+    <message>
+        <source>单管结果</source>
+        <translation>Tube results</translation>
+    </message>
+    <message>
+        <source>结论依据</source>
+        <translation>Conclusion basis</translation>
+    </message>
+    <message>
+        <source>历史列表</source>
+        <translation>History</translation>
+    </message>
+    <message>
+        <source>审计追踪</source>
+        <translation>Audit Trail</translation>
+    </message>
+    <message>
+        <source>试验编号</source>
+        <translation>Experiment ID</translation>
+    </message>
+    <message>
+        <source>类型</source>
+        <translation>Type</translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation>Status</translation>
+    </message>
+    <message>
+        <source>仪器编号</source>
+        <translation>Instrument No.</translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation>Operator</translation>
+    </message>
+    <message>
+        <source>创建时间</source>
+        <translation>Created</translation>
+    </message>
+    <message>
+        <source>完成时间</source>
+        <translation>Completed</translation>
+    </message>
+    <message>
+        <source>签署人</source>
+        <translation>Signed by</translation>
+    </message>
+    <message>
+        <source>签署时间</source>
+        <translation>Signed at</translation>
+    </message>
+    <message>
+        <source>鲎试剂批号</source>
+        <translation>LAL batch</translation>
+    </message>
+    <message>
+        <source>内毒素批号</source>
+        <translation>Endotoxin batch</translation>
+    </message>
+    <message>
+        <source>检测用水批号</source>
+        <translation>Water batch</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ（EU/mL）</source>
+        <translation>Labeled sensitivity λ (EU/mL)</translation>
+    </message>
+    <message>
+        <source>MVD</source>
+        <translation>MVD</translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation>Endotoxin limit</translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc（EU/mL）</source>
+        <translation>Measured sensitivity λc (EU/mL)</translation>
+    </message>
+    <message>
+        <source>结论</source>
+        <translation>Conclusion</translation>
+    </message>
+    <message>
+        <source>结论数值</source>
+        <translation>Conclusion value</translation>
+    </message>
+    <message>
+        <source>规则版本</source>
+        <translation>Rule version</translation>
+    </message>
+    <message>
+        <source>管数</source>
+        <translation>Tubes</translation>
+    </message>
+    <message>
+        <source>待复核管数</source>
+        <translation>Tubes pending review</translation>
+    </message>
+    <message>
+        <source>管号</source>
+        <translation>Tube No.</translation>
+    </message>
+    <message>
+        <source>排</source>
+        <translation>Row</translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation>Sample name</translation>
+    </message>
+    <message>
+        <source>序列号</source>
+        <translation>Serial No.</translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation>Sample batch</translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation>Dilution</translation>
+    </message>
+    <message>
+        <source>外加内毒素（EU/mL）</source>
+        <translation>Spiked endotoxin (EU/mL)</translation>
+    </message>
+    <message>
+        <source>用途</source>
+        <translation>Purpose</translation>
+    </message>
+    <message>
+        <source>分析状态</source>
+        <translation>Analysis status</translation>
+    </message>
+    <message>
+        <source>算法三态</source>
+        <translation>Gel state</translation>
+    </message>
+    <message>
+        <source>自动判读</source>
+        <translation>Automatic result</translation>
+    </message>
+    <message>
+        <source>复核状态</source>
+        <translation>Review status</translation>
+    </message>
+    <message>
+        <source>最终判读</source>
+        <translation>Final result</translation>
+    </message>
+    <message>
+        <source>复核人</source>
+        <translation>Reviewed by</translation>
+    </message>
+    <message>
+        <source>复核时间</source>
+        <translation>Reviewed at</translation>
+    </message>
+    <message>
+        <source>复核备注</source>
+        <translation>Review note</translation>
+    </message>
+    <message>
+        <source>评分</source>
+        <translation>Score</translation>
+    </message>
+    <message>
+        <source>置信度</source>
+        <translation>Confidence</translation>
+    </message>
+    <message>
+        <source>面积变化率 ΔA（%）</source>
+        <translation>Area change ΔA (%)</translation>
+    </message>
+    <message>
+        <source>轴向偏移 Δs</source>
+        <translation>Axial shift Δs</translation>
+    </message>
+    <message>
+        <source>面积时序标准差 σ_A</source>
+        <translation>Area std. dev. σ_A</translation>
+    </message>
+    <message>
+        <source>轴向时序标准差 σ_s</source>
+        <translation>Axial std. dev. σ_s</translation>
+    </message>
+    <message>
+        <source>翻转前面积</source>
+        <translation>Area before flip</translation>
+    </message>
+    <message>
+        <source>翻转后面积</source>
+        <translation>Area after flip</translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation>Model version</translation>
+    </message>
+    <message>
+        <source>配置版本</source>
+        <translation>Config version</translation>
+    </message>
+    <message>
+        <source>分析耗时（ms）</source>
+        <translation>Analysis time (ms)</translation>
+    </message>
+    <message>
+        <source>算法说明</source>
+        <translation>Analyzer message</translation>
+    </message>
+    <message>
+        <source>类别</source>
+        <translation>Category</translation>
+    </message>
+    <message>
+        <source>内容</source>
+        <translation>Content</translation>
+    </message>
+    <message>
+        <source>依据</source>
+        <translation>Basis</translation>
+    </message>
+    <message>
+        <source>未满足的前提</source>
+        <translation>Unmet preconditions</translation>
+    </message>
+    <message>
+        <source>序号</source>
+        <translation>No.</translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation>Time</translation>
+    </message>
+    <message>
+        <source>操作者</source>
+        <translation>Actor</translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation>Permission</translation>
+    </message>
+    <message>
+        <source>事件类型</source>
+        <translation>Event type</translation>
+    </message>
+    <message>
+        <source>操作记录</source>
+        <translation>Action</translation>
+    </message>
+    <message>
+        <source>关联试验</source>
+        <translation>Related experiment</translation>
+    </message>
+    <message>
+        <source>哈希</source>
+        <translation>Hash</translation>
+    </message>
+</context>
+<context>
+    <name>ExportValue</name>
+    <message>
+        <source>阳性</source>
+        <translation>Positive</translation>
+    </message>
+    <message>
+        <source>阴性</source>
+        <translation>Negative</translation>
+    </message>
+    <message>
+        <source>待复核</source>
+        <translation>Pending review</translation>
+    </message>
+    <message>
+        <source>完全凝固</source>
+        <translation>Fully gelled</translation>
+    </message>
+    <message>
+        <source>部分凝固</source>
+        <translation>Partially gelled</translation>
+    </message>
+    <message>
+        <source>未凝固</source>
+        <translation>Not gelled</translation>
+    </message>
+    <message>
+        <source>无需复核</source>
+        <translation>No review needed</translation>
+    </message>
+    <message>
+        <source>等待复核</source>
+        <translation>Awaiting review</translation>
+    </message>
+    <message>
+        <source>已复核</source>
+        <translation>Reviewed</translation>
+    </message>
+    <message>
+        <source>分析成功</source>
+        <translation>Analyzed</translation>
+    </message>
+    <message>
+        <source>凝胶缺失</source>
+        <translation>Gel missing</translation>
+    </message>
+    <message>
+        <source>未找到试管</source>
+        <translation>Tube not found</translation>
+    </message>
+    <message>
+        <source>图像质量不足</source>
+        <translation>Low image quality</translation>
+    </message>
+    <message>
+        <source>分析失败</source>
+        <translation>Analysis failed</translation>
+    </message>
+</context>
+<context>
     <name>GelState</name>
     <message>
         <source>完全凝固</source>
@@ -707,6 +1207,34 @@
 </context>
 <context>
     <name>HistoryPage</name>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation>Your role does not have this permission</translation>
+    </message>
+    <message>
+        <source>先在列表里点选要导出的试验</source>
+        <translation>Click experiments in the list first</translation>
+    </message>
+    <message>
+        <source>导出所选试验结果</source>
+        <translation>Export selected experiment results</translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
+        <translation>Excel files (*.xlsx)</translation>
+    </message>
+    <message>
+        <source>导出历史列表</source>
+        <translation>Export history</translation>
+    </message>
+    <message>
+        <source>已导出 {rows} 行：{name}</source>
+        <translation>Exported {rows} rows: {name}</translation>
+    </message>
+    <message>
+        <source>导出失败：{reason}</source>
+        <translation>Export failed: {reason}</translation>
+    </message>
     <message>
         <source>试验</source>
         <translation>Experiment</translation>
@@ -736,12 +1264,60 @@
         <translation>Completed</translation>
     </message>
     <message>
+        <source>签署时间</source>
+        <translation>Signed at</translation>
+    </message>
+    <message>
+        <source>全部类型</source>
+        <translation>All types</translation>
+    </message>
+    <message>
+        <source>全部状态</source>
+        <translation>All statuses</translation>
+    </message>
+    <message>
         <source>历史记录</source>
         <translation>History</translation>
     </message>
     <message>
-        <source>双击一行打开回看</source>
-        <translation>Double-click a row to review it</translation>
+        <source>双击一行打开回看，点选多行可以导出</source>
+        <translation>Double-click a row to open it; click several rows to export them</translation>
+    </message>
+    <message>
+        <source>导出所选结果…</source>
+        <translation>Export selected results...</translation>
+    </message>
+    <message>
+        <source>导出当前列表…</source>
+        <translation>Export current list...</translation>
+    </message>
+    <message>
+        <source>试验类型</source>
+        <translation>Test type</translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation>From date</translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation>To date</translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation>Batch No.</translation>
+    </message>
+    <message>
+        <source>鲎试剂或样品</source>
+        <translation>LAL or sample</translation>
+    </message>
+    <message>
+        <source>查询</source>
+        <translation>Search</translation>
+    </message>
+    <message>
+        <source>重置</source>
+        <translation>Reset</translation>
     </message>
     <message>
         <source>刷新</source>
@@ -754,6 +1330,18 @@
     <message>
         <source>还没有历史试验</source>
         <translation>No experiments yet</translation>
+    </message>
+    <message>
+        <source>全部操作人</source>
+        <translation>All operators</translation>
+    </message>
+    <message>
+        <source>没有符合条件的试验</source>
+        <translation>No experiments match</translation>
+    </message>
+    <message>
+        <source>调整筛选条件，或点「重置」清除条件后再查</source>
+        <translation>Adjust the filters, or click Reset to clear them and search again</translation>
     </message>
     <message>
         <source>完成第一次试验后，结果会显示在这里</source>
@@ -788,6 +1376,17 @@
     <message>
         <source>待复核</source>
         <translation>Pending review</translation>
+    </message>
+</context>
+<context>
+    <name>LimitField</name>
+    <message>
+        <source>MVD</source>
+        <translation>MVD</translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation>Endotoxin limit</translation>
     </message>
 </context>
 <context>
@@ -1256,6 +1855,22 @@
         <translation>Samples</translation>
     </message>
     <message>
+        <source>MVD（可选）</source>
+        <translation>MVD (optional)</translation>
+    </message>
+    <message>
+        <source>内毒素限值 EU/mL（可选）</source>
+        <translation>Endotoxin limit, EU/mL (optional)</translation>
+    </message>
+    <message>
+        <source>留空则报告里不填</source>
+        <translation>Leave empty to leave it blank in the report</translation>
+    </message>
+    <message>
+        <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
+        <translation>Saved with the experiment record and shown in the report; it cannot be changed after signing.</translation>
+    </message>
+    <message>
         <source>管位</source>
         <translation>Tubes</translation>
     </message>
@@ -1376,6 +1991,22 @@
         <translation>Sample name is empty in row {rows}</translation>
     </message>
     <message>
+        <source>MVD</source>
+        <translation>MVD</translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation>Endotoxin limit</translation>
+    </message>
+    <message>
+        <source>「{names}」必须是大于 0 的数字，或者留空</source>
+        <translation>&quot;{names}&quot; must be a number greater than 0, or empty</translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation>, </translation>
+    </message>
+    <message>
         <source>管位数量要与模板一致，样品名称不能为空</source>
         <translation>Tube count must match the template and sample names cannot be empty</translation>
     </message>
@@ -1445,6 +2076,119 @@
     </message>
 </context>
 <context>
+    <name>NewUserDialog</name>
+    <message>
+        <source>新建用户</source>
+        <translation>New user</translation>
+    </message>
+    <message>
+        <source>登录名</source>
+        <translation>Login name</translation>
+    </message>
+    <message>
+        <source>显示名称</source>
+        <translation>Display name</translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation>Role</translation>
+    </message>
+    <message>
+        <source>初始密码（可选）</source>
+        <translation>Initial password (optional)</translation>
+    </message>
+    <message>
+        <source>留空则自动生成临时密码</source>
+        <translation>Leave empty to generate a temporary password</translation>
+    </message>
+    <message>
+        <source>新账号首次登录必须先修改密码。</source>
+        <translation>The new account must change its password at first sign-in.</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>创建</source>
+        <translation>Create</translation>
+    </message>
+</context>
+<context>
+    <name>Pager</name>
+    <message>
+        <source>共 {total} 条 · 第 {page}/{pages} 页</source>
+        <translation>{total} total · page {page}/{pages}</translation>
+    </message>
+    <message>
+        <source>上一页</source>
+        <translation>Previous</translation>
+    </message>
+    <message>
+        <source>下一页</source>
+        <translation>Next</translation>
+    </message>
+</context>
+<context>
+    <name>Permission</name>
+    <message>
+        <source>管理用户和角色</source>
+        <translation>Manage users and roles</translation>
+    </message>
+    <message>
+        <source>修改仪器设置</source>
+        <translation>Change instrument settings</translation>
+    </message>
+    <message>
+        <source>查看审计追踪</source>
+        <translation>View audit trail</translation>
+    </message>
+    <message>
+        <source>查看检测模板</source>
+        <translation>View test templates</translation>
+    </message>
+    <message>
+        <source>新建和修改检测模板</source>
+        <translation>Create and edit test templates</translation>
+    </message>
+    <message>
+        <source>录入和校验试剂批次</source>
+        <translation>Enter and verify reagent batches</translation>
+    </message>
+    <message>
+        <source>查看试验和结果</source>
+        <translation>View experiments and results</translation>
+    </message>
+    <message>
+        <source>新建试验</source>
+        <translation>New experiment</translation>
+    </message>
+    <message>
+        <source>启动试验</source>
+        <translation>Start experiments</translation>
+    </message>
+    <message>
+        <source>停止试验</source>
+        <translation>Stop experiments</translation>
+    </message>
+    <message>
+        <source>人工复核单管结果</source>
+        <translation>Review tube results manually</translation>
+    </message>
+    <message>
+        <source>签署试验和报告</source>
+        <translation>Sign experiments and reports</translation>
+    </message>
+    <message>
+        <source>预览和打印报告</source>
+        <translation>Preview and print reports</translation>
+    </message>
+    <message>
+        <source>导出报告和数据</source>
+        <translation>Export reports and data</translation>
+    </message>
+</context>
+<context>
     <name>PinButton</name>
     <message>
         <source>取消固定侧栏</source>
@@ -1453,17 +2197,6 @@
     <message>
         <source>固定侧栏</source>
         <translation>Pin sidebar</translation>
-    </message>
-</context>
-<context>
-    <name>PlaceholderPage</name>
-    <message>
-        <source>建设中</source>
-        <translation>Under construction</translation>
-    </message>
-    <message>
-        <source>这个页面还在建设中</source>
-        <translation>This page is under construction</translation>
     </message>
 </context>
 <context>
@@ -2217,6 +2950,10 @@
         <translation>A batch report summarizes signed experiments and does not change their status.</translation>
     </message>
     <message>
+        <source>当前角色无此权限</source>
+        <translation>Your role does not have this permission</translation>
+    </message>
+    <message>
         <source>已签署的报告语言固定为签署时的语言。</source>
         <translation>A signed report keeps the language it was signed in.</translation>
     </message>
@@ -2259,6 +2996,14 @@
     <message>
         <source>已导出：{name}</source>
         <translation>Exported: {name}</translation>
+    </message>
+    <message>
+        <source>导出 Excel 数据</source>
+        <translation>Export Excel data</translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
+        <translation>Excel files (*.xlsx)</translation>
     </message>
     <message>
         <source>报告中心</source>
@@ -2333,6 +3078,10 @@
         <translation>Print</translation>
     </message>
     <message>
+        <source>导出 Excel 数据…</source>
+        <translation>Export Excel data...</translation>
+    </message>
+    <message>
         <source>批量导出…</source>
         <translation>Export in bulk…</translation>
     </message>
@@ -2366,6 +3115,33 @@
     <message>
         <source>分析员</source>
         <translation>Analyst</translation>
+    </message>
+</context>
+<context>
+    <name>RoleDialog</name>
+    <message>
+        <source>修改角色</source>
+        <translation>Change role</translation>
+    </message>
+    <message>
+        <source>修改 {name} 的角色</source>
+        <translation>Change the role of {name}</translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation>Role</translation>
+    </message>
+    <message>
+        <source>改动立即生效：对方已登录的会话马上按新角色的权限工作。</source>
+        <translation>Takes effect immediately: the user&apos;s signed-in session switches to the new role&apos;s permissions right away.</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation>Save</translation>
     </message>
 </context>
 <context>
@@ -2411,24 +3187,12 @@
         <translation>Audit trail</translation>
     </message>
     <message>
-        <source>按时间、操作者和关键字查询审计记录，并校验哈希链。</source>
-        <translation>Search audit records by time, user and keyword, and verify the hash chain.</translation>
-    </message>
-    <message>
         <source>用户与权限</source>
         <translation>Users &amp; permissions</translation>
     </message>
     <message>
-        <source>新建、停用账号，分配角色。</source>
-        <translation>Create and disable accounts, assign roles.</translation>
-    </message>
-    <message>
         <source>仪器设置</source>
         <translation>Instrument settings</translation>
-    </message>
-    <message>
-        <source>仪器编号、相机选择、分辨率和帧率。</source>
-        <translation>Instrument number, camera selection, resolution and frame rate.</translation>
     </message>
     <message>
         <source>关于</source>
@@ -2593,6 +3357,319 @@
         <source>导出失败：{reason}</source>
         <translation>Export failed: {reason}</translation>
     </message>
+    <message>
+        <source>用户不存在</source>
+        <translation>User not found</translation>
+    </message>
+    <message>
+        <source>登录名已存在：{name}</source>
+        <translation>Login name already exists: {name}</translation>
+    </message>
+    <message>
+        <source>不能停用或降级最后一个管理员，否则没有人能管理用户</source>
+        <translation>The last administrator cannot be disabled or demoted; nobody could manage users</translation>
+    </message>
+    <message>
+        <source>不能停用自己的账号</source>
+        <translation>You cannot disable your own account</translation>
+    </message>
+    <message>
+        <source>不能在这里重置自己的密码，请用用户菜单里的「修改密码」</source>
+        <translation>You cannot reset your own password here; use Change password in the user menu</translation>
+    </message>
+    <message>
+        <source>显示名称不能超过 {max} 个字符</source>
+        <translation>The display name cannot exceed {max} characters</translation>
+    </message>
+    <message>
+        <source>设置有误，没有保存</source>
+        <translation>Invalid settings; nothing was saved</translation>
+    </message>
+    <message>
+        <source>试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
+        <translation>An experiment is running; settings that affect it (incubation, readout, temperature, video input) cannot be changed now</translation>
+    </message>
+    <message>
+        <source>设置没有保存：{reason}</source>
+        <translation>Settings were not saved: {reason}</translation>
+    </message>
+    <message>
+        <source>无法读取视频输入：{reason}</source>
+        <translation>Cannot read the video input: {reason}</translation>
+    </message>
+    <message>
+        <source>「{field}」必须是大于 0 的数字</source>
+        <translation>&quot;{field}&quot; must be a number greater than 0</translation>
+    </message>
+    <message>
+        <source>起始时间必须早于结束时间</source>
+        <translation>The start time must be earlier than the end time</translation>
+    </message>
+</context>
+<context>
+    <name>Settings</name>
+    <message>
+        <source>仪器编号</source>
+        <translation>Instrument No.</translation>
+    </message>
+    <message>
+        <source>孵育时间（分钟）</source>
+        <translation>Incubation time (min)</translation>
+    </message>
+    <message>
+        <source>翻转前后各取帧数</source>
+        <translation>Frames before and after the flip</translation>
+    </message>
+    <message>
+        <source>翻转后稳定时间（秒）</source>
+        <translation>Settle time after the flip (s)</translation>
+    </message>
+    <message>
+        <source>目标温度（℃）</source>
+        <translation>Target temperature (°C)</translation>
+    </message>
+    <message>
+        <source>允许偏差 ±（℃）</source>
+        <translation>Allowed deviation ± (°C)</translation>
+    </message>
+    <message>
+        <source>越限告警持续时间（秒）</source>
+        <translation>Out-of-range alarm duration (s)</translation>
+    </message>
+    <message>
+        <source>视频输入类型</source>
+        <translation>Video input type</translation>
+    </message>
+    <message>
+        <source>视频路径</source>
+        <translation>Video path</translation>
+    </message>
+    <message>
+        <source>数据保留天数</source>
+        <translation>Data retention (days)</translation>
+    </message>
+    <message>
+        <source>版权方名称</source>
+        <translation>Copyright holder</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>第一次试验后显示</source>
+        <translation>Shown after the first experiment</translation>
+    </message>
+    <message>
+        <source>配置文件里的视频源：{source}</source>
+        <translation>Video source in the configuration file: {source}</translation>
+    </message>
+    <message>
+        <source>只读</source>
+        <translation>Read-only</translation>
+    </message>
+    <message>
+        <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
+        <translation>Your role can only view the instrument settings; changing them needs the administrator role.</translation>
+    </message>
+    <message>
+        <source>试验 {id} 正在运行</source>
+        <translation>Experiment {id} is running</translation>
+    </message>
+    <message>
+        <source>孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。</source>
+        <translation>Incubation, readout, temperature and video input cannot be changed for now; the instrument No., data retention and copyright holder can still be changed.</translation>
+    </message>
+    <message>
+        <source>有效温度范围 {low:g} – {high:g} ℃</source>
+        <translation>Valid temperature range {low:g} – {high:g} °C</translation>
+    </message>
+    <message>
+        <source>视频文件的完整路径</source>
+        <translation>Full path of the video file</translation>
+    </message>
+    <message>
+        <source>图片文件夹的完整路径</source>
+        <translation>Full path of the image folder</translation>
+    </message>
+    <message>
+        <source>设置已保存，对之后启动的试验生效。</source>
+        <translation>Settings saved; they apply to experiments started from now on.</translation>
+    </message>
+    <message>
+        <source>没有改动。</source>
+        <translation>No changes.</translation>
+    </message>
+    <message>
+        <source>有 {count} 项设置不合法，没有保存。</source>
+        <translation>{count} settings are invalid; nothing was saved.</translation>
+    </message>
+    <message>
+        <source>选择视频文件</source>
+        <translation>Choose a video file</translation>
+    </message>
+    <message>
+        <source>视频文件 (*.mp4 *.avi *.mov *.mkv *.m4v);;所有文件 (*)</source>
+        <translation>Video files (*.mp4 *.avi *.mov *.mkv *.m4v);;All files (*)</translation>
+    </message>
+    <message>
+        <source>选择图片文件夹</source>
+        <translation>Choose an image folder</translation>
+    </message>
+    <message>
+        <source>正在读取……</source>
+        <translation>Reading...</translation>
+    </message>
+    <message>
+        <source>{fps:g} 帧/秒</source>
+        <translation>{fps:g} fps</translation>
+    </message>
+    <message>
+        <source>帧率未知</source>
+        <translation>Frame rate unknown</translation>
+    </message>
+    <message>
+        <source>{n} 帧</source>
+        <translation>{n} frames</translation>
+    </message>
+    <message>
+        <source>读不到画面</source>
+        <translation>No picture could be read</translation>
+    </message>
+    <message>
+        <source>无法预览</source>
+        <translation>Cannot preview</translation>
+    </message>
+    <message>
+        <source>操作失败：{reason}</source>
+        <translation>Operation failed: {reason}</translation>
+    </message>
+    <message>
+        <source>仪器设置</source>
+        <translation>Instrument Settings</translation>
+    </message>
+    <message>
+        <source>改动保存在数据目录的用户配置里，对之后启动的试验生效</source>
+        <translation>Changes are saved in the user configuration in the data folder and apply to experiments started afterwards</translation>
+    </message>
+    <message>
+        <source>仪器与数据</source>
+        <translation>Instrument and data</translation>
+    </message>
+    <message>
+        <source>孵育与读数</source>
+        <translation>Incubation and readout</translation>
+    </message>
+    <message>
+        <source>温度</source>
+        <translation>Temperature</translation>
+    </message>
+    <message>
+        <source>视频输入</source>
+        <translation>Video input</translation>
+    </message>
+    <message>
+        <source>算法后端</source>
+        <translation>Analysis backend</translation>
+    </message>
+    <message>
+        <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
+        <translation>Leave empty for no automatic deletion (default). Expiry cleanup is not enabled yet, so no files are deleted for now.</translation>
+    </message>
+    <message>
+        <source>写入之后新建的每个试验和报告。</source>
+        <translation>Written into every experiment and report created afterwards.</translation>
+    </message>
+    <message>
+        <source>沿用配置文件</source>
+        <translation>Use the configuration file</translation>
+    </message>
+    <message>
+        <source>视频文件</source>
+        <translation>Video file</translation>
+    </message>
+    <message>
+        <source>图片文件夹</source>
+        <translation>Image folder</translation>
+    </message>
+    <message>
+        <source>浏览…</source>
+        <translation>Browse...</translation>
+    </message>
+    <message>
+        <source>预览</source>
+        <translation>Preview</translation>
+    </message>
+    <message>
+        <source>工业相机：型号确定后接入。</source>
+        <translation>Industrial camera: to be connected once the model is decided.</translation>
+    </message>
+    <message>
+        <source>后端</source>
+        <translation>Backend</translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation>Model version</translation>
+    </message>
+    <message>
+        <source>配置版本</source>
+        <translation>Config version</translation>
+    </message>
+    <message>
+        <source>配置文件</source>
+        <translation>Config file</translation>
+    </message>
+    <message>
+        <source>还原</source>
+        <translation>Revert</translation>
+    </message>
+    <message>
+        <source>保存设置</source>
+        <translation>Save settings</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsProblem</name>
+    <message>
+        <source>{name}不能为空</source>
+        <translation>{name} cannot be empty</translation>
+    </message>
+    <message>
+        <source>{name}必须是数字，范围 {min:g}–{max:g}</source>
+        <translation>{name} must be a number between {min:g} and {max:g}</translation>
+    </message>
+    <message>
+        <source>{name}必须是整数，范围 {min:g}–{max:g}</source>
+        <translation>{name} must be an integer between {min:g} and {max:g}</translation>
+    </message>
+    <message>
+        <source>{name}应在 {min:g}–{max:g} 之间</source>
+        <translation>{name} must be between {min:g} and {max:g}</translation>
+    </message>
+    <message>
+        <source>{name}不能超过 {max:g} 个字符</source>
+        <translation>{name} cannot exceed {max:g} characters</translation>
+    </message>
+    <message>
+        <source>{name}不能含控制字符</source>
+        <translation>{name} cannot contain control characters</translation>
+    </message>
+    <message>
+        <source>路径不存在：{path}</source>
+        <translation>Path does not exist: {path}</translation>
+    </message>
+    <message>
+        <source>这不是一个文件：{path}</source>
+        <translation>Not a file: {path}</translation>
+    </message>
+    <message>
+        <source>这不是一个文件夹：{path}</source>
+        <translation>Not a folder: {path}</translation>
+    </message>
+    <message>
+        <source>文件夹里没有 JPG 或 PNG 图片：{path}</source>
+        <translation>No JPG or PNG images in the folder: {path}</translation>
+    </message>
 </context>
 <context>
     <name>SetupPage</name>
@@ -2700,7 +3777,7 @@
     </message>
     <message>
         <source>签署后试验的结果和复核将被锁定，生成带数字签名的 PDF，不能撤销。</source>
-        <translation>After signing, the experiment's results and review are locked and a digitally signed PDF is produced. This cannot be undone.</translation>
+        <translation>After signing, the experiment&apos;s results and review are locked and a digitally signed PDF is produced. This cannot be undone.</translation>
     </message>
     <message>
         <source>取消</source>
@@ -3294,6 +4371,129 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
 </context>
 <context>
+    <name>UsersPage</name>
+    <message>
+        <source>启用</source>
+        <translation>Enable</translation>
+    </message>
+    <message>
+        <source>已停用</source>
+        <translation>Disabled</translation>
+    </message>
+    <message>
+        <source>使用中</source>
+        <translation>Active</translation>
+    </message>
+    <message>
+        <source>须改密</source>
+        <translation>Must change password</translation>
+    </message>
+    <message>
+        <source>（我）</source>
+        <translation> (you)</translation>
+    </message>
+    <message>
+        <source>自己的密码请用用户菜单里的「修改密码」</source>
+        <translation>Use Change password in the user menu for your own password</translation>
+    </message>
+    <message>
+        <source>不能停用自己的账号</source>
+        <translation>You cannot disable your own account</translation>
+    </message>
+    <message>
+        <source>停用</source>
+        <translation>Disable</translation>
+    </message>
+    <message>
+        <source>重置密码？</source>
+        <translation>Reset password?</translation>
+    </message>
+    <message>
+        <source>将为 {name} 生成一个临时密码。对方已登录的会话会立即失效，下次登录必须先修改密码。</source>
+        <translation>A temporary password will be generated for {name}. Their signed-in sessions end immediately and they must change the password at the next sign-in.</translation>
+    </message>
+    <message>
+        <source>重置</source>
+        <translation>Reset</translation>
+    </message>
+    <message>
+        <source>停用账号？</source>
+        <translation>Disable account?</translation>
+    </message>
+    <message>
+        <source>{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。</source>
+        <translation>{name} will no longer be able to sign in and signed-in sessions end immediately. You can enable the account again at any time.</translation>
+    </message>
+    <message>
+        <source>已启用 {name}</source>
+        <translation>{name} enabled</translation>
+    </message>
+    <message>
+        <source>已停用 {name}</source>
+        <translation>{name} disabled</translation>
+    </message>
+    <message>
+        <source>登录名</source>
+        <translation>Login name</translation>
+    </message>
+    <message>
+        <source>显示名称</source>
+        <translation>Display name</translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation>Role</translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation>Status</translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation>Permission</translation>
+    </message>
+    <message>
+        <source>用户与权限</source>
+        <translation>Users and Permissions</translation>
+    </message>
+    <message>
+        <source>改动立即生效，并记入审计追踪</source>
+        <translation>Changes take effect immediately and are recorded in the audit trail</translation>
+    </message>
+    <message>
+        <source>新建用户</source>
+        <translation>New user</translation>
+    </message>
+    <message>
+        <source>账号</source>
+        <translation>Accounts</translation>
+    </message>
+    <message>
+        <source>重置密码</source>
+        <translation>Reset password</translation>
+    </message>
+    <message>
+        <source>修改角色…</source>
+        <translation>Change role...</translation>
+    </message>
+    <message>
+        <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
+        <translation>You cannot disable yourself, nor disable or demote the last administrator. After a reset, the user must change the password at the next sign-in.</translation>
+    </message>
+    <message>
+        <source>还没有账号</source>
+        <translation>No accounts yet</translation>
+    </message>
+    <message>
+        <source>角色与权限</source>
+        <translation>Roles and permissions</translation>
+    </message>
+    <message>
+        <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
+        <translation>Read-only. The permission matrix is part of the software and changing it needs a new release; it drives both the interface entries and the service-level checks.</translation>
+    </message>
+</context>
+<context>
     <name>Verify</name>
     <message>
         <source>报告文件不存在，可能已被删除或移走。</source>
@@ -3301,7 +4501,7 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
     <message>
         <source>文件的 SHA-256 与库里记录的不一致：文件被替换或改动过。</source>
-        <translation>The file's SHA-256 differs from the stored record: the file was replaced or modified.</translation>
+        <translation>The file&apos;s SHA-256 differs from the stored record: the file was replaced or modified.</translation>
     </message>
     <message>
         <source>文件无法解析：不是合法的 PDF，或内容已被破坏。</source>
@@ -3349,7 +4549,7 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
     <message>
         <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
-        <translation>Signed with this computer's self-signed certificate: it proves the file was not changed after signing, but has no third-party CA legal effect.</translation>
+        <translation>Signed with this computer&apos;s self-signed certificate: it proves the file was not changed after signing, but has no third-party CA legal effect.</translation>
     </message>
 </context>
 <context>

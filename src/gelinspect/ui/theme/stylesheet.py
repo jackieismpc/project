@@ -88,12 +88,12 @@ QTabBar[kbfocus="true"]::tab:selected { background: $primary_soft; border-top-le
 
 QCheckBox { spacing: 8px; min-height: ${touch}px; }
 
-QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit {
     min-height: 36px; padding: 0 10px; border: 1px solid $border_strong;
     border-radius: ${button}px; background: $input_bg; selection-background-color: $primary_tint;
 }
 QTextEdit, QPlainTextEdit { padding: 8px 10px; }
-QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus { border: 2px solid $primary; }
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QDateEdit:focus { border: 2px solid $primary; }
 
 QTableView {
     background: $surface; border: 0; outline: 0; gridline-color: $border_soft;

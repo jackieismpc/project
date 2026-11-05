@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from sqlalchemy import ColumnElement, String, insert, or_, select, type_coerce, update
 
@@ -133,6 +133,8 @@ def _filters(query: AuditQuery) -> list[ColumnElement[bool]]:
         filters.append(AuditEventRow.action == query.action.value)
     if query.experiment_id is not None:
         filters.append(AuditEventRow.experiment_id == query.experiment_id)
+    if query.max_seq is not None:
+        filters.append(AuditEventRow.seq <= query.max_seq)
     if query.keyword:
         filters.append(
             or_(
@@ -264,11 +266,14 @@ class SqlAuditRepository(AuditRepository):
             items = tuple(_to_record(row) for row in session.execute(statement).scalars())
         return Page(items=items, total=total, request=page)
 
-    def verify_chain(self) -> ChainVerification:
+    def verify_chain(self, progress: Callable[[int], None] | None = None) -> ChainVerification:
         """校验整条哈希链，定位第一条被篡改或删除的记录。
 
         依次检查：序号连续、内容与 ``hash`` 相符、``prev_hash`` 与上一条相符，
         最后核对链头。记录被删除时，``first_bad_seq`` 是缺失的序号。
+
+        Args:
+            progress: 每校验完一批记录后调用，参数是已校验到的序号；在调用本方法的线程上执行。
 
         Returns:
             校验结果。
@@ -334,6 +339,8 @@ class SqlAuditRepository(AuditRepository):
                     prev_hash = stored
                     last_seen = seq
                     expected_seq = seq + 1
+                if progress is not None:
+                    progress(last_seen)
             head = session.get(AuditChainHeadRow, 1)
         if head is None:
             return ChainVerification(

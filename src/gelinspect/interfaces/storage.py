@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -146,6 +146,8 @@ class AuditQuery:
         keyword: 在操作记录和试验标识中做子串匹配，不区分大小写。
         action: 事件类型。
         experiment_id: 关联试验，精确匹配。
+        max_seq: 序号上限（含）。翻页时用第一页看到的最大序号固定范围，翻页期间新写入的记录
+            不会把后面的页往后顶，造成同一条记录出现两次。
     """
 
     start: datetime | None = None
@@ -154,6 +156,7 @@ class AuditQuery:
     keyword: str | None = None
     action: AuditAction | None = None
     experiment_id: str | None = None
+    max_seq: int | None = None
 
 
 class ChainFailure(StrEnum):
@@ -573,6 +576,20 @@ class ExperimentRepository(Protocol):
         """
         ...
 
+    def update_limits(
+        self, experiment_id: str, *, mvd: float | None, endotoxin_limit: float | None
+    ) -> None:
+        """只更新 MVD 和内毒素限值，不触碰其他内容；是否允许由服务层判断。
+
+        Raises:
+            NotFoundError: 试验不存在。
+        """
+        ...
+
+    def latest_analyzer_versions(self) -> tuple[str, str] | None:
+        """最近一个有算法结果的试验所用的模型版本和配置版本，没有时为 None。"""
+        ...
+
     def get(self, experiment_id: str) -> Experiment | None:
         """按标识加载完整试验。"""
         ...
@@ -611,8 +628,12 @@ class AuditRepository(Protocol):
         """分页查询，按序号倒序（最新在前）。"""
         ...
 
-    def verify_chain(self) -> ChainVerification:
-        """校验整条哈希链，定位第一条被篡改或删除的记录。"""
+    def verify_chain(self, progress: Callable[[int], None] | None = None) -> ChainVerification:
+        """校验整条哈希链，定位第一条被篡改或删除的记录。
+
+        Args:
+            progress: 每校验完一批记录后调用，参数是已校验到的序号，在调用本方法的线程上执行。
+        """
         ...
 
 
@@ -758,6 +779,11 @@ class UnitOfWork(Protocol):
     @property
     def reports(self) -> ReportRepository:
         """本事务的报告记录仓储。"""
+        ...
+
+    @property
+    def users(self) -> UserRepository:
+        """本事务的用户仓储。用户的改动和它的审计事件要在同一事务里提交。"""
         ...
 
 

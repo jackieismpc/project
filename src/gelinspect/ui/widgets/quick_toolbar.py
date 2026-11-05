@@ -96,7 +96,7 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         str(QT_TRANSLATE_NOOP("QuickToolbar", "仪器设置")),
         "settings",
         "Ctrl+,",
-        Permission.INSTRUMENT_CONFIGURE,
+        Permission.EXPERIMENT_VIEW,  # 所有角色可以查看设置；修改需要 instrument_configure
     ),
 )
 """设计评审确定的 6 个快捷操作，从左到右排列；宽度不足时从右端开始收进「更多」。"""

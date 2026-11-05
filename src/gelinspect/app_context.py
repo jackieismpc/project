@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +29,7 @@ from gelinspect.interfaces.traceability import (
 )
 from gelinspect.interfaces.video import VideoSource
 from gelinspect.services.app_services import AppServices
+from gelinspect.services.audit_service import AuditService
 from gelinspect.services.auth import AuthService, LoginPolicy
 from gelinspect.services.config import (
     AppConfig,
@@ -41,6 +42,7 @@ from gelinspect.services.dashboard_service import DashboardService
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.experiment_service import ExperimentService
+from gelinspect.services.export_service import ExportService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
 from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import MonitorService
@@ -49,7 +51,10 @@ from gelinspect.services.reagent_service import ReagentService
 from gelinspect.services.reporting.keystore import LocalKeyStore
 from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
+from gelinspect.services.settings_service import InstrumentSettingsService
 from gelinspect.services.template_service import TemplateService
+from gelinspect.services.user_service import UserService
+from gelinspect.services.user_settings import apply_overrides, load_overrides, settings_file
 from gelinspect.services.video import VideoPipeline
 
 
@@ -77,6 +82,11 @@ class AppContext:
         reviews: 人工复核服务。
         dashboard: 工作台数据服务。
         reports: 报告服务。
+        users: 用户与权限管理服务。
+        audit: 审计追踪服务。
+        exports: Excel 导出服务。
+        settings: 仪器设置服务。
+        base_config: 没有叠加用户设置的默认配置。
         demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
     """
@@ -100,6 +110,11 @@ class AppContext:
     reviews: ReviewService
     dashboard: DashboardService
     reports: ReportService
+    users: UserService
+    audit: AuditService
+    exports: ExportService
+    settings: InstrumentSettingsService
+    base_config: AppConfig
     demo_accounts: tuple[DemoAccount, ...] = ()
     first_run: bool = False
 
@@ -126,16 +141,16 @@ class AppContext:
             reviews=self.reviews,
             dashboard=self.dashboard,
             reports=self.reports,
+            users=self.users,
+            audit=self.audit,
+            exports=self.exports,
+            settings=self.settings,
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),
             data_dir=config.data_dir,
             log_dir=log_dir or config.data_dir / "logs",
-            backends={
-                "device": config.device.backend,
-                "video": config.video.source,
-                "analysis": config.analysis.backend,
-            },
+            backends=_LiveBackends(self),
         )
 
     def close(self) -> None:
@@ -148,6 +163,83 @@ class AppContext:
         self.pipeline.stop()
         self.device.close()
         self.database.close()
+
+
+class _LiveBackends(Mapping[str, str]):
+    """关于页显示的后端：随仪器设置保存而更新（视频源可以在运行中更换）。"""
+
+    def __init__(self, context: AppContext) -> None:
+        self._context = context
+
+    def _view(self) -> dict[str, str]:
+        config = self._context.config
+        return {
+            "device": config.device.backend,
+            "video": config.video.source,
+            "analysis": config.analysis.backend,
+        }
+
+    def __getitem__(self, key: str) -> str:
+        return self._view()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._view())
+
+    def __len__(self) -> int:
+        return len(self._view())
+
+
+class _RuntimeApplier:
+    """把保存后的仪器设置应用到运行中的引擎、视频管线、试验服务和报告服务。
+
+    组装根的一部分：只有这里同时知道视频源的具体创建方式和各服务。必须在没有试验运行时调用，
+    引擎和管线会拒绝运行中的更换；任何一步失败都撤销已做的，不留下半个状态。
+    """
+
+    def __init__(
+        self,
+        engine: ExperimentEngine,
+        pipeline: VideoPipeline,
+        experiments: ExperimentService,
+        reports: ReportService,
+        config: AppConfig,
+    ) -> None:
+        self._engine = engine
+        self._pipeline = pipeline
+        self._experiments = experiments
+        self._reports = reports
+        self._config = config
+        self._context: AppContext | None = None
+
+    def attach(self, context: AppContext) -> None:
+        """记下上下文，之后把生效的配置和视频源同步给它。"""
+        self._context = context
+
+    def apply(self, new: AppConfig) -> None:
+        """应用新配置。
+
+        Args:
+            new: 新配置。
+
+        Raises:
+            ConfigError: 视频源创建失败。
+            EngineBusyError: 有试验在运行。
+            PipelineStateError: 视频管线在运行。
+        """
+        old = self._config
+        source = _create_video_source(new)
+        self._engine.update_config(new.engine_config())
+        try:
+            self._pipeline.reconfigure(source, new.pipeline_config())
+        except BaseException:
+            self._engine.update_config(old.engine_config())
+            raise
+        self._experiments.set_instrument_no(new.instrument_no)
+        self._reports.set_copyright_holder(new.reports.copyright_holder)
+        self._config = new
+        if self._context is not None:
+            self._context.config = new
+            self._context.video_source = source
 
 
 def _create_video_source(config: AppConfig) -> VideoSource:
@@ -213,7 +305,10 @@ def build_app_context(
         config_path: YAML 文件，为 None 时使用默认配置（指向 ``simulation/``）。
         on_event: 引擎事件监听者。
         clock: 试剂校验和试验创建使用的当前时间（带时区），默认系统时间；测试注入固定日期，
-            这样模拟白名单的有效期不会随真实日期过期。
+            这样模拟白名单的有效期不会随真实日期过期。它只用于服务（试剂校验、试验创建和签署、
+            审计、报告）：试验引擎、设备和视频始终用真实的系统时钟（它们的时间要和设备、画面帧同一
+            基准）。所以注入固定时钟再跑真实试验，报告上「检测日期」（引擎写的开始事件）会晚于
+            「签署日期」（服务时钟）；不注入则时间轴一致，见 test_real_clock_flow.py。
 
     Returns:
         应用依赖。
@@ -222,7 +317,10 @@ def build_app_context(
         ConfigError: 配置有误，或后端无法加载。
         DatabaseVersionError: 数据库版本比程序新。
     """
-    settings = config if config is not None else load_config(config_path)
+    base_config = config if config is not None else load_config(config_path)
+    # 用户在「仪器设置」里改过的项保存在数据目录里，叠加到默认配置上；文件有错在这里报错，
+    # 此时还没有创建任何后端和文件。
+    settings = apply_overrides(base_config, load_overrides(settings_file(base_config.data_dir)))
     device = load_backend(
         "device.backend",
         settings.device.backend,
@@ -293,7 +391,11 @@ def build_app_context(
         include_images=reports.include_images,
         clock=clock,
     )
-    return AppContext(
+    experiments = ExperimentService(
+        auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
+    )
+    applier = _RuntimeApplier(engine, pipeline, experiments, report_service, settings)
+    context = AppContext(
         config=settings,
         database=database,
         device=device,
@@ -307,14 +409,28 @@ def build_app_context(
         instrument=InstrumentMonitor(engine),
         templates=TemplateService(auth, database),
         reagents=reagents,
-        experiments=ExperimentService(
-            auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
-        ),
+        experiments=experiments,
         monitor=monitor,
         media=media,
         reviews=ReviewService(auth, database, clock=clock),
         dashboard=DashboardService(auth, database, monitor, reagents),
         reports=report_service,
+        users=UserService(auth, database, clock=clock),
+        audit=AuditService(auth, database, clock=clock),
+        exports=ExportService(auth, database, clock=clock),
+        settings=InstrumentSettingsService(
+            auth,
+            database,
+            engine,
+            base_config=base_config,
+            effective_config=settings,
+            apply=applier.apply,
+            source_factory=create_video_source,
+            clock=clock,
+        ),
+        base_config=base_config,
         demo_accounts=tuple(hook.accounts()) if hook is not None else (),
         first_run=first_run,
     )
+    applier.attach(context)
+    return context

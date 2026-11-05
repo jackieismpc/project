@@ -21,10 +21,13 @@ from gelinspect.domain.enums import (
     Role,
     TubeRole,
 )
+from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.auth import AuthError, AuthErrorCode
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.reagent_service import ReagentLockedError, ReagentScan, ScanOutcome
+from gelinspect.services.settings_service import SettingsError
+from gelinspect.services.user_settings import SettingsProblem, SettingsProblemCode
 
 _ROLES: dict[Role, str] = {
     Role.ADMIN: str(QT_TRANSLATE_NOOP("Role", "管理员")),
@@ -391,6 +394,43 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ),
     ServiceErrorCode.EXPORT_EMPTY: str(QT_TRANSLATE_NOOP("ServiceError", "没有可导出的报告")),
     ServiceErrorCode.EXPORT_FAILED: str(QT_TRANSLATE_NOOP("ServiceError", "导出失败：{reason}")),
+    ServiceErrorCode.USER_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "用户不存在")),
+    ServiceErrorCode.USER_DUPLICATE: str(QT_TRANSLATE_NOOP("ServiceError", "登录名已存在：{name}")),
+    ServiceErrorCode.USER_LAST_ADMIN: str(
+        QT_TRANSLATE_NOOP("ServiceError", "不能停用或降级最后一个管理员，否则没有人能管理用户")
+    ),
+    ServiceErrorCode.USER_SELF_DISABLE: str(
+        QT_TRANSLATE_NOOP("ServiceError", "不能停用自己的账号")
+    ),
+    ServiceErrorCode.USER_SELF_RESET: str(
+        QT_TRANSLATE_NOOP("ServiceError", "不能在这里重置自己的密码，请用用户菜单里的「修改密码」")
+    ),
+    ServiceErrorCode.USER_NAME_REQUIRED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "显示名称不能超过 {max} 个字符")
+    ),
+    ServiceErrorCode.SETTINGS_INVALID: str(QT_TRANSLATE_NOOP("ServiceError", "设置有误，没有保存")),
+    ServiceErrorCode.SETTINGS_BUSY: str(
+        QT_TRANSLATE_NOOP(
+            "ServiceError", "试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）"
+        )
+    ),
+    ServiceErrorCode.SETTINGS_SAVE_FAILED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "设置没有保存：{reason}")
+    ),
+    ServiceErrorCode.SETTINGS_PREVIEW_FAILED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "无法读取视频输入：{reason}")
+    ),
+    ServiceErrorCode.LIMITS_INVALID: str(
+        QT_TRANSLATE_NOOP("ServiceError", "「{field}」必须是大于 0 的数字")
+    ),
+    ServiceErrorCode.AUDIT_QUERY_INVALID: str(
+        QT_TRANSLATE_NOOP("ServiceError", "起始时间必须早于结束时间")
+    ),
+}
+
+_LIMIT_FIELDS: dict[str, str] = {
+    "mvd": str(QT_TRANSLATE_NOOP("LimitField", "MVD")),
+    "endotoxin_limit": str(QT_TRANSLATE_NOOP("LimitField", "内毒素限值")),
 }
 
 
@@ -410,6 +450,10 @@ def describe_service_error(error: ServiceError) -> str:
         reasons = "；".join(describe_lock_reasons(error))
         return f"{template}：{reasons}" if reasons else template
     params = {"max": 1000, **error.params}
+    if error.code is ServiceErrorCode.LIMITS_INVALID and str(params.get("field")) in _LIMIT_FIELDS:
+        params["field"] = QCoreApplication.translate(
+            "LimitField", _LIMIT_FIELDS[str(params["field"])]
+        )
     try:
         return template.format(**params)
     except (KeyError, IndexError):
@@ -551,3 +595,121 @@ def format_concentration(value: float) -> str:
         例如 ``0.5946``。
     """
     return format_quantity(value)
+
+
+_PERMISSIONS: dict[Permission, str] = {
+    Permission.USER_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "管理用户和角色")),
+    Permission.INSTRUMENT_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "修改仪器设置")),
+    Permission.AUDIT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看审计追踪")),
+    Permission.TEMPLATE_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看检测模板")),
+    Permission.TEMPLATE_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "新建和修改检测模板")),
+    Permission.REAGENT_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "录入和校验试剂批次")),
+    Permission.EXPERIMENT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看试验和结果")),
+    Permission.EXPERIMENT_CREATE: str(QT_TRANSLATE_NOOP("Permission", "新建试验")),
+    Permission.EXPERIMENT_RUN: str(QT_TRANSLATE_NOOP("Permission", "启动试验")),
+    Permission.EXPERIMENT_STOP: str(QT_TRANSLATE_NOOP("Permission", "停止试验")),
+    Permission.RESULT_REVIEW: str(QT_TRANSLATE_NOOP("Permission", "人工复核单管结果")),
+    Permission.EXPERIMENT_SIGN: str(QT_TRANSLATE_NOOP("Permission", "签署试验和报告")),
+    Permission.REPORT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "预览和打印报告")),
+    Permission.DATA_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出报告和数据")),
+}
+
+
+def permission_label(permission: Permission) -> str:
+    """权限的当前语言说明。
+
+    Args:
+        permission: 权限。
+
+    Returns:
+        例如「查看审计追踪」。
+    """
+    return QCoreApplication.translate("Permission", _PERMISSIONS[permission])
+
+
+SETTING_LABELS: dict[str, str] = {
+    "instrument_no": str(QT_TRANSLATE_NOOP("Settings", "仪器编号")),
+    "incubation_minutes": str(QT_TRANSLATE_NOOP("Settings", "孵育时间（分钟）")),
+    "frames_per_side": str(QT_TRANSLATE_NOOP("Settings", "翻转前后各取帧数")),
+    "settle_s": str(QT_TRANSLATE_NOOP("Settings", "翻转后稳定时间（秒）")),
+    "temperature_target_c": str(QT_TRANSLATE_NOOP("Settings", "目标温度（℃）")),
+    "temperature_tolerance_c": str(QT_TRANSLATE_NOOP("Settings", "允许偏差 ±（℃）")),
+    "temperature_hold_s": str(QT_TRANSLATE_NOOP("Settings", "越限告警持续时间（秒）")),
+    "video_input": str(QT_TRANSLATE_NOOP("Settings", "视频输入类型")),
+    "video_path": str(QT_TRANSLATE_NOOP("Settings", "视频路径")),
+    "retention_days": str(QT_TRANSLATE_NOOP("Settings", "数据保留天数")),
+    "copyright_holder": str(QT_TRANSLATE_NOOP("Settings", "版权方名称")),
+}
+"""设置项的显示名（带单位），设置页的标签和校验提示共用。"""
+
+_PROBLEM_TEXTS: dict[SettingsProblemCode, str] = {
+    SettingsProblemCode.REQUIRED: str(QT_TRANSLATE_NOOP("SettingsProblem", "{name}不能为空")),
+    SettingsProblemCode.NOT_A_NUMBER: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "{name}必须是数字，范围 {min:g}–{max:g}")
+    ),
+    SettingsProblemCode.NOT_AN_INTEGER: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "{name}必须是整数，范围 {min:g}–{max:g}")
+    ),
+    SettingsProblemCode.OUT_OF_RANGE: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "{name}应在 {min:g}–{max:g} 之间")
+    ),
+    SettingsProblemCode.TOO_LONG: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "{name}不能超过 {max:g} 个字符")
+    ),
+    SettingsProblemCode.BAD_CHARACTERS: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "{name}不能含控制字符")
+    ),
+    SettingsProblemCode.PATH_MISSING: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "路径不存在：{path}")
+    ),
+    SettingsProblemCode.NOT_A_FILE: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "这不是一个文件：{path}")
+    ),
+    SettingsProblemCode.NOT_A_FOLDER: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "这不是一个文件夹：{path}")
+    ),
+    SettingsProblemCode.NO_IMAGES: str(
+        QT_TRANSLATE_NOOP("SettingsProblem", "文件夹里没有 JPG 或 PNG 图片：{path}")
+    ),
+}
+
+
+def setting_label(name: str) -> str:
+    """设置项的当前语言显示名。
+
+    Args:
+        name: 设置项名称。
+
+    Returns:
+        带单位的名称，例如「孵育时间（分钟）」。
+    """
+    return QCoreApplication.translate("Settings", SETTING_LABELS[name])
+
+
+def describe_settings_problem(problem: SettingsProblem) -> str:
+    """一个不合法的设置项的当前语言提示。
+
+    Args:
+        problem: 校验发现的问题。
+
+    Returns:
+        例如「孵育时间（分钟）应在 0.1–1440 之间」。
+    """
+    template = QCoreApplication.translate("SettingsProblem", _PROBLEM_TEXTS[problem.code])
+    params: dict[str, object] = {**problem.params, "name": setting_label(problem.name)}
+    try:
+        return template.format(**params)
+    except (KeyError, IndexError, ValueError):
+        return template
+
+
+def describe_settings_error(error: SettingsError) -> list[str]:
+    """设置校验失败的逐项提示。
+
+    Args:
+        error: 服务层抛出的异常。
+
+    Returns:
+        每个不合法项一行。
+    """
+    return [describe_settings_problem(p) for p in error.problems]

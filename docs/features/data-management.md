@@ -2,7 +2,7 @@
 
 ## 目的
 
-提供软件的持久化存储：用户、试验、管位与样品、试剂批次、单管结果、视频与图像文件记录、报告记录、审计事件、温度日志和设备日志。对应 P3；P6（试验引擎写结果）、P9（复核）、P11（报告）和 P12（历史与审计页）都通过它读写数据。
+提供软件的持久化存储：用户、试验、管位与样品、试剂批次、单管结果、视频与图像文件记录、报告记录、审计事件、温度日志和设备日志。对应 P3；P6（试验引擎写结果）、P9（复核）、P11（报告）和 P12（历史、审计、用户、设置页和 Excel 导出，见 [admin-pages.md](admin-pages.md)）都通过它读写数据。
 
 代码位于 `src/gelinspect/infrastructure/db/`，仓储接口位于 `src/gelinspect/interfaces/storage.py`。
 
@@ -85,12 +85,12 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 
 | 操作 | 所需权限 |
 |---|---|
-| 查询审计、校验哈希链 | `audit_view` |
+| 查询审计、校验哈希链 | `audit_view`（导出 Excel 另需 `data_export`） |
 | 查询历史与读取试验 | `experiment_view` |
 | 保存试验与管位 | `experiment_create` |
 | 写入分析结果 | 试验引擎（系统）调用，不对应用户权限 |
 | 写入复核结论 | `result_review` |
-| 用户增删改、重置密码 | `user_manage` |
+| 用户增删改、重置密码、改角色 | `user_manage` |
 | 保存模板 | `template_manage` |
 | 追加审计事件 | 无需权限，所有受审计的操作都应写入 |
 
@@ -145,3 +145,31 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 
 - Windows 上的 `open_database`、WAL 与文件锁行为（特别是库文件放在网络盘或被杀毒软件扫描时）。
 - 打包产物（P13）中迁移能运行，即 `migrations/` 目录已随包分发。
+
+## P12 对数据层的补充
+
+页面和服务见 [admin-pages.md](admin-pages.md)，这里只记数据层的变化。**没有新的数据库迁移**：MVD 和内毒素限值的列（`experiments.mvd`、`experiments.endotoxin_limit`）从初始迁移起就在，P12 只是让向导可以录入、让报告显示它们。
+
+- **审计查询**：`AuditQuery` 增加 `max_seq`（序号上限，含）。翻页时用第一页看到的最大序号固定范围，翻页期间新写入的记录（登录、别人的操作、查看审计自己）不会把后面的页往后顶，造成同一条记录出现两次。导出也用它：每页从上一页最后一条之前开始，不用越来越大的 OFFSET，10 万条是线性的。
+- **校验进度**：`AuditRepository.verify_chain(progress=None)` 每校验完一批（5000 条）调用一次 `progress(已校验到的序号)`，在调用线程上执行；`verify_audit_chain(db, progress)` 同样。
+- **工作单元带用户仓储**：`UnitOfWork.users`。用户的改动和它的审计事件在同一个事务里提交，审计写不进去就不会生效。
+- **试验仓储**：`update_limits(experiment_id, mvd=, endotoxin_limit=)` 只改这两个字段，**已签署的试验抛 `StateConflictError`**（服务层先判断，数据层再挡一次）；`latest_analyzer_versions()` 取最近一个有算法结果的试验所用的模型版本和配置版本（设置页的「算法后端」显示）。
+- **新的审计事件类型**：`audit_viewed`（查看审计，新开一次查询时写）、`audit_verified`（校验完整性，记结果和第一处异常的序号）、`limits_changed`（修改 MVD 和限值，记旧值和新值）。`settings_changed` 和 `user_changed` 早就有，现在由设置和用户页写。
+- **用户配置文件**：仪器设置不进数据库，保存在数据目录的 `user_settings.json`（只含与默认配置不同的项），见 admin-pages.md。
+
+### 页面级性能实测（`tests/ui/test_perf_admin_pages.py`，`perf` 标记，默认运行）
+
+10 万条审计 + 125 个试验共 1 万管结果；macOS 开发机，SQLite 文件库。每项都小于 1 秒，下面是实测：
+
+| 项 | 耗时 |
+|---|---|
+| 审计页：首页 / 深翻页（offset 5 万、9.995 万） | 2.3 ms / 6.7 ms、7.9 ms |
+| 审计页：按操作者 / 按时间段 / 按关键字（全表子串）/ 组合 | 1.6 / 3.6 / 35 / 5.8 ms |
+| 历史页：首页、翻页、按类型、按批号、按状态+时间+操作人 | 0.5–1.4 ms |
+| 用户页列表、设置页读取 | 0.5 ms、1.9 ms |
+| 校验 10 万条哈希链（后台线程，有进度） | 373 ms |
+| 界面切页（首次创建页面，`navigate` 返回） | 16–26 ms |
+| 界面切页（再次，数据显示出来） | 6–28 ms |
+| Excel 导出 1 万管结果（125 个试验，0.9 MB） | 0.85 s |
+| Excel 导出审计 10 万条 / 历史列表 125 行 | 4.4 s / 0.01 s |
+

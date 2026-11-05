@@ -74,7 +74,8 @@ uv run gelinspect
 | 工作台 | P9 接上真实数据：温度曲线、进行中的试验（孔板缩略图和进度）、最近结果、需要处理，见 [monitor-and-review.md](monitor-and-review.md) |
 | 试验监控、单管详情、历史记录 | P9 已实现，见 [monitor-and-review.md](monitor-and-review.md) |
 | 关于 | 已实现：版本、运行环境、后端、开源许可 |
-| 其余页面 | 统一「建设中」占位，说明将在哪个阶段实现（P11 报告、P12 数据管理页） |
+| 报告中心 | P11 已实现，见 [reports.md](reports.md) |
+| 历史记录（升级）、审计追踪、用户与权限、仪器设置 | P12 已实现，见 [admin-pages.md](admin-pages.md)；至此没有占位页了。仪器设置对所有角色开放（只读），修改需要 `instrument_configure` |
 
 快捷栏操作和侧栏菜单项导航到对应页面；无权限的入口置灰并提示「当前角色无此权限」。状态栏右侧的仪器连接状态、语言、当前用户都是真实数据：
 
@@ -135,10 +136,10 @@ uv run gelinspect
 | `tests/test_main.py` | 命令行参数；`--version` 不导入 Qt；首次启动创建 `data/`、数据库、日志、账号和模板；再次启动不重复初始化、不重置密码；真实配置没有任何账号；配置错、缺 `simulation/`、数据库被占用（真实加锁）的错误对话框和退出码；日志滚动；未捕获异常兜底；子进程冒烟 |
 | `tests/services/test_auth.py` | 登录成功、失败、未知用户、锁定与解除、停用、退出、`authorize` 与审计、角色变更即时生效、锁屏与解锁、改密、必须改密、首个管理员、`QueryService` 权限与伪造会话 |
 | `tests/services/test_instrument_monitor.py` | 监视线程启停、监听者异常隔离、引擎探测与运行互斥 |
-| `tests/ui/test_main_window.py` | 登录页与演示账号、登录成功与失败、锁定倒计时、各角色入口禁用、拒绝越权导航、快捷栏导航、全部路由、占位页、工作台实时数据、用户菜单、改密、锁屏与解锁、空闲计时、创建管理员与强制改密 |
+| `tests/ui/test_main_window.py` | 登录页与演示账号、登录成功与失败、锁定倒计时、各角色入口禁用、拒绝越权导航、快捷栏导航、全部路由（每条路由都是真正的页面）、工作台实时数据、用户菜单、改密、锁屏与解锁、空闲计时、创建管理员与强制改密 |
 | `tests/ui/test_bridge.py` | 事件来自工作线程、槽在主线程、顺序保持、`close` 后丢弃、真实引擎事件 |
 | `tests/ui/test_shutdown.py` | 退出确认、取消不打断、确认后有序关闭并标记异常、锁屏时拒绝、无线程残留 |
-| `tests/ui/test_i18n.py` | 切换后文字变化（登录页、外壳、占位页、屏幕上的错误提示）、持久化、`.ts` 完整且与源码同步、`.qm` 缺失或过期时自动编译、干净目录可切换、只有两种语言 |
+| `tests/ui/test_i18n.py` | 切换后文字变化（登录页、外壳、屏幕上的错误提示）、持久化、`.ts` 完整且与源码同步、`.qm` 缺失或过期时自动编译、干净目录可切换、只有两种语言 |
 | `tests/ui/test_layout_languages.py` | 中英文 × 1280×800 与 1024×700 × 三种角色下，所有页面、登录、锁屏、对话框没有控件超界、被挤压或文字截断（检查器自检） |
 | `tests/test_architecture.py` | `ui/` 只依赖 services、domain、interfaces；不碰数据库和线程；新服务不依赖 Qt 与 infrastructure |
 

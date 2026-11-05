@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
@@ -74,11 +75,31 @@ class NewExperimentRequest:
         template_id: 模板标识。
         assignments: 每支试管的管号和样品；按管号升序对应模板里按管号升序的管位项。
         reagent_codes: 三种试剂的扫码原文。
+        mvd: 最大有效稀释倍数，可选；写入试验记录并显示在报告里。
+        endotoxin_limit: 内毒素限值（EU/mL），可选。
     """
 
     template_id: str
     assignments: Sequence[SampleAssignmentInput]
     reagent_codes: Mapping[ReagentKind, str] = field(default_factory=dict)
+    mvd: float | None = None
+    endotoxin_limit: float | None = None
+
+
+def parse_limit(text: str) -> float | None:
+    """解析 MVD 或内毒素限值的输入。
+
+    Args:
+        text: 输入的文字。
+
+    Returns:
+        大于 0 的有限数；留空、不是数字、不大于 0 或不是有限数时为 None。
+    """
+    try:
+        value = float(text.strip())
+    except ValueError:
+        return None
+    return value if math.isfinite(value) and value > 0 else None
 
 
 class ExperimentDraft:
@@ -92,6 +113,33 @@ class ExperimentDraft:
         self._selected: list[int] = []
         self._reagent_codes: dict[ReagentKind, str] = {}
         self._labeled_sensitivity: float | None = None
+        self.mvd_text = ""
+        self.limit_text = ""
+
+    # ------------------------------------------------------------------ MVD 与限值
+
+    @property
+    def mvd(self) -> float | None:
+        """录入的 MVD；留空或不合法时为 None。"""
+        return parse_limit(self.mvd_text)
+
+    @property
+    def endotoxin_limit(self) -> float | None:
+        """录入的内毒素限值；留空或不合法时为 None。"""
+        return parse_limit(self.limit_text)
+
+    def limit_problems(self) -> list[str]:
+        """已录入但不合法（不是大于 0 的数）的项。
+
+        Returns:
+            ``mvd`` 和 ``endotoxin_limit`` 中有问题的字段名。
+        """
+        problems: list[str] = []
+        if self.mvd_text.strip() and self.mvd is None:
+            problems.append("mvd")
+        if self.limit_text.strip() and self.endotoxin_limit is None:
+            problems.append("endotoxin_limit")
+        return problems
 
     # ------------------------------------------------------------------ 模板
 
@@ -244,7 +292,11 @@ class ExperimentDraft:
         Returns:
             录入过试剂、选过管位，或编辑过样品行时为 True。
         """
-        return bool(self._reagent_codes) or self.has_sample_input()
+        return (
+            bool(self._reagent_codes)
+            or self.has_sample_input()
+            or bool(self.mvd_text.strip() or self.limit_text.strip())
+        )
 
     def sample_problems(self) -> list[int]:
         """样品名称为空的行号（从 1 起）。
@@ -279,4 +331,6 @@ class ExperimentDraft:
             template_id=self._template.template_id,
             assignments=assignments,
             reagent_codes=dict(self._reagent_codes),
+            mvd=self.mvd,
+            endotoxin_limit=self.endotoxin_limit,
         )

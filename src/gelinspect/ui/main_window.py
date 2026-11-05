@@ -30,16 +30,18 @@ from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.idle import IdleWatcher
 from gelinspect.ui.labels import role_label
 from gelinspect.ui.pages.about import AboutPage
+from gelinspect.ui.pages.audit_page import AuditPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
 from gelinspect.ui.pages.dashboard import DashboardPage
 from gelinspect.ui.pages.history_page import HistoryPage
 from gelinspect.ui.pages.monitor_page import MonitorPage
 from gelinspect.ui.pages.new_experiment import NewExperimentPage
-from gelinspect.ui.pages.placeholder import PlaceholderPage
 from gelinspect.ui.pages.reagents_page import ReagentsPage
 from gelinspect.ui.pages.reports_page import ReportsPage
+from gelinspect.ui.pages.settings_page import SettingsPage
 from gelinspect.ui.pages.templates_page import TemplatesPage
 from gelinspect.ui.pages.tube_detail_page import TubeDetailPage
+from gelinspect.ui.pages.users_page import UsersPage
 from gelinspect.ui.routes import (
     PAGE_ROUTES,
     QUICK_ACTION_ROUTES,
@@ -364,7 +366,16 @@ class MainWindow(QMainWindow):
         self._current_route = key
         nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "monitor"
         self.shell.nav.set_current(nav_key)
-        refreshable = DashboardPage | TemplatesPage | ReagentsPage | NewExperimentPage | HistoryPage
+        refreshable = (
+            DashboardPage
+            | TemplatesPage
+            | ReagentsPage
+            | NewExperimentPage
+            | HistoryPage
+            | AuditPage
+            | UsersPage
+            | SettingsPage
+        )
         if isinstance(page, ReportsPage):
             if self._pending_report_experiment is not None:
                 page.open_experiment(self._pending_report_experiment)
@@ -444,7 +455,30 @@ class MainWindow(QMainWindow):
             history.set_session(self._session)
             history.experimentRequested.connect(self.open_experiment)
             return history
-        return PlaceholderPage(route)
+        if route.key == "audit":
+            audit = AuditPage(self._services)
+            audit.set_session(self._session)
+            return audit
+        if route.key == "users":
+            users = UsersPage(self._services)
+            users.set_session(self._session)
+            users.sessionChanged.connect(self._on_own_role_changed)
+            return users
+        if route.key == "settings":
+            settings = SettingsPage(self._services)
+            settings.set_session(self._session)
+            return settings
+        raise KeyError(f"没有页面：{route.key}")
+
+    def _on_own_role_changed(self) -> None:
+        """管理员改了自己的角色：会话已经换成新角色，立即刷新入口，当前页没有权限就回工作台。"""
+        session = self._session
+        if session is None:
+            return
+        self.shell.toolbar.set_user(session.user.display_name, role_label(session.user.role))
+        self._apply_permissions()
+        if not can_enter(route_for(self._current_route), session):
+            self.navigate("dashboard")
 
     def open_experiment(self, experiment_id: str) -> bool:
         """打开试验监控页显示某个试验（运行中的实时显示，其余只读回看）。

@@ -1,7 +1,4 @@
-"""页面路由表：设计稿里的 12 个页面加「关于」，每页的标题、所需权限和实现阶段。
-
-还没有实现的页面显示统一的「建设中」占位，只说明页面将包含什么。``phase`` 是开发用的记录，不显示。
-"""
+"""页面路由表：设计稿里的 12 个页面加「关于」，每页的标题和进入所需的权限。"""
 
 from __future__ import annotations
 
@@ -21,16 +18,12 @@ class Route:
         key: 稳定标识，侧栏、快捷栏和代码里都用它。
         title: 页面标题（简体中文源文本，显示时经翻译）。
         permission: 进入所需的权限，``None`` 表示所有登录用户。
-        phase: 计划实现的阶段（开发用，不显示给用户），已实现的页面为 ``None``。
-        summary: 占位页说明本页将包含什么（源文本）。
         in_nav: 是否出现在侧栏。
     """
 
     key: str
     title: str
     permission: Permission | None = None
-    phase: str | None = None
-    summary: str = ""
     in_nav: bool = True
 
 
@@ -67,23 +60,14 @@ PAGE_ROUTES: tuple[Route, ...] = (
         "audit",
         str(QT_TRANSLATE_NOOP("Routes", "审计追踪")),
         Permission.AUDIT_VIEW,
-        "P12",
-        str(QT_TRANSLATE_NOOP("Routes", "按时间、操作者和关键字查询审计记录，并校验哈希链。")),
     ),
     Route(
         "users",
         str(QT_TRANSLATE_NOOP("Routes", "用户与权限")),
         Permission.USER_MANAGE,
-        "P12",
-        str(QT_TRANSLATE_NOOP("Routes", "新建、停用账号，分配角色。")),
     ),
-    Route(
-        "settings",
-        str(QT_TRANSLATE_NOOP("Routes", "仪器设置")),
-        Permission.INSTRUMENT_CONFIGURE,
-        "P12",
-        str(QT_TRANSLATE_NOOP("Routes", "仪器编号、相机选择、分辨率和帧率。")),
-    ),
+    # 所有角色可以查看；修改需要 instrument_configure，由页面和服务层判断。
+    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "仪器设置"))),
     Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
 )
 """外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，「关于」属于仪器设置和关于页。"""

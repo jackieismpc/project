@@ -233,6 +233,7 @@ class AppConfig(_Section):
         traceability: 试剂码解析、备案清单和政府溯源平台。
         instrument_no: 仪器编号，写入每个新试验。
         reports: 报告与数字签名。
+        retention_days: 视频和图像的保留天数，None 表示不自动删除（默认）。
     """
 
     data_dir: Path = Path("data")
@@ -247,6 +248,7 @@ class AppConfig(_Section):
     traceability: TraceabilitySection = TraceabilitySection()
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
     reports: ReportSection = ReportSection()
+    retention_days: int | None = Field(default=None, ge=1, le=36500)
 
     @property
     def reports_dir(self) -> Path:

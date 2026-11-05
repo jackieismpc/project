@@ -10,11 +10,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from gelinspect.interfaces.bootstrap import DemoAccount
+from gelinspect.services.audit_service import AuditService
 from gelinspect.services.auth import AuthService
 from gelinspect.services.dashboard_service import DashboardService
 from gelinspect.services.engine_types import RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.experiment_service import ExperimentService
+from gelinspect.services.export_service import ExportService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
 from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import MonitorService
@@ -22,7 +24,9 @@ from gelinspect.services.queries import QueryService
 from gelinspect.services.reagent_service import ReagentService
 from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
+from gelinspect.services.settings_service import InstrumentSettingsService
 from gelinspect.services.template_service import TemplateService
+from gelinspect.services.user_service import UserService
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +46,10 @@ class AppServices:
         reviews: 单管人工复核。
         dashboard: 工作台数据。
         reports: 报告中心（预览、签署、验签、导出）。
+        users: 用户与权限管理。
+        audit: 审计追踪（查询、校验哈希链）。
+        exports: Excel 导出（试验结果、历史列表、审计）。
+        settings: 仪器设置。
         demo_accounts: 登录页「演示账号」提示的内容，真实配置下为空。
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不锁。
         recovered: 启动恢复时被标记为异常的试验。
@@ -62,6 +70,10 @@ class AppServices:
     reviews: ReviewService
     dashboard: DashboardService
     reports: ReportService
+    users: UserService
+    audit: AuditService
+    exports: ExportService
+    settings: InstrumentSettingsService
     demo_accounts: Sequence[DemoAccount] = ()
     idle_lock_minutes: float = 15.0
     recovered: Sequence[RecoveredExperiment] = ()

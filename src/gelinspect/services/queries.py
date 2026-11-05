@@ -19,6 +19,7 @@ from gelinspect.interfaces.storage import (
     ExperimentSummary,
     Page,
     PageRequest,
+    UserRepository,
 )
 from gelinspect.services.auth import AuthService, Session
 
@@ -34,6 +35,11 @@ class QueryStorage(Protocol):
     @property
     def audit(self) -> AuditRepository:
         """审计仓储。"""
+        ...
+
+    @property
+    def users(self) -> UserRepository:
+        """用户仓储（历史页的「操作人」下拉）。"""
         ...
 
 
@@ -103,3 +109,37 @@ class QueryService:
         """
         self._auth.authorize(session, Permission.AUDIT_VIEW)
         return self._storage.audit.query(AuditQuery(), PageRequest(limit=limit))
+
+    def search_experiments(
+        self, session: Session | None, query: ExperimentQuery, page: PageRequest
+    ) -> Page[ExperimentSummary]:
+        """历史记录页的查询：按试验类型、时间段、批号、状态和操作人筛选，分页。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+            query: 筛选条件。
+            page: 分页请求。
+
+        Returns:
+            一页试验摘要（按创建时间倒序）和满足条件的总数。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        return self._storage.experiments.query(query, page)
+
+    def operators(self, session: Session | None) -> list[str]:
+        """历史记录页「操作人」下拉里的登录名。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+
+        Returns:
+            全部账号的登录名，按字母顺序。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        return [user.username for user in self._storage.users.list_all()]

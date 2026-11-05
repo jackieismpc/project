@@ -18,7 +18,6 @@ from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.main_window import MainWindow, Screen
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode
 from gelinspect.ui.pages.dashboard import DashboardPage
-from gelinspect.ui.pages.placeholder import PlaceholderPage
 from gelinspect.ui.routes import PAGE_ROUTES, ROUTES, route_for
 from gelinspect.ui.widgets.app_shell import MemoryShellSettings
 from tests.ui.conftest import DEMO_PASSWORDS, make_config, screen_of, settle, sign_in
@@ -135,13 +134,22 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
         ),
         (
             "experimenter",
-            {"dashboard", "new", "templates", "reports", "history", "reagents", "about"},
-            {"audit", "users", "settings"},
+            {
+                "dashboard",
+                "new",
+                "templates",
+                "reports",
+                "history",
+                "reagents",
+                "settings",
+                "about",
+            },
+            {"audit", "users"},
         ),
         (
             "analyst",
-            {"dashboard", "audit", "history", "reports", "templates"},
-            {"new", "users", "settings"},
+            {"dashboard", "audit", "history", "reports", "templates", "settings"},
+            {"new", "users"},
         ),
     ],
 )
@@ -161,7 +169,7 @@ def test_entries_follow_the_role(
     for action_id, permission in {
         "new_experiment": Permission.EXPERIMENT_CREATE,
         "audit_trail": Permission.AUDIT_VIEW,
-        "instrument_settings": Permission.INSTRUMENT_CONFIGURE,
+        "instrument_settings": Permission.EXPERIMENT_VIEW,  # 所有角色可查看，修改需管理员
     }.items():
         assert toolbar.action(action_id).isEnabled() is (
             window.session is not None and window.session.can(permission)
@@ -203,28 +211,21 @@ def test_every_designed_page_has_a_route_and_a_working_page(
                 reached.add(route.key)
                 page = window.page(route.key)
                 assert page is not None
-                if route.phase is not None:
-                    assert isinstance(page, PlaceholderPage)
-                else:
-                    assert not isinstance(page, PlaceholderPage), route.key
         window.logout()
     assert reached == {r.key for r in PAGE_ROUTES}
 
 
-def test_placeholder_page_names_its_phase(qapp: QApplication, window: MainWindow) -> None:
-    sign_in(qapp, window, "analyst")
-    window.navigate("audit")
-    page = window.page("audit")
-    assert isinstance(page, PlaceholderPage)
-    assert page.badge.text() == "建设中"
-    assert page.headline.text() == "这个页面还在建设中"
-    assert not re.search(r"P\d+", page.headline.text() + page.summary.text())
-    assert route_for("audit").phase == "P12"  # 开发记录，不显示
-    assert (
-        route_for("reports").phase is None
-        and route_for("monitor").phase is None
-        and route_for("history").phase is None
-    )
+def test_no_page_is_a_placeholder_any_more(qapp: QApplication, window: MainWindow) -> None:
+    """每条路由都对应真正的页面；路由表里也不再有「建设中」的记录。"""
+    assert not hasattr(route_for("audit"), "phase")
+    for username in ("admin", "experimenter", "analyst"):
+        sign_in(qapp, window, username)
+        for route in PAGE_ROUTES:
+            if window.navigate(route.key):
+                page = window.page(route.key)
+                assert page is not None
+                assert not re.search(r"P\d+", type(page).__name__)
+        window.logout()
 
 
 def test_dashboard_shows_live_instrument_data(

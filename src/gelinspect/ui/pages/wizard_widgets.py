@@ -177,7 +177,9 @@ class Banner(QFrame):
             detail: 说明，多行用换行分隔。
         """
         self.setProperty("tone", tone)
-        color = {"danger": "danger", "warning": "warning"}.get(tone, "primary")
+        color = {"danger": "danger", "warning": "warning", "success": "success"}.get(
+            tone, "primary"
+        )
         self._icon.setPixmap(IconLoader.pixmap(icon, 22, color))
         self.title.setText(title)
         self.detail.setText(detail)

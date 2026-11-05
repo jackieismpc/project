@@ -106,6 +106,153 @@
     </message>
 </context>
 <context>
+    <name>AuditPage</name>
+    <message>
+        <source>没有符合条件的审计记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>调整查询条件，或点「重置」清除条件后再查</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有审计记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在查询……</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在校验完整性……</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在校验完整性：{done} / {total}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验通过：哈希链完好</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>共校验 {count} 条记录，没有发现被改动或删除的记录。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>链头记录缺失</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第一处异常在序号 {seq}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验未通过：审计记录可能被改动或删除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验没有完成</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这条记录的内容与它的哈希不符，内容可能被改动。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这条记录与上一条的哈希衔接不上，前一条可能被改动。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序号不连续，这个序号的记录可能被删除。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>链头与最后一条记录不符，末尾的记录可能被删除。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已导出 {rows} 条：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作失败：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作者</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验完整性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出 Excel…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部操作者</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关键字</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作记录或试验编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重置</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AuthError</name>
     <message>
         <source>用户名或密码错误，还可以尝试 {remaining} 次</source>
@@ -460,6 +607,33 @@
     </message>
 </context>
 <context>
+    <name>CredentialDialog</name>
+    <message>
+        <source>临时密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name} 的临时密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请当面告知用户。对方首次登录时必须先修改密码。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个密码只显示这一次，关闭后无法再查看；忘了只能重新重置。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复制</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DashboardPage</name>
     <message>
         <source>试验</source>
@@ -687,6 +861,332 @@
     </message>
 </context>
 <context>
+    <name>Export</name>
+    <message>
+        <source>试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单管结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结论依据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>历史列表</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>创建时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>完成时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测用水批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ（EU/mL）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MVD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc（EU/mL）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结论数值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>规则版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待复核管数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>排</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序列号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素（EU/mL）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用途</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法三态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自动判读</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>最终判读</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核备注</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>评分</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>置信度</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>面积变化率 ΔA（%）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>轴向偏移 Δs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>面积时序标准差 σ_A</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>轴向时序标准差 σ_s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前面积</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后面积</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配置版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析耗时（ms）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法说明</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>类别</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内容</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>依据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未满足的前提</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作者</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>事件类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关联试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>哈希</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ExportValue</name>
+    <message>
+        <source>阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>完全凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>部分凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无需复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>等待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析成功</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝胶缺失</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未找到试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图像质量不足</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GelState</name>
     <message>
         <source>完全凝固</source>
@@ -707,6 +1207,34 @@
 </context>
 <context>
     <name>HistoryPage</name>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>先在列表里点选要导出的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出所选试验结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出历史列表</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已导出 {rows} 行：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出失败：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <source>试验</source>
         <translation type="unfinished"></translation>
@@ -736,11 +1264,59 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>签署时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>历史记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>双击一行打开回看</source>
+        <source>双击一行打开回看，点选多行可以导出</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出所选结果…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出当前列表…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂或样品</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -753,6 +1329,18 @@
     </message>
     <message>
         <source>还没有历史试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有符合条件的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>调整筛选条件，或点「重置」清除条件后再查</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -787,6 +1375,17 @@
     </message>
     <message>
         <source>待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>LimitField</name>
+    <message>
+        <source>MVD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1256,6 +1855,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>MVD（可选）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素限值 EU/mL（可选）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留空则报告里不填</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>管位</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1376,6 +1991,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>MVD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>「{names}」必须是大于 0 的数字，或者留空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>管位数量要与模板一致，样品名称不能为空</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1445,6 +2076,119 @@
     </message>
 </context>
 <context>
+    <name>NewUserDialog</name>
+    <message>
+        <source>新建用户</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>登录名</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>显示名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>初始密码（可选）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留空则自动生成临时密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新账号首次登录必须先修改密码。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>创建</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Pager</name>
+    <message>
+        <source>共 {total} 条 · 第 {page}/{pages} 页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>上一页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>下一页</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Permission</name>
+    <message>
+        <source>管理用户和角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改仪器设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看检测模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建和修改检测模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录入和校验试剂批次</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看试验和结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停止试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>人工复核单管结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署试验和报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>预览和打印报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出报告和数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>PinButton</name>
     <message>
         <source>取消固定侧栏</source>
@@ -1452,17 +2196,6 @@
     </message>
     <message>
         <source>固定侧栏</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>PlaceholderPage</name>
-    <message>
-        <source>建设中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个页面还在建设中</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2217,6 +2950,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>已签署的报告语言固定为签署时的语言。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2258,6 +2995,14 @@
     </message>
     <message>
         <source>已导出：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出 Excel 数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Excel 文件 (*.xlsx)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2333,6 +3078,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>导出 Excel 数据…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>批量导出…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2365,6 +3114,33 @@
     </message>
     <message>
         <source>分析员</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>RoleDialog</name>
+    <message>
+        <source>修改角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改 {name} 的角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>改动立即生效：对方已登录的会话马上按新角色的权限工作。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2411,23 +3187,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>按时间、操作者和关键字查询审计记录，并校验哈希链。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>用户与权限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新建、停用账号，分配角色。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>仪器设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>仪器编号、相机选择、分辨率和帧率。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2591,6 +3355,319 @@
     </message>
     <message>
         <source>导出失败：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用户不存在</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>登录名已存在：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不能停用或降级最后一个管理员，否则没有人能管理用户</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不能停用自己的账号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不能在这里重置自己的密码，请用用户菜单里的「修改密码」</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>显示名称不能超过 {max} 个字符</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置有误，没有保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置没有保存：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法读取视频输入：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>「{field}」必须是大于 0 的数字</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>起始时间必须早于结束时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Settings</name>
+    <message>
+        <source>仪器编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孵育时间（分钟）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前后各取帧数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后稳定时间（秒）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>目标温度（℃）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>允许偏差 ±（℃）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>越限告警持续时间（秒）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频输入类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频路径</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数据保留天数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>版权方名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>第一次试验后显示</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配置文件里的视频源：{source}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>只读</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id} 正在运行</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效温度范围 {low:g} – {high:g} ℃</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频文件的完整路径</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图片文件夹的完整路径</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置已保存，对之后启动的试验生效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有改动。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有 {count} 项设置不合法，没有保存。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择视频文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频文件 (*.mp4 *.avi *.mov *.mkv *.m4v);;所有文件 (*)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择图片文件夹</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在读取……</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{fps:g} 帧/秒</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>帧率未知</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{n} 帧</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读不到画面</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法预览</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作失败：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>改动保存在数据目录的用户配置里，对之后启动的试验生效</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器与数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孵育与读数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>温度</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频输入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法后端</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>写入之后新建的每个试验和报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>沿用配置文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图片文件夹</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>浏览…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>预览</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>工业相机：型号确定后接入。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>后端</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配置版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配置文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还原</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsProblem</name>
+    <message>
+        <source>{name}不能为空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}必须是数字，范围 {min:g}–{max:g}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}必须是整数，范围 {min:g}–{max:g}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}应在 {min:g}–{max:g} 之间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}不能超过 {max:g} 个字符</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}不能含控制字符</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>路径不存在：{path}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这不是一个文件：{path}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这不是一个文件夹：{path}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件夹里没有 JPG 或 PNG 图片：{path}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3288,6 +4365,129 @@
     <name>TubeStrip</name>
     <message>
         <source>当前一排 8 支试管的实时画面</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UsersPage</name>
+    <message>
+        <source>启用</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已停用</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>使用中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>须改密</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>（我）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自己的密码请用用户菜单里的「修改密码」</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不能停用自己的账号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停用</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重置密码？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>将为 {name} 生成一个临时密码。对方已登录的会话会立即失效，下次登录必须先修改密码。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停用账号？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已启用 {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已停用 {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>登录名</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>显示名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>角色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用户与权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>改动立即生效，并记入审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建用户</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>账号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重置密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改角色…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有账号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>角色与权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

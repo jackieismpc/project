@@ -40,6 +40,7 @@ from gelinspect.interfaces.storage import ExperimentSummary, ReportRecord, Stora
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.errors import ServiceError
+from gelinspect.services.export_service import suggested_filename
 from gelinspect.services.reporting.renderer import configure_printer
 from gelinspect.services.reporting.report_service import (
     ExportResult,
@@ -48,6 +49,7 @@ from gelinspect.services.reporting.report_service import (
 )
 from gelinspect.services.reporting.texts import ReportLanguage, report_language_of
 from gelinspect.services.reporting.verify import SignatureVerification
+from gelinspect.ui.export_labels import export_labels
 from gelinspect.ui.labels import (
     conclusion_verdict_label,
     describe_service_error,
@@ -290,6 +292,7 @@ class ReportsPage(QWidget):
         self.sign_hint.setWordWrap(True)
         self.print_button = Button("", ButtonVariant.SECONDARY, icon="printer")
         self.export_button = Button("", ButtonVariant.SECONDARY)
+        self.excel_button = Button("", ButtonVariant.SECONDARY)
         self.batch_export_button = Button("", ButtonVariant.SECONDARY)
         for action_widget in (
             self.language_label,
@@ -299,6 +302,7 @@ class ReportsPage(QWidget):
             self.sign_hint,
             self.print_button,
             self.export_button,
+            self.excel_button,
             self.batch_export_button,
         ):
             self.actions_card.body.addWidget(action_widget)
@@ -340,6 +344,7 @@ class ReportsPage(QWidget):
         self.verify_file_button.clicked.connect(self.verify_external)
         self.print_button.clicked.connect(self.request_print)
         self.export_button.clicked.connect(self.export_current)
+        self.excel_button.clicked.connect(self.export_excel)
         self.batch_export_button.clicked.connect(self.request_batch_export)
         self.batch_kind_box.currentIndexChanged.connect(self._fill_batches)
         self.batch_button.clicked.connect(self.show_selected_batch)
@@ -594,6 +599,7 @@ class ReportsPage(QWidget):
             self.sign_button.setEnabled(False)
             self.print_button.setEnabled(False)
             self.export_button.setEnabled(False)
+            self.excel_button.setEnabled(False)
             self.verify_button.setEnabled(False)
             return
         if batch:
@@ -708,6 +714,8 @@ class ReportsPage(QWidget):
         self.print_button.setEnabled(True)
         can_export = self._can(Permission.DATA_EXPORT)
         self.export_button.setEnabled(signed and can_export)
+        self.excel_button.setEnabled(not batch and can_export)
+        self.excel_button.setToolTip("" if can_export else self.tr("当前角色无此权限"))
         has_signed = False
         if can_export and self._session is not None:
             try:
@@ -893,6 +901,42 @@ class ReportsPage(QWidget):
             return
         self._toast(self.tr("已导出：{name}").format(name=written.name), ToastKind.SUCCESS)
 
+    def export_excel(self) -> None:
+        """选择文件并把当前试验的结果导出为 Excel（含结论、λc、单管特征和复核）。"""
+        experiment_id = self.experiment_id
+        if experiment_id is None or self._session is None:
+            return
+        target, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("导出 Excel 数据"),
+            suggested_filename(f"results-{experiment_id}"),
+            self.tr("Excel 文件 (*.xlsx)"),
+        )
+        if target:
+            self.export_excel_to(Path(target))
+
+    def export_excel_to(self, destination: Path) -> bool:
+        """把当前试验的结果导出到指定的 Excel 文件。
+
+        Args:
+            destination: 目标文件。
+
+        Returns:
+            导出成功时为 True。
+        """
+        experiment_id = self.experiment_id
+        if experiment_id is None or self._session is None:
+            return False
+        try:
+            summary = self._services.exports.export_results(
+                self._session, [experiment_id], destination, export_labels()
+            )
+        except (AuthError, ServiceError) as error:
+            self._fail(error)
+            return False
+        self._toast(self.tr("已导出：{name}").format(name=summary.path.name), ToastKind.SUCCESS)
+        return True
+
     def request_batch_export(self) -> None:
         """打开批量导出对话框。"""
         session = self._session
@@ -954,6 +998,7 @@ class ReportsPage(QWidget):
         self.sign_button.setText(self.tr("签署并生成 PDF"))
         self.print_button.setText(self.tr("打印"))
         self.export_button.setText(self.tr("导出已签名 PDF"))
+        self.excel_button.setText(self.tr("导出 Excel 数据…"))
         self.batch_export_button.setText(self.tr("批量导出…"))
         self.batch_card.set_title(self.tr("单批次报告"))
         self.batch_hint.setText(self.tr("把同一批号的多次试验汇总到一份报告。"))

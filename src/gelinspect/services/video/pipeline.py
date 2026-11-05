@@ -254,6 +254,27 @@ class VideoPipeline:
 
     # ------------------------------------------------------------------ 生命周期
 
+    def reconfigure(self, source: VideoSource, config: VideoPipelineConfig) -> None:
+        """更换视频源和抓帧参数，下一次 :meth:`start` 起生效（仪器设置保存后调用）。
+
+        只有视频源（含 ``config.source``）和抓帧配置会更换；缓冲、预览、录制和质量检查的参数
+        在创建时已经定下，这里不改。旧视频源由调用方释放：管线停止时已经关闭了它。
+
+        Args:
+            source: 新的视频源（已按配置创建，尚未打开）。
+            config: 新的管线配置。
+
+        Raises:
+            PipelineStateError: 管线正在运行，运行中不能换视频源。
+        """
+        with self._lock:
+            if self._running or self._capture is not None:
+                raise PipelineStateError("视频管线正在运行，运行中不能更换视频源")
+            self._snapshots.close()
+            self._source = source
+            self._config = config
+            self._snapshots = SnapshotGrabber(self._buffer, config.data_dir, config.snapshot)
+
     def start(self) -> VideoInfo:
         """启动管线：打开视频源并启动全部工作线程。已启动时直接返回当前参数。
 

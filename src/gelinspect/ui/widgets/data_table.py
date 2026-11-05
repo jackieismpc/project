@@ -16,7 +16,7 @@ from PySide6.QtCore import (
     Qt,
     Signal,
 )
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -37,6 +37,9 @@ from gelinspect.ui.widgets.marks import WellState, paint_well, state_label
 
 ROW_HEIGHT = 38
 """数据行高（px）。"""
+
+LONG_TEXT = 24
+"""超过这么多字符的单元格文字，悬停时显示全文。"""
 
 _Index = QModelIndex | QPersistentModelIndex
 
@@ -137,6 +140,9 @@ class RecordTableModel(QAbstractTableModel):
             if isinstance(value, WellState):
                 return state_label(value)
             return "–" if value in ("", None) else str(value)
+        if role == Qt.ItemDataRole.ToolTipRole:
+            text = "" if value in ("", None) or isinstance(value, WellState) else str(value)
+            return text if len(text) > LONG_TEXT else None  # 长文字在单元格里被省略，悬停看全文
         if role == Qt.ItemDataRole.UserRole:
             return value
         if role == Qt.ItemDataRole.TextAlignmentRole:
@@ -184,9 +190,7 @@ class _CellDelegate(QStyledItemDelegate):
         assert isinstance(model, RecordTableModel)
         column = model.columns[index.column()]
         font = mono_font(13) if column.mono else sans_font(13)
-        from PySide6.QtGui import QFontMetrics
-
-        width = QFontMetrics(font).horizontalAdvance(str(index.data())) + 20
+        width = QFontMetrics(font).horizontalAdvance(str(index.data())) + 24
         if column.kind == "state":
             width += 20
         return QSize(width, ROW_HEIGHT)
@@ -233,11 +237,14 @@ class _CellDelegate(QStyledItemDelegate):
             (Qt.AlignmentFlag.AlignRight if column.align_right else Qt.AlignmentFlag.AlignLeft)
             | Qt.AlignmentFlag.AlignVCenter
         )
-        painter.drawText(
-            QRectF(text_left, rect.top(), rect.right() - 10 - text_left, rect.height()),
-            flags,
-            str(index.data()),
-        )
+        text_rect = QRectF(text_left, rect.top(), rect.right() - 10 - text_left, rect.height())
+        metrics = QFontMetrics(font)
+        shown = str(index.data())
+        if metrics.horizontalAdvance(shown) > text_rect.width() + 2:  # 放不下才省略
+            shown = metrics.elidedText(
+                shown, Qt.TextElideMode.ElideRight, max(int(text_rect.width()), 1)
+            )
+        painter.drawText(text_rect, flags, shown)
         painter.restore()
 
 
@@ -251,6 +258,7 @@ class DataTable(QWidget):
     """
 
     rowActivated = Signal(int)  # noqa: N815
+    selectionChanged = Signal()  # noqa: N815
 
     def __init__(
         self,
@@ -293,6 +301,7 @@ class DataTable(QWidget):
         if fit_content:
             self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.view.activated.connect(lambda idx: self.rowActivated.emit(idx.row()))
+        self.view.selectionModel().selectionChanged.connect(lambda *_: self.selectionChanged.emit())
 
         self._empty = QFrame()
         self._empty.setProperty("role", "empty")
@@ -336,6 +345,27 @@ class DataTable(QWidget):
         self.model.set_rows(rows)
         self._refresh()
 
+    def set_multi_select(self, enabled: bool) -> None:
+        """允许选多行（点击一行切换它的选中状态），默认只能选一行。
+
+        Args:
+            enabled: 是否允许多选。
+        """
+        mode = (
+            QAbstractItemView.SelectionMode.MultiSelection
+            if enabled
+            else QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.view.setSelectionMode(mode)
+
+    def selected_rows(self) -> list[int]:
+        """已选中的行号，升序。
+
+        Returns:
+            行号列表；没有选中时为空。
+        """
+        return sorted({index.row() for index in self.view.selectionModel().selectedRows()})
+
     def row_count(self) -> int:
         """返回数据行数。
 
@@ -351,6 +381,14 @@ class DataTable(QWidget):
             没有数据行时为 ``True``。
         """
         return self._stack.currentWidget() is self._empty
+
+    def empty_title_text(self) -> str:
+        """空状态当前的标题文字。
+
+        Returns:
+            标题。
+        """
+        return self._empty_title.text()
 
     def set_empty_text(self, title: str, hint: str = "") -> None:
         """修改空状态文案。

@@ -310,6 +310,16 @@ class ReportService:
         """版权声明里的权利人。"""
         return self._holder
 
+    def set_copyright_holder(self, holder: str) -> None:
+        """更换版权声明里的权利人（仪器设置保存后调用），之后生成的报告采用新名称。
+
+        已签署的报告不受影响：它们的内容已经固化在签名文件里。
+
+        Args:
+            holder: 新的权利人名称。
+        """
+        self._holder = holder
+
     @property
     def images_available(self) -> bool:
         """是否能附 8 连图（有媒体服务）。"""
