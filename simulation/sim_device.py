@@ -288,20 +288,22 @@ class SimDevice:
             当前排、翻转进度和流动进度。
         """
         with self._lock:
+            # 持锁读场景和时间：与翻转的开始、结束时间同一把锁，帧时间和画面不会错位。
             self._commit_motion()
             now = self.clock.monotonic()
+            at = self.clock.now()
             if self._motion is not None:
                 row, flip, started = self._motion
                 progress = self._ratio((now - started) * self.time_scale, self.flip_duration_s)
-                return SceneSnapshot(row, progress if flip else 1 - progress, 0.0)
+                return SceneSnapshot(row, progress if flip else 1 - progress, 0.0, at)
             row = self._active_row
             if row not in self._flipped:
-                return SceneSnapshot(row, 0.0, 0.0)
+                return SceneSnapshot(row, 0.0, 0.0, at)
             settle = 1.0
             if self._last_done is not None and self._last_done[0] == row:
                 elapsed = (now - self._last_done[1]) * self.time_scale
                 settle = self._ratio(elapsed, self.settle_duration_s)
-            return SceneSnapshot(row, 1.0, settle)
+            return SceneSnapshot(row, 1.0, settle, at)
 
     # ----- 内部 -----
 

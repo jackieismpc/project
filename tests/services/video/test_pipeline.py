@@ -18,7 +18,7 @@ from gelinspect.interfaces.video import (
     VideoOpenError,
     VideoSource,
 )
-from gelinspect.services.video.capture import CaptureWorker
+from gelinspect.services.video.capture import CaptureState, CaptureWorker
 from gelinspect.services.video.config import (
     BufferConfig,
     PreviewConfig,
@@ -162,7 +162,7 @@ def test_slow_preview_callback_does_not_block_capture(tmp_path: Path, no_thread_
 
     def slow(preview: PreviewFrame) -> None:
         seen.append(preview.sequence)
-        gate.wait(10)
+        gate.wait(60)
 
     source = FakeSource(interval_s=0.005)
     pipeline = VideoPipeline(
@@ -172,9 +172,8 @@ def test_slow_preview_callback_does_not_block_capture(tmp_path: Path, no_thread_
     try:
         assert wait_until(lambda: len(seen) == 1)  # 预览回调已卡死
         before = pipeline.stats().frames_captured
-        time.sleep(1.0)
-        captured = pipeline.stats().frames_captured - before
-        assert captured >= 100  # 采集照常进行（5 ms 一帧，期望约 150–200 帧）
+        # 回调卡到 gate 放行，这段时间里采集照常出帧。
+        assert wait_until(lambda: pipeline.stats().frames_captured - before >= 100, 30.0)
         stats = pipeline.stats()
         assert stats.preview_dropped > 50 and stats.preview_delivered == 0
         assert len(seen) == 1
@@ -195,10 +194,10 @@ def test_slow_recording_does_not_block_capture(tmp_path: Path, no_thread_leak: N
         gate = threading.Event()
         real_write = segment.writer.write
         segment.writer = mock.Mock(wraps=segment.writer)
-        segment.writer.write.side_effect = lambda image: (gate.wait(10), real_write(image))
+        segment.writer.write.side_effect = lambda image: (gate.wait(60), real_write(image))
         before = pipeline.stats().frames_captured
-        time.sleep(1.0)
-        assert pipeline.stats().frames_captured - before >= 100  # 磁盘卡死，采集不受影响
+        # 磁盘卡到 gate 放行，采集不受影响。
+        assert wait_until(lambda: pipeline.stats().frames_captured - before >= 100, 30.0)
         assert pipeline.stats().recorder.total_dropped_frames > 50
         gate.set()
         record = pipeline.stop_segment()
@@ -263,8 +262,7 @@ def test_raising_preview_callback_and_listener_keep_threads_alive(
         assert wait_until(lambda: pipeline.stats().frames_captured >= 50)
         assert wait_until(lambda: any(e.code is VideoEventCode.CALLBACK_ERROR for e in got_events))
         before = pipeline.stats().frames_captured
-        time.sleep(0.3)
-        assert pipeline.stats().frames_captured > before  # 采集仍在继续
+        assert wait_until(lambda: pipeline.stats().frames_captured > before)  # 采集仍在继续
         second: list[VideoEvent] = []
         pipeline.add_event_listener(second.append)  # 坏监听者之后的监听者仍能收到
         pipeline.source_events = None  # type: ignore[attr-defined]
@@ -276,37 +274,51 @@ def test_slow_event_listener_does_not_block_capture(tmp_path: Path, no_thread_le
     gate = threading.Event()
 
     def slow(event: VideoEvent) -> None:
-        gate.wait(10)
+        gate.wait(60)
 
     source = FakeSource(interval_s=0.003, disconnect_after=20)
     pipeline = VideoPipeline(source, make_config(tmp_path), on_event=slow)
     pipeline.start()
     try:
         # 事件监听者卡死时，断流 → 重连 → 继续采集 全程不受影响
-        assert wait_until(lambda: pipeline.stats().reconnects == 1, 5.0)
+        assert wait_until(lambda: pipeline.stats().reconnects == 1, 30.0)
         before = pipeline.stats().frames_captured
-        time.sleep(0.3)
-        assert pipeline.stats().frames_captured > before + 20
+        assert wait_until(lambda: pipeline.stats().frames_captured > before + 20, 30.0)
     finally:
         gate.set()
         pipeline.stop()
 
 
 def test_stuck_source_read_times_out_on_stop_but_does_not_hang(tmp_path: Path) -> None:
-    source = FakeSource(interval_s=0.001)
-    config = make_config(tmp_path, stop_timeout_s=0.2) if False else make_config(tmp_path)
-    config = config.model_copy(update={"stop_timeout_s": 0.2})
+    class StuckRead(FakeSource):
+        """``stuck`` 置位后，``read`` 卡到测试放行，线程停在驱动里。"""
+
+        def __init__(self) -> None:
+            super().__init__(interval_s=0.001)
+            self.stuck = threading.Event()
+            self.entered = threading.Event()
+            self.release = threading.Event()
+
+        def read(self) -> VideoFrame | None:
+            if self.stuck.is_set():
+                self.entered.set()
+                assert self.release.wait(60.0)
+            return super().read()
+
+    source = StuckRead()
+    config = make_config(tmp_path).model_copy(update={"stop_timeout_s": 0.2})
     pipeline = VideoPipeline(source, config)
     pipeline.start()
     assert wait_until(lambda: pipeline.stats().frames_captured >= 3)
-    source.read_delay_s = 1.0  # 驱动 read 卡住 1 秒
-    time.sleep(0.1)
-    started = time.monotonic()
+    source.stuck.set()
+    assert source.entered.wait(30.0)
+    # stop 在读还卡着时就返回了：它要是等读返回，会等满上面的 60 秒并让断言失败。
     pipeline.stop()
-    assert time.monotonic() - started < 0.9  # stop 受 join 超时约束，不会一直等
+    assert not source.release.is_set() and source.close_calls == 0
     assert any(e.code is VideoEventCode.STOP_TIMEOUT for e in pipeline.recent_events())
     # 卡住的读返回后，守护线程自行退出并关闭视频源
-    assert wait_until(lambda: source.close_calls == 1, 3.0)
+    source.release.set()
+    assert wait_until(lambda: source.close_calls == 1, 30.0)
 
 
 # ------------------------------------------------------------------ 断流、重连、事件
@@ -322,6 +334,8 @@ def test_disconnect_reconnect_events_and_segment_handling(
         pipeline.start_segment("EXP-DC", 1)
         assert wait_until(lambda: pipeline.stats().reconnects == 1, 5.0)
         assert wait_until(lambda: pipeline.stats().frames_captured >= 100)
+        # 中断事件由写盘线程在封存文件后发出，不跟重连同步。
+        assert wait_until(lambda: VideoEventCode.SEGMENT_INTERRUPTED in codes(pipeline), 30.0)
         seen = codes(pipeline)
         # 事件顺序：断流 → 重连中 → 重连成功
         order = [
@@ -352,8 +366,8 @@ def test_disconnect_reconnect_events_and_segment_handling(
         assert source.open_calls == 2 and source.close_calls >= 1
         # 重连后可以再开新段
         pipeline.start_segment("EXP-DC", 2)
-        assert wait_until(lambda: pipeline.recorder.stats().queued_frames >= 0)
-        time.sleep(0.1)
+        before = pipeline.stats().frames_captured
+        assert wait_until(lambda: pipeline.stats().frames_captured >= before + 3, 30.0)
         assert not pipeline.stop_segment().interrupted
     finally:
         pipeline.stop()
@@ -408,6 +422,100 @@ def test_reconnect_can_be_disabled(tmp_path: Path, no_thread_leak: None) -> None
         pipeline.stop()
 
 
+# ------------------------------------------------------------------ 发布顺序
+
+
+class _ObservedWorker:
+    """采集线程加一个事件接收函数：每个事件到达时记下线程当时对外发布的状态和计数。
+
+    事件在这一刻还没有进入历史，所以记下的状态不能已经是事件所说的结果，否则就有
+    「看到状态、读不到原因」的窗口。靠这一点确定性地检查顺序，不靠线程时序。
+    """
+
+    def __init__(self, source: FakeSource, reconnect: ReconnectConfig, buffer: object) -> None:
+        self.seen: dict[VideoEventCode, tuple[CaptureState, int]] = {}
+        self.worker = CaptureWorker(
+            source,
+            VideoConfig(device="fake"),
+            buffer,  # type: ignore[arg-type]
+            [],
+            reconnect=reconnect,
+            emit=self._on_event,
+        )
+
+    def _on_event(self, event: VideoEvent) -> None:
+        self.seen[event.code] = (self.worker.state, self.worker.reconnects)
+
+    def run_until(self, state: CaptureState) -> None:
+        self.worker.start(10.0)
+        try:
+            assert wait_until(lambda: self.worker.state is state, 30.0)
+        finally:
+            assert self.worker.stop(10.0)
+
+
+def test_failed_state_is_published_after_its_event_when_reconnect_is_disabled() -> None:
+    observed = _ObservedWorker(
+        FakeSource(disconnect_after=3), ReconnectConfig(enabled=False), FrameRingBuffer(10**7)
+    )
+    observed.run_until(CaptureState.FAILED)
+    state, _ = observed.seen[VideoEventCode.RECONNECT_FAILED]
+    assert state is not CaptureState.FAILED
+
+
+def test_failed_state_is_published_after_its_event_when_attempts_run_out() -> None:
+    observed = _ObservedWorker(
+        _FailsAfterFirstOpen(disconnect_after=3),
+        ReconnectConfig(initial_delay_s=0.001, max_delay_s=0.001, max_attempts=2),
+        FrameRingBuffer(10**7),
+    )
+    observed.run_until(CaptureState.FAILED)
+    state, _ = observed.seen[VideoEventCode.RECONNECT_FAILED]
+    assert state is not CaptureState.FAILED
+
+
+def test_failed_state_is_published_after_its_event_when_the_thread_crashes() -> None:
+    """采集线程意外退出也要有事件：引擎靠事件才知道视频没了。"""
+
+    class BrokenBuffer(FrameRingBuffer):
+        def put(self, frame: VideoFrame) -> None:
+            raise RuntimeError("缓冲炸了")
+
+    observed = _ObservedWorker(FakeSource(), ReconnectConfig(), BrokenBuffer(10**7))
+    observed.run_until(CaptureState.FAILED)
+    state, _ = observed.seen[VideoEventCode.RECONNECT_FAILED]
+    assert state is not CaptureState.FAILED
+
+
+def test_ended_state_is_published_after_its_event() -> None:
+    class Finite(FakeSource):
+        def open(self, config: VideoConfig) -> VideoInfo:
+            super().open(config)
+            return VideoInfo(width=64, height=48, fps=10.0, is_live=False, frame_count=2)
+
+        def read(self) -> VideoFrame | None:
+            return super().read() if self.produced < 2 else None
+
+    observed = _ObservedWorker(Finite(), ReconnectConfig(), FrameRingBuffer(10**7))
+    observed.run_until(CaptureState.ENDED)
+    state, _ = observed.seen[VideoEventCode.END_OF_STREAM]
+    assert state is not CaptureState.ENDED
+
+
+def test_reconnect_count_and_state_are_published_after_the_event() -> None:
+    observed = _ObservedWorker(
+        FakeSource(disconnect_after=3),
+        ReconnectConfig(initial_delay_s=0.001, max_delay_s=0.001, stall_disconnect_s=None),
+        FrameRingBuffer(10**7),
+    )
+    observed.worker.start(10.0)
+    try:
+        assert wait_until(lambda: observed.worker.reconnects == 1, 30.0)
+        assert observed.seen[VideoEventCode.RECONNECTED] == (CaptureState.RECONNECTING, 0)
+    finally:
+        assert observed.worker.stop(10.0)
+
+
 class _FailsAfterFirstOpen(FakeSource):
     """第一次 ``open`` 成功，之后每次都失败，让管线一直停在重连等待。"""
 
@@ -433,7 +541,7 @@ def test_stop_during_reconnect_backoff_returns_promptly(
     assert wait_until(lambda: pipeline.state is PipelineState.RECONNECTING, 3.0)
     started = time.monotonic()
     pipeline.stop()
-    assert time.monotonic() - started < 1.0
+    assert time.monotonic() - started < 15.0  # 退避是 30 秒，stop 不等它
 
 
 def test_silent_source_triggers_stall_event_then_disconnect_and_recovery(

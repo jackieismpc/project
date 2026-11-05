@@ -53,7 +53,7 @@ pipeline.stop()
 ```
 
 - **抓帧规则**：翻转前取「时间早于翻转开始」的最近 n 帧；翻转后等到「翻转结束 + 稳定时间 `settle_s`」之后，取最早的 n 帧。不足 n 帧时等到超时，抛 `InsufficientFramesError`，**不会静默少帧**。
-- **时间约定**：`VideoFrame.captured_at` 与 `FlipResult.started_at/completed_at` 使用同一个本机时钟。
+- **时间约定**：`VideoFrame.captured_at` 与 `FlipResult.started_at/completed_at` 使用同一个本机时钟。`captured_at` 是曝光时刻，不是处理完的时刻：抓帧只按时间判断帧在翻转前还是翻转后，时间戳晚于画面会把翻转中的帧当成翻转后的帧。
 - **帧只读**：缓冲里的 `ndarray` 都设为不可写，`CapturedFrame.image` 直接引用，不复制。
 - **断流**：`read` 抛 `VideoDisconnectedError`（或实时源连续 `stall_disconnect_s` 读不到帧）后，采集线程按指数退避重连。进行中的录制段被封存为 `interrupted=True`（文件可播放、有哈希），**重连后不会自动续录**，由调用方决定是否重录该排；重连期间看门狗暂停。
 - **重新读回原图**：`load_saved_frames(snapshot.files)` 从磁盘读回一次抓帧并核对 SHA-256，试验引擎重试分析时使用，内存里不必保留失败排的帧。
@@ -110,7 +110,7 @@ pipeline.stop()
 
 1. 在 `infrastructure/video/industrial_template.py` 的基础上新建类，无参构造，构造时不连接硬件。
 2. `open` 内部才导入厂商 SDK（保证未装 SDK 的机器仍可导入）；用 `VideoConfig.device`（序列号）打开，设置分辨率、帧率、曝光，回读实际参数，`VideoInfo.is_live=True`。
-3. `read` 带超时取帧：超时返回 `None`；掉线抛 `VideoDisconnectedError`；把 Bayer 等格式转为 H×W×3、uint8、BGR，复制出 SDK 缓冲并归还；`captured_at` 用本机时钟，`sequence` 递增（跳号即驱动丢帧）。
+3. `read` 带超时取帧：超时返回 `None`；掉线抛 `VideoDisconnectedError`；把 Bayer 等格式转为 H×W×3、uint8、BGR，复制出 SDK 缓冲并归还；`captured_at` 用本机时钟，在 SDK 交出缓冲时立刻取（颜色转换和复制之前），SDK 自身的延迟要小于 `settle_s`；`sequence` 递增（跳号即驱动丢帧）。
 4. `open`、`read`、`close` 都在采集线程上调用，SDK 不需要线程安全。
 5. 配置 `video.source` 指向新类，并用 4000×3000 重跑压测（下文）。
 
@@ -149,6 +149,8 @@ pipeline.stop()
 
 事件经异步总线投递，`active=False` 表示该状况已恢复。需要写审计日志时由引擎订阅 `on_event` 转存。
 
+**发布顺序**：先把事件记入历史，再发布状态。看到 `FAILED`、`ENDED`、重连计数增加或录制段结束的观察者，都能在 `recent_events()` 里读到原因。反过来不成立：监听者收到事件时读到的状态可能还是旧值，要以事件本身为准。
+
 | 事件码 | 级别 | 含义 |
 |---|---|---|
 | `black_frame` | ERROR | 黑屏：缩小图平均亮度低于 `black_mean_max` |
@@ -160,7 +162,7 @@ pipeline.stop()
 | `disconnected` | ERROR | 视频源断流 |
 | `reconnecting` | WARNING | 正在重连 |
 | `reconnected` | INFO | 重连成功 |
-| `reconnect_failed` | ERROR | 重连达到最大次数，或重连被关闭 |
+| `reconnect_failed` | ERROR | 采集不会自行恢复：重连达到最大次数、重连被关闭，或采集线程异常退出 |
 | `end_of_stream` | INFO | 文件回放结束 |
 | `pin_overflow` | ERROR | 受保护帧超过硬上限，已强制淘汰，抓拍帧可能丢失 |
 | `consumer_error` | ERROR | 预览/录制/质量检查消费者抛出异常（线程不会被杀死） |
@@ -180,7 +182,7 @@ pipeline.stop()
 | `test_recorder.py` | 真写 MP4 读回逐帧核对、`.part` 存在与改名、SHA-256、偶数分辨率与缩放、不覆盖、writer 打不开、无帧不生成空文件、写盘失败清理、路径穿越与符号链接逃逸、慢写盘丢帧不阻塞 `offer`、驱动跳号计数、中断封存、中文目录（含模拟 Windows 的 ASCII 临时目录流程） |
 | `test_snapshot.py` | 用带已知时间戳和帧号的假源核对帧归属：翻转前严格早于翻转开始、翻转后晚于翻转结束 + settle；settle 参数；等待未来的帧；不足 n 帧抛异常；pin 保护翻转前帧；PNG 无损与哈希；异步抓帧；停止时取消等待 |
 | `test_quality.py` | 黑屏、过曝与正常亮背光的区别、卡帧、实测帧率与低帧率、驱动掉帧、看门狗断流与恢复、重连期间暂停、分析抽样开销 |
-| `test_pipeline.py` | 启停幂等且采集线程唯一、20 次启停线程不增长、慢预览/慢录制/慢监听者不阻塞采集、消费者与回调异常不杀线程、卡死的 `read` 不拖死 `stop`、断流重连与录制段处理、退避与次数上限、关闭重连、看门狗转断流、文件结束、缓冲不超限、帧只读 |
+| `test_pipeline.py` | 启停幂等且采集线程唯一、20 次启停线程不增长、慢预览/慢录制/慢监听者不阻塞采集、消费者与回调异常不杀线程、卡死的 `read` 不拖死 `stop`、断流重连与录制段处理、退避与次数上限、关闭重连、状态在事件之后发布、看门狗转断流、文件结束、缓冲不超限、帧只读 |
 | `tests/infrastructure/video/test_sources.py` | `FileVideoSource`、`ImageSequenceSource`、`load_row_capture`（`before/` `after/`、平铺格式、每组 ≥3 张）、损坏文件与分辨率不一致的明确错误、中文路径读写图片与视频、模拟 Windows 的 ASCII 副本流程、工厂 |
 | `tests/services/video/test_integration_sim.py` | `SimVideoSource` + `SimDevice` 翻转、录制、抓帧 → `MockAnalyzer`，`check_row_result` 无违规，并入库；图片文件夹 → `load_row_capture` → `MockAnalyzer` |
 | `tests/services/video/test_perf.py` | 4000×3000 压测，默认跳过 |

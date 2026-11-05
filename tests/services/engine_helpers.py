@@ -230,6 +230,13 @@ def gelled_scenario(tube_nos: Iterable[int], state: GelState = GelState.FULLY_GE
     return Scenario(tube_states=states)
 
 
+class _EventBarrier:
+    """走一遍分发队列的标记。标记被处理时，排在它前面的事件都已经投递。"""
+
+    def __init__(self) -> None:
+        self.reached = threading.Event()
+
+
 class EventLog:
     """记录引擎事件。"""
 
@@ -237,6 +244,9 @@ class EventLog:
         self.events: list[EngineEvent] = []
 
     def __call__(self, event: EngineEvent) -> None:
+        if isinstance(event, _EventBarrier):
+            event.reached.set()
+            return
         self.events.append(event)
 
     def of(self, kind: type) -> list[EngineEvent]:
@@ -340,6 +350,23 @@ class Harness:
 
         snapshot = self.engine.snapshot
         assert wait_until(reached, WAIT_S), f"没有到达 {state}，当前 {snapshot()}"
+        self.sync_events()
+
+    def sync_events(self) -> None:
+        """等分发线程投递完已入队的事件。
+
+        引擎保证事件先入队、快照后更新，所以看到新状态后调用它，相关事件一定已经在 ``log`` 里。
+        分发线程已退出时不用等：退出前会投递完队列。
+        """
+        dispatcher = self.engine._events  # noqa: SLF001
+        barrier = _EventBarrier()
+        dispatcher.emit(barrier)  # type: ignore[arg-type]
+
+        def settled() -> bool:
+            thread = dispatcher._thread  # noqa: SLF001
+            return barrier.reached.is_set() or thread is None or not thread.is_alive()
+
+        assert wait_until(settled, WAIT_S), "事件分发线程没有处理完队列"
 
     def wait_rows(self, predicate: Callable[[Sequence[RowSnapshot]], bool]) -> None:
         def reached() -> bool:
@@ -347,6 +374,7 @@ class Harness:
             return snapshot is not None and predicate(snapshot.rows)
 
         assert wait_until(reached, WAIT_S), f"条件未满足，当前 {self.engine.snapshot()}"
+        self.sync_events()
 
     def wait_more_frames(self, count: int = 3) -> None:
         """等视频源再产出几帧，保证进行中的录制段里已经有帧。"""

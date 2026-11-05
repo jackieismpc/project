@@ -5,6 +5,8 @@
 - ``Experiment`` 和设备只在引擎线程上访问。算法在分析线程上调用，结局经收件箱送回。
 - 每次写库都走 :meth:`EngineRun._transact`：先改内存聚合，事务提交失败就撤销，
   提交成功后才发事件。内存、数据库和界面看到的状态不会分叉。
+- 先入队事件，再发布快照：看到快照新状态的观察者，对应的事件都已经在分发队列里。
+- 写锁被其他写入者占用是暂时的，引擎等到为止（有总时限），不因此转异常或中止运行。
 - 翻转不可逆（翻动过的凝胶不能再读一次），所以翻转前做完所有能做的检查，
   算法故障也不打断其他排的按时读数，原图留在磁盘上可以重试。
 """
@@ -51,9 +53,11 @@ from gelinspect.interfaces.device import (
 )
 from gelinspect.interfaces.storage import (
     MediaFile,
+    StorageBusyError,
     StorageError,
     TemperatureSample,
     TransactionalStorage,
+    UnitOfWork,
 )
 from gelinspect.interfaces.video import VideoError
 from gelinspect.services.engine_types import (
@@ -61,6 +65,7 @@ from gelinspect.services.engine_types import (
     AlertLevel,
     EngineAlert,
     EngineConfig,
+    EngineEvent,
     EngineSnapshot,
     FaultKind,
     RowCountdown,
@@ -447,6 +452,10 @@ class EngineRun:
             )
             return False
         info = self._analyzer_info
+        # 截止时间先于状态：看到 incubating 的观察者读到的倒计时就是对的。
+        deadline = self._sched.monotonic() + self._cfg.incubation_s
+        for row in self._rows.values():
+            row.deadline = deadline
         self._transact(
             events=[ExperimentEvent.START],
             user=self._user,
@@ -457,12 +466,10 @@ class EngineRun:
                 f"配置 {info.config_version if info else '?'}，"
                 f"映射 {self._deps.mapping.to_config()}"
             ),
+            then=[
+                e for r in self._rows.values() for e in self._well_events(r, WellStatus.INCUBATING)
+            ],
         )
-        deadline = self._sched.monotonic() + self._cfg.incubation_s
-        for row in self._rows.values():
-            row.deadline = deadline
-            self._publish_wells(row, WellStatus.INCUBATING)
-        self._refresh_snapshot()
         return True
 
     def _prepare(self) -> None:
@@ -564,11 +571,11 @@ class EngineRun:
             self._transact(
                 events=[ExperimentEvent.ROW_DUE],
                 reason=f"{row.label} 到时，孵育 {self._cfg.incubation_s + late_s:.1f} 秒",
+                then=self._well_events(row, WellStatus.READING),
             )
         except Exception:
             row.phase = RowPhase.WAITING
             raise
-        self._publish_wells(row, WellStatus.READING)
         if late_s > self._cfg.row_late_warn_s:
             self._alert(
                 AlertCode.ROW_LATE,
@@ -721,12 +728,12 @@ class EngineRun:
                     f"{row.label} 抓帧完成，{len(snapshot.files)} 张原图，"
                     f"角度 {flip.actual_angle_deg}{note}"
                 ),
+                then=self._well_events(row, WellStatus.ANALYZING),
             )
         except Exception:
             row.phase = RowPhase.READ_FAILED
             self._pending.discard(row.row_index)
             raise
-        self._publish_wells(row, WellStatus.ANALYZING)
         before, after = snapshot.frames_before, snapshot.frames_after
         self._worker.submit(
             row.row_index,
@@ -806,13 +813,12 @@ class EngineRun:
                 audit=[self._row_audit(row, outcome.result, results)],
                 events=self._settle_events,
                 reason=f"{row.label} 分析完成",
+                then=[self._result_event(row, result) for result in results],
             )
         except Exception:
             # 算法结果没能入库：按分析失败处理，原图还在，可以重试。
             row.phase = RowPhase.ANALYSIS_FAILED
             raise
-        for result in results:
-            self._publish_result(row, result)
 
     def _apply_analysis_failure(self, row: _Row, error: Exception | None) -> None:
         message = f"{row.label} 分析失败，原图已保留，可以重试：{error}"
@@ -910,22 +916,20 @@ class EngineRun:
             f"配置 {info.config_version}，耗时 {result.elapsed_ms:.0f} ms；{tubes}",
         )
 
-    def _publish_result(self, row: _Row, result: TubeResult) -> None:
+    def _result_event(self, row: _Row, result: TubeResult) -> WellUpdated:
         interpretation = result.auto_interpretation
         status = {
             Interpretation.POSITIVE: WellStatus.POSITIVE,
             Interpretation.NEGATIVE: WellStatus.NEGATIVE,
             Interpretation.PENDING_REVIEW: WellStatus.PENDING_REVIEW,
         }[interpretation]
-        self._events.emit(
-            WellUpdated(
-                experiment_id=self.experiment_id,
-                at=self._clock.now(),
-                row_index=row.row_index,
-                tube_no=result.tube_no,
-                status=status,
-                interpretation=interpretation,
-            )
+        return WellUpdated(
+            experiment_id=self.experiment_id,
+            at=self._clock.now(),
+            row_index=row.row_index,
+            tube_no=result.tube_no,
+            status=status,
+            interpretation=interpretation,
         )
 
     def _check_analysis_timeouts(self) -> None:
@@ -1123,8 +1127,11 @@ class EngineRun:
         self._fault_kinds.add(kind)
         self._fault_reason = reason
         if ExperimentEvent.FAULT in allowed_events(self._exp.state):
-            self._transact(events=[ExperimentEvent.FAULT], reason=reason)
-            self._emit_alert(code, AlertLevel.ERROR, reason, row_index)
+            self._transact(
+                events=[ExperimentEvent.FAULT],
+                reason=reason,
+                then=[self._alert_event(code, AlertLevel.ERROR, reason, row_index)],
+            )
         else:
             self._alert(code, AlertLevel.ERROR, reason, row_index=row_index)
 
@@ -1341,10 +1348,11 @@ class EngineRun:
         temperatures: Sequence[TemperatureSample] = (),
         reason: str = "",
         user: User | None = None,
+        then: Sequence[EngineEvent] = (),
     ) -> None:
         """在一个事务里提交状态、结果、媒体、审计和温度。
 
-        先改内存聚合（走领域规则），提交失败时撤销，提交成功后才发事件。
+        先改内存聚合（走领域规则），提交失败时撤销，提交成功后才发事件，事件入队后才发布快照。
 
         Args:
             events: 要应用的状态机事件；是函数时在结果写入内存之后才求值。
@@ -1353,10 +1361,12 @@ class EngineRun:
             temperatures: 温度采样。
             reason: 状态变化的说明。
             user: 操作者，None 表示系统。
+            then: 提交成功后跟在状态变化之后发出的事件，同样先于快照。
 
         Raises:
             IllegalTransitionError: 状态机拒绝事件。
             TransitionGuardError: 前置条件不满足。
+            StorageBusyError: 等写锁超过时限。温度采样不值得等，只试一次。
             StorageError: 写库失败。
         """
         exp = self._exp
@@ -1394,7 +1404,8 @@ class EngineRun:
                         user=user,
                     )
                 )
-            with self._storage.unit_of_work() as uow:
+
+            def write(uow: UnitOfWork) -> None:
                 if exp.state is not state_before:
                     uow.experiments.update_state(
                         exp.experiment_id, exp.state, expected=state_before
@@ -1407,6 +1418,8 @@ class EngineRun:
                     uow.audit.append_many(records)
                 if temperatures:
                     uow.telemetry.add_temperatures(temperatures)
+
+            self._commit(write, patient=not temperatures)
         except Exception:
             exp.state = state_before
             exp.results = results_before
@@ -1414,8 +1427,43 @@ class EngineRun:
         del self._pending_media[: len(media)]
         for change in changes:
             self._events.emit(change)
-        if changes or results:
+        for extra in then:
+            self._events.emit(extra)
+        if changes or results or then:
             self._refresh_snapshot()
+
+    def _commit(self, write: Callable[[UnitOfWork], None], *, patient: bool) -> None:
+        """执行一个写事务。写锁被占用时重试，事务没开始过，``write`` 不会执行两次。
+
+        SQLite 的忙等待不排队，短事务的写入者可能连续抢到锁，所以单次 ``busy_timeout`` 超时不代表
+        数据库坏了。试验不能因为别人在写库就中止。
+
+        Args:
+            write: 事务内容。
+            patient: 是否等到 ``storage_busy_timeout_s``，否则只试一次。
+
+        Raises:
+            StorageBusyError: 等写锁超过时限。
+            StorageError: 写库失败。
+        """
+        deadline: float | None = None
+        while True:
+            try:
+                with self._storage.unit_of_work() as uow:
+                    write(uow)
+                return
+            except StorageBusyError as exc:
+                now = self._clock.monotonic()
+                if not patient or (deadline is not None and now >= deadline):
+                    raise
+                if deadline is None:
+                    deadline = now + self._cfg.storage_busy_timeout_s
+                    logger.warning("数据库写锁被占用，继续等待：%s", exc)
+                    self._emit_alert(
+                        AlertCode.STORAGE_BUSY,
+                        AlertLevel.WARNING,
+                        "数据库被其他操作占用，正在等待写入",
+                    )
 
     def _audit_event(
         self, action: AuditAction, detail: str, *, user: User | None = None
@@ -1445,29 +1493,36 @@ class EngineRun:
     def _emit_alert(
         self, code: AlertCode, level: AlertLevel, message: str, row_index: int | None = None
     ) -> None:
-        self._events.emit(
-            EngineAlert(
-                experiment_id=self.experiment_id,
-                at=self._clock.now(),
-                level=level,
-                code=code,
-                message=message,
-                row_index=row_index,
-            )
+        self._events.emit(self._alert_event(code, level, message, row_index))
+
+    def _alert_event(
+        self, code: AlertCode, level: AlertLevel, message: str, row_index: int | None = None
+    ) -> EngineAlert:
+        return EngineAlert(
+            experiment_id=self.experiment_id,
+            at=self._clock.now(),
+            level=level,
+            code=code,
+            message=message,
+            row_index=row_index,
         )
 
-    def _publish_wells(self, row: _Row, status: WellStatus) -> None:
+    def _well_events(self, row: _Row, status: WellStatus) -> list[WellUpdated]:
         at = self._clock.now()
-        for tube_no in row.tubes:
-            self._events.emit(
-                WellUpdated(
-                    experiment_id=self.experiment_id,
-                    at=at,
-                    row_index=row.row_index,
-                    tube_no=tube_no,
-                    status=status,
-                )
+        return [
+            WellUpdated(
+                experiment_id=self.experiment_id,
+                at=at,
+                row_index=row.row_index,
+                tube_no=tube_no,
+                status=status,
             )
+            for tube_no in row.tubes
+        ]
+
+    def _publish_wells(self, row: _Row, status: WellStatus) -> None:
+        for event in self._well_events(row, status):
+            self._events.emit(event)
         self._refresh_snapshot()
 
     def _refresh_snapshot(self) -> None:

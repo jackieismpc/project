@@ -204,9 +204,10 @@ def test_offer_is_cheap_and_analysis_is_decimated() -> None:
     mon = QualityMonitor(config, emit=events.append)
     mon.start()
     try:
+        frames = [noisy(k) for k in range(100)]  # 造帧的耗时不算进 offer
         started = time.monotonic()
-        for k in range(100):
-            mon.offer(noisy(k))
+        for item in frames:
+            mon.offer(item)
         assert time.monotonic() - started < 0.5
         assert wait_until(lambda: mon.stats().analyzed >= 1)
         time.sleep(0.1)

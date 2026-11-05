@@ -41,6 +41,8 @@ class EngineConfig(BaseModel):
         video_down_grace_s: 断流后等待重连的时限，真实时间，超时转异常。
         tray_out_on_finish: 跑完或停止后是否退出滑台。
         worker_stop_timeout_s: 结束时等待工作线程退出的时限，真实时间。
+        storage_busy_timeout_s: 写库时等待写锁的总时限，真实时间。其他写入者（登录审计等）占着锁
+            只是暂时的，等到为止；超过时限才按写库失败处理。
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -62,6 +64,7 @@ class EngineConfig(BaseModel):
     video_down_grace_s: float = Field(default=30.0, ge=0)
     tray_out_on_finish: bool = True
     worker_stop_timeout_s: float = Field(default=5.0, gt=0)
+    storage_busy_timeout_s: float = Field(default=60.0, ge=0)
 
     @property
     def incubation_s(self) -> float:
@@ -167,6 +170,8 @@ class AlertCode(StrEnum):
     """工作线程未在时限内退出。"""
     STORAGE_FAILED = "storage_failed"
     """写库失败。"""
+    STORAGE_BUSY = "storage_busy"
+    """数据库被其他写入者占用，引擎在等写锁。只发事件：这时写不了审计。"""
     INTERNAL_ERROR = "internal_error"
     """引擎内部错误。"""
 

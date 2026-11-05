@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 
@@ -17,11 +18,15 @@ class SceneSnapshot:
         row_index: 相机对着的排号，1–10。
         flip_phase: 翻转进度，0 为翻转前，1 为翻转后，中间为翻转过程。
         settle: 样品团的流动进度，0 为刚翻转，1 为已稳定。
+        at: 场景被采样的时刻。相机的「曝光时刻」，帧的 ``captured_at`` 必须用它：渲染要花时间，
+            渲染完再取时间，高负载下一帧翻转中的画面会被标成翻转完成之后。没有动作的静态场景
+            为 None。
     """
 
     row_index: int = 1
     flip_phase: float = 0.0
     settle: float = 0.0
+    at: datetime | None = None
 
 
 class SceneProvider(Protocol):

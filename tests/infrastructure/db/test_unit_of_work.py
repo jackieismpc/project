@@ -24,6 +24,7 @@ from gelinspect.interfaces.storage import (
     NotFoundError,
     PageRequest,
     StateConflictError,
+    StorageBusyError,
     StorageError,
     TemperatureSample,
     TransactionalStorage,
@@ -227,6 +228,27 @@ def test_lock_timeout_surfaces_as_storage_error(seeded: Database, tmp_path: Path
         holder.rollback()
         holder.close()
     assert verify_audit_chain(seeded).ok
+
+
+def test_busy_write_lock_raises_retryable_error_without_running_the_body(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
+    database = open_database(tmp_path / "gel.db")
+    locker = sqlite3.connect(tmp_path / "gel.db", isolation_level=None)
+    entered = False
+    try:
+        locker.execute("BEGIN IMMEDIATE")
+        with pytest.raises(StorageBusyError), database.unit_of_work():
+            entered = True
+        assert not entered
+        locker.execute("COMMIT")
+        with database.unit_of_work() as uow:
+            uow.audit.append_many([make_event(1)])
+        assert verify_audit_chain(database).ok
+    finally:
+        locker.close()
+        database.close()
 
 
 def test_concurrent_units_of_work_and_plain_appends_keep_the_chain(seeded: Database) -> None:

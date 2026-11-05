@@ -456,14 +456,7 @@ class SegmentRecorder:
         finally:
             if segment.scratch_dir is not None:
                 shutil.rmtree(segment.scratch_dir, ignore_errors=True)
-            with self._lock:
-                if self._segment is segment:
-                    self._segment = None
-                    self._finished.append(segment)
-                    del self._finished[:-_MAX_FINISHED]
-                self._total_dropped += segment.dropped
-                self._segments_finished += 1
-            segment.done.set()
+            # 先记录事件再发布「段已结束」：看到段结束的观察者都能读到中断原因。
             if segment.interrupt_reason is not None and self._emit is not None:
                 self._emit(
                     make_event(
@@ -475,6 +468,14 @@ class SegmentRecorder:
                         value=float(segment.written),
                     )
                 )
+            with self._lock:
+                if self._segment is segment:
+                    self._segment = None
+                    self._finished.append(segment)
+                    del self._finished[:-_MAX_FINISHED]
+                self._total_dropped += segment.dropped
+                self._segments_finished += 1
+            segment.done.set()
 
     def _consume(self, segment: _Segment) -> None:
         target = (segment.width, segment.height)

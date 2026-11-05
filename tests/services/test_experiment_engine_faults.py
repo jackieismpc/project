@@ -17,6 +17,7 @@ from gelinspect.interfaces.device import DeviceFaultError, DeviceTimeoutError
 from gelinspect.interfaces.storage import MediaKind
 from gelinspect.services.engine_types import (
     AlertCode,
+    EngineAlert,
     EngineBusyError,
     EngineEvent,
     EnginePermissionError,
@@ -349,6 +350,48 @@ def test_flip_failure_faults_cleans_up_and_resume_rereads(
     assert h.stored().state is S.COMPLETED
     assert h.device.flipped_rows() == [1, 1]
     h.assert_clean()
+
+
+def test_fault_alert_is_queued_before_the_snapshot_shows_faulted(
+    harness: HarnessFactory,
+) -> None:
+    """看到 faulted 快照的观察者，原因告警一定已经在分发队列里。"""
+    h = harness()
+    h.device.fail_next["flip_row"] = DeviceFaultError("电机过流")
+    dispatcher = h.engine._events  # noqa: SLF001
+    real_emit = dispatcher.emit
+    state_at_alert: list[S] = []
+
+    def emit(event: EngineEvent) -> None:
+        if isinstance(event, EngineAlert) and event.code is AlertCode.READ_FAILED:
+            state_at_alert.append(h.state())
+        real_emit(event)
+
+    dispatcher.emit = emit  # type: ignore[method-assign]
+    h.save_and_start()
+    h.incubating()
+    h.fire_rows()
+    h.wait_state(S.FAULTED)
+    assert len(state_at_alert) == 1 and state_at_alert[0] is not S.FAULTED
+    h.engine.stop(OPERATOR)
+    h.finished()
+
+
+def test_row_deadline_is_set_before_incubating_becomes_visible(harness: HarnessFactory) -> None:
+    """观察者一看到孵育开始就推进时钟：截止时间必须已经定好，否则排永远等不到时。"""
+    h = harness()
+    dispatcher = h.engine._events  # noqa: SLF001
+    real_emit = dispatcher.emit
+
+    def emit(event: EngineEvent) -> None:
+        real_emit(event)
+        if isinstance(event, StateChanged) and event.current is S.INCUBATING:
+            h.fire_rows()
+
+    dispatcher.emit = emit  # type: ignore[method-assign]
+    h.save_and_start()
+    h.finished()
+    assert h.stored().state is S.COMPLETED
 
 
 def test_device_fault_during_incubation_blocks_resume_until_cleared(

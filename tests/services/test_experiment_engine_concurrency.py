@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import os
 import random
+import sqlite3
 import subprocess
 import sys
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
 
@@ -15,14 +18,23 @@ import pytest
 from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.plate import tube_to_position
 from gelinspect.domain.state_machine import ExperimentState as S
-from gelinspect.infrastructure.db import open_database, verify_audit_chain
-from gelinspect.interfaces.storage import AuditQuery, MediaKind, PageRequest
+from gelinspect.infrastructure.db import Database, open_database, verify_audit_chain
+from gelinspect.interfaces.storage import (
+    AuditQuery,
+    ExperimentRepository,
+    MediaKind,
+    PageRequest,
+    StorageBusyError,
+    UnitOfWork,
+)
+from gelinspect.services.engine_types import AlertCode, AlertLevel
 from gelinspect.services.experiment_engine import ExperimentEngine
 from simulation.clock import ManualClock
 from tests.services.engine_helpers import (
     EXP_ID,
     OPERATOR,
     Gate,
+    eventually,
     fast_config,
     make_harness,
     tubes_of_rows,
@@ -145,6 +157,95 @@ def test_audit_chain_stays_valid_with_a_concurrent_writer(
         assert verification.ok, verification.message
         assert verification.checked == written[0] + len(h.audit())
     finally:
+        h.close()
+
+
+class _CountingStorage:
+    """记下工作单元因为等不到写锁而失败的次数。"""
+
+    def __init__(self, database: Database) -> None:
+        self._database = database
+        self.busy = 0
+
+    @property
+    def experiments(self) -> ExperimentRepository:
+        return self._database.experiments
+
+    @contextmanager
+    def unit_of_work(self) -> Iterator[UnitOfWork]:
+        try:
+            with self._database.unit_of_work() as uow:
+                yield uow
+        except StorageBusyError:
+            self.busy += 1
+            raise
+
+
+def _hold_write_lock(database_path: Path) -> sqlite3.Connection:
+    connection = sqlite3.connect(database_path, isolation_level=None, check_same_thread=False)
+    connection.execute("BEGIN IMMEDIATE")
+    return connection
+
+
+def test_engine_waits_out_a_write_lock_held_past_busy_timeout(
+    tmp_path: Path, thread_baseline: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """别人占着写锁超过 busy_timeout：引擎等到为止，不转异常、不中止，也不做无审计的动作。"""
+    monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
+    storage: list[_CountingStorage] = []
+
+    def wrap(database: Database) -> _CountingStorage:
+        storage.append(_CountingStorage(database))
+        return storage[0]
+
+    h = make_harness(tmp_path, tubes_of_rows(1), storage_wrapper=wrap)
+    locker: sqlite3.Connection | None = None
+    try:
+        h.save_and_start()
+        h.incubating()
+        locker = _hold_write_lock(tmp_path / "data" / "gel.db")
+        h.fire_rows()
+        # 旧策略连续失败 2 次就中止运行，这里等到远超这个次数。
+        assert eventually(lambda: storage[0].busy >= 6)
+        assert h.engine.snapshot() is not None and h.state() is S.INCUBATING
+        assert h.device.flipped_rows() == []  # 到时事务没提交，不能翻转
+        assert h.log.alerts(AlertCode.STORAGE_BUSY)
+        locker.execute("COMMIT")
+        h.finished()
+        assert h.stored().state is S.COMPLETED
+        # 温度采样只试一次，丢一条只是警告；状态事务没有失败过。
+        failed = h.log.alerts(AlertCode.STORAGE_FAILED)
+        assert all(alert.level is AlertLevel.WARNING for alert in failed)
+        assert S.FAULTED not in h.log.states()
+        h.assert_clean()
+    finally:
+        if locker is not None:
+            locker.close()
+        h.close()
+
+
+def test_write_lock_past_the_wait_limit_aborts_without_unaudited_actions(
+    tmp_path: Path, thread_baseline: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """等待有上限：一直拿不到写锁时不翻转，运行中止，库内状态留给下次启动恢复。"""
+    monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
+    h = make_harness(tmp_path, tubes_of_rows(1), config=fast_config(storage_busy_timeout_s=0.1))
+    locker: sqlite3.Connection | None = None
+    try:
+        h.save_and_start()
+        h.incubating()
+        locker = _hold_write_lock(tmp_path / "data" / "gel.db")
+        h.fire_rows()
+        h.finished()
+        assert h.device.flipped_rows() == []
+        assert h.log.alerts(AlertCode.STORAGE_FAILED)
+        locker.execute("COMMIT")
+        assert h.stored().state is S.INCUBATING
+        assert [r.experiment_id for r in h.engine.recover_interrupted()] == [EXP_ID]
+        assert verify_audit_chain(h.database).ok
+    finally:
+        if locker is not None:
+            locker.close()
         h.close()
 
 

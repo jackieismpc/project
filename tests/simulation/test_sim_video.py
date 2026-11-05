@@ -152,3 +152,28 @@ def test_read_returns_none_when_next_frame_is_not_due_within_timeout() -> None:
     assert video.read() is not None
     assert video.read() is None  # 下一帧在 2 秒后，超时只等 100 ms
     assert clock.monotonic() == pytest.approx(0.1)
+
+
+def test_frame_time_is_when_the_scene_was_sampled_not_when_rendering_finished(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """翻转中采样的帧，渲染再慢也不能被标成翻转完成之后，否则抓帧会把过渡画面当成翻转后。"""
+    clock = ManualClock()
+    device = SimDevice(clock=clock, flip_duration_s=6.0, settle_duration_s=0.0, time_scale=60.0)
+    device.connect()
+    device.move_tray(TrayPosition.IN)
+    video = source(clock, scene=device)
+    video.open(SMALL_CONFIG)
+
+    def slow_noise(*_args: object) -> None:
+        clock.advance(10.0)  # 高负载：渲染途中线程被抢占，翻转已经走完
+
+    monkeypatch.setattr("simulation.sim_video.add_noise", slow_noise)
+    device.begin_flip(1)
+    clock.advance(0.05)  # 翻转走到一半，相机此刻曝光
+    sampled_at = clock.now()
+    assert device.scene_snapshot().flip_phase == pytest.approx(0.5)
+    frame = video.read()
+    assert frame is not None
+    assert frame.captured_at == sampled_at
+    assert device.scene_snapshot().flip_phase == 1.0

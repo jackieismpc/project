@@ -28,7 +28,7 @@ from gelinspect.interfaces.video import (
 from simulation.clock import Clock, SystemClock
 from simulation.image_synth import SynthConfig, Uint8Array, add_noise, render_row
 from simulation.scenario import Scenario
-from simulation.scene import SceneProvider, StaticScene
+from simulation.scene import SceneProvider, SceneSnapshot, StaticScene
 from simulation.sim_device import SimDevice
 
 DEFAULT_WIDTH = 1920
@@ -145,11 +145,12 @@ class SimVideoSource:
         self._clock.sleep(wait)
         now = self._clock.monotonic()
         self._next_due = max(self._next_due + self._interval, now - 1.0)
-        image = self._render()
+        snapshot = self._provider().scene_snapshot()
+        captured_at = snapshot.at or self._clock.now()
         frame = VideoFrame(
-            image=image,
+            image=self._render(snapshot),
             sequence=self._sequence,
-            captured_at=self._clock.now(),
+            captured_at=captured_at,
             monotonic_s=now,
         )
         self._sequence += 1
@@ -166,9 +167,8 @@ class SimVideoSource:
         device = SimDevice.latest()
         return device if device is not None else self._static
 
-    def _render(self) -> Uint8Array:
-        """渲染当前场景。无噪声的底图按进度量化后缓存，每帧只重新加噪声。"""
-        snapshot = self._provider().scene_snapshot()
+    def _render(self, snapshot: SceneSnapshot) -> Uint8Array:
+        """渲染场景。无噪声的底图按进度量化后缓存，每帧只重新加噪声。"""
         key = (snapshot.row_index, round(snapshot.flip_phase * 60), round(snapshot.settle * 30))
         base = self._cache.get(key)
         if base is None:

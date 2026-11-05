@@ -5,6 +5,9 @@
 
 ``VideoSource`` 的 ``open``、``read``、``close`` 都在本线程上调用（见 ``docs/architecture.md``）。
 断流后在本线程内按退避策略重连。
+
+发布顺序：**先记录事件，再发布状态**。任何看到 ``FAILED``、``ENDED``、重连成功的观察者，都能在
+事件历史里读到原因。反过来不成立：监听者收到事件时读到的状态可能还是旧值，要以事件本身为准。
 """
 
 from __future__ import annotations
@@ -216,8 +219,13 @@ class CaptureWorker:
             self._state = CaptureState.RUNNING
             self._opened.set()
             self._loop()
-        except Exception:
+        except Exception as exc:
             logger.exception("采集线程发生未预期的异常")
+            self._emit(
+                VideoEventCode.RECONNECT_FAILED,
+                VideoEventLevel.ERROR,
+                f"采集线程异常退出：{exc!r}",
+            )
             self._state = CaptureState.FAILED
         finally:
             self._safe_close()
@@ -238,12 +246,12 @@ class CaptureWorker:
             if frame is None:
                 info = self._info
                 if info is not None and not info.is_live:
-                    self._state = CaptureState.ENDED
                     self._emit(
                         VideoEventCode.END_OF_STREAM,
                         VideoEventLevel.INFO,
                         f"文件回放结束，共 {self._frames} 帧",
                     )
+                    self._state = CaptureState.ENDED
                     return
                 if stall_limit is not None and self._clock.monotonic() - last_frame_t > stall_limit:
                     timeout_error = TimeoutError(f"连续 {stall_limit} 秒读不到帧")
@@ -297,12 +305,12 @@ class CaptureWorker:
         self._safe_close()
         policy = self._reconnect
         if not policy.enabled:
-            self._state = CaptureState.FAILED
             self._emit(
                 VideoEventCode.RECONNECT_FAILED,
                 VideoEventLevel.ERROR,
                 "自动重连已关闭，采集停止",
             )
+            self._state = CaptureState.FAILED
             return False
         self._state = CaptureState.RECONNECTING
         delay = policy.initial_delay_s
@@ -323,30 +331,31 @@ class CaptureWorker:
                 logger.warning("重连失败（第 %d 次）：%r", attempt, open_exc)
                 self._safe_close()
                 if policy.max_attempts is not None and attempt >= policy.max_attempts:
-                    self._state = CaptureState.FAILED
                     self._emit(
                         VideoEventCode.RECONNECT_FAILED,
                         VideoEventLevel.ERROR,
                         f"重连 {attempt} 次均失败，放弃",
                         value=float(attempt),
                     )
+                    self._state = CaptureState.FAILED
                     return False
                 delay = min(delay * policy.factor, policy.max_delay_s)
                 continue
             self._info = info
-            self._reconnects += 1
-            self._state = CaptureState.RUNNING
+            # 先应用新参数：监听者收到 RECONNECTED 时，管线已经按新参数工作。
+            if self._on_reconnected is not None:
+                try:
+                    self._on_reconnected(info)
+                except Exception:
+                    logger.exception("重连回调抛出异常（已忽略）")
             self._emit(
                 VideoEventCode.RECONNECTED,
                 VideoEventLevel.INFO,
                 f"重连成功（第 {attempt} 次尝试）",
                 value=float(attempt),
             )
-            if self._on_reconnected is not None:
-                try:
-                    self._on_reconnected(info)
-                except Exception:
-                    logger.exception("重连回调抛出异常（已忽略）")
+            self._reconnects += 1
+            self._state = CaptureState.RUNNING
             return True
 
     def _call_hook(self, hook: Callable[[], None] | None) -> None:

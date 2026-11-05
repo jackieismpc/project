@@ -12,7 +12,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from sqlalchemy import Engine, create_engine, event
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from gelinspect.infrastructure.db.repositories.audit import SqlAuditRepository
@@ -21,13 +21,17 @@ from gelinspect.infrastructure.db.repositories.files import SqlMediaRepository, 
 from gelinspect.infrastructure.db.repositories.telemetry import SqlTelemetryRepository
 from gelinspect.infrastructure.db.repositories.templates import SqlTemplateRepository
 from gelinspect.infrastructure.db.repositories.users import SqlUserRepository
-from gelinspect.interfaces.storage import DatabaseVersionError, StorageError
+from gelinspect.interfaces.storage import DatabaseVersionError, StorageBusyError, StorageError
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 """迁移脚本目录，用包内路径定位。打包时必须把整个目录作为数据文件带上。"""
 
 BUSY_TIMEOUT_MS = 5000
 """写锁等待时间。"""
+
+_SQLITE_BUSY = 5
+_SQLITE_LOCKED = 6
+_PRIMARY_CODE_MASK = 0xFF
 
 
 def _configure_connection(dbapi_connection: sqlite3.Connection, _record: Any) -> None:
@@ -45,6 +49,19 @@ def _configure_connection(dbapi_connection: sqlite3.Connection, _record: Any) ->
         cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
     finally:
         cursor.close()
+
+
+def _is_lock_error(error: OperationalError) -> bool:
+    """判断 SQLite 错误是否是拿不到锁。
+
+    Args:
+        error: SQLAlchemy 包装的操作错误。
+
+    Returns:
+        主错误码是 ``SQLITE_BUSY`` 或 ``SQLITE_LOCKED`` 时为 True。
+    """
+    code = getattr(error.orig, "sqlite_errorcode", None)
+    return isinstance(code, int) and code & _PRIMARY_CODE_MASK in (_SQLITE_BUSY, _SQLITE_LOCKED)
 
 
 def _migrate(engine: Engine) -> None:
@@ -173,12 +190,18 @@ class Database:
             绑定到本事务的仓储集合。
 
         Raises:
-            StorageError: 取不到写锁、提交失败，或事务内有写入失败却被调用方吞掉。
+            StorageBusyError: 等待写锁超时。事务还没有开始，调用方的代码块没有执行，可以重试。
+            StorageError: 提交失败，或事务内有写入失败却被调用方吞掉。
         """
         uow: SqlUnitOfWork | None = None
         try:
             with self._sessions.begin() as session:
-                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                try:
+                    session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                except OperationalError as error:
+                    if _is_lock_error(error):
+                        raise StorageBusyError(f"等待写锁超时：{error}") from error
+                    raise
                 uow = SqlUnitOfWork(session)
                 yield uow
                 if uow.poisoned:

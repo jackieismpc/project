@@ -220,17 +220,18 @@ def test_slow_writer_drops_frames_without_blocking_offer(tmp_path: Path) -> None
     gate = threading.Event()
 
     def slow_write(image: np.ndarray) -> None:
-        gate.wait(5)
+        gate.wait(60)
         real_write(image)
 
     segment.writer = mock.Mock(wraps=segment.writer)
     segment.writer.write.side_effect = slow_write
 
+    frames = [frame(k) for k in range(40)]  # 造帧的耗时不算进 offer
     started = time.monotonic()
-    for k in range(40):
-        recorder.offer(frame(k))
+    for item in frames:
+        recorder.offer(item)
     elapsed = time.monotonic() - started
-    assert elapsed < 1.0  # 写盘卡住时 offer 仍然立即返回
+    assert elapsed < 30.0  # 写盘卡 60 秒，offer 要是在等它，这里就超了
     gate.set()
     record = recorder.stop_segment()
     assert record.dropped_frames > 0
@@ -361,3 +362,22 @@ def test_chinese_data_dir_for_video_and_images(tmp_path: Path) -> None:
         recorder.offer(frame(k))
     record = recorder.stop_segment()
     assert "数据 目录" in str(record.path) and read_back(record.path)[0] == 5
+
+
+def test_interrupted_event_is_published_before_the_segment_ends(tmp_path: Path) -> None:
+    """``stop_segment`` 返回后，中断原因一定已经发出。"""
+    done_at_event: list[bool] = []
+    recorder = make_recorder(tmp_path)
+
+    def on_event(event: VideoEvent) -> None:
+        if event.code is VideoEventCode.SEGMENT_INTERRUPTED:
+            assert segment is not None
+            done_at_event.append(segment.done.is_set())
+
+    recorder._emit = on_event  # noqa: SLF001
+    recorder.start_segment("EXP-ORDER", 1, fps=10.0)
+    segment = recorder._segment  # noqa: SLF001
+    recorder.offer(frame(0))
+    recorder.abort_segment("disconnected")
+    assert recorder.stop_segment().interrupted
+    assert done_at_event == [False]

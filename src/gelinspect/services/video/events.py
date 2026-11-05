@@ -49,7 +49,7 @@ class VideoEventCode(StrEnum):
     RECONNECTED = "reconnected"
     """重连成功。"""
     RECONNECT_FAILED = "reconnect_failed"
-    """重连放弃（达到最大次数）或重连被关闭。"""
+    """采集不会自行恢复：重连放弃（达到最大次数）、重连被关闭，或采集线程异常退出。"""
     END_OF_STREAM = "end_of_stream"
     """文件回放结束。"""
     PIN_OVERFLOW = "pin_overflow"

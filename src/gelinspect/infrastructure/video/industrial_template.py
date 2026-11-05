@@ -42,6 +42,7 @@ class IndustrialCameraSource:
             NotImplementedError: 模板尚未实现。
         """
         # 步骤：带超时取帧 → 超时返回 None → 掉线抛 VideoDisconnectedError
+        # → 立刻记下 captured_at（必须在转换之前：抓帧按它判断帧在翻转前后）
         # → 转换为 BGR → 复制出 SDK 缓冲区并归还 → 组装 VideoFrame。
         raise NotImplementedError("请在相机选型后实现")
 

@@ -95,7 +95,8 @@ START：incubating，所有排的截止时间 = 现在 + 孵育时长（默认 6
 | | 读数中，图像齐全 | 照常分析，录像标记不完整（`interrupted`），审计注明 | 不变 |
 | | 读数中，抓不到帧 | 该排 `read_failed`，复位，封存录制段 | `faulted` |
 | 温度越限 | 任意 | 第一次越限告警；持续 `temperature_hold_s`（默认 60 秒设备时间）转异常；中途回到 37±1 ℃ 则清零。无法读取温度按越限处理 | 不变或 `faulted` |
-| 写库失败 | 任意 | 内存撤销，转异常；分析结果没写进去的排可重试。连异常都写不进去时运行中止，不再做无审计的动作，下次启动由恢复流程标记 | `faulted` 或库内旧状态 |
+| 写锁被占用 | 任意 | 等到 `storage_busy_timeout_s`，期间发 `storage_busy`，不算故障 | 不变 |
+| 写库失败（含等写锁超时） | 任意 | 内存撤销，转异常；分析结果没写进去的排可重试。连异常都写不进去时运行中止，不再做无审计的动作，下次启动由恢复流程标记 | `faulted` 或库内旧状态 |
 | 软件退出 | 运行中 | 转异常，原因写审计 | `faulted` |
 
 每一行都写审计（`experiment_state_changed` 或 `engine_alert`），操作者是发起停止的用户或 `system`。转异常后倒计时继续走（试管还在孵育），恢复后已到时的排马上读数。`stop` 期间已经产生的录像和图像都随停止事务入库。
@@ -120,7 +121,8 @@ with storage.unit_of_work() as uow:
 
 - 以 `BEGIN IMMEDIATE` 开始，进入时就持有写锁，事务内先读后写（审计链头）不会读到过期快照。其他线程最多等 `busy_timeout`（5 秒）。
 - 仓储绑定到同一个会话，只 `flush` 不提交。写入异常被调用方吞掉时事务不提交，退出后再用这些仓储会报错。
-- 取不到锁或提交失败抛 `StorageError`。
+- 等写锁超时抛 `StorageBusyError`（`StorageError` 的子类）：事务没开始，代码块没执行，可以原样重试。提交失败抛 `StorageError`。
+- 引擎写库时等写锁等到 `storage_busy_timeout_s`（默认 60 秒）。SQLite 的忙等待不排队，界面登录审计这类短事务可能连续抢到锁，单次 `busy_timeout` 超时不代表库坏了，试验不能因此中止。等待期间发一次 `storage_busy` 事件，不翻转（到时事务没提交）。温度采样不等，只试一次，丢一条只告警。
 - 不要在事务里调用设备、算法或等待。
 
 文件先落盘，事务后提交。崩溃时最多留下没有入库的孤儿文件（不覆盖、不影响后续），库里不会有指向不存在文件的记录。
@@ -137,7 +139,7 @@ with storage.unit_of_work() as uow:
 | `TemperatureChanged` | `celsius`、`in_range` | 温度 |
 | `EngineAlert` | `level`、`code`、`message`、`row_index` | 告警，码见 `AlertCode` |
 
-监听者在独立的 `engine-events` 线程上调用：抛异常只记日志，卡死也不影响翻转时序。引擎线程卡在设备动作上时事件要等动作返回才发。P9 用 Qt 信号桥接。
+先把事件放进分发队列，再更新 `snapshot()`：看到新状态的观察者，相关事件都已经入队，随后一定会收到；`fault_reason` 在转异常的同时就能从快照读到。监听者在独立的 `engine-events` 线程上调用：抛异常只记日志，卡死也不影响翻转时序。引擎线程卡在设备动作上时事件要等动作返回才发。P9 用 Qt 信号桥接。
 
 ### 配置
 
@@ -154,6 +156,7 @@ with storage.unit_of_work() as uow:
 | `status_poll_s`、`countdown_interval_s`、`tick_s` | 1、1、0.05 | 真实时间 |
 | `video_ready_timeout_s`、`preflip_frame_timeout_s` | 30、5 | 真实时间 |
 | `video_down_grace_s`、`worker_stop_timeout_s` | 30、5 | 真实时间 |
+| `storage_busy_timeout_s` | 60 | 真实时间 |
 | `tray_out_on_finish` | true | |
 
 算法时限在 `analysis.timeout_ms`（默认 2000）。三态映射在 `interpretation`，例如 `{partially_gelled: positive}`。
@@ -182,7 +185,7 @@ with storage.unit_of_work() as uow:
 | `tests/services/test_experiment_engine.py` | 端到端：17 管到待复核（与脚本一致）、80 管到完成、文件和哈希、审计链；测量模式证明翻转前的帧拍的是当前排；流程顺序和线程归属；算法不阻塞主循环；超时；单管失败和缺管转待复核；启动条件 |
 | `test_experiment_engine_faults.py` | `AnalyzerError` 与重试（不再翻转、用磁盘原图、改过的图被拒）；断流的各阶段；翻转和复位失败；设备故障；舱门；温度（短暂、持续、无法读取、分析中）；回调抛异常和卡死；写库失败；启动恢复；软件退出 |
 | `test_experiment_engine_stop.py` | 上表每个阶段的停止，算法卡死时的停止 |
-| `test_experiment_engine_concurrency.py` | 停止与到时竞争（12 个随机种子）、连续运行线程不增长、外部启动的管线不被关闭、并发写审计、真实进程在结果事务提交前后被杀 |
+| `test_experiment_engine_concurrency.py` | 停止与到时竞争（12 个随机种子）、连续运行线程不增长、外部启动的管线不被关闭、并发写审计、写锁被占用时等待和等待超限、真实进程在结果事务提交前后被杀 |
 | `tests/infrastructure/db/test_unit_of_work.py` | 回滚、每一步失败、提交失败、吞掉异常不提交、写锁、并发下的哈希链、真实进程在事务各点被杀 |
 | `tests/services/test_config.py` | 默认配置、不合并、路径、错误信息、`simulation` 缺失、组装和一键运行 |
 

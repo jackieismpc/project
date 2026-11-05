@@ -36,6 +36,10 @@ class StorageError(Exception):
     """存储层异常基类。"""
 
 
+class StorageBusyError(StorageError):
+    """等待写锁超时，事务还没有开始。什么都没有写入，调用方可以原样重试。"""
+
+
 class NotFoundError(StorageError):
     """要操作的记录不存在。"""
 
@@ -591,7 +595,8 @@ class TransactionalStorage(Protocol):
             进入后得到 :class:`UnitOfWork` 的上下文管理器。
 
         Raises:
-            StorageError: 无法取得写锁或提交失败。
+            StorageBusyError: 等待写锁超时，什么都没有写入，可以重试。
+            StorageError: 提交失败。
         """
         ...
 
@@ -619,6 +624,7 @@ __all__ = [
     "ReportRecord",
     "ReportRepository",
     "StateConflictError",
+    "StorageBusyError",
     "StorageError",
     "TelemetryRepository",
     "TemperatureSample",

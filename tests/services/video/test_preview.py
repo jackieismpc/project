@@ -76,18 +76,19 @@ def test_latest_wins_with_slow_callback() -> None:
 
     def slow(preview: PreviewFrame) -> None:
         received.append(preview.sequence)
-        gate.wait(5)
+        gate.wait(60)
 
     worker = PreviewWorker(PreviewConfig(max_fps=100000), slow)
     worker.start()
     try:
         worker.offer(frame(0))
         assert wait_until(lambda: received == [0])  # 回调卡在第 0 帧
+        frames = [frame(k) for k in range(1, 200)]  # 造帧的耗时不算进 offer
         started = time.monotonic()
-        for k in range(1, 200):
-            worker.offer(frame(k))
+        for item in frames:
+            worker.offer(item)
             time.sleep(0.0005)
-        assert time.monotonic() - started < 2.0  # offer 不被卡住的回调阻塞
+        assert time.monotonic() - started < 30.0  # 回调卡 60 秒，offer 要是在等它，这里就超了
         gate.set()
         assert wait_until(lambda: received[-1] == 199)
     finally:
