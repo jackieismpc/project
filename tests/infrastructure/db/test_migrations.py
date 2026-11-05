@@ -35,7 +35,7 @@ def test_open_creates_parent_dirs_and_latest_schema(tmp_path: Path) -> None:
                     text("SELECT name FROM sqlite_master WHERE type='table'")
                 )
             }
-        assert version == "0003"
+        assert version == "0004"
         assert set(Base.metadata.tables) <= tables
     finally:
         db.close()

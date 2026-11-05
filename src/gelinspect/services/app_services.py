@@ -20,6 +20,7 @@ from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import MonitorService
 from gelinspect.services.queries import QueryService
 from gelinspect.services.reagent_service import ReagentService
+from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
 from gelinspect.services.template_service import TemplateService
 
@@ -40,6 +41,7 @@ class AppServices:
         media: 原图、掩码和录像。
         reviews: 单管人工复核。
         dashboard: 工作台数据。
+        reports: 报告中心（预览、签署、验签、导出）。
         demo_accounts: 登录页「演示账号」提示的内容，真实配置下为空。
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不锁。
         recovered: 启动恢复时被标记为异常的试验。
@@ -59,6 +61,7 @@ class AppServices:
     media: MediaService
     reviews: ReviewService
     dashboard: DashboardService
+    reports: ReportService
     demo_accounts: Sequence[DemoAccount] = ()
     idle_lock_minutes: float = 15.0
     recovered: Sequence[RecoveredExperiment] = ()

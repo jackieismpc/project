@@ -364,6 +364,33 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ServiceErrorCode.REAGENT_LOCKED: str(
         QT_TRANSLATE_NOOP("ServiceError", "试剂未通过校验，流程已锁定")
     ),
+    ServiceErrorCode.EXPERIMENT_SIGNED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "试验已签署，结果和复核已锁定，不能再修改")
+    ),
+    ServiceErrorCode.SIGN_NOT_ALLOWED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "现在不能签署这个试验")
+    ),
+    ServiceErrorCode.SIGN_FAILED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "签署失败，没有生成报告，试验状态没有改变：{reason}")
+    ),
+    ServiceErrorCode.SIGN_CONFLICT: str(
+        QT_TRANSLATE_NOOP("ServiceError", "试验状态已被其他操作改变，请刷新后重试")
+    ),
+    ServiceErrorCode.REPORT_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "报告不存在")),
+    ServiceErrorCode.REPORT_FILE_MISSING: str(
+        QT_TRANSLATE_NOOP("ServiceError", "报告文件不存在：{path}")
+    ),
+    ServiceErrorCode.REPORT_HASH_MISMATCH: str(
+        QT_TRANSLATE_NOOP("ServiceError", "报告文件与入库的 SHA-256 不符，可能已被改动：{name}")
+    ),
+    ServiceErrorCode.BATCH_EMPTY: str(
+        QT_TRANSLATE_NOOP("ServiceError", "这个批号下没有已完成的试验")
+    ),
+    ServiceErrorCode.BATCH_NOT_SIGNABLE: str(
+        QT_TRANSLATE_NOOP("ServiceError", "单批次报告只能在其中全部试验都已签署后签署")
+    ),
+    ServiceErrorCode.EXPORT_EMPTY: str(QT_TRANSLATE_NOOP("ServiceError", "没有可导出的报告")),
+    ServiceErrorCode.EXPORT_FAILED: str(QT_TRANSLATE_NOOP("ServiceError", "导出失败：{reason}")),
 }
 
 

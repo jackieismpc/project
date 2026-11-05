@@ -20,7 +20,14 @@ from typing import Generic, Protocol, TypeVar
 
 from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
-from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentCheckStatus, ReagentKind
+from gelinspect.domain.enums import (
+    AuditAction,
+    BatchKind,
+    ExperimentType,
+    ReagentCheckStatus,
+    ReagentKind,
+    ReportScope,
+)
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 
@@ -278,21 +285,39 @@ class ReportRecord:
 
     Attributes:
         report_id: 报告标识。
-        experiment_id: 所属试验。
-        path: 报告文件路径。
+        experiment_id: 所属试验；单批次报告汇总多个试验，此处为 None，成员见 ``experiment_ids``。
+        path: 报告文件路径（相对数据目录，或绝对路径）。
         sha256: 报告文件的 SHA-256。
         created_by: 生成者用户名。
         created_at: 生成时间。
         signed: 是否已签名。
+        scope: 单个试验或单批次。
+        batch_kind: 单批次报告按哪种批号汇总。
+        batch_no: 单批次报告的批号。
+        language: 报告语言（``zh_CN`` 或 ``en``）。
+        signed_by: 签署人用户名。
+        signed_at: 签署时间。
+        certificate_sha256: 签名证书的 SHA-256 指纹（DER）。
+        content_sha256: 页脚显示的「内容摘要」：报告数据的 SHA-256，不是文件哈希。
+        experiment_ids: 报告包含的试验。
     """
 
     report_id: str
-    experiment_id: str
+    experiment_id: str | None
     path: str
     sha256: str
     created_by: str
     created_at: datetime
     signed: bool = False
+    scope: ReportScope = ReportScope.EXPERIMENT
+    batch_kind: BatchKind | None = None
+    batch_no: str | None = None
+    language: str = "zh_CN"
+    signed_by: str | None = None
+    signed_at: datetime | None = None
+    certificate_sha256: str | None = None
+    content_sha256: str | None = None
+    experiment_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -540,12 +565,30 @@ class ExperimentRepository(Protocol):
         """
         ...
 
+    def record_signature(self, experiment_id: str, *, signed_by: str, signed_at: datetime) -> None:
+        """写入签署人和签署时间，与「已签署」状态在同一事务调用。
+
+        Raises:
+            NotFoundError: 试验不存在。
+        """
+        ...
+
     def get(self, experiment_id: str) -> Experiment | None:
         """按标识加载完整试验。"""
         ...
 
     def query(self, query: ExperimentQuery, page: PageRequest) -> Page[ExperimentSummary]:
         """分页查询历史试验，按创建时间倒序。"""
+        ...
+
+    def batch_numbers(self, kind: BatchKind, states: Sequence[ExperimentState]) -> list[str]:
+        """处于给定状态的试验用到的批号（去重，升序），用于单批次报告选批次。"""
+        ...
+
+    def experiment_ids_for_batch(
+        self, kind: BatchKind, batch_no: str, states: Sequence[ExperimentState]
+    ) -> list[str]:
+        """用到某批号、且处于给定状态的试验标识，按创建时间升序。"""
         ...
 
 
@@ -620,6 +663,20 @@ class ReportRepository(Protocol):
         """列出试验的报告，按生成时间排序。"""
         ...
 
+    def list_recent(
+        self,
+        *,
+        scope: ReportScope | None = None,
+        signed_only: bool = False,
+        limit: int = 200,
+    ) -> list[ReportRecord]:
+        """最近生成的报告，新的在前。"""
+        ...
+
+    def list_for_batch(self, kind: BatchKind, batch_no: str) -> list[ReportRecord]:
+        """某批号的单批次报告，按生成时间排序。"""
+        ...
+
 
 class TelemetryRepository(Protocol):
     """温度日志与设备日志仓储。"""
@@ -637,6 +694,10 @@ class TelemetryRepository(Protocol):
         page: PageRequest,
     ) -> Page[TemperatureSample]:
         """分页查询温度采样，按时间正序。"""
+        ...
+
+    def temperature_range(self, experiment_id: str) -> tuple[float, float] | None:
+        """试验期间记录到的最低和最高温度（℃），没有记录时为 None。"""
         ...
 
     def add_device_logs(self, entries: Sequence[DeviceLogEntry]) -> int:
@@ -692,6 +753,11 @@ class UnitOfWork(Protocol):
     @property
     def reagent_checks(self) -> ReagentCheckRepository:
         """本事务的试剂校验记录仓储。"""
+        ...
+
+    @property
+    def reports(self) -> ReportRepository:
+        """本事务的报告记录仓储。"""
         ...
 
 

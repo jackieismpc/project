@@ -24,9 +24,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gelinspect.domain.enums import ReagentKind
+from gelinspect.domain.enums import BatchKind, ReagentKind
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import row_label
+from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.engine_types import (
@@ -113,6 +114,8 @@ class MonitorPage(QWidget):
 
     tubeRequested = Signal(str, int)  # noqa: N815
     navigationRequested = Signal(str)  # noqa: N815
+    reportRequested = Signal(str)  # noqa: N815
+    batchReportRequested = Signal(str, str)  # noqa: N815
 
     def __init__(
         self, services: AppServices, bridge: EngineBridge, parent: QWidget | None = None
@@ -172,8 +175,8 @@ class MonitorPage(QWidget):
         self._build_data_tab()
         self.images_tab = ImagesTab(services.media)
         self.stack.addWidget(self.images_tab)
-        self.report_tab = self._placeholder_tab()
-        self.batch_tab = self._placeholder_tab()
+        self.report_tab = self._build_report_tab()
+        self.batch_tab = self._build_batch_tab()
         self.stack.addWidget(self.report_tab)
         self.stack.addWidget(self.batch_tab)
         self._column.addStretch(1)
@@ -329,19 +332,80 @@ class MonitorPage(QWidget):
         layout.addWidget(self.table_card)
         self.stack.addWidget(data)
 
-    def _placeholder_tab(self) -> Card:
+    def _build_report_tab(self) -> Card:
+        """「报告打印预览」标签：说明现状，一键到报告中心预览、打印和签署。"""
         card = Card()
         icon = Label()
-        icon.setPixmap(IconLoader.pixmap("construction", 36, "ink_muted"))
-        card.body.addWidget(icon)
-        headline = Label("", "val")
-        summary = Label("", "body")
-        summary.setWordWrap(True)
-        card.body.addWidget(headline)
-        card.body.addWidget(summary)
-        card.headline = headline  # type: ignore[attr-defined]
-        card.summary = summary  # type: ignore[attr-defined]
+        icon.setPixmap(IconLoader.pixmap("file-text", 36, "ink_muted"))
+        self.report_headline = Label("", "val")
+        self.report_summary = Label("", "body")
+        self.report_summary.setWordWrap(True)
+        self.report_open = Button("", ButtonVariant.PRIMARY, icon="printer")
+        self.report_open.clicked.connect(self._open_report)
+        for widget in (icon, self.report_headline, self.report_summary):
+            card.body.addWidget(widget)
+        card.body.addWidget(self.report_open, 0, Qt.AlignmentFlag.AlignLeft)
         return card
+
+    def _build_batch_tab(self) -> Card:
+        """「单批次报告」标签：列出本试验的批号，点一下到报告中心看汇总。"""
+        card = Card()
+        icon = Label()
+        icon.setPixmap(IconLoader.pixmap("file-text", 36, "ink_muted"))
+        self.batch_headline = Label("", "val")
+        self.batch_summary = Label("", "body")
+        self.batch_summary.setWordWrap(True)
+        self.batch_buttons = QVBoxLayout()
+        self.batch_buttons.setSpacing(8)
+        for widget in (icon, self.batch_headline, self.batch_summary):
+            card.body.addWidget(widget)
+        card.body.addLayout(self.batch_buttons)
+        return card
+
+    def _open_report(self) -> None:
+        view = self._view
+        if view is not None:
+            self.reportRequested.emit(view.experiment_id)
+
+    def _render_report_tabs(self) -> None:
+        """按当前试验刷新两个报告标签。"""
+        view = self._view
+        self.report_open.setEnabled(view is not None)
+        while self.batch_buttons.count():
+            item = self.batch_buttons.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        if view is None:
+            self.report_summary.setText(self.tr("先选择一个试验。"))
+            self.batch_summary.setText(self.tr("先选择一个试验。"))
+            return
+        if view.state is ExperimentState.SIGNED:
+            text = self.tr("这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。")
+        elif view.state is ExperimentState.COMPLETED:
+            text = self.tr("这个试验已完成，可以预览和打印报告；分析员核对后签署。")
+        else:
+            text = self.tr("这个试验还没有完成，可以先预览报告；完成并复核后才能签署。")
+        self.report_summary.setText(text)
+        batches: list[tuple[BatchKind, str]] = []
+        lal = view.reagent_batches.get(ReagentKind.LAL_REAGENT)
+        if lal:
+            batches.append((BatchKind.LAL_REAGENT, lal))
+        for number in sorted({t.batch_no for t in view.tubes if t.batch_no}):
+            batches.append((BatchKind.SAMPLE, number))
+        self.batch_summary.setText(
+            self.tr("把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：")
+            if batches
+            else self.tr("这个试验没有批号可以汇总。")
+        )
+        for kind, number in batches:
+            name = self.tr("鲎试剂批号") if kind is BatchKind.LAL_REAGENT else self.tr("样品批号")
+            button = Button(f"{name} {number}", ButtonVariant.SECONDARY)
+            button.clicked.connect(
+                lambda _=False, k=kind.value, n=number: self.batchReportRequested.emit(k, n)
+            )
+            self.batch_buttons.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
 
     def _columns(self) -> list[Column]:
         return [
@@ -601,6 +665,7 @@ class MonitorPage(QWidget):
     # ------------------------------------------------------------------ 显示
 
     def _render_header(self) -> None:
+        self._render_report_tabs()
         view = self._view
         if view is None:
             return
@@ -947,11 +1012,10 @@ class MonitorPage(QWidget):
         self.table_card.set_title(self.tr("试验数据记录"))
         self.table.set_columns(self._columns())
         self.table.set_empty_text(self.tr("没有试管"))
-        for card in (self.report_tab, self.batch_tab):
-            card.headline.setText(self.tr("这个功能还在建设中"))  # type: ignore[attr-defined]
-            card.summary.setText(  # type: ignore[attr-defined]
-                self.tr("这里将提供报告打印预览、单批次报告、数字签名和验签。")
-            )
+        self.report_headline.setText(self.tr("报告打印预览"))
+        self.report_open.setText(self.tr("在报告中心打开"))
+        self.batch_headline.setText(self.tr("单批次报告"))
+        self._render_report_tabs()
         self._signature = None
         if self._view is not None:
             self._render_header()

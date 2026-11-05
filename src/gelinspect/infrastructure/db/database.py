@@ -90,6 +90,7 @@ class SqlUnitOfWork:
         self._telemetry = SqlTelemetryRepository(self._bound)
         self._templates = SqlTemplateRepository(self._bound)
         self._reagent_checks = SqlReagentCheckRepository(self._bound)
+        self._reports = SqlReportRepository(self._bound)
 
     @contextmanager
     def _bound(self) -> Iterator[Session]:
@@ -148,6 +149,11 @@ class SqlUnitOfWork:
     def reagent_checks(self) -> SqlReagentCheckRepository:
         """本事务的试剂校验记录仓储。"""
         return self._reagent_checks
+
+    @property
+    def reports(self) -> SqlReportRepository:
+        """本事务的报告记录仓储。"""
+        return self._reports
 
 
 class Database:

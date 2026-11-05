@@ -46,6 +46,8 @@ from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import MonitorService
 from gelinspect.services.queries import QueryService
 from gelinspect.services.reagent_service import ReagentService
+from gelinspect.services.reporting.keystore import LocalKeyStore
+from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
 from gelinspect.services.template_service import TemplateService
 from gelinspect.services.video import VideoPipeline
@@ -74,6 +76,7 @@ class AppContext:
         media: 原图、掩码和录像服务。
         reviews: 人工复核服务。
         dashboard: 工作台数据服务。
+        reports: 报告服务。
         demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
     """
@@ -96,6 +99,7 @@ class AppContext:
     media: MediaService
     reviews: ReviewService
     dashboard: DashboardService
+    reports: ReportService
     demo_accounts: tuple[DemoAccount, ...] = ()
     first_run: bool = False
 
@@ -121,6 +125,7 @@ class AppContext:
             media=self.media,
             reviews=self.reviews,
             dashboard=self.dashboard,
+            reports=self.reports,
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),
@@ -270,6 +275,24 @@ def build_app_context(
         database.close()
         raise
     monitor = MonitorService(auth, database, engine, pipeline)
+    media = MediaService(auth, database)
+    reports = settings.reports
+    report_service = ReportService(
+        auth,
+        database,
+        data_dir=settings.data_dir,
+        keystore=LocalKeyStore(
+            settings.keys_dir,
+            common_name=reports.certificate_common_name,
+            organization=reports.certificate_organization,
+            valid_days=reports.certificate_valid_days,
+            algorithm=reports.key_algorithm,
+        ),
+        media=media,
+        copyright_holder=reports.copyright_holder,
+        include_images=reports.include_images,
+        clock=clock,
+    )
     return AppContext(
         config=settings,
         database=database,
@@ -288,9 +311,10 @@ def build_app_context(
             auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
         ),
         monitor=monitor,
-        media=MediaService(auth, database),
+        media=media,
         reviews=ReviewService(auth, database, clock=clock),
         dashboard=DashboardService(auth, database, monitor, reagents),
+        reports=report_service,
         demo_accounts=tuple(hook.accounts()) if hook is not None else (),
         first_run=first_run,
     )

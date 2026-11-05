@@ -62,8 +62,6 @@ PAGE_ROUTES: tuple[Route, ...] = (
         "reports",
         str(QT_TRANSLATE_NOOP("Routes", "报告中心")),
         Permission.REPORT_VIEW,
-        "P11",
-        str(QT_TRANSLATE_NOOP("Routes", "报告预览、打印、数字签名和验签。")),
     ),
     Route(
         "audit",

@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from gelinspect.domain.enums import BatchKind, ReportScope
 from gelinspect.infrastructure.db.models import MediaFileRow, ReportRow
 from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
@@ -176,6 +177,15 @@ class SqlReportRepository(ReportRepository):
             created_by=row.created_by,
             created_at=row.created_at,
             signed=row.signed,
+            scope=ReportScope(row.scope),
+            batch_kind=None if row.batch_kind is None else BatchKind(row.batch_kind),
+            batch_no=row.batch_no,
+            language=row.language,
+            signed_by=row.signed_by,
+            signed_at=row.signed_at,
+            certificate_sha256=row.certificate_sha256,
+            content_sha256=row.content_sha256,
+            experiment_ids=tuple(row.experiment_ids),
         )
 
     def add(self, report: ReportRecord) -> None:
@@ -190,6 +200,10 @@ class SqlReportRepository(ReportRepository):
             ValueError: ``sha256`` 格式不符。
         """
         _require_sha256(report.sha256)
+        if report.certificate_sha256 is not None:
+            _require_sha256(report.certificate_sha256)
+        if report.content_sha256 is not None:
+            _require_sha256(report.content_sha256)
         try:
             with translate_lock_errors(), self._sessions() as session:
                 session.add(
@@ -201,6 +215,15 @@ class SqlReportRepository(ReportRepository):
                         created_by=report.created_by,
                         created_at=report.created_at,
                         signed=report.signed,
+                        scope=report.scope.value,
+                        batch_kind=None if report.batch_kind is None else report.batch_kind.value,
+                        batch_no=report.batch_no,
+                        language=report.language,
+                        signed_by=report.signed_by,
+                        signed_at=report.signed_at,
+                        certificate_sha256=report.certificate_sha256,
+                        content_sha256=report.content_sha256,
+                        experiment_ids=list(report.experiment_ids),
                     )
                 )
         except IntegrityError as error:
@@ -232,6 +255,55 @@ class SqlReportRepository(ReportRepository):
             rows = session.execute(
                 select(ReportRow)
                 .where(ReportRow.experiment_id == experiment_id)
+                .order_by(ReportRow.created_at, ReportRow.report_id)
+            ).scalars()
+            return [self._to_report(row) for row in rows]
+
+    def list_recent(
+        self,
+        *,
+        scope: ReportScope | None = None,
+        signed_only: bool = False,
+        limit: int = 200,
+    ) -> list[ReportRecord]:
+        """最近生成的报告，新的在前。
+
+        Args:
+            scope: 只看单个试验或单批次的报告，None 为全部。
+            signed_only: 只列已签名的。
+            limit: 最多条数。
+
+        Returns:
+            报告记录列表。
+        """
+        statement = select(ReportRow)
+        if scope is not None:
+            statement = statement.where(ReportRow.scope == scope.value)
+        if signed_only:
+            statement = statement.where(ReportRow.signed.is_(True))
+        statement = statement.order_by(ReportRow.created_at.desc(), ReportRow.report_id.desc())
+        with self._sessions() as session:
+            rows = session.execute(statement.limit(limit)).scalars()
+            return [self._to_report(row) for row in rows]
+
+    def list_for_batch(self, kind: BatchKind, batch_no: str) -> list[ReportRecord]:
+        """某批号的单批次报告，按生成时间排序。
+
+        Args:
+            kind: 批号种类。
+            batch_no: 批号。
+
+        Returns:
+            报告记录列表。
+        """
+        with self._sessions() as session:
+            rows = session.execute(
+                select(ReportRow)
+                .where(
+                    ReportRow.scope == ReportScope.BATCH.value,
+                    ReportRow.batch_kind == kind.value,
+                    ReportRow.batch_no == batch_no,
+                )
                 .order_by(ReportRow.created_at, ReportRow.report_id)
             ).scalars()
             return [self._to_report(row) for row in rows]

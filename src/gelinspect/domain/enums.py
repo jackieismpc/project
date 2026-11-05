@@ -127,6 +127,24 @@ class ReagentCheckStatus(StrEnum):
     """缺少该种类的试剂批次。"""
 
 
+class ReportScope(StrEnum):
+    """报告的范围，存库。"""
+
+    EXPERIMENT = "experiment"
+    """单个试验的报告。"""
+    BATCH = "batch"
+    """单批次报告：同一批号的多个试验汇总。"""
+
+
+class BatchKind(StrEnum):
+    """单批次报告按哪种批号汇总，存库。"""
+
+    LAL_REAGENT = "lal_reagent"
+    """鲎试剂批号。"""
+    SAMPLE = "sample"
+    """样品批号。"""
+
+
 class Role(StrEnum):
     """用户角色。"""
 
@@ -161,4 +179,7 @@ class AuditAction(StrEnum):
     CONCLUSION_RECORDED = "conclusion_recorded"
     EXPERIMENT_SIGNED = "experiment_signed"
     REPORT_EXPORTED = "report_exported"
+    REPORT_SIGNED = "report_signed"
+    REPORT_VERIFIED = "report_verified"
+    REPORT_PRINTED = "report_printed"
     DATA_EXPORTED = "data_exported"

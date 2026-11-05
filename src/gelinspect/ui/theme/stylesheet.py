@@ -120,6 +120,8 @@ QFrame[role="reagent"][state="bad"] { border-color: $danger; background: $danger
 QFrame[role="banner"] { border-radius: ${card}px; border: 1px solid $border; background: $surface_alt; }
 QFrame[role="banner"][tone="danger"] { border-color: $danger; background: $danger_bg; }
 QFrame[role="banner"][tone="warning"] { border-color: $warning; background: $warning_bg; }
+QFrame[role="desk"] { background: $desk; border: 0; border-radius: ${card}px; }
+QFrame[role="banner"][tone="success"] { border-color: $success; background: $success_bg; }
 QFrame[role="banner"][tone="info"] { border-color: $primary; background: $primary_soft; }
 QFrame[role="toolbar"] { background: $surface; border: 0; border-bottom: 1px solid $border; }
 QFrame[role="vsep"] { background: $border; border: 0; min-width: 1px; max-width: 1px; }

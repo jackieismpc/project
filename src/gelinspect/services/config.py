@@ -11,7 +11,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -192,6 +192,30 @@ class TraceabilitySection(_Section):
     government: BackendRef | None = None
 
 
+class ReportSection(_Section):
+    """报告与数字签名配置。
+
+    Attributes:
+        copyright_holder: 版权声明里的权利人。正式名称未定（PLAN 第 7 节第 7 项），
+            默认是占位文字，写入每份报告的页脚。
+        certificate_common_name: 本地自签证书的通用名（CN）。
+        certificate_organization: 本地自签证书的组织名（O）。
+        certificate_valid_days: 证书有效天数。已签署的报告在证书过期后仍可验签的前提是
+            验签时刻取签署时刻，目前按「当前时刻」验证，所以请设得足够长。
+        key_algorithm: 自签证书的密钥算法：``ecdsa``（P-256）或 ``rsa``（3072 位）。
+        include_images: 报告是否附每排 8 连图缩略页。图是读盘解码的，12 MP 下较慢，默认关闭。
+    """
+
+    copyright_holder: str = Field(default="[版权方名称]", min_length=1, max_length=120)
+    certificate_common_name: str = Field(
+        default="GelInspect Report Signing", min_length=1, max_length=64
+    )
+    certificate_organization: str = Field(default="GelInspect", min_length=1, max_length=64)
+    certificate_valid_days: int = Field(default=3650, ge=30, le=36500)
+    key_algorithm: Literal["ecdsa", "rsa"] = "ecdsa"
+    include_images: bool = False
+
+
 class AppConfig(_Section):
     """软件的完整配置。加载后路径都已是绝对路径。
 
@@ -208,6 +232,7 @@ class AppConfig(_Section):
         bootstrap: 首次启动初始化钩子。
         traceability: 试剂码解析、备案清单和政府溯源平台。
         instrument_no: 仪器编号，写入每个新试验。
+        reports: 报告与数字签名。
     """
 
     data_dir: Path = Path("data")
@@ -221,6 +246,17 @@ class AppConfig(_Section):
     bootstrap: BootstrapSection = BootstrapSection()
     traceability: TraceabilitySection = TraceabilitySection()
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
+    reports: ReportSection = ReportSection()
+
+    @property
+    def reports_dir(self) -> Path:
+        """已签署报告的目录，每个试验一个子目录。"""
+        return self.data_dir / "reports"
+
+    @property
+    def keys_dir(self) -> Path:
+        """签名证书和私钥的目录（已被 ``.gitignore`` 忽略）。"""
+        return self.data_dir / "keys"
 
     @property
     def database_path(self) -> Path:

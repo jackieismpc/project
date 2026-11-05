@@ -395,6 +395,34 @@ class AuthService:
         # 密码已经改了，无法回滚；审计缺失只记日志，不让用户以为没改成。
         self._audit_best_effort(session.user, AuditAction.PASSWORD_CHANGED, "修改密码")
 
+    def confirm_password(self, session: Session, password: str, *, purpose: str) -> User:
+        """再次验证当前用户的密码，用于签署这类要留下个人责任的操作。
+
+        和登录共用失败次数限制：连续输错会锁定账号，每次失败都写 ``login_failed`` 审计。
+        调用者仍须先用 :meth:`authorize` 检查权限。
+
+        Args:
+            session: 调用者的会话（不能处于锁屏状态）。
+            password: 明文密码。
+            purpose: 用途，写入审计，例如「签署」。
+
+        Returns:
+            数据库里最新的用户。
+
+        Raises:
+            PermissionDeniedError: 会话已失效或已锁屏。
+            InvalidCredentialsError: 密码错误。
+            AccountLockedError: 失败次数过多。
+            AccountDisabledError: 账号已停用。
+            AuthStorageBusyError: 数据库正忙（只在需要升级哈希参数的写入时可能出现）。
+        """
+        with self._lock:
+            known = self._sessions.get(session.session_id) is session
+        if not known or session.locked:
+            raise PermissionDeniedError("会话已失效或已锁屏", AuthErrorCode.SESSION_INVALID)
+        user, _ = self._verify(session.user.username, password, purpose=purpose)
+        return user
+
     # ------------------------------------------------------------------ 权限
 
     def authorize(self, session: Session | None, permission: Permission) -> User:

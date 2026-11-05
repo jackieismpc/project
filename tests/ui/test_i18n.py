@@ -27,7 +27,7 @@ from gelinspect.ui.i18n import (
 )
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.auth_pages import LoginMode
-from gelinspect.ui.pages.placeholder import PlaceholderPage
+from gelinspect.ui.pages.reports_page import ReportsPage
 from tests.ui.conftest import settle, sign_in
 
 ROOT = Path(__file__).parents[2]
@@ -149,14 +149,14 @@ def test_shell_texts_change_everywhere(
     assert dashboard is not None
     assert dashboard.title.text() == "Dashboard"  # type: ignore[attr-defined]
     assert window.windowTitle() == "Dashboard - GelInspect"
-    # 已打开的占位页和之后新建的页面都是英文
+    # 已打开的页面和之后新建的页面都是英文
     window.navigate("reports")
     page = window.page("reports")
-    assert isinstance(page, PlaceholderPage)
-    assert page.badge.text() == "Under construction"
+    assert isinstance(page, ReportsPage)
+    assert page.title.text() == "Report Center"
     language.set_language(Language.ZH_CN)
     settle(qapp)
-    assert page.badge.text() == "建设中"
+    assert page.title.text() == "报告中心"
     assert toolbar.action("new_experiment").text() == "新建试验"
     assert toolbar._user.text() == "Jordan Li · 实验员"
 

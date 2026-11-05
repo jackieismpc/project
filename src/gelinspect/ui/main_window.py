@@ -20,6 +20,7 @@ from PySide6.QtCore import QEvent
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
+from gelinspect.domain.enums import BatchKind
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
 from gelinspect.services.engine_types import EngineAlert, StateChanged, TemperatureChanged
@@ -36,6 +37,7 @@ from gelinspect.ui.pages.monitor_page import MonitorPage
 from gelinspect.ui.pages.new_experiment import NewExperimentPage
 from gelinspect.ui.pages.placeholder import PlaceholderPage
 from gelinspect.ui.pages.reagents_page import ReagentsPage
+from gelinspect.ui.pages.reports_page import ReportsPage
 from gelinspect.ui.pages.templates_page import TemplatesPage
 from gelinspect.ui.pages.tube_detail_page import TubeDetailPage
 from gelinspect.ui.routes import (
@@ -97,6 +99,7 @@ class MainWindow(QMainWindow):
         self._pages: dict[str, QWidget] = {}
         self._current_route = "dashboard"
         self._closing = False
+        self._pending_report_experiment: str | None = None
         self.resize(1280, 800)
         self.setMinimumSize(*MIN_WINDOW_SIZE)
 
@@ -362,6 +365,12 @@ class MainWindow(QMainWindow):
         nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "monitor"
         self.shell.nav.set_current(nav_key)
         refreshable = DashboardPage | TemplatesPage | ReagentsPage | NewExperimentPage | HistoryPage
+        if isinstance(page, ReportsPage):
+            if self._pending_report_experiment is not None:
+                page.open_experiment(self._pending_report_experiment)
+                self._pending_report_experiment = None
+            else:
+                page.refresh()
         if isinstance(page, refreshable):
             page.refresh()
         elif isinstance(page, MonitorPage):
@@ -414,7 +423,16 @@ class MainWindow(QMainWindow):
             monitor.set_session(self._session)
             monitor.tubeRequested.connect(self.open_tube)
             monitor.navigationRequested.connect(self.navigate)
+            monitor.reportRequested.connect(self.open_report)
+            monitor.batchReportRequested.connect(self.open_batch_report)
             return monitor
+        if route.key == "reports":
+            reports = ReportsPage(self._services)
+            reports.set_ui_language(self._language.current.value)
+            reports.set_session(self._session)
+            reports.navigationRequested.connect(self.navigate)
+            reports.signedExperiment.connect(self._on_reviewed)
+            return reports
         if route.key == "tube":
             tube = TubeDetailPage(self._services)
             tube.set_session(self._session)
@@ -441,6 +459,36 @@ class MainWindow(QMainWindow):
             return False
         page = self._pages.get("monitor")
         return isinstance(page, MonitorPage) and page.open_experiment(experiment_id)
+
+    def open_report(self, experiment_id: str) -> bool:
+        """打开报告中心显示某个试验的报告。
+
+        Args:
+            experiment_id: 试验标识。
+
+        Returns:
+            成功显示时为 True。
+        """
+        self._pending_report_experiment = experiment_id
+        if not self.navigate("reports"):
+            self._pending_report_experiment = None
+            return False
+        return True
+
+    def open_batch_report(self, kind: str, batch_no: str) -> bool:
+        """打开报告中心显示某个批号的单批次报告。
+
+        Args:
+            kind: 批号种类（``BatchKind`` 的值）。
+            batch_no: 批号。
+
+        Returns:
+            成功显示时为 True。
+        """
+        if not self.navigate("reports"):
+            return False
+        page = self._pages.get("reports")
+        return isinstance(page, ReportsPage) and page.open_batch(BatchKind(kind), batch_no)
 
     def open_tube(self, experiment_id: str, tube_no: int) -> bool:
         """打开单管详情页。
@@ -484,8 +532,14 @@ class MainWindow(QMainWindow):
 
     def _on_quick_action(self, action_id: str) -> None:
         key = QUICK_ACTION_ROUTES.get(action_id)
+        if action_id == "print_report":
+            # 「打印报告」：带上监控页正在看的试验，到报告中心预览和打印。
+            monitor = self._pages.get("monitor")
+            if isinstance(monitor, MonitorPage) and monitor.experiment_id is not None:
+                self._pending_report_experiment = monitor.experiment_id
         if key is not None:
             self.navigate(key)
+            self._pending_report_experiment = None
 
     def _on_user_action(self, action: str) -> None:
         if action == "logout":
@@ -552,6 +606,9 @@ class MainWindow(QMainWindow):
 
     def _on_language_changed(self, code: str) -> None:
         self._apply_language_widgets()
+        reports = self._pages.get("reports")
+        if isinstance(reports, ReportsPage):
+            reports.set_ui_language(code)
         session = self._session
         if session is not None:
             user = session.user

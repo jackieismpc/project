@@ -169,6 +169,77 @@
     </message>
 </context>
 <context>
+    <name>BatchExportDialog</name>
+    <message>
+        <source>选择导出目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请至少勾选一份报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请先选择导出目录。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已导出 {n} 份到 {dir}，用时 {s:.2f} 秒。清单：{manifest}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件不存在</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>与入库的哈希不符（可能被改动）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有签名</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有这条记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有 {n} 份没有导出：</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批量导出报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>把勾选的已签署报告复制到一个目录，并写一份清单 CSV（文件名、SHA-256、签署人和时间）。文件与库里的哈希不符时不导出。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全选</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全不选</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>浏览…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChangePasswordDialog</name>
     <message>
         <source>两次输入的新密码不一致</source>
@@ -842,6 +913,38 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>先选择一个试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验已完成，可以预览和打印报告；分析员核对后签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验没有批号可以汇总。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>试管编号</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1058,11 +1161,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个功能还在建设中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这里将提供报告打印预览、单批次报告、数字签名和验签。</source>
+        <source>在报告中心打开</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1829,6 +1928,432 @@
     </message>
 </context>
 <context>
+    <name>Report</name>
+    <message>
+        <source>自动凝胶检测报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单批次汇总报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件名（试验编号）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>温度范围</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署人 / 日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂灵敏度</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测用水批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MVD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素限值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序列号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素（EU/mL）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>（已复核）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验完成时还没有结论功能，没有入库的结论。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实测灵敏度</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>（不是最终结论，不能作为放行依据）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λc 参考值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不是最终结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无效原因</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待定原因</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未满足的前提</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>依据（+ 阳性，− 阴性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>规则版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>规则来源</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标注“已复核”的结果经分析员人工复核，以复核结论为准。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>8 连图（每排翻转前、翻转后代表帧）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {row} 排</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有图像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>共 {n} 个试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>本报告已使用数字签名，任何修改都会导致验签失败。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>本报告尚未签署，仅供预览和核对，不具备签署报告的效力。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>© {holder}，未经许可不得复制。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内容摘要 SHA-256</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {page} 页 / 共 {total} 页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自动凝胶检测报告 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝胶法细菌内毒素检测</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署报告 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>[版权方名称]</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReportsPage</name>
+    <message>
+        <source>第 {page} / {total} 页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可以签署：试验结论为「{verdict}」</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可以签署：批次里的试验都已签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>现在不能签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色没有签署权限，签署需要分析员。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已经签署，可以重新验签或导出同一份文件。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署需要再次输入密码；签署后结果和复核被锁定。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单批次报告汇总已签署的试验，不改变试验状态。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已签署的报告语言固定为签署时的语言。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未签署时可以选择报告语言，签署时按所选语言生成。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>鲎试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有已完成的试验，没有可汇总的批次。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已签署，报告已保存：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择要验证的 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PDF 文件 (*.pdf)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已发送到打印机（{pages} 页）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出已签名 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已导出：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告中心</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>刷新</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有可出报告的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打开历史记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签名状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>证书</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>语言</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重新验签</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>验证外部 PDF…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署和导出</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告语言</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署并生成 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打印</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批量导出…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单批次报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>把同一批号的多次试验汇总到一份报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>预览单批次报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>返回试验报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Role</name>
     <message>
         <source>管理员</source>
@@ -1879,10 +2404,6 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>报告预览、打印、数字签名和验签。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2032,6 +2553,46 @@
         <source>试剂未通过校验，流程已锁定</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>试验已签署，结果和复核已锁定，不能再修改</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>现在不能签署这个试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署失败，没有生成报告，试验状态没有改变：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告不存在</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告文件不存在：{path}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告文件与入库的 SHA-256 不符，可能已被改动：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个批号下没有已完成的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单批次报告只能在其中全部试验都已签署后签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有可导出的报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出失败：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>SetupPage</name>
@@ -2120,6 +2681,68 @@
     </message>
     <message>
         <source>凝胶智检系统</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SignDialog</name>
+    <message>
+        <source>签署报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{signer} 将签署 {subject}。请再次输入你的登录密码确认身份。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>登录密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署后试验的结果和复核将被锁定，生成带数字签名的 PDF，不能撤销。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Signing</name>
+    <message>
+        <source>试验已签署，结果和复核已锁定，不能再修改。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{tubes} 号管等待人工复核，复核全部完成后才能签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{tubes} 号管还没有结果。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验没有入库的结论，不能签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验结论为「待定」，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验结论为「无效」，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批次里还有试验没有签署，全部签署后才能签署单批次报告。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2665,6 +3288,65 @@
     <name>TubeStrip</name>
     <message>
         <source>当前一排 8 支试管的实时画面</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Verify</name>
+    <message>
+        <source>报告文件不存在，可能已被删除或移走。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件的 SHA-256 与库里记录的不一致：文件被替换或改动过。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件无法解析：不是合法的 PDF，或内容已被破坏。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件没有数字签名。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件含有多个签名，本软件生成的报告只有一个签名。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文件内容与签名不符：签署之后被修改过。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签名本身无效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签名没有覆盖整个文件：签署之后被追加过内容。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签名证书不是本机信任的那张（可能是别处签的文件）。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>本机还没有签名证书，无法判断证书是否可信。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>验签通过：签名完整、覆盖整个文件，证书是本机信任的那张，文件与库内记录一致。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>验签通过：签名完整、覆盖整个文件，证书是本机信任的那张。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>验签未通过：</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

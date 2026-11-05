@@ -99,6 +99,8 @@ class ColorTokens:
     """凝胶色（绘制时叠加 62% 不透明度）。"""
     gel_overlay: str = "#E0671A"
     """单管详情里算法凝胶掩码的叠加色（填充 38% 不透明度，描边用阳性色）。"""
+    desk: str = "#D7DEDD"
+    """报告预览的桌面底色。"""
     toast_bg: str = "#16282C"
     """Toast 底色。"""
 

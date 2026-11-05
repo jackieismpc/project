@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, insert, select
+from sqlalchemy import ColumnElement, func, insert, select
 from sqlalchemy.exc import IntegrityError
 
 from gelinspect.infrastructure.db.models import DeviceLogRow, TemperatureLogRow
@@ -67,6 +67,25 @@ class SqlTelemetryRepository(TelemetryRepository):
         except IntegrityError as error:
             raise NotFoundError("温度采样关联的试验不存在") from error
         return len(samples)
+
+    def temperature_range(self, experiment_id: str) -> tuple[float, float] | None:
+        """试验期间记录到的最低和最高温度。
+
+        Args:
+            experiment_id: 试验标识。
+
+        Returns:
+            ``(最低, 最高)`` 摄氏度；没有记录时为 None。
+        """
+        with self._sessions() as session:
+            row = session.execute(
+                select(
+                    func.min(TemperatureLogRow.celsius), func.max(TemperatureLogRow.celsius)
+                ).where(TemperatureLogRow.experiment_id == experiment_id)
+            ).one()
+        if row[0] is None or row[1] is None:
+            return None
+        return float(row[0]), float(row[1])
 
     def query_temperatures(
         self,

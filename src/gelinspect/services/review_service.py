@@ -131,6 +131,12 @@ class ReviewService:
                 f"管号 {tube_no} 没有结果", ServiceErrorCode.TUBE_NOT_FOUND, tube=tube_no
             )
         before = experiment.state
+        if before is ExperimentState.SIGNED:
+            raise ServiceError(
+                "试验已签署，结果和复核已锁定，不能再修改",
+                ServiceErrorCode.EXPERIMENT_SIGNED,
+                id=experiment_id,
+            )
         now = self._clock()
         auto = experiment.results[tube_no]
         try:

@@ -40,6 +40,17 @@ class ServiceErrorCode(StrEnum):
     LAMBDA_REQUIRED = "lambda_required"
     MEDIA_MISSING = "media_missing"
     MEDIA_TAMPERED = "media_tampered"
+    EXPERIMENT_SIGNED = "experiment_signed"
+    SIGN_NOT_ALLOWED = "sign_not_allowed"
+    SIGN_FAILED = "sign_failed"
+    SIGN_CONFLICT = "sign_conflict"
+    REPORT_NOT_FOUND = "report_not_found"
+    REPORT_FILE_MISSING = "report_file_missing"
+    REPORT_HASH_MISMATCH = "report_hash_mismatch"
+    BATCH_EMPTY = "batch_empty"
+    BATCH_NOT_SIGNABLE = "batch_not_signable"
+    EXPORT_EMPTY = "export_empty"
+    EXPORT_FAILED = "export_failed"
 
 
 class ServiceError(Exception):
