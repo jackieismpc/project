@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import Future
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +16,7 @@ from gelinspect.interfaces.analysis import (
     RowAnalysisRequest,
     RowAnalysisResult,
 )
+from gelinspect.interfaces.storage import MediaFile
 from gelinspect.services.engine_types import EngineEvent, EngineEventListener
 from gelinspect.services.video.clock import Clock
 
@@ -140,6 +141,7 @@ class AnalysisOutcome:
         result: 算法结果。
         error: 分析失败的异常，包括读回原图失败和算法抛出的任何异常。
         wall_s: ``analyze_row`` 的真实耗时，没有调用到算法时为 0。
+        media: 随结果一起入库的媒体记录（掩码存档），没有存档时为空。
     """
 
     row_index: int
@@ -147,6 +149,11 @@ class AnalysisOutcome:
     result: RowAnalysisResult | None
     error: Exception | None
     wall_s: float
+    media: tuple[MediaFile, ...] = ()
+
+
+ResultArchiver = Callable[[RowAnalysisRequest, RowAnalysisResult], Sequence[MediaFile]]
+"""结果存档函数：在算法线程上、``analyze_row`` 返回之后调用，抛异常按分析失败处理。"""
 
 
 class AnalysisWorker:
@@ -161,6 +168,7 @@ class AnalysisWorker:
         clock: Clock,
         on_started: Callable[[AnalysisStarted], None],
         on_done: Callable[[AnalysisOutcome], None],
+        archive: ResultArchiver | None = None,
     ) -> None:
         """创建工作线程，不启动。
 
@@ -169,7 +177,10 @@ class AnalysisWorker:
             clock: 计时用的真实时钟。
             on_started: 开始分析时在本线程调用，不得阻塞。
             on_done: 分析结束时在本线程调用，不得阻塞。
+            archive: 结果存档（掩码落盘），在算法返回、计时结束之后调用；它抛出的异常和算法整体
+                故障一样，让这一排转分析失败，原图还在，可以重试。
         """
+        self._archive = archive
         self._analyzer = analyzer
         self._clock = clock
         self._on_started = on_started
@@ -240,10 +251,11 @@ class AnalysisWorker:
                 result = self._analyzer.analyze_row(request)
             finally:
                 wall_s = self._clock.monotonic() - started
+            media = tuple(self._archive(request, result)) if self._archive is not None else ()
         except Exception as exc:
             self._on_done(AnalysisOutcome(row_index, attempt, None, exc, wall_s))
         else:
-            self._on_done(AnalysisOutcome(row_index, attempt, result, None, wall_s))
+            self._on_done(AnalysisOutcome(row_index, attempt, result, None, wall_s, media))
 
     def shutdown(self, timeout_s: float) -> bool:
         """丢弃排队的任务，关闭算法并结束线程。

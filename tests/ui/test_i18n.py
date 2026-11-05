@@ -150,8 +150,8 @@ def test_shell_texts_change_everywhere(
     assert dashboard.title.text() == "Dashboard"  # type: ignore[attr-defined]
     assert window.windowTitle() == "Dashboard - GelInspect"
     # 已打开的占位页和之后新建的页面都是英文
-    window.navigate("monitor")
-    page = window.page("monitor")
+    window.navigate("reports")
+    page = window.page("reports")
     assert isinstance(page, PlaceholderPage)
     assert page.badge.text() == "Under construction"
     language.set_language(Language.ZH_CN)

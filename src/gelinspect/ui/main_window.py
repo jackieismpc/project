@@ -31,10 +31,13 @@ from gelinspect.ui.labels import role_label
 from gelinspect.ui.pages.about import AboutPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
 from gelinspect.ui.pages.dashboard import DashboardPage
+from gelinspect.ui.pages.history_page import HistoryPage
+from gelinspect.ui.pages.monitor_page import MonitorPage
 from gelinspect.ui.pages.new_experiment import NewExperimentPage
 from gelinspect.ui.pages.placeholder import PlaceholderPage
 from gelinspect.ui.pages.reagents_page import ReagentsPage
 from gelinspect.ui.pages.templates_page import TemplatesPage
+from gelinspect.ui.pages.tube_detail_page import TubeDetailPage
 from gelinspect.ui.routes import (
     PAGE_ROUTES,
     QUICK_ACTION_ROUTES,
@@ -97,7 +100,9 @@ class MainWindow(QMainWindow):
         self.resize(1280, 800)
         self.setMinimumSize(*MIN_WINDOW_SIZE)
 
-        self.bridge = EngineBridge(services.engine, services.instrument, self)
+        self.bridge = EngineBridge(
+            services.engine, services.instrument, self, video=services.monitor
+        )
         timeout = idle_timeout_s if idle_timeout_s is not None else services.idle_lock_minutes * 60
         self.idle = IdleWatcher(timeout, parent=self)
         self.idle.idle.connect(self.lock_screen)
@@ -356,15 +361,21 @@ class MainWindow(QMainWindow):
         self._current_route = key
         nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "monitor"
         self.shell.nav.set_current(nav_key)
-        if isinstance(page, DashboardPage | TemplatesPage | ReagentsPage | NewExperimentPage):
+        refreshable = DashboardPage | TemplatesPage | ReagentsPage | NewExperimentPage | HistoryPage
+        if isinstance(page, refreshable):
             page.refresh()
+        elif isinstance(page, MonitorPage):
+            if page.experiment_id is None:
+                page.open_experiment(None)
+            else:
+                page.reload()
         self.setWindowTitle(self._window_title())
         return True
 
     def _confirm_leave_current(self) -> bool:
         """离开当前页面前的确认：新试验向导里有未完成的内容时要用户确认。"""
         page = self._pages.get(self._current_route)
-        if isinstance(page, NewExperimentPage):
+        if isinstance(page, NewExperimentPage | TubeDetailPage):
             return page.confirm_leave()
         return True
 
@@ -373,6 +384,9 @@ class MainWindow(QMainWindow):
             dashboard = DashboardPage(self._services)
             dashboard.set_session(self._session)
             dashboard.navigationRequested.connect(self.navigate)
+            dashboard.experimentRequested.connect(self.open_experiment)
+            self.bridge.wellUpdated.connect(lambda _e: dashboard.request_running_refresh())
+            self.bridge.rowCountdown.connect(lambda _e: dashboard.request_running_refresh())
             self.bridge.instrumentChanged.connect(dashboard.on_instrument)
             self.bridge.temperatureChanged.connect(dashboard.on_temperature)
             self.bridge.stateChanged.connect(lambda _e: dashboard.refresh())
@@ -395,16 +409,75 @@ class MainWindow(QMainWindow):
             reagents = ReagentsPage(self._services)
             reagents.set_session(self._session)
             return reagents
+        if route.key == "monitor":
+            monitor = MonitorPage(self._services, self.bridge)
+            monitor.set_session(self._session)
+            monitor.tubeRequested.connect(self.open_tube)
+            monitor.navigationRequested.connect(self.navigate)
+            return monitor
+        if route.key == "tube":
+            tube = TubeDetailPage(self._services)
+            tube.set_session(self._session)
+            tube.backRequested.connect(self._back_to_monitor)
+            tube.reviewed.connect(self._on_reviewed)
+            return tube
+        if route.key == "history":
+            history = HistoryPage(self._services)
+            history.set_session(self._session)
+            history.experimentRequested.connect(self.open_experiment)
+            return history
         return PlaceholderPage(route)
 
+    def open_experiment(self, experiment_id: str) -> bool:
+        """打开试验监控页显示某个试验（运行中的实时显示，其余只读回看）。
+
+        Args:
+            experiment_id: 试验标识。
+
+        Returns:
+            成功显示时为 True。
+        """
+        if not self.navigate("monitor"):
+            return False
+        page = self._pages.get("monitor")
+        return isinstance(page, MonitorPage) and page.open_experiment(experiment_id)
+
+    def open_tube(self, experiment_id: str, tube_no: int) -> bool:
+        """打开单管详情页。
+
+        Args:
+            experiment_id: 试验标识。
+            tube_no: 管号。
+
+        Returns:
+            成功显示时为 True。
+        """
+        if not self.navigate("tube"):
+            return False
+        page = self._pages.get("tube")
+        return isinstance(page, TubeDetailPage) and page.open_tube(experiment_id, tube_no)
+
+    def _back_to_monitor(self) -> None:
+        self.navigate("monitor")
+
+    def _on_reviewed(self, experiment_id: str) -> None:
+        monitor = self._pages.get("monitor")
+        if isinstance(monitor, MonitorPage) and monitor.experiment_id == experiment_id:
+            monitor.reload()
+        dashboard = self._pages.get("dashboard")
+        if isinstance(dashboard, DashboardPage):
+            dashboard.refresh()
+
     def _on_experiment_started(self, experiment_id: str) -> None:
-        """向导启动了试验：留在向导页的用户跳到试验监控页（P9 实现）。"""
+        """向导启动了试验：留在向导页的用户跳到试验监控页。"""
         _log.info("试验 %s 已启动", experiment_id)
         if self._current_route == "new":
-            self.navigate("monitor")
+            self.open_experiment(experiment_id)
 
     def _drop_pages(self) -> None:
         for page in self._pages.values():
+            if isinstance(page, MonitorPage | TubeDetailPage):
+                page.shutdown()
             self.page_stack.removeWidget(page)
             page.deleteLater()
         self._pages.clear()

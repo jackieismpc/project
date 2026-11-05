@@ -316,6 +316,28 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
         QT_TRANSLATE_NOOP("ServiceError", "已有试验正在运行，设备同一时间只能运行一个试验")
     ),
     ServiceErrorCode.ENGINE_REFUSED: str(QT_TRANSLATE_NOOP("ServiceError", "引擎拒绝启动试验")),
+    ServiceErrorCode.STOP_NOT_ALLOWED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "试验 {id} 当前状态不能停止")
+    ),
+    ServiceErrorCode.TUBE_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "{tube} 号管没有结果")),
+    ServiceErrorCode.REVIEW_NOTE_REQUIRED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "复核意见必填，且不超过 {max} 个字符")
+    ),
+    ServiceErrorCode.REVIEW_NOT_ALLOWED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "全部排读数分析完成、试验进入待复核后才能复核")
+    ),
+    ServiceErrorCode.REVIEW_CONCLUSION_INVALID: str(
+        QT_TRANSLATE_NOOP("ServiceError", "复核结论只能是阳性或阴性")
+    ),
+    ServiceErrorCode.REVIEW_CONFLICT: str(
+        QT_TRANSLATE_NOOP("ServiceError", "试验状态已被其他操作改变，请刷新后重试")
+    ),
+    ServiceErrorCode.MEDIA_MISSING: str(
+        QT_TRANSLATE_NOOP("ServiceError", "第 {row} 排没有可播放的录像")
+    ),
+    ServiceErrorCode.MEDIA_TAMPERED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "第 {row} 排的录像与入库的哈希不符，可能已被改动")
+    ),
     ServiceErrorCode.REAGENT_LOCKED: str(
         QT_TRANSLATE_NOOP("ServiceError", "试剂未通过校验，流程已锁定")
     ),
@@ -337,7 +359,8 @@ def describe_service_error(error: ServiceError) -> str:
     if isinstance(error, ReagentLockedError):
         reasons = "；".join(describe_lock_reasons(error))
         return f"{template}：{reasons}" if reasons else template
+    params = {"max": 1000, **error.params}
     try:
-        return template.format(**error.params)
+        return template.format(**params)
     except (KeyError, IndexError):
         return template

@@ -51,7 +51,7 @@ START：incubating，所有排的截止时间 = 现在 + 孵育时长（默认 6
   开始录制段 → 标记翻转开始（pin）→ flip_row → 抓翻转前后各 n 帧 → restore_row → 结束录制段
   ROW_CAPTURED：analyzing，媒体记录同一事务入库
   analyze_row 提交到算法线程，主循环继续调度其他排
-结果到达：映射 → 结果、审计、状态同一事务提交
+结果到达：映射 → 掩码存档、结果、审计、状态同一事务提交
   还有未读的排：ROW_ANALYZED → incubating
   全部读完：有待复核 all_analyzed_needs_review，否则 all_analyzed_clean
   全部读完但有排分析失败：FAULT，等待重试
@@ -65,6 +65,17 @@ START：incubating，所有排的截止时间 = 现在 + 孵育时长（默认 6
 ### 单管结果映射
 
 `TubeResult.from_analysis` 按 `GelStateMapping` 映射。下面的情况都转待复核：`low_quality`、`failed`、`tube_not_found`、`state` 为空、部分凝固（默认映射）。算法结果缺管号或重复管号时引擎补一条 `failed` 结果并告警（`analysis_contract`），多余管号只告警，都不会变成阴性。
+
+### 掩码存档（P9）
+
+`TubeAnalysis.masks`（翻转前后代表帧的 gel 和 tube 掩码）不再丢弃。算法线程在 `analyze_row` 返回、计时结束之后调用 `services/mask_archive.archive_masks`：
+
+- 每支有掩码的试管写至多 4 个 PNG（二值、0/255、与原图同尺寸）到该排原图所在目录：`<data_dir>/images/<试验>/row_XX/mask_tNN_<gel|tube>_<before|after>.png`。先写 `.part`、fsync、改名，不覆盖已有文件（重名加 `_02`），同时算 SHA-256。gel 为 None（凝胶缺失）时只存 tube。
+- 每个文件一条 `media_files` 记录（`kind=image`，带排号和哈希），**随结果、审计、状态变化在同一个工作单元提交**；提交失败时记录不入库，文件成为孤儿（与原图的崩溃语义一致）。
+- 只存档该排请求里恰好出现一次的管号；缺管、重复管号、多余管号仍按契约违规处理（转待复核），不存档。
+- 存档失败（磁盘满、目录不可写）和算法整体故障同样处理：该排转分析失败，原图还在，`retry_analysis` 重试，**不会在没有存档的情况下出结果**。已写的文件会清理。
+- 「代表帧」约定为每一侧最后一张原图（`before_NN` / `after_NN` 中序号最大的），界面据此叠加。
+- 软件另在每管特征快照 `tube_results.features` 里补充 `flip_angle_deg`（这一排翻转时编码器读到的角度）；这不是算法特征。
 
 ### 算法线程
 
@@ -136,10 +147,11 @@ with storage.unit_of_work() as uow:
 | `StateChanged` | `previous`、`current`、`trigger`、`actor`、`reason` | 状态变化 |
 | `WellUpdated` | `row_index`、`tube_no`、`status`、`interpretation` | 孔更新 |
 | `RowCountdown` | `row_index`、`phase`、`remaining_s` | 排倒计时，设备时间 |
+| `RowCaptured` | `row_index`、`flip_angle_deg`、`image_count` | 一排翻转和抓帧完成（P9 新增，监控页显示翻转角度） |
 | `TemperatureChanged` | `celsius`、`in_range` | 温度 |
 | `EngineAlert` | `level`、`code`、`message`、`row_index` | 告警，码见 `AlertCode` |
 
-先把事件放进分发队列，再更新 `snapshot()`：看到新状态的观察者，相关事件都已经入队，随后一定会收到；`fault_reason` 在转异常的同时就能从快照读到。监听者在独立的 `engine-events` 线程上调用：抛异常只记日志，卡死也不影响翻转时序。引擎线程卡在设备动作上时事件要等动作返回才发。P9 用 Qt 信号桥接。
+P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷新：孔板和表格最多每 100 ms 重绘一次。先把事件放进分发队列，再更新 `snapshot()`：看到新状态的观察者，相关事件都已经入队，随后一定会收到；`fault_reason` 在转异常的同时就能从快照读到。监听者在独立的 `engine-events` 线程上调用：抛异常只记日志，卡死也不影响翻转时序。引擎线程卡在设备动作上时事件要等动作返回才发。P9 用 Qt 信号桥接。
 
 ### 配置
 
@@ -172,7 +184,7 @@ with storage.unit_of_work() as uow:
 | 写入 | 时机 | 同一事务内 |
 |---|---|---|
 | `experiments.state` | 每次转换 | 对应的审计 |
-| `media_files` | 抓帧完成、停止或转异常 | `row_captured` 转换和审计 |
+| `media_files` | 抓帧完成、停止或转异常（录像、原图）；结果到达（掩码，P9） | `row_captured` 转换和审计；掩码与结果、`row_analyzed` 审计同一事务 |
 | `tube_results` | 算法结果到达 | `row_analyzed` 审计和可能的状态转换 |
 | `temperature_log` | 每 `temperature_log_interval_s` | 单独一个事务，失败只告警 |
 
@@ -187,6 +199,7 @@ with storage.unit_of_work() as uow:
 | `test_experiment_engine_stop.py` | 上表每个阶段的停止，算法卡死时的停止 |
 | `test_experiment_engine_concurrency.py` | 停止与到时竞争（12 个随机种子）、连续运行线程不增长、外部启动的管线不被关闭、并发写审计、写锁被占用时等待和等待超限、真实进程在结果事务提交前后被杀 |
 | `tests/infrastructure/db/test_unit_of_work.py` | 回滚、每一步失败、提交失败、吞掉异常不提交、写锁、并发下的哈希链、真实进程在事务各点被杀 |
+| `tests/services/test_mask_archive.py` | 掩码文件名往返；引擎把每管 4 个掩码存盘、哈希入库、与结果同一事务（结果事务失败则记录不入库）；存档失败转可重试的分析失败；翻转角度入特征；gel 可空、不覆盖、目录不可写时清理 |
 | `tests/services/test_config.py` | 默认配置、不合并、路径、错误信息、`simulation` 缺失、组装和一键运行 |
 
 测试用门闩和手动调度时钟控制时序，不靠真实长等待；`tests/services/conftest.py` 的 `thread_baseline` 断言线程回到基线。
@@ -196,7 +209,7 @@ with storage.unit_of_work() as uow:
 ## 已知限制
 
 - **重启后不能续跑**：进程退出后调度和原图元数据都不在内存里，试验只能停止。
-- **掩码没有存档**：`TubeAnalysis.masks` 目前丢弃，P9 的掩码叠加需要决定如何落盘。
+- **掩码存档占磁盘**：每管至多 4 个二值 PNG（12 MP 下每个约几十 KB 到几百 KB），保留策略随 `data/images`，默认不自动删除。
 - **低置信度不转待复核**：`GelStateMapping` 只看状态和三态，置信度只存储。
 - **翻转动作不可打断**：`DeviceController` 没有取消接口，停止要等当前动作返回。
 - **同时只运行一个试验**：设备只有一台。

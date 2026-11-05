@@ -37,12 +37,16 @@ from gelinspect.services.config import (
     load_backend,
     load_config,
 )
+from gelinspect.services.dashboard_service import DashboardService
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.experiment_service import ExperimentService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
+from gelinspect.services.media_service import MediaService
+from gelinspect.services.monitor_service import MonitorService
 from gelinspect.services.queries import QueryService
 from gelinspect.services.reagent_service import ReagentService
+from gelinspect.services.review_service import ReviewService
 from gelinspect.services.template_service import TemplateService
 from gelinspect.services.video import VideoPipeline
 
@@ -66,6 +70,10 @@ class AppContext:
         templates: 检测模板管理服务。
         reagents: 试剂扫码校验与溯源服务。
         experiments: 创建和启动试验的服务。
+        monitor: 试验监控服务。
+        media: 原图、掩码和录像服务。
+        reviews: 人工复核服务。
+        dashboard: 工作台数据服务。
         demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
     """
@@ -84,6 +92,10 @@ class AppContext:
     templates: TemplateService
     reagents: ReagentService
     experiments: ExperimentService
+    monitor: MonitorService
+    media: MediaService
+    reviews: ReviewService
+    dashboard: DashboardService
     demo_accounts: tuple[DemoAccount, ...] = ()
     first_run: bool = False
 
@@ -105,6 +117,10 @@ class AppContext:
             templates=self.templates,
             reagents=self.reagents,
             experiments=self.experiments,
+            monitor=self.monitor,
+            media=self.media,
+            reviews=self.reviews,
+            dashboard=self.dashboard,
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),
@@ -253,6 +269,7 @@ def build_app_context(
     except BaseException:
         database.close()
         raise
+    monitor = MonitorService(auth, database, engine, pipeline)
     return AppContext(
         config=settings,
         database=database,
@@ -270,6 +287,10 @@ def build_app_context(
         experiments=ExperimentService(
             auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
         ),
+        monitor=monitor,
+        media=MediaService(auth, database),
+        reviews=ReviewService(auth, database, clock=clock),
+        dashboard=DashboardService(auth, database, monitor, reagents),
         demo_accounts=tuple(hook.accounts()) if hook is not None else (),
         first_run=first_run,
     )

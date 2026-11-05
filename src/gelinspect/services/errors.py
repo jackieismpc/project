@@ -29,6 +29,14 @@ class ServiceErrorCode(StrEnum):
     EXPERIMENT_NOT_READY = "experiment_not_ready"
     ENGINE_BUSY = "engine_busy"
     ENGINE_REFUSED = "engine_refused"
+    STOP_NOT_ALLOWED = "stop_not_allowed"
+    TUBE_NOT_FOUND = "tube_not_found"
+    REVIEW_NOTE_REQUIRED = "review_note_required"
+    REVIEW_NOT_ALLOWED = "review_not_allowed"
+    REVIEW_CONCLUSION_INVALID = "review_conclusion_invalid"
+    REVIEW_CONFLICT = "review_conflict"
+    MEDIA_MISSING = "media_missing"
+    MEDIA_TAMPERED = "media_tampered"
 
 
 class ServiceError(Exception):

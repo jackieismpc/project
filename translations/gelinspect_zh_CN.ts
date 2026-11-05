@@ -61,6 +61,36 @@
     </message>
 </context>
 <context>
+    <name>AlertStack</name>
+    <message>
+        <source>另有 {n} 条告警</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>AnalysisStatus</name>
+    <message>
+        <source>分析成功</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝胶缺失</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未找到试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图像质量不足</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AppShell</name>
     <message>
         <source>取消固定，侧栏改为自动隐藏</source>
@@ -203,6 +233,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>状态</source>
         <translation type="unfinished"></translation>
     </message>
@@ -275,15 +309,35 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验 {id}</source>
+        <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>已完成 {done} / {total} 排</source>
+        <source>{n} 管待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阳性 {p} · 阴性 {n}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id} 有 {n} 管待复核</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>试验 {id} 处于异常状态，需要人工处理</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name} 已过期 {n} 天</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name} 还有 {n} 天过期</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -392,6 +446,106 @@
     </message>
 </context>
 <context>
+    <name>GelState</name>
+    <message>
+        <source>完全凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>部分凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未凝固</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法判定</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>HistoryPage</name>
+    <message>
+        <source>试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>创建时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>双击一行打开回看；按条件查询和导出将在 P12 提供</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>刷新</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打开所选试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有历史试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>完成第一次试验后，结果会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ImagesTab</name>
+    <message>
+        <source>没有选中的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验还没有抓拍图像，每排读数后会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图像显示</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Interpretation</name>
+    <message>
+        <source>阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>LoginPage</name>
     <message>
         <source>请输入用户名</source>
@@ -470,6 +624,223 @@
     </message>
     <message>
         <source>继续试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MediaWarning</name>
+    <message>
+        <source>图像与入库的 SHA-256 不符，可能已被改动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>部分图像文件缺失或无法解码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有存档的掩码，按孔位切分显示</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MiniPlate</name>
+    <message>
+        <source>孔板缩略图：</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MonitorPage</name>
+    <message>
+        <source>第 {n} 排读数中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {n} 排分析中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待复核 · {n} 管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管编号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>序列号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待 P10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>回放第 {n} 排</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>回放（还没有录像）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>等待视频画面…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转录制中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法判读中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孵育中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待机</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法判读 {elapsed} · 翻转角度 {angle}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停止试验？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停止后试验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停止试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>继续试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已请求停止，正在收尾</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验数据记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>图像显示</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告打印预览</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单批次报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前没有进行中的试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>在「新试验」里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打开历史记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{kind}批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>开始时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孔板 8 × 10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实时视频</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>按排回放</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验没有录像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>该功能将在 P11 阶段实现</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告打印预览、单批次报告、数字签名和验签在报告阶段提供。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -743,10 +1114,6 @@
 <context>
     <name>Phases</name>
     <message>
-        <source>P9 监控与结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>P11 报告</source>
         <translation type="unfinished"></translation>
     </message>
@@ -789,6 +1156,26 @@
     </message>
     <message>
         <source>孔板 8 乘 10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已读数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读数中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读数失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析失败</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1185,6 +1572,40 @@
     </message>
 </context>
 <context>
+    <name>ReplayDialog</name>
+    <message>
+        <source>这一排没有录像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>按排回放</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReplayPlayer</name>
+    <message>
+        <source>暂停</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>播放</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>播放或暂停</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>回放进度</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Role</name>
     <message>
         <source>管理员</source>
@@ -1218,23 +1639,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>实时视频、8×10 孔板、各排倒计时、温度和试验数据记录。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>翻转前后对比图、掩码叠加、特征数值和人工复核。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>历史记录</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>按时间、类型、批号和状态查询历史试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1350,6 +1759,38 @@
     </message>
     <message>
         <source>引擎拒绝启动试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id} 当前状态不能停止</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{tube} 号管没有结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核意见必填，且不超过 {max} 个字符</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核结论只能是阳性或阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验状态已被其他操作改变，请刷新后重试</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {row} 排没有可播放的录像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {row} 排的录像与入库的哈希不符，可能已被改动</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1740,6 +2181,221 @@
     </message>
 </context>
 <context>
+    <name>TubeDetailPage</name>
+    <message>
+        <source>{no} 号管不属于这个试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单管详情</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在读取图像…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这支试管没有抓拍图像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有这一帧</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读取图像失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{no} 号管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> · 外加内毒素 {v} EU/ml</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>面积变化率 ΔA</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>质心偏移 Δs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>面积波动 σ_A</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>位置波动 σ_s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>暂无结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这支试管还没有分析结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法：{algo} → 人工：{human}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已人工复核，以人工结论为准；算法原始结果保留</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法结果 · 需要人工复核后才能签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法结果 · {v}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{s} s（本排 {n} 支）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这支试管还没有分析结果，不能复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色没有复核权限，只有分析员可以复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验已无待复核的试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已由 {who} 于 {when} 复核为{v}。意见：{note}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>放弃未提交的复核？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核意见还没有提交，离开后会丢失。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>放弃并离开</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留在本页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请先选择判为阳性或判为阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核已提交</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部待复核的试管已处理，试验可以签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>收起 3 帧序列</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看 3 帧序列</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>返回孔板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前后对比</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>显示算法掩码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>回放翻转视频</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>融合评分 Score</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>人工复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判为阳性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判为阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复核意见（必填）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>说明判定依据，会写入审计追踪</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>提交复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判读来源</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阈值配置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判读耗时</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>暂无图像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>从试验监控的孔板或结果表里点一支试管查看详情。</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>TubeRole</name>
     <message>
         <source>试验管</source>
@@ -1787,6 +2443,10 @@
         <source>待复核</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>异常</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>_AuthFrame</name>
@@ -1810,6 +2470,25 @@
     <name>_HotZone</name>
     <message>
         <source>侧栏热区</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>_RowThumb</name>
+    <message>
+        <source>没有这张图</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转前</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在读取图像…</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -73,6 +73,15 @@ class Tabs(QFrame):
         """
         self._bar.setCurrentIndex(index)
 
+    def set_tab_text(self, index: int, label: str) -> None:
+        """修改某个标签的文字（语言切换时使用）。
+
+        Args:
+            index: 标签序号。
+            label: 新文字。
+        """
+        self._bar.setTabText(index, label)
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """键盘聚焦时给选中标签加底色，鼠标点击不触发。
 

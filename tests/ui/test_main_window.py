@@ -212,12 +212,13 @@ def test_every_designed_page_has_a_route_and_a_working_page(
 
 def test_placeholder_page_names_its_phase(qapp: QApplication, window: MainWindow) -> None:
     sign_in(qapp, window, "experimenter")
-    window.navigate("monitor")
-    page = window.page("monitor")
+    window.navigate("reports")
+    page = window.page("reports")
     assert isinstance(page, PlaceholderPage)
     assert page.badge.text() == "建设中"
-    assert "P9" in page.headline.text()
-    assert route_for("monitor").phase == "P9"
+    assert "P11" in page.headline.text()
+    assert route_for("reports").phase == "P11"
+    assert route_for("monitor").phase is None and route_for("history").phase is None
 
 
 def test_dashboard_shows_live_instrument_data(

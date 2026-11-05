@@ -68,6 +68,7 @@ from gelinspect.services.engine_types import (
     EngineEvent,
     EngineSnapshot,
     FaultKind,
+    RowCaptured,
     RowCountdown,
     RowPhase,
     RowSnapshot,
@@ -82,6 +83,7 @@ from gelinspect.services.engine_workers import (
     AnalysisWorker,
     EventDispatcher,
 )
+from gelinspect.services.mask_archive import archive_masks
 from gelinspect.services.video.clock import Clock
 from gelinspect.services.video.errors import InsufficientFramesError, RecorderError
 from gelinspect.services.video.events import VideoEvent, VideoEventCode, VideoEventLevel
@@ -91,6 +93,9 @@ from gelinspect.services.video.recorder import SegmentRecord
 from gelinspect.services.video.snapshot import SavedImage, SnapshotResult, load_saved_frames
 
 logger = logging.getLogger("gelinspect.services.engine")
+
+FLIP_ANGLE_KEY = "flip_angle_deg"
+"""软件在单管特征快照里补充的键：这一排翻转时编码器读到的角度（算法特征之外，不由算法给出）。"""
 
 SYSTEM_ACTOR = "system"
 """系统行为在审计中的操作者。"""
@@ -246,7 +251,13 @@ class EngineRun:
         self._stop_request: tuple[User, str] | None = None
         self._ended = threading.Event()
         self._thread: threading.Thread | None = None
-        self._worker = AnalysisWorker(deps.analyzer, deps.clock, self._inbox.post, self._inbox.post)
+        self._worker = AnalysisWorker(
+            deps.analyzer,
+            deps.clock,
+            self._inbox.post,
+            self._inbox.post,
+            archive=lambda request, result: archive_masks(request, result, self._clock.now()),
+        )
 
         rows: dict[int, list[int]] = {}
         for assignment in experiment.assignments:
@@ -728,7 +739,16 @@ class EngineRun:
                     f"{row.label} 抓帧完成，{len(snapshot.files)} 张原图，"
                     f"角度 {flip.actual_angle_deg}{note}"
                 ),
-                then=self._well_events(row, WellStatus.ANALYZING),
+                then=[
+                    RowCaptured(
+                        experiment_id=self.experiment_id,
+                        at=self._clock.now(),
+                        row_index=row.row_index,
+                        flip_angle_deg=flip.actual_angle_deg,
+                        image_count=len(snapshot.files),
+                    ),
+                    *self._well_events(row, WellStatus.ANALYZING),
+                ],
             )
         except Exception:
             row.phase = RowPhase.READ_FAILED
@@ -806,8 +826,11 @@ class EngineRun:
             self._apply_analysis_failure(row, outcome.error)
             return
         row.phase = RowPhase.DONE
+        media_before = len(self._pending_media)
         try:
             results = self._map_results(row, outcome.result)
+            # 掩码存档记录和结果同一事务入库。
+            self._pending_media.extend(outcome.media)
             self._transact(
                 results=results,
                 audit=[self._row_audit(row, outcome.result, results)],
@@ -816,7 +839,8 @@ class EngineRun:
                 then=[self._result_event(row, result) for result in results],
             )
         except Exception:
-            # 算法结果没能入库：按分析失败处理，原图还在，可以重试。
+            # 算法结果没能入库：按分析失败处理，原图还在，可以重试。掩码文件成了孤儿，不入库。
+            del self._pending_media[media_before:]
             row.phase = RowPhase.ANALYSIS_FAILED
             raise
 
@@ -856,7 +880,7 @@ class EngineRun:
                     mapping=self._deps.mapping,
                     score=tube.score,
                     confidence=tube.confidence,
-                    features=tube.features.model_dump(),
+                    features={**tube.features.model_dump(), FLIP_ANGLE_KEY: row.flip_angle_deg},
                     model_version=info.model_version,
                     config_version=info.config_version,
                     message=tube.message,

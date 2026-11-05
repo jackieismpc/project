@@ -61,6 +61,36 @@
     </message>
 </context>
 <context>
+    <name>AlertStack</name>
+    <message>
+        <source>另有 {n} 条告警</source>
+        <translation>{n} more alerts</translation>
+    </message>
+</context>
+<context>
+    <name>AnalysisStatus</name>
+    <message>
+        <source>分析成功</source>
+        <translation>Analyzed</translation>
+    </message>
+    <message>
+        <source>凝胶缺失</source>
+        <translation>Gel missing</translation>
+    </message>
+    <message>
+        <source>未找到试管</source>
+        <translation>Tube not found</translation>
+    </message>
+    <message>
+        <source>图像质量不足</source>
+        <translation>Low image quality</translation>
+    </message>
+    <message>
+        <source>分析失败</source>
+        <translation>Analysis failed</translation>
+    </message>
+</context>
+<context>
     <name>AppShell</name>
     <message>
         <source>取消固定，侧栏改为自动隐藏</source>
@@ -203,6 +233,10 @@
         <translation>Tubes</translation>
     </message>
     <message>
+        <source>结果</source>
+        <translation>Result</translation>
+    </message>
+    <message>
         <source>状态</source>
         <translation>Status</translation>
     </message>
@@ -275,16 +309,36 @@
         <translation>No experiment is running.</translation>
     </message>
     <message>
-        <source>试验 {id}</source>
-        <translation>Experiment {id}</translation>
+        <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
+        <translation>{tubes} tubes · {done} / {total} rows done</translation>
     </message>
     <message>
-        <source>已完成 {done} / {total} 排</source>
-        <translation>{done} of {total} rows done</translation>
+        <source>{n} 管待复核</source>
+        <translation>{n} to review</translation>
+    </message>
+    <message>
+        <source>全部阴性</source>
+        <translation>All negative</translation>
+    </message>
+    <message>
+        <source>阳性 {p} · 阴性 {n}</source>
+        <translation>{p} positive · {n} negative</translation>
+    </message>
+    <message>
+        <source>试验 {id} 有 {n} 管待复核</source>
+        <translation>Experiment {id}: {n} tubes to review</translation>
     </message>
     <message>
         <source>试验 {id} 处于异常状态，需要人工处理</source>
         <translation>Experiment {id} is faulted and needs manual attention.</translation>
+    </message>
+    <message>
+        <source>{name} 已过期 {n} 天</source>
+        <translation>{name} expired {n} days ago</translation>
+    </message>
+    <message>
+        <source>{name} 还有 {n} 天过期</source>
+        <translation>{name} expires in {n} days</translation>
     </message>
     <message>
         <source>没有需要处理的事项</source>
@@ -392,6 +446,106 @@
     </message>
 </context>
 <context>
+    <name>GelState</name>
+    <message>
+        <source>完全凝固</source>
+        <translation>Fully gelled</translation>
+    </message>
+    <message>
+        <source>部分凝固</source>
+        <translation>Partially gelled</translation>
+    </message>
+    <message>
+        <source>未凝固</source>
+        <translation>Not gelled</translation>
+    </message>
+    <message>
+        <source>无法判定</source>
+        <translation>Undetermined</translation>
+    </message>
+</context>
+<context>
+    <name>HistoryPage</name>
+    <message>
+        <source>试验</source>
+        <translation>Experiment</translation>
+    </message>
+    <message>
+        <source>类型</source>
+        <translation>Type</translation>
+    </message>
+    <message>
+        <source>试管</source>
+        <translation>Tubes</translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation>Status</translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation>Operator</translation>
+    </message>
+    <message>
+        <source>创建时间</source>
+        <translation>Created</translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation>History</translation>
+    </message>
+    <message>
+        <source>双击一行打开回看；按条件查询和导出将在 P12 提供</source>
+        <translation>Double-click a row to review it; filtered search and export arrive in P12</translation>
+    </message>
+    <message>
+        <source>刷新</source>
+        <translation>Refresh</translation>
+    </message>
+    <message>
+        <source>打开所选试验</source>
+        <translation>Open selected</translation>
+    </message>
+    <message>
+        <source>还没有历史试验</source>
+        <translation>No experiments yet</translation>
+    </message>
+    <message>
+        <source>完成第一次试验后，结果会显示在这里</source>
+        <translation>Results appear here after the first experiment</translation>
+    </message>
+</context>
+<context>
+    <name>ImagesTab</name>
+    <message>
+        <source>没有选中的试验</source>
+        <translation>No experiment selected</translation>
+    </message>
+    <message>
+        <source>这个试验还没有抓拍图像，每排读数后会显示在这里</source>
+        <translation>No captured images yet; they appear here after each row is read</translation>
+    </message>
+    <message>
+        <source>图像显示</source>
+        <translation>Images</translation>
+    </message>
+</context>
+<context>
+    <name>Interpretation</name>
+    <message>
+        <source>阳性</source>
+        <translation>Positive</translation>
+    </message>
+    <message>
+        <source>阴性</source>
+        <translation>Negative</translation>
+    </message>
+    <message>
+        <source>待复核</source>
+        <translation>Pending review</translation>
+    </message>
+</context>
+<context>
     <name>LoginPage</name>
     <message>
         <source>请输入用户名</source>
@@ -474,6 +628,223 @@
     </message>
 </context>
 <context>
+    <name>MediaWarning</name>
+    <message>
+        <source>图像与入库的 SHA-256 不符，可能已被改动</source>
+        <translation>Image does not match its stored SHA-256 and may have been altered</translation>
+    </message>
+    <message>
+        <source>部分图像文件缺失或无法解码</source>
+        <translation>Some image files are missing or cannot be decoded</translation>
+    </message>
+    <message>
+        <source>没有存档的掩码，按孔位切分显示</source>
+        <translation>No archived masks; cropped by well position</translation>
+    </message>
+</context>
+<context>
+    <name>MiniPlate</name>
+    <message>
+        <source>孔板缩略图：</source>
+        <translation>Plate overview: </translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation>, </translation>
+    </message>
+</context>
+<context>
+    <name>MonitorPage</name>
+    <message>
+        <source>第 {n} 排读数中</source>
+        <translation>Row {n} reading</translation>
+    </message>
+    <message>
+        <source>第 {n} 排分析中</source>
+        <translation>Row {n} analyzing</translation>
+    </message>
+    <message>
+        <source>待复核 · {n} 管</source>
+        <translation>Pending review · {n} tubes</translation>
+    </message>
+    <message>
+        <source>试管编号</source>
+        <translation>Tube</translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation>Sample</translation>
+    </message>
+    <message>
+        <source>序列号</source>
+        <translation>Serial no.</translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation>Lot</translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation>Dilution</translation>
+    </message>
+    <message>
+        <source>外加内毒素</source>
+        <translation>Spiked endotoxin</translation>
+    </message>
+    <message>
+        <source>阴阳性</source>
+        <translation>Result</translation>
+    </message>
+    <message>
+        <source>试验 {id}</source>
+        <translation>Experiment {id}</translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation>Not permitted for this role</translation>
+    </message>
+    <message>
+        <source>待 P10</source>
+        <translation>Pending P10</translation>
+    </message>
+    <message>
+        <source>回放第 {n} 排</source>
+        <translation>Replay row {n}</translation>
+    </message>
+    <message>
+        <source>回放（还没有录像）</source>
+        <translation>Replay (no recording)</translation>
+    </message>
+    <message>
+        <source>等待视频画面…</source>
+        <translation>Waiting for video…</translation>
+    </message>
+    <message>
+        <source>翻转录制中</source>
+        <translation>Recording flip</translation>
+    </message>
+    <message>
+        <source>翻转中</source>
+        <translation>Flipping</translation>
+    </message>
+    <message>
+        <source>算法判读中</source>
+        <translation>Analyzing</translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation>After flip</translation>
+    </message>
+    <message>
+        <source>孵育中</source>
+        <translation>Incubating</translation>
+    </message>
+    <message>
+        <source>待机</source>
+        <translation>Standby</translation>
+    </message>
+    <message>
+        <source>算法判读 {elapsed} · 翻转角度 {angle}</source>
+        <translation>Analysis {elapsed} · Flip angle {angle}</translation>
+    </message>
+    <message>
+        <source>停止试验？</source>
+        <translation>Stop the experiment?</translation>
+    </message>
+    <message>
+        <source>停止后试验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
+        <translation>Experiment {id} cannot continue after stopping; rows not yet read will miss their reading time, and flipped rows will be reset. Stop it?</translation>
+    </message>
+    <message>
+        <source>停止试验</source>
+        <translation>Stop experiment</translation>
+    </message>
+    <message>
+        <source>继续试验</source>
+        <translation>Keep running</translation>
+    </message>
+    <message>
+        <source>已请求停止，正在收尾</source>
+        <translation>Stop requested, finishing up</translation>
+    </message>
+    <message>
+        <source>试验数据记录</source>
+        <translation>Experiment data</translation>
+    </message>
+    <message>
+        <source>图像显示</source>
+        <translation>Images</translation>
+    </message>
+    <message>
+        <source>报告打印预览</source>
+        <translation>Report preview</translation>
+    </message>
+    <message>
+        <source>单批次报告</source>
+        <translation>Batch report</translation>
+    </message>
+    <message>
+        <source>当前没有进行中的试验</source>
+        <translation>No experiment is running</translation>
+    </message>
+    <message>
+        <source>在「新试验」里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
+        <translation>Start one from New experiment to see live video, the plate and results here, or open History to review finished experiments.</translation>
+    </message>
+    <message>
+        <source>打开历史记录</source>
+        <translation>Open history</translation>
+    </message>
+    <message>
+        <source>{kind}批号</source>
+        <translation>{kind} lot</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ</source>
+        <translation>Labeled sensitivity λ</translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc</source>
+        <translation>Measured sensitivity λc</translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation>Operator</translation>
+    </message>
+    <message>
+        <source>开始时间</source>
+        <translation>Start time</translation>
+    </message>
+    <message>
+        <source>孔板 8 × 10</source>
+        <translation>Plate 8 × 10</translation>
+    </message>
+    <message>
+        <source>实时视频</source>
+        <translation>Live video</translation>
+    </message>
+    <message>
+        <source>按排回放</source>
+        <translation>Row replay</translation>
+    </message>
+    <message>
+        <source>这个试验没有录像</source>
+        <translation>This experiment has no recordings</translation>
+    </message>
+    <message>
+        <source>没有试管</source>
+        <translation>No tubes</translation>
+    </message>
+    <message>
+        <source>该功能将在 P11 阶段实现</source>
+        <translation>This feature arrives in P11</translation>
+    </message>
+    <message>
+        <source>报告打印预览、单批次报告、数字签名和验签在报告阶段提供。</source>
+        <translation>Report preview, batch reports, signing and verification arrive in the report phase.</translation>
+    </message>
+</context>
+<context>
     <name>NewExperimentPage</name>
     <message>
         <source>序号</source>
@@ -529,7 +900,7 @@
     </message>
     <message>
         <source>模板决定试管数量和每管的样品、外加内毒素。标「布局待确认」的模板仍可使用。</source>
-        <translation>The template sets the number of tubes and each tube's sample and spiked endotoxin. Templates marked "Layout to be confirmed" can still be used.</translation>
+        <translation>The template sets the number of tubes and each tube&apos;s sample and spiked endotoxin. Templates marked &quot;Layout to be confirmed&quot; can still be used.</translation>
     </message>
     <message>
         <source>还没有可用的模板</source>
@@ -743,10 +1114,6 @@
 <context>
     <name>Phases</name>
     <message>
-        <source>P9 监控与结果</source>
-        <translation>P9 (monitoring and results)</translation>
-    </message>
-    <message>
         <source>P11 报告</source>
         <translation>P11 (reports)</translation>
     </message>
@@ -790,6 +1157,26 @@
     <message>
         <source>孔板 8 乘 10</source>
         <translation>8 by 10 well plate</translation>
+    </message>
+    <message>
+        <source>已读数</source>
+        <translation>Done</translation>
+    </message>
+    <message>
+        <source>读数中</source>
+        <translation>Reading</translation>
+    </message>
+    <message>
+        <source>分析中</source>
+        <translation>Analyzing</translation>
+    </message>
+    <message>
+        <source>读数失败</source>
+        <translation>Read failed</translation>
+    </message>
+    <message>
+        <source>分析失败</source>
+        <translation>Analysis failed</translation>
     </message>
 </context>
 <context>
@@ -1185,6 +1572,40 @@
     </message>
 </context>
 <context>
+    <name>ReplayDialog</name>
+    <message>
+        <source>这一排没有录像</source>
+        <translation>No recording for this row</translation>
+    </message>
+    <message>
+        <source>按排回放</source>
+        <translation>Row replay</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>Close</translation>
+    </message>
+</context>
+<context>
+    <name>ReplayPlayer</name>
+    <message>
+        <source>暂停</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <source>播放</source>
+        <translation>Play</translation>
+    </message>
+    <message>
+        <source>播放或暂停</source>
+        <translation>Play or pause</translation>
+    </message>
+    <message>
+        <source>回放进度</source>
+        <translation>Replay position</translation>
+    </message>
+</context>
+<context>
     <name>Role</name>
     <message>
         <source>管理员</source>
@@ -1218,24 +1639,12 @@
         <translation>Experiment monitor</translation>
     </message>
     <message>
-        <source>实时视频、8×10 孔板、各排倒计时、温度和试验数据记录。</source>
-        <translation>Live video, the 8×10 plate, per-row countdowns, temperature and the experiment data record.</translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation>Tube detail</translation>
     </message>
     <message>
-        <source>翻转前后对比图、掩码叠加、特征数值和人工复核。</source>
-        <translation>Before/after images, mask overlay, feature values and manual review.</translation>
-    </message>
-    <message>
         <source>历史记录</source>
         <translation>History</translation>
-    </message>
-    <message>
-        <source>按时间、类型、批号和状态查询历史试验。</source>
-        <translation>Search past experiments by time, type, lot number and status.</translation>
     </message>
     <message>
         <source>模板管理</source>
@@ -1351,6 +1760,38 @@
     <message>
         <source>引擎拒绝启动试验</source>
         <translation>The engine refused to start the experiment</translation>
+    </message>
+    <message>
+        <source>试验 {id} 当前状态不能停止</source>
+        <translation>Experiment {id} cannot be stopped in its current state</translation>
+    </message>
+    <message>
+        <source>{tube} 号管没有结果</source>
+        <translation>Tube {tube} has no result</translation>
+    </message>
+    <message>
+        <source>复核意见必填，且不超过 {max} 个字符</source>
+        <translation>A review note is required (at most {max} characters)</translation>
+    </message>
+    <message>
+        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
+        <translation>Review is available once all rows are analyzed and the experiment is pending review</translation>
+    </message>
+    <message>
+        <source>复核结论只能是阳性或阴性</source>
+        <translation>The review conclusion must be positive or negative</translation>
+    </message>
+    <message>
+        <source>试验状态已被其他操作改变，请刷新后重试</source>
+        <translation>The experiment changed meanwhile; refresh and try again</translation>
+    </message>
+    <message>
+        <source>第 {row} 排没有可播放的录像</source>
+        <translation>Row {row} has no playable recording</translation>
+    </message>
+    <message>
+        <source>第 {row} 排的录像与入库的哈希不符，可能已被改动</source>
+        <translation>The recording of row {row} does not match its stored hash and may have been altered</translation>
     </message>
     <message>
         <source>试剂未通过校验，流程已锁定</source>
@@ -1742,6 +2183,221 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
 </context>
 <context>
+    <name>TubeDetailPage</name>
+    <message>
+        <source>{no} 号管不属于这个试验</source>
+        <translation>Tube {no} is not part of this experiment</translation>
+    </message>
+    <message>
+        <source>单管详情</source>
+        <translation>Tube detail</translation>
+    </message>
+    <message>
+        <source>正在读取图像…</source>
+        <translation>Loading images…</translation>
+    </message>
+    <message>
+        <source>这支试管没有抓拍图像</source>
+        <translation>No captured image for this tube</translation>
+    </message>
+    <message>
+        <source>没有这一帧</source>
+        <translation>No such frame</translation>
+    </message>
+    <message>
+        <source>读取图像失败</source>
+        <translation>Failed to read images</translation>
+    </message>
+    <message>
+        <source>{no} 号管</source>
+        <translation>Tube {no}</translation>
+    </message>
+    <message>
+        <source> · 外加内毒素 {v} EU/ml</source>
+        <translation> · spiked endotoxin {v} EU/ml</translation>
+    </message>
+    <message>
+        <source>试验 {id}</source>
+        <translation>Experiment {id}</translation>
+    </message>
+    <message>
+        <source>面积变化率 ΔA</source>
+        <translation>Area change ΔA</translation>
+    </message>
+    <message>
+        <source>质心偏移 Δs</source>
+        <translation>Centroid shift Δs</translation>
+    </message>
+    <message>
+        <source>面积波动 σ_A</source>
+        <translation>Area variation σ_A</translation>
+    </message>
+    <message>
+        <source>位置波动 σ_s</source>
+        <translation>Position variation σ_s</translation>
+    </message>
+    <message>
+        <source>暂无结果</source>
+        <translation>No result</translation>
+    </message>
+    <message>
+        <source>这支试管还没有分析结果</source>
+        <translation>This tube has no analysis result yet</translation>
+    </message>
+    <message>
+        <source>算法：{algo} → 人工：{human}</source>
+        <translation>Algorithm: {algo} → Manual: {human}</translation>
+    </message>
+    <message>
+        <source>已人工复核，以人工结论为准；算法原始结果保留</source>
+        <translation>Manually reviewed; the manual conclusion applies and the algorithm result is kept</translation>
+    </message>
+    <message>
+        <source>算法结果 · 需要人工复核后才能签署</source>
+        <translation>Algorithm result · must be reviewed before signing</translation>
+    </message>
+    <message>
+        <source>算法结果 · {v}</source>
+        <translation>Algorithm result · {v}</translation>
+    </message>
+    <message>
+        <source>{s} s（本排 {n} 支）</source>
+        <translation>{s} s ({n} tubes in this row)</translation>
+    </message>
+    <message>
+        <source>翻转前</source>
+        <translation>Before flip</translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation>After flip</translation>
+    </message>
+    <message>
+        <source>这支试管还没有分析结果，不能复核</source>
+        <translation>No analysis result yet, so it cannot be reviewed</translation>
+    </message>
+    <message>
+        <source>当前角色没有复核权限，只有分析员可以复核</source>
+        <translation>This role cannot review; only analysts can</translation>
+    </message>
+    <message>
+        <source>试验已无待复核的试管</source>
+        <translation>No tubes left to review</translation>
+    </message>
+    <message>
+        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
+        <translation>Review is available once all rows are analyzed and the experiment is pending review</translation>
+    </message>
+    <message>
+        <source>已由 {who} 于 {when} 复核为{v}。意见：{note}</source>
+        <translation>Reviewed by {who} at {when} as {v}. Note: {note}</translation>
+    </message>
+    <message>
+        <source>放弃未提交的复核？</source>
+        <translation>Discard the unsubmitted review?</translation>
+    </message>
+    <message>
+        <source>复核意见还没有提交，离开后会丢失。</source>
+        <translation>The review note has not been submitted and will be lost.</translation>
+    </message>
+    <message>
+        <source>放弃并离开</source>
+        <translation>Discard and leave</translation>
+    </message>
+    <message>
+        <source>留在本页</source>
+        <translation>Stay</translation>
+    </message>
+    <message>
+        <source>请先选择判为阳性或判为阴性</source>
+        <translation>Choose positive or negative first</translation>
+    </message>
+    <message>
+        <source>复核已提交</source>
+        <translation>Review submitted</translation>
+    </message>
+    <message>
+        <source>全部待复核的试管已处理，试验可以签署</source>
+        <translation>All tubes reviewed; the experiment can be signed</translation>
+    </message>
+    <message>
+        <source>收起 3 帧序列</source>
+        <translation>Hide 3-frame sequence</translation>
+    </message>
+    <message>
+        <source>查看 3 帧序列</source>
+        <translation>View 3-frame sequence</translation>
+    </message>
+    <message>
+        <source>返回孔板</source>
+        <translation>Back to plate</translation>
+    </message>
+    <message>
+        <source>翻转前后对比</source>
+        <translation>Before and after flip</translation>
+    </message>
+    <message>
+        <source>显示算法掩码</source>
+        <translation>Show algorithm masks</translation>
+    </message>
+    <message>
+        <source>回放翻转视频</source>
+        <translation>Replay flip video</translation>
+    </message>
+    <message>
+        <source>融合评分 Score</source>
+        <translation>Fused score</translation>
+    </message>
+    <message>
+        <source>人工复核</source>
+        <translation>Manual review</translation>
+    </message>
+    <message>
+        <source>判为阳性</source>
+        <translation>Mark positive</translation>
+    </message>
+    <message>
+        <source>判为阴性</source>
+        <translation>Mark negative</translation>
+    </message>
+    <message>
+        <source>复核意见（必填）</source>
+        <translation>Review note (required)</translation>
+    </message>
+    <message>
+        <source>说明判定依据，会写入审计追踪</source>
+        <translation>Explain the basis; it goes into the audit trail</translation>
+    </message>
+    <message>
+        <source>提交复核</source>
+        <translation>Submit review</translation>
+    </message>
+    <message>
+        <source>判读来源</source>
+        <translation>Analysis source</translation>
+    </message>
+    <message>
+        <source>模型版本</source>
+        <translation>Model version</translation>
+    </message>
+    <message>
+        <source>阈值配置</source>
+        <translation>Threshold config</translation>
+    </message>
+    <message>
+        <source>判读耗时</source>
+        <translation>Analysis time</translation>
+    </message>
+    <message>
+        <source>暂无图像</source>
+        <translation>No image</translation>
+    </message>
+    <message>
+        <source>从试验监控的孔板或结果表里点一支试管查看详情。</source>
+        <translation>Click a tube on the monitor plate or results table to see its detail.</translation>
+    </message>
+</context>
+<context>
     <name>TubeRole</name>
     <message>
         <source>试验管</source>
@@ -1789,6 +2445,10 @@ Fix the configuration file and start again. Starting without --config uses the d
         <source>待复核</source>
         <translation>Pending review</translation>
     </message>
+    <message>
+        <source>异常</source>
+        <translation>Fault</translation>
+    </message>
 </context>
 <context>
     <name>_AuthFrame</name>
@@ -1813,6 +2473,25 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>侧栏热区</source>
         <translation>Sidebar hot zone</translation>
+    </message>
+</context>
+<context>
+    <name>_RowThumb</name>
+    <message>
+        <source>没有这张图</source>
+        <translation>No image</translation>
+    </message>
+    <message>
+        <source>翻转前</source>
+        <translation>Before flip</translation>
+    </message>
+    <message>
+        <source>翻转后</source>
+        <translation>After flip</translation>
+    </message>
+    <message>
+        <source>正在读取图像…</source>
+        <translation>Loading images…</translation>
     </message>
 </context>
 </TS>

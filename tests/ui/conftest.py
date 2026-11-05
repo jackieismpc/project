@@ -156,3 +156,12 @@ def delete_leftover_widgets(qapp: QApplication) -> Iterator[None]:
         widget.close()
         widget.deleteLater()
     QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+# 监控与复核测试的夹具（定义在 monitor_helpers.py，集中在这里注册）
+from tests.ui.monitor_helpers import (  # noqa: E402, F401
+    fast_context,
+    fast_window,
+    live_context,
+    live_window,
+)

@@ -32,6 +32,20 @@ PlateGrid 要点：
 - 新增图标（Lucide 手写路径，ISC）：`menu`、`pin`、`pin-off`、`folder-open`、`plug`、`unplug`、`languages`、`ellipsis`。
 - 新增 QSS 角色：`QFrame[role="toolbar"]`、`QFrame[role="vsep"]`、`QToolButton[role="quick"]`、`QLabel[role="status"]`，以及 `QMenu` 样式，均来自 token。
 
+P8、P9 追加的组件（代码都在 `ui/widgets/`）：
+
+- `PlateGrid.set_row_labels_visible(bool)`：是否显示列头的 `Row01` 标签。新试验向导的管位选择与设计稿一致，不显示列头；监控页显示。与 `set_countdowns_visible` 互相独立。
+- `edit_table.py` 的 `EditTable` 和 `EditColumn`：可编辑表格，自绘单元格，样式与 `DataTable` 一致（无网格、行分隔线、等宽数字）。列有只读、文字、数字（可留空）和选项四种；内容保存在单元格里，用 `cell_text` / `cell_choice` 读取，`commit_editor` 提交正在编辑的单元格。向导的样品表和模板编辑器使用。
+- `reagent_result.py` 的 `ReagentResultView`：试剂校验结果展示块（批号、结论、剩余天数、标示灵敏度），结论用文字加颜色表达。向导的试剂卡片、试剂溯源页和锁定说明共用。
+- `marks.WellState.ERROR`（P9）：读数或分析失败、没有结果的孔，危险色细环加淡底。图例不列出，只在故障时出现；文字「异常」。
+- `video_view.VideoView`：暗底视频区，图像按比例居中，没有画面时显示说明。实时预览和回放共用。
+- `tube_image_view.TubeImageView`：单管裁剪图加掩码叠加（凝胶 `gel_overlay` 色 38% 填充加阳性色描边，试管主色虚线 6/5）。新增颜色 token `gel_overlay`。
+- `replay_player.ReplayPlayer`：小型播放器（播放/暂停、进度条、时间），用 OpenCV 解码，不用 QtMultimedia。
+- `alert_stack.AlertStack`：告警横幅栈，按键去重，最多 4 条，可关闭；复用 `QFrame[role="banner"]` 样式。
+- `mini_plate.MiniPlate`：80 个 16px 小孔的孔板缩略图（工作台）。`progress_bar.ProgressBar`：8px 进度条。
+- `ui/background.py` 的 `BackgroundRunner`：用 Qt 线程池把读盘和解码放到后台，回调经排队信号回到主线程。
+- QSS 新增：`QCheckBox`（44px 触控高度）。
+
 展示页：
 
 ```bash

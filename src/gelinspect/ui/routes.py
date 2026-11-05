@@ -44,23 +44,17 @@ PAGE_ROUTES: tuple[Route, ...] = (
         "monitor",
         str(QT_TRANSLATE_NOOP("Routes", "试验监控")),
         Permission.EXPERIMENT_VIEW,
-        "P9",
-        str(QT_TRANSLATE_NOOP("Routes", "实时视频、8×10 孔板、各排倒计时、温度和试验数据记录。")),
     ),
     Route(
         "tube",
         str(QT_TRANSLATE_NOOP("Routes", "单管详情")),
         Permission.EXPERIMENT_VIEW,
-        "P9",
-        str(QT_TRANSLATE_NOOP("Routes", "翻转前后对比图、掩码叠加、特征数值和人工复核。")),
         in_nav=False,
     ),
     Route(
         "history",
         str(QT_TRANSLATE_NOOP("Routes", "历史记录")),
         Permission.EXPERIMENT_VIEW,
-        "P12",
-        str(QT_TRANSLATE_NOOP("Routes", "按时间、类型、批号和状态查询历史试验。")),
     ),
     Route("templates", str(QT_TRANSLATE_NOOP("Routes", "模板管理")), Permission.TEMPLATE_VIEW),
     Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")), Permission.EXPERIMENT_VIEW),
@@ -102,7 +96,6 @@ ROUTES: tuple[Route, ...] = (LOGIN_ROUTE, *PAGE_ROUTES)
 _BY_KEY = {route.key: route for route in ROUTES}
 
 PHASE_NAMES: dict[str, str] = {
-    "P9": str(QT_TRANSLATE_NOOP("Phases", "P9 监控与结果")),
     "P11": str(QT_TRANSLATE_NOOP("Phases", "P11 报告")),
     "P12": str(QT_TRANSLATE_NOOP("Phases", "P12 数据管理页")),
 }

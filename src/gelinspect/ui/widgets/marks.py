@@ -30,6 +30,8 @@ class WellState(Enum):
     """阴性。"""
     REVIEW = "review"
     """待复核。"""
+    ERROR = "error"
+    """读数或分析失败（没有结果），需要人工处理。图例不列出，只在故障时出现。"""
 
 
 STATE_LABELS: dict[WellState, str] = {
@@ -39,6 +41,7 @@ STATE_LABELS: dict[WellState, str] = {
     WellState.POSITIVE: str(QT_TRANSLATE_NOOP("WellState", "阳性")),
     WellState.NEGATIVE: str(QT_TRANSLATE_NOOP("WellState", "阴性")),
     WellState.REVIEW: str(QT_TRANSLATE_NOOP("WellState", "待复核")),
+    WellState.ERROR: str(QT_TRANSLATE_NOOP("WellState", "异常")),
 }
 """状态的源文本（简体中文），翻译用 :func:`state_label`。"""
 
@@ -116,6 +119,9 @@ def paint_well(
         fill, border, border_w = QColor(c.surface), QColor(c.negative), 3.0
     elif state is WellState.REVIEW:
         fill, border, border_w = QColor(c.surface), QColor(c.review), 2.0
+    elif state is WellState.ERROR:
+        fill, border, border_w = QColor(c.danger_bg), QColor(c.danger), 2.0
+        text_color = QColor(c.danger)
     elif state is WellState.READING:
         fill, border, border_w = QColor(c.primary_tint), QColor(c.primary), 2.0
         text_color = QColor(c.primary_hover)

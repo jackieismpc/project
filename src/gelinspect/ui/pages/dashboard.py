@@ -6,32 +6,44 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import datetime
 
-from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.state_machine import ExperimentState
-from gelinspect.interfaces.storage import ExperimentSummary
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
-from gelinspect.services.engine_types import EngineSnapshot, RowPhase, TemperatureChanged
+from gelinspect.services.dashboard_service import (
+    AttentionItem,
+    AttentionKind,
+    RecentResult,
+)
+from gelinspect.services.engine_types import RowPhase, TemperatureChanged
 from gelinspect.services.instrument_monitor import InstrumentStatus
-from gelinspect.ui.labels import experiment_state_label, experiment_type_label
+from gelinspect.services.monitor_service import ExperimentView
+from gelinspect.ui.labels import (
+    experiment_state_label,
+    experiment_type_label,
+    reagent_kind_label,
+)
+from gelinspect.ui.pages.monitor_format import experiment_title, status_badge, well_state
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
 from gelinspect.ui.widgets.label import Label
+from gelinspect.ui.widgets.mini_plate import MiniPlate
+from gelinspect.ui.widgets.progress_bar import ProgressBar
 from gelinspect.ui.widgets.sparkline import Sparkline
 from gelinspect.ui.widgets.stat_card import ReadoutCard
 
 TARGET_C = 37.0
 TOLERANCE_C = 1.0
 MAX_POINTS = 120
+RUNNING_REFRESH_MS = 250
+"""进行中试验卡片的最短刷新间隔。"""
 """曲线最多保留的采样点数。"""
 
 
@@ -44,9 +56,11 @@ class DashboardPage(QWidget):
 
     Signals:
         navigationRequested: 请求跳转到某页面，参数为路由标识。
+        experimentRequested: 请求打开某个试验（监控页），参数为试验标识。
     """
 
     navigationRequested = Signal(str)  # noqa: N815
+    experimentRequested = Signal(str)  # noqa: N815
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
         """创建页面。
@@ -60,10 +74,14 @@ class DashboardPage(QWidget):
         self._session: Session | None = None
         self._status: InstrumentStatus | None = None
         self._points: list[float] = []
-        self._recent: list[ExperimentSummary] = []
-        self._faulted: list[ExperimentSummary] = []
-        self._snapshot: EngineSnapshot | None = None
+        self._recent: list[RecentResult] = []
+        self._attention: list[AttentionItem] = []
+        self._running: ExperimentView | None = None
         self._denied = False
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(RUNNING_REFRESH_MS)
+        self._timer.timeout.connect(self._refresh_running)
 
         self.setProperty("role", "root")
         outer = QVBoxLayout(self)
@@ -95,19 +113,32 @@ class DashboardPage(QWidget):
         row1.setSpacing(14)
         self.sparkline = Sparkline(compact=False)
         self.temperature = ReadoutCard("", "--", "℃", sparkline=self.sparkline)
+        self.temperature.body.addStretch(1)
         row1.addWidget(self.temperature, 2)
         self.running_card = Card(" ")
         self.running_state = StatusBadge("", BadgeTone.INFO)
         self.running_id = Label("", "meta", mono=True)
-        self.running_title = Label("", "body")
+        self.running_title = Label("", "val")
         self.running_title.setWordWrap(True)
         self.running_rows = Label("", "meta")
+        self.mini_plate = MiniPlate()
+        self.progress = ProgressBar()
         self.running_open = Button("")
         self.running_open.clicked.connect(lambda: self.navigationRequested.emit("monitor"))
         assert self.running_card.header is not None
         self.running_card.header.addWidget(self.running_id)
-        for w in (self.running_state, self.running_title, self.running_rows, self.running_open):
-            self.running_card.body.addWidget(w, 0, Qt.AlignmentFlag.AlignLeft)
+        self.running_card.body.addWidget(self.running_state, 0, Qt.AlignmentFlag.AlignLeft)
+        running_row = QHBoxLayout()
+        running_row.setSpacing(16)
+        running_row.addWidget(self.mini_plate, 0, Qt.AlignmentFlag.AlignTop)
+        running_text = QVBoxLayout()
+        running_text.setSpacing(6)
+        for w in (self.running_title, self.running_rows, self.progress):
+            running_text.addWidget(w)
+        running_text.addStretch(1)
+        running_row.addLayout(running_text, 1)
+        self.running_card.body.addLayout(running_row)
+        self.running_card.body.addWidget(self.running_open, 0, Qt.AlignmentFlag.AlignLeft)
         self.running_empty = Label("", "meta")
         self.running_empty.setWordWrap(True)
         self.running_card.body.addWidget(self.running_empty)
@@ -119,6 +150,7 @@ class DashboardPage(QWidget):
         row2.setSpacing(14)
         self.recent_card = Card(" ")
         self.recent_table = DataTable(self._columns(), fit_content=True)
+        self.recent_table.rowActivated.connect(self._on_recent_activated)
         self.recent_card.body.addWidget(self.recent_table)
         row2.addWidget(self.recent_card, 2)
         self.attention_card = Card(" ")
@@ -143,17 +175,35 @@ class DashboardPage(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        """重新读取试验列表和引擎快照。无权限时显示空状态。"""
+        """重新读取进行中的试验、最近结果和待处理事项。无权限时显示空状态。"""
         self._denied = False
-        self._recent, self._faulted = [], []
+        self._recent, self._attention, self._running = [], [], None
         if self._session is not None:
             try:
-                self._recent = self._services.queries.recent_experiments(self._session, 8)
-                self._faulted = self._services.queries.faulted_experiments(self._session)
+                dashboard = self._services.dashboard
+                self._recent = dashboard.recent_results(self._session, 8)
+                self._attention = dashboard.attention(self._session)
+                self._running = dashboard.running(self._session)
+                if not self._points:
+                    self._points = dashboard.temperatures(self._session)[-MAX_POINTS:]
+                    self.sparkline.set_values(self._points)
             except AuthError:
                 self._denied = True
-        self._snapshot = self._services.engine.snapshot()
         self._render()
+
+    def request_running_refresh(self) -> None:
+        """孔和倒计时事件很密：合并成每 250 ms 最多一次的刷新。"""
+        if not self._timer.isActive():
+            self._timer.start()
+
+    def _refresh_running(self) -> None:
+        if self._session is None:
+            return
+        try:
+            self._running = self._services.dashboard.running(self._session)
+        except AuthError:
+            self._running = None
+        self._render_running()
 
     def on_instrument(self, status: InstrumentStatus) -> None:
         """收到仪器状态（空闲时的探测结果）。
@@ -189,6 +239,7 @@ class DashboardPage(QWidget):
             Column("id", self.tr("试验"), mono=True),
             Column("type", self.tr("类型")),
             Column("tubes", self.tr("试管"), mono=True, align_right=True),
+            Column("result", self.tr("结果")),
             Column("state", self.tr("状态")),
             Column("created", self.tr("创建时间"), mono=True),
         ]
@@ -240,24 +291,46 @@ class DashboardPage(QWidget):
         self.instrument_label.setText(self.tr("仪器已连接"))
 
     def _render_running(self) -> None:
-        snap = self._snapshot
-        running = snap is not None and snap.running
-        for w in (self.running_state, self.running_title, self.running_rows, self.running_open):
+        view = self._running
+        running = view is not None
+        for w in (
+            self.running_state,
+            self.mini_plate,
+            self.running_title,
+            self.running_rows,
+            self.progress,
+            self.running_open,
+        ):
             w.setVisible(running)
         self.running_empty.setVisible(not running)
-        if not running or snap is None:
+        if view is None:
             self.running_id.setText("")
             self.running_empty.setText(self.tr("当前没有进行中的试验。"))
             return
-        done = sum(1 for r in snap.rows if r.phase is RowPhase.DONE)
-        self.running_id.setText(snap.experiment_id)
-        self.running_state.set_text(experiment_state_label(snap.state))
-        tone = BadgeTone.DANGER if snap.state is ExperimentState.FAULTED else BadgeTone.INFO
+        self.running_id.setText(view.experiment_id)
+        text, tone = status_badge(view)
+        self.running_state.set_text(text)
         self.running_state.set_tone(tone)
-        self.running_title.setText(self.tr("试验 {id}").format(id=snap.experiment_id))
+        self.mini_plate.set_states({t.tube_no: well_state(t.status) for t in view.tubes})
+        done = sum(1 for r in view.rows if r.phase is RowPhase.DONE)
+        total = len(view.rows)
+        self.progress.set_value(done / total if total else 0.0)
+        name = experiment_title(view)
+        self.running_title.setText(name)
         self.running_rows.setText(
-            self.tr("已完成 {done} / {total} 排").format(done=done, total=len(snap.rows))
+            self.tr("{tubes} 管 · 已完成 {done} / {total} 排").format(
+                tubes=len(view.tubes), done=done, total=total
+            )
         )
+
+    def _result_text(self, item: RecentResult) -> str:
+        if not item.finished:
+            return ""
+        if item.pending:
+            return self.tr("{n} 管待复核").format(n=item.pending)
+        if item.positives == 0:
+            return self.tr("全部阴性")
+        return self.tr("阳性 {p} · 阴性 {n}").format(p=item.positives, n=item.negatives)
 
     def _render_recent(self) -> None:
         self.recent_table.set_rows(
@@ -266,12 +339,31 @@ class DashboardPage(QWidget):
                     "id": s.experiment_id,
                     "type": experiment_type_label(s.experiment_type),
                     "tubes": s.tube_count,
+                    "result": self._result_text(s),
                     "state": experiment_state_label(s.state),
                     "created": _local(s.created_at),
                 }
                 for s in self._recent
             ]
         )
+
+    def _on_recent_activated(self, row: int) -> None:
+        if 0 <= row < len(self._recent):
+            self.experimentRequested.emit(self._recent[row].experiment_id)
+
+    def _attention_line(self, item: AttentionItem) -> tuple[str, str, str | None]:
+        """（样式角色, 文字, 点击后打开的试验）。"""
+        if item.kind is AttentionKind.REVIEW_PENDING:
+            text = self.tr("试验 {id} 有 {n} 管待复核").format(id=item.experiment_id, n=item.count)
+            return "link", text, item.experiment_id
+        if item.kind is AttentionKind.FAULTED:
+            text = self.tr("试验 {id} 处于异常状态，需要人工处理").format(id=item.experiment_id)
+            return "link", text, item.experiment_id
+        assert item.label is not None
+        name = f"{reagent_kind_label(item.label)} {item.batch_no}"
+        if item.kind is AttentionKind.REAGENT_EXPIRED:
+            return "danger", self.tr("{name} 已过期 {n} 天").format(name=name, n=item.count), None
+        return "warn", self.tr("{name} 还有 {n} 天过期").format(name=name, n=item.count), None
 
     def _render_attention(self) -> None:
         while self.attention_box.count():
@@ -281,18 +373,23 @@ class DashboardPage(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
-        lines: Sequence[tuple[str, str]]
         if self._denied:
-            lines = [("meta", self.tr("当前角色无此权限"))]
-        else:
-            lines = [
-                ("warn", self.tr("试验 {id} 处于异常状态，需要人工处理").format(id=s.experiment_id))
-                for s in self._faulted
-            ] or [("ok", self.tr("没有需要处理的事项"))]
-        for role, text in lines:
-            label = Label(text, role)
-            label.setWordWrap(True)
-            self.attention_box.addWidget(label)
+            self.attention_box.addWidget(Label(self.tr("当前角色无此权限"), "meta"))
+            return
+        if not self._attention:
+            self.attention_box.addWidget(Label(self.tr("没有需要处理的事项"), "ok"))
+            return
+        for entry in self._attention:
+            role, text, target = self._attention_line(entry)
+            if target is not None:
+                button = Button(text)
+                button.setProperty("role", "link")
+                button.clicked.connect(lambda _c=False, t=target: self.experimentRequested.emit(t))
+                self.attention_box.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+            else:
+                label = Label(text, role)
+                label.setWordWrap(True)
+                self.attention_box.addWidget(label)
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802
         """语言切换时刷新文字。

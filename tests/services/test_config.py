@@ -284,7 +284,7 @@ def test_app_context_runs_an_experiment_end_to_end(tmp_path: Path, thread_baseli
         assert stored.state in (S.COMPLETED, S.PENDING_REVIEW)
         assert len(stored.results) == 8
         media = context.database.media.list_for_experiment("EXP-T-1")
-        assert len(media) == 7
+        assert len(media) == 1 + 6 + 8 * 4  # 录像、原图、每管 4 个掩码（P9）
         assert all(Path(m.path).is_relative_to(config.data_dir) for m in media)
         assert verify_audit_chain(context.database).ok
         assert "StateChanged" in states

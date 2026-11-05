@@ -238,6 +238,21 @@ class WellUpdated(EngineEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class RowCaptured(EngineEvent):
+    """一排翻转和抓帧完成，已交给算法。
+
+    Attributes:
+        row_index: 排号。
+        flip_angle_deg: 编码器读到的实际翻转角度，没有时为 None。
+        image_count: 落盘的原图张数。
+    """
+
+    row_index: int
+    flip_angle_deg: float | None
+    image_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class RowCountdown(EngineEvent):
     """一排的倒计时。
 

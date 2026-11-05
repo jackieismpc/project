@@ -38,6 +38,7 @@ from gelinspect.interfaces.storage import (
     AuditQuery,
     AuditRecord,
     ExperimentRepository,
+    MediaFile,
     MediaKind,
     PageRequest,
     StorageError,
@@ -54,6 +55,7 @@ from gelinspect.services.engine_types import (
     StateChanged,
 )
 from gelinspect.services.experiment_engine import ExperimentEngine
+from gelinspect.services.mask_archive import MASK_PREFIX
 from gelinspect.services.video import (
     QualityConfig,
     ReconnectConfig,
@@ -424,11 +426,22 @@ class Harness:
             assert sha256_file(path) == media.sha256
 
     def media_counts(self, experiment_id: str = EXP_ID) -> tuple[int, int]:
+        """（录像段数，原图张数）。掩码存档另见 :meth:`mask_files`。"""
         media = self.database.media
-        return (
-            len(media.list_for_experiment(experiment_id, kind=MediaKind.VIDEO)),
-            len(media.list_for_experiment(experiment_id, kind=MediaKind.IMAGE)),
-        )
+        raw = [
+            item
+            for item in media.list_for_experiment(experiment_id, kind=MediaKind.IMAGE)
+            if not Path(item.path).name.startswith(MASK_PREFIX)
+        ]
+        return (len(media.list_for_experiment(experiment_id, kind=MediaKind.VIDEO)), len(raw))
+
+    def mask_files(self, experiment_id: str = EXP_ID) -> list[MediaFile]:
+        """已入库的掩码存档记录。"""
+        return [
+            item
+            for item in self.database.media.list_for_experiment(experiment_id, kind=MediaKind.IMAGE)
+            if Path(item.path).name.startswith(MASK_PREFIX)
+        ]
 
     def release_all(self) -> None:
         for gate in [*self.device.gates.values(), *self.analyzer.gates.values()]:

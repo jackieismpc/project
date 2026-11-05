@@ -86,6 +86,8 @@ QTabBar::tab:hover { color: $ink; }
 QTabBar::tab:selected { color: $primary; border-bottom: 3px solid $primary; font-weight: 700; }
 QTabBar[kbfocus="true"]::tab:selected { background: $primary_soft; border-top-left-radius: 6px; border-top-right-radius: 6px; }
 
+QCheckBox { spacing: 8px; min-height: ${touch}px; }
+
 QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
     min-height: 36px; padding: 0 10px; border: 1px solid $border_strong;
     border-radius: ${button}px; background: $input_bg; selection-background-color: $primary_tint;
