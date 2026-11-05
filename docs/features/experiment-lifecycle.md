@@ -58,7 +58,7 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 | `analyzing` | `row_analyzed` | `incubating` |
 | `analyzing` | `all_analyzed_clean` | `completed` |
 | `analyzing` | `all_analyzed_needs_review` | `pending_review` |
-| `pending_review` | `review_completed` | `completed` |
+| `pending_review` | `review_completed` | `completed`（同一事务写入结论和完成时间） |
 | `completed` | `reopen_review` | `pending_review` |
 | `completed` | `sign` | `signed` |
 | `incubating`、`reading`、`analyzing` | `fault` | `faulted` |
@@ -75,7 +75,7 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 - `record_result` 只能在 `analyzing` 调用。异常期间到达的结果留在内存，恢复（`resume_analysis`）后再写入。
 - `fault` 的原因：设备、视频、温度、写库，以及「全部排读完但有排分析失败」。单排分析失败不会立刻转异常，其他排继续读数。
 - 恢复时有待处理的分析就发 `resume_analysis`，否则发 `resume_incubation`；读数失败的排回到等待状态，再走 `row_due`。`resume_reading` 目前没有使用。
-- 软件启动时，库内停留在 `incubating`、`reading`、`analyzing` 的试验走 `fault` 转异常，不自动继续。
+- 软件启动时，库内停留在 `incubating`、`reading`、`analyzing` 的试验走 `fault` 转异常，不自动继续。已抓帧的排可以人工重试分析（走 `resume_analysis`），没有读数的排不能续读。
 
 ### 前置条件
 
@@ -106,21 +106,22 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 
 2. 三态的映射可以配置。无法判定固定为待复核，不开放配置。
 3. 复核结论只能是阳性或阴性，可以重复复核，以最后一次为准。保留算法的自动判读。
+   启用低置信度阈值时（默认不启用），低于阈值的可信结果也转待复核，见 [conclusions.md](conclusions.md)。
 4. `completed` 状态下要改结论，先发送 `reopen_review`。签署后不能再修改。
 
 ### 内置模板
 
 | 模板 | 管数 | 布局 | `needs_confirmation` |
 |---|---|---|---|
-| 灵敏度复核 (2λ:1) | 17 | 1、0.5、0.25、0.125 各 4 管，加 1 支阴性对照（0.0） | `False` |
+| 灵敏度复核 (2λ:1) | 17 | 2λ、λ、λ/2、λ/4 各 4 管，加 1 支阴性对照（倍数 0） | `False` |
 | 干扰试验 | 28 | 从 1 号管连续占位，用途和数值留空 | `True` |
 | 复试试验 | 10 | 同上 | `True` |
 | 半定量试验 | 16 | 同上 | `True` |
 | 限度试验 | 8 | 同上 | `True` |
 
-灵敏度复核的 1、0.5、0.25、0.125、0.0 写入 `spiked_endotoxin`（外加内毒素），依据是参考视频新试验页（约 49.5 秒）的列位置；稀释倍数留空。
+灵敏度复核的模板存 λ 的倍数（`lambda_multiple`）。参考视频新试验页（约 49.5 秒）「外加内毒素」列是 1、0.5、0.25、0.125，那次 λ=0.5。创建试验时按鲎试剂的标示灵敏度算出外加内毒素，固化到试验记录；稀释倍数留空。
 
-推定模板的用途是 `unconfirmed`，不含药典规则。判定规则由 P10 负责。
+推定模板的用途是 `unconfirmed`，不含药典规则，结论恒为待定。判定规则见 [conclusions.md](conclusions.md)。
 
 ## 权限
 
@@ -139,12 +140,12 @@ draft ──提交──→ reagent_check ──通过──→ ready ──启�
 
 | 实体 | 关键字段 | 存储 |
 |---|---|---|
-| `Experiment` | 标识、类型、模板、仪器编号、操作人、状态、MVD、内毒素限值、实测灵敏度、签署人和时间 | P3 数据库 |
+| `Experiment` | 标识、类型、模板、仪器编号、操作人、状态、MVD、内毒素限值、实测灵敏度、签署人和时间、完成时间、布局确认快照、结论 | P3 数据库 |
 | `TubeAssignment`、`Sample` | 管号、样品名称、序列号、批号、稀释倍数、外加内毒素、用途 | P3 数据库 |
 | `ReagentBatch` | 种类、批号、有效期、备案状态、标示灵敏度 | P3 数据库 |
 | `TubeResult` | 算法状态、三态、评分、置信度、特征快照、模型和配置版本、自动判读、复核信息 | P3 数据库 |
 
-审计事件（`AuditAction`）：`experiment_created`、`reagent_checked`、`experiment_state_changed`、`row_analyzed`、`analysis_timeout`、`engine_alert`、`tube_reviewed`、`experiment_signed`。运行期的状态转换和它的审计、结果、媒体记录在同一事务提交（`UnitOfWork`）；其余事件由后续阶段的服务层写入。
+审计事件（`AuditAction`）：`experiment_created`、`reagent_checked`、`experiment_state_changed`、`row_analyzed`、`analysis_timeout`、`engine_alert`、`tube_reviewed`、`conclusion_recorded`、`experiment_signed`。运行期的状态转换和它的审计、结果、媒体记录在同一事务提交（`UnitOfWork`）；其余事件由后续阶段的服务层写入。
 
 ## 测试
 

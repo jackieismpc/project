@@ -169,6 +169,14 @@ class ExperimentService:
             assert batch is not None  # 全部 VALID 时必有批次
             batches.append(batch)
         report = check_reagents(batches, self._reagents.today())
+        labeled = next(
+            (b.labeled_sensitivity for b in batches if b.kind is ReagentKind.LAL_REAGENT), None
+        )
+        if template.requires_lambda and (labeled is None or labeled <= 0):
+            raise ServiceError(
+                "这个模板按鲎试剂的标示灵敏度 λ 计算外加内毒素，但试剂没有标示灵敏度",
+                ServiceErrorCode.LAMBDA_REQUIRED,
+            )
         experiment = Experiment(
             experiment_id=experiment_id,
             experiment_type=template.experiment_type,
@@ -186,11 +194,17 @@ class ExperimentService:
                     ),
                     role=item.role,
                     dilution_factor=a.dilution_factor,
-                    spiked_endotoxin=a.spiked_endotoxin,
+                    # 按倍数的管位由这里按 λ 算出并固化，不信任界面传来的值。
+                    spiked_endotoxin=(
+                        a.spiked_endotoxin
+                        if item.lambda_multiple is None
+                        else item.spike_for(labeled)
+                    ),
                 )
                 for a, item in zip(assignments, ordered_items, strict=True)
             ),
             reagents=tuple(batches),
+            layout_confirmed=not template.needs_confirmation,
         )
         experiment.apply(ExperimentEvent.SUBMIT_FOR_REAGENT_CHECK)
         if not report.passed:  # 领域规则复核：理论上不会发生，发生就是不放行

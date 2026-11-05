@@ -1,4 +1,7 @@
-"""单管图像视图：裁剪图加可开关的算法掩码叠加（凝胶橙色填充，试管虚线轮廓）。"""
+"""单管图像视图：裁剪图加可开关的算法掩码叠加（凝胶橙色填充，试管虚线轮廓）。
+
+控件宽度按裁剪图的比例收窄，只在图像本身的区域绘制，两侧不留黑边。
+"""
 
 from __future__ import annotations
 
@@ -34,6 +37,14 @@ def polygons_path(polygons: tuple[NDArray[np.int32], ...]) -> QPainterPath:
     return path
 
 
+_UNLIMITED = 16777215
+"""Qt 的 ``QWIDGETSIZE_MAX``，PySide6 没有导出。"""
+MIN_WIDTH = 48
+"""控件的最小宽度。试管图很窄，太宽会留黑边。"""
+MAX_HEIGHT = 380
+"""控件的最大高度。"""
+
+
 class TubeImageView(QWidget):
     """一张单管裁剪图，可叠加掩码。"""
 
@@ -49,8 +60,8 @@ class TubeImageView(QWidget):
         self._tube = QPainterPath()
         self._overlay = True
         self._text = ""
-        self.setMinimumSize(160, 240)
-        self.setMaximumHeight(380)
+        self.setMinimumSize(MIN_WIDTH, 240)
+        self.setMaximumHeight(MAX_HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_content(
@@ -69,6 +80,12 @@ class TubeImageView(QWidget):
         self._image = None if image is None else bgr_to_qimage(image)
         self._gel = polygons_path(gel)
         self._tube = polygons_path(tube)
+        if self._image is None:
+            self.setMaximumWidth(_UNLIMITED)
+        else:
+            aspect = self._image.width() / max(1, self._image.height())
+            self.setMaximumWidth(max(MIN_WIDTH, round(MAX_HEIGHT * aspect)))
+        self.updateGeometry()
         self.update()
 
     def has_image(self) -> bool:
@@ -119,7 +136,10 @@ class TubeImageView(QWidget):
         Returns:
             尺寸。
         """
-        return QSize(240, 340)
+        if self._image is None:
+            return QSize(240, 340)
+        aspect = self._image.width() / max(1, self._image.height())
+        return QSize(max(MIN_WIDTH, round(MAX_HEIGHT * aspect)), MAX_HEIGHT)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         """绘制图像和叠加层。
@@ -132,10 +152,10 @@ class TubeImageView(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(c.video_bg))
-        p.drawRoundedRect(QRectF(self.rect()), 3, 3)
         image = self._image
         if image is None:
+            p.setBrush(QColor(c.video_bg))
+            p.drawRoundedRect(QRectF(self.rect()), 3, 3)
             p.setFont(sans_font(13))
             p.setPen(QColor(c.video_text))
             p.drawText(

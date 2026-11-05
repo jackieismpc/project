@@ -68,7 +68,7 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert [a.tube_no for a in experiment.assignments] == list(range(10, 27))
     for assignment, item in zip(experiment.assignments, items, strict=True):
         assert assignment.role is item.role
-        assert assignment.spiked_endotoxin == item.spiked_endotoxin
+        assert assignment.spiked_endotoxin == item.spike_for(0.25)  # 白名单的 λ
     assert experiment.assignments[-1].role is TubeRole.NEGATIVE_CONTROL
     assert {b.kind for b in experiment.reagents} == set(ReagentKind)
     assert all(b.registered and b.expiry_date is not None for b in experiment.reagents)

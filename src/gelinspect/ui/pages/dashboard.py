@@ -241,7 +241,7 @@ class DashboardPage(QWidget):
             Column("tubes", self.tr("试管"), mono=True, align_right=True),
             Column("result", self.tr("结果")),
             Column("state", self.tr("状态")),
-            Column("created", self.tr("创建时间"), mono=True),
+            Column("completed", self.tr("完成时间"), mono=True),
         ]
 
     def retranslate(self) -> None:
@@ -341,7 +341,7 @@ class DashboardPage(QWidget):
                     "tubes": s.tube_count,
                     "result": self._result_text(s),
                     "state": experiment_state_label(s.state),
-                    "created": _local(s.created_at),
+                    "completed": "" if s.completed_at is None else _local(s.completed_at),
                 }
                 for s in self._recent
             ]

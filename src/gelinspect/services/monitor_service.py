@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Protocol
 
+from gelinspect.domain.conclusions import ExperimentConclusion, provisional_conclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -37,6 +38,7 @@ from gelinspect.interfaces.video import VideoInfo
 from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.engine_run import FLIP_ANGLE_KEY
 from gelinspect.services.engine_types import (
+    EngineError,
     EngineSnapshot,
     RowPhase,
     WellStatus,
@@ -129,6 +131,22 @@ class MonitorEngine(Protocol):
 
     def stop_faulted(self, experiment_id: str, user: User, reason: str = "") -> None:
         """停止没有在运行的异常试验。"""
+        ...
+
+    def resume(self, user: User) -> bool:
+        """从异常恢复正在运行的试验。"""
+        ...
+
+    def retry_analysis(self, user: User) -> bool:
+        """重试正在运行的试验里分析失败的排。"""
+        ...
+
+    def retry_interrupted(self, experiment_id: str, user: User) -> None:
+        """软件重启后离线重试分析。"""
+        ...
+
+    def retryable_rows(self, experiment_id: str) -> tuple[int, ...]:
+        """重启后的异常试验里，还能离线重新分析的排。"""
         ...
 
 
@@ -235,6 +253,14 @@ class ExperimentView:
         last_elapsed_ms: 最近一次算法分析的耗时。
         last_flip_angle_deg: 最近一次翻转角度。
         signed_by: 签署人。
+        conclusion: 试验结论；已完成的是入库的结论，其余是临时结论（待定）。
+        conclusion_recorded: 结论是否已入库。
+        completed_at: 完成时间。
+        can_resume: 可以恢复（异常且调度还在内存里）。
+        interrupted: 异常且引擎没有在运行：软件重启过，调度已丢失，只能重试分析或停止。
+        failed_rows: 本次运行里分析失败的排。
+        retry_rows: 现在可以重试分析的排。
+        unread_rows: 软件重启后不能再读数的排（没有抓帧，也没有结果）。
     """
 
     experiment_id: str
@@ -259,6 +285,14 @@ class ExperimentView:
     last_elapsed_ms: float | None
     last_flip_angle_deg: float | None
     signed_by: str | None
+    conclusion: ExperimentConclusion
+    conclusion_recorded: bool = False
+    completed_at: datetime | None = None
+    can_resume: bool = False
+    interrupted: bool = False
+    failed_rows: tuple[int, ...] = ()
+    retry_rows: tuple[int, ...] = ()
+    unread_rows: tuple[int, ...] = ()
 
     @property
     def can_stop(self) -> bool:
@@ -383,12 +417,41 @@ class MonitorService:
             )
         snapshot = self._engine.snapshot()
         # 引擎线程在状态到达终点之后还要收尾（退出滑台、停视频），收尾期间界面已按只读显示。
-        live = (
-            self._engine.active_experiment_id == experiment_id and experiment.state in LIVE_STATES
-        )
         if snapshot is not None and snapshot.experiment_id != experiment_id:
             snapshot = None
-        return self._build_view(experiment, snapshot if live else None, live)
+        active = self._engine.active_experiment_id == experiment_id
+        # 离线重试不碰设备和视频，没有实时画面可看，按只读显示。
+        offline = snapshot is not None and snapshot.offline_retry
+        live = active and not offline and experiment.state in LIVE_STATES
+        view = self._build_view(experiment, snapshot if live else None, live)
+        return self._with_recovery(view, snapshot if active else None, active)
+
+    def _with_recovery(
+        self, view: ExperimentView, snapshot: EngineSnapshot | None, active: bool
+    ) -> ExperimentView:
+        """补上恢复和重试的入口条件。"""
+        failed = (
+            tuple(r.row_index for r in snapshot.rows if r.phase is RowPhase.ANALYSIS_FAILED)
+            if snapshot is not None
+            else ()
+        )
+        if view.state is not ExperimentState.FAULTED:
+            return replace(view, failed_rows=failed)
+        if active:
+            return replace(
+                view,
+                can_resume=snapshot is None or not snapshot.offline_retry,
+                failed_rows=failed,
+                retry_rows=failed,
+            )
+        retry = self._engine.retryable_rows(view.experiment_id)
+        unread = tuple(
+            row.row_index
+            for row in view.rows
+            if row.row_index not in retry
+            and any(t.result is None for t in view.tubes if t.row_index == row.row_index)
+        )
+        return replace(view, interrupted=True, retry_rows=retry, unread_rows=unread)
 
     def _build_view(
         self, experiment: Experiment, snapshot: EngineSnapshot | None, live: bool
@@ -468,6 +531,9 @@ class MonitorService:
             last_elapsed_ms=newest.elapsed_ms if newest is not None else None,
             last_flip_angle_deg=float(angle) if isinstance(angle, float) else None,
             signed_by=experiment.signed_by,
+            conclusion=experiment.conclusion or provisional_conclusion(experiment),
+            conclusion_recorded=experiment.conclusion is not None,
+            completed_at=experiment.completed_at,
         )
 
     def _started_at(self, experiment: Experiment) -> datetime | None:
@@ -536,6 +602,64 @@ class MonitorService:
             self._engine.stop(user, reason)
         else:
             self._engine.stop_faulted(experiment_id, user, reason)
+
+    # ------------------------------------------------------------------ 恢复
+
+    def _require_faulted(self, experiment_id: str, code: ServiceErrorCode) -> None:
+        experiment = self._storage.experiments.get(experiment_id)
+        if experiment is None:
+            raise ServiceError(
+                f"试验不存在：{experiment_id}",
+                ServiceErrorCode.EXPERIMENT_NOT_FOUND,
+                id=experiment_id,
+            )
+        if experiment.state is not ExperimentState.FAULTED:
+            raise ServiceError(f"试验 {experiment_id} 不是异常状态", code, id=experiment_id)
+
+    def resume(self, session: Session | None, experiment_id: str) -> None:
+        """恢复异常的试验。立即返回；结果通过状态变化或 ``RESUME_REJECTED`` 告警体现，都写审计。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_run`` 权限。
+            experiment_id: 试验标识。
+
+        Raises:
+            PermissionDeniedError: 没有权限（已写 ``permission_denied`` 审计）。
+            ServiceError: 试验不存在、不是异常状态，或软件重启后调度已丢失
+                （``RESUME_NOT_ALLOWED``）。
+        """
+        user = self._auth.authorize(session, Permission.EXPERIMENT_RUN)
+        self._require_faulted(experiment_id, ServiceErrorCode.RESUME_NOT_ALLOWED)
+        if self._engine.active_experiment_id != experiment_id:
+            raise ServiceError(
+                "软件重启后调度已经丢失，不能恢复", ServiceErrorCode.RESUME_NOT_ALLOWED
+            )
+        self._engine.resume(user)
+
+    def retry_analysis(self, session: Session | None, experiment_id: str) -> None:
+        """重试分析失败的排。从磁盘读回原图、核对哈希后重新分析，不翻转。
+
+        运行中的试验交给引擎；重启后没有在运行的试验走离线重试。立即返回，结果和
+        :meth:`resume` 一样通过状态变化或告警体现。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_run`` 权限。
+            experiment_id: 试验标识。
+
+        Raises:
+            PermissionDeniedError: 没有权限（已写 ``permission_denied`` 审计）。
+            ServiceError: 试验不存在、不是异常状态、没有可以重试的排，或别的试验正在运行
+                （``RETRY_NOT_ALLOWED``）。
+        """
+        user = self._auth.authorize(session, Permission.EXPERIMENT_RUN)
+        self._require_faulted(experiment_id, ServiceErrorCode.RETRY_NOT_ALLOWED)
+        if self._engine.active_experiment_id == experiment_id:
+            self._engine.retry_analysis(user)
+            return
+        try:
+            self._engine.retry_interrupted(experiment_id, user)
+        except EngineError as error:
+            raise ServiceError(str(error), ServiceErrorCode.RETRY_NOT_ALLOWED) from error
 
     # ------------------------------------------------------------------ 视频
 

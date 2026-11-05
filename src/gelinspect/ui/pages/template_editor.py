@@ -29,7 +29,7 @@ from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.edit_table import EditColumn, EditTable
 from gelinspect.ui.widgets.label import Label
 
-COL_NO, COL_SAMPLE, COL_DILUTION, COL_SPIKE, COL_ROLE = range(5)
+COL_NO, COL_SAMPLE, COL_DILUTION, COL_SPIKE, COL_MULTIPLE, COL_ROLE = range(6)
 """编辑表的列。"""
 
 Submit = Callable[[TemplateDraft], ExperimentTemplate]
@@ -148,6 +148,7 @@ class TemplateEditorDialog(QDialog):
             EditColumn(self.tr("样品名称"), "text"),
             EditColumn(self.tr("稀释倍数"), "number", mono=True),
             EditColumn(self.tr("外加内毒素"), "number", mono=True),
+            EditColumn(self.tr("λ 倍数"), "number", mono=True),
             EditColumn(
                 self.tr("用途"),
                 "choice",
@@ -162,9 +163,10 @@ class TemplateEditorDialog(QDialog):
                 item.sample_name,
                 "" if item.dilution_factor is None else f"{item.dilution_factor:g}",
                 "" if item.spiked_endotoxin is None else f"{item.spiked_endotoxin:g}",
+                "" if item.lambda_multiple is None else f"{item.lambda_multiple:g}",
                 tube_role_label(item.role),
             ],
-            [None, None, None, None, item.role.value],
+            [None, None, None, None, None, item.role.value],
         )
 
     def _add_row(self) -> None:
@@ -199,6 +201,7 @@ class TemplateEditorDialog(QDialog):
                 role=TubeRole(self.table.cell_choice(r, COL_ROLE) or TubeRole.TEST.value),
                 dilution_factor=_number(self.table.cell_text(r, COL_DILUTION)),
                 spiked_endotoxin=_number(self.table.cell_text(r, COL_SPIKE)),
+                lambda_multiple=_number(self.table.cell_text(r, COL_MULTIPLE)),
             )
             for r in range(self.table.rowCount())
         ]

@@ -100,7 +100,8 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 |---|---|---|
 | `users` | 登录名、显示名、角色、启用、argon2 密码哈希、是否必须改密 | `domain.User`，哈希在 `UserCredentials` |
 | `templates`、`template_items` | 模板与管位项，`builtin` 标记 | `ExperimentTemplate` |
-| `experiments` | 类型、模板、仪器、操作人、状态、灵敏度、MVD、限值、签署人与时间 | `Experiment` |
+| `experiments` | 类型、模板、仪器、操作人、状态、灵敏度、MVD、限值、签署人与时间、完成时间、布局确认快照 | `Experiment` |
+| `experiment_conclusions` | 结论、数值、规则版本、λ、计算时间、依据和用到的单管（JSON），见 [conclusions.md](conclusions.md) | `ExperimentConclusion` |
 | `tube_assignments` | 管号、样品（标识、名称、序列号、批号）、用途、稀释倍数、外加内毒素 | `TubeAssignment` |
 | `reagent_batches` | 种类、批号、有效期、是否备案、标示灵敏度、录入顺序 | `ReagentBatch` |
 | `tube_results` | 算法状态与三态、Score、置信度、特征（JSON）、模型版本、配置版本、耗时、阴阳性、复核状态与结论、复核人、时间、备注 | `TubeResult` |

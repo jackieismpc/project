@@ -87,6 +87,7 @@ class RecentResult:
         pending: 待复核管数。
         finished: 是否已有结果可以汇总。
         created_at: 创建时间。
+        completed_at: 完成时间，还没完成时为 None。
     """
 
     experiment_id: str
@@ -98,6 +99,7 @@ class RecentResult:
     pending: int
     finished: bool
     created_at: datetime
+    completed_at: datetime | None = None
 
 
 class DashboardService:
@@ -170,6 +172,7 @@ class DashboardService:
             pending=final.count(Interpretation.PENDING_REVIEW),
             finished=item.state in _FINISHED and bool(results),
             created_at=item.created_at,
+            completed_at=item.completed_at,
         )
 
     def attention(self, session: Session | None) -> list[AttentionItem]:

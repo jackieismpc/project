@@ -290,8 +290,8 @@ class TubeDetailPage(QWidget):
         ):
             cell = QVBoxLayout()
             cell.setSpacing(6)
-            cell.addWidget(view, 1)
-            cell.addWidget(caption)
+            cell.addWidget(view, 1, Qt.AlignmentFlag.AlignHCenter)
+            cell.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             pair.addLayout(cell, 1)
         card.body.addLayout(pair)
         self.image_warning = Label("", "danger")
@@ -620,7 +620,7 @@ class TubeDetailPage(QWidget):
             self.verdict_sub.setText(sub)
         self.score_bar.set_value(result.score)
         self.score_value.setText(number(result.score, 2))
-        if result.analysis_status is not TubeAnalysisStatus.OK:
+        if result.analysis_status is not TubeAnalysisStatus.OK or result.message:
             note = analysis_status_label(result.analysis_status)
             if result.message:
                 note += f"：{result.message}"

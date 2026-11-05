@@ -16,12 +16,13 @@ from __future__ import annotations
 import logging
 import threading
 from collections import deque
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypeVar
 
+from gelinspect.domain.conclusions import finalize_conclusion, labeled_sensitivity_of
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -49,6 +50,9 @@ from gelinspect.interfaces.device import (
     DeviceError,
     DeviceStatus,
     FlipResult,
+    PlateAwareDevice,
+    PlatePlan,
+    PlateTube,
     TrayPosition,
 )
 from gelinspect.interfaces.storage import (
@@ -60,6 +64,7 @@ from gelinspect.interfaces.storage import (
     UnitOfWork,
 )
 from gelinspect.interfaces.video import VideoError
+from gelinspect.services.engine_recovery import RowRecovery
 from gelinspect.services.engine_types import (
     AlertCode,
     AlertLevel,
@@ -226,13 +231,21 @@ class _Inbox:
 class EngineRun:
     """一次试验运行，从启动前检查到资源全部释放。"""
 
-    def __init__(self, experiment: Experiment, user: User, deps: EngineDeps) -> None:
+    def __init__(
+        self,
+        experiment: Experiment,
+        user: User,
+        deps: EngineDeps,
+        *,
+        recovery: Mapping[int, RowRecovery] | None = None,
+    ) -> None:
         """准备运行，不启动线程。
 
         Args:
-            experiment: 处于就绪状态的试验，所有权转移给引擎线程。
+            experiment: 处于就绪状态的试验，所有权转移给引擎线程。离线重试时是异常状态的试验。
             user: 启动者。
             deps: 依赖。
+            recovery: 不为 None 时是软件重启后的离线重试分析：只分析这些排，不碰设备和视频。
         """
         self._exp = experiment
         self._user = user
@@ -290,6 +303,9 @@ class EngineRun:
         self._last_status_poll = float("-inf")
         self._last_countdown = float("-inf")
         self._last_temperature_log = float("-inf")
+        self._offline = recovery is not None
+        if recovery is not None:
+            self._apply_recovery(recovery)
         self._snapshot = self._build_snapshot(running=True)
 
     # ------------------------------------------------------------------ 任意线程
@@ -374,10 +390,45 @@ class EngineRun:
 
     # ------------------------------------------------------------------ 线程体
 
+    def _apply_recovery(self, recovery: Mapping[int, RowRecovery]) -> None:
+        """按库内结果和媒体记录恢复各排的阶段。"""
+        for row in self._rows.values():
+            if all(tube in self._exp.results for tube in row.tubes):
+                row.phase = RowPhase.DONE
+            elif row.row_index in recovery:
+                row.phase = RowPhase.ANALYSIS_FAILED
+                row.files = list(recovery[row.row_index].files)
+                row.flip_angle_deg = recovery[row.row_index].flip_angle_deg
+            else:
+                row.phase = RowPhase.READ_FAILED
+        self._fault_kinds.add(FaultKind.ANALYSIS)
+        self._fault_reason = "软件重启后重试分析"
+
+    def _start_offline(self) -> None:
+        """离线重试的开始：加载算法，然后走和在线重试相同的恢复流程。"""
+        try:
+            self._analyzer_info = self._await(self._worker.load(self._deps.analyzer_config_path))
+        except _CancelledError:
+            self._finished = True
+            return
+        except Exception as exc:
+            self._finished = True
+            self._alert(
+                AlertCode.RESUME_REJECTED,
+                AlertLevel.ERROR,
+                f"不能重试分析：算法加载失败：{exc}",
+                user=self._user,
+            )
+            return
+        self._resume(_Resume(self._user, analysis_only=True))
+
     def _run(self) -> None:
         try:
             self._worker.start()
-            if self._preflight():
+            if self._offline:
+                self._start_offline()
+                self._loop()
+            elif self._preflight():
                 self._loop()
         except _RunAbortError as exc:
             logger.error("试验 %s 的运行已中止：%s", self.experiment_id, exc)
@@ -401,7 +452,25 @@ class EngineRun:
                 errors += 1
                 self._on_internal_error(exc, errors)
 
+    def _offline_step(self) -> None:
+        """离线重试的主循环：只等分析结局和停止，没有设备、视频和排程。"""
+        self._drain_inbox()
+        if self._finished:
+            return
+        if self._stop_event.is_set():
+            self._perform_stop()
+            return
+        self._check_analysis_timeouts()
+        state = self._exp.state
+        if state in _FINISHED_STATES or (state is ExperimentState.FAULTED and not self._pending):
+            self._finished = True
+            return
+        self._inbox.wait(self._cfg.tick_s)
+
     def _step(self) -> None:
+        if self._offline:
+            self._offline_step()
+            return
         self._drain_inbox()
         if self._finished:
             return
@@ -491,6 +560,17 @@ class EngineRun:
         problem = self._health_problem(status)
         if problem is not None:
             raise DeviceError(problem)
+        if isinstance(self._device, PlateAwareDevice):
+            self._device.load_plate_plan(
+                PlatePlan(
+                    experiment_id=self.experiment_id,
+                    labeled_sensitivity=labeled_sensitivity_of(self._exp),
+                    tubes=tuple(
+                        PlateTube(a.tube_no, a.role, a.spiked_endotoxin)
+                        for a in self._exp.assignments
+                    ),
+                )
+            )
         self._check_cancelled()
         self._analyzer_info = self._await(self._worker.load(self._deps.analyzer_config_path))
         self._check_cancelled()
@@ -695,7 +775,13 @@ class EngineRun:
         if capture.record is not None:
             self._pending_media.append(segment_to_media_file(capture.record, created_at=now))
         if capture.snapshot is not None:
-            self._pending_media.extend(snapshot_to_media_files(capture.snapshot, created_at=now))
+            self._pending_media.extend(
+                snapshot_to_media_files(
+                    capture.snapshot,
+                    created_at=now,
+                    flip_angle_deg=None if capture.flip is None else capture.flip.actual_angle_deg,
+                )
+            )
         if capture.segment_failure is not None:
             self._alert(
                 AlertCode.SEGMENT_INTERRUPTED,
@@ -862,6 +948,13 @@ class EngineRun:
             failed = [r.label for r in self._rows.values() if r.phase is RowPhase.ANALYSIS_FAILED]
             self._fault_kinds.add(FaultKind.ANALYSIS)
             self._fault_reason = f"{'、'.join(failed)} 分析失败，等待重试"
+            return (ExperimentEvent.FAULT,)
+        if self._offline and RowPhase.READ_FAILED in phases:
+            unread = [r.label for r in self._rows.values() if r.phase is RowPhase.READ_FAILED]
+            self._fault_reason = (
+                f"{'、'.join(unread)} 没有读数，上次运行中断后错过了读数时间，不能续读；"
+                "已抓帧的排已经重新分析。这个试验只能停止"
+            )
             return (ExperimentEvent.FAULT,)
         if self._exp.pending_review_tubes:
             return (ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW,)
@@ -1185,6 +1278,9 @@ class EngineRun:
         if self._exp.state is not ExperimentState.FAULTED:
             reject(f"试验状态是 {self._exp.state.value}，不是异常，无需恢复")
             return
+        if self._offline and not command.analysis_only:
+            reject("软件重启后调度已经丢失，不能恢复，只能重试分析或停止")
+            return
         if command.analysis_only:
             others = self._fault_kinds - {FaultKind.ANALYSIS}
             if others:
@@ -1200,7 +1296,12 @@ class EngineRun:
                 return
 
         retry = [r for r in self._rows.values() if r.phase is RowPhase.ANALYSIS_FAILED]
-        reread = [r for r in self._rows.values() if r.phase is RowPhase.READ_FAILED]
+        # 离线重试不翻转：没有读数的排留在「读数失败」，全部分析完后试验回到异常。
+        reread = (
+            []
+            if self._offline
+            else [r for r in self._rows.values() if r.phase is RowPhase.READ_FAILED]
+        )
         event = (
             ExperimentEvent.RESUME_ANALYSIS
             if retry or self._pending or self._deferred
@@ -1396,6 +1497,7 @@ class EngineRun:
         exp = self._exp
         state_before = exp.state
         results_before = dict(exp.results)
+        completion_before = (exp.conclusion, exp.completed_at, exp.measured_sensitivity)
         media = list(self._pending_media)
         actor = user.username if user is not None else SYSTEM_ACTOR
         changes: list[StateChanged] = []
@@ -1429,6 +1531,20 @@ class EngineRun:
                     )
                 )
 
+            completed = (
+                exp.state is ExperimentState.COMPLETED
+                and state_before is not ExperimentState.COMPLETED
+            )
+            if completed:
+                # 结论和「已完成」状态同一事务：看到已完成的人一定也能读到结论。
+                records.append(
+                    self._audit_event(
+                        AuditAction.CONCLUSION_RECORDED,
+                        finalize_conclusion(exp, self._clock.now()).summary_text(),
+                        user=user,
+                    )
+                )
+
             def write(uow: UnitOfWork) -> None:
                 if exp.state is not state_before:
                     uow.experiments.update_state(
@@ -1436,6 +1552,14 @@ class EngineRun:
                     )
                 if results:
                     uow.experiments.save_results(exp.experiment_id, results)
+                if completed:
+                    assert exp.conclusion is not None and exp.completed_at is not None
+                    uow.experiments.record_completion(
+                        exp.experiment_id,
+                        completed_at=exp.completed_at,
+                        measured_sensitivity=exp.measured_sensitivity,
+                        conclusion=exp.conclusion,
+                    )
                 for item in media:
                     uow.media.add(item)
                 if records:
@@ -1447,6 +1571,7 @@ class EngineRun:
         except Exception:
             exp.state = state_before
             exp.results = results_before
+            exp.conclusion, exp.completed_at, exp.measured_sensitivity = completion_before
             raise
         del self._pending_media[: len(media)]
         for change in changes:
@@ -1564,4 +1689,5 @@ class EngineRun:
             fault_kinds=frozenset(self._fault_kinds),
             fault_reason=self._fault_reason,
             temperature_c=self._temperature_c,
+            offline_retry=self._offline,
         )

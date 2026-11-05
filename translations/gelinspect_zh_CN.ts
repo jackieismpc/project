@@ -208,6 +208,176 @@
     </message>
 </context>
 <context>
+    <name>Conclusion</name>
+    <message>
+        <source>合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>不合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无效</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>项目任务书；中国药典通则 1143（条文原文待 QA 逐字核对）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>中国药典通则 1143，待 QA 核对</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ = {lam} EU/mL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {series} 系列（{tubes} 号管）：{readings}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL（{multiple}λ）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性对照（{tubes} 号管）：全部阴性</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λc = antilg(mean(lg 终点)) = antilg(({terms}) / {count}) ≈ {value}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λc = {value} EU/mL，判定范围 0.5λ–2λ（含）= {low}–{high} EU/mL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板布局待确认：没有安排试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板布局待确认：模板标记为推定布局，等待 QA 确认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板布局待确认：{tubes} 号管没有标记用途</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{tubes} 号管还没有结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{tubes} 号管等待人工复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有可用的鲎试剂标示灵敏度 λ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：阴性对照 {tubes} 号管加了内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：{tubes} 号管的外加内毒素不是 2λ、λ、λ/2、λ/4 之一</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：{multiple}λ 应有 {expected} 管，实际 {actual} 管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板没有标记阴性对照</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>最大浓度 {level} EU/mL 不是全部阳性（{tubes} 号管不是阳性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>最低浓度 {level} EU/mL 不是全部阴性（{tubes} 号管不是阴性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性对照不是阴性（{tubes} 号管）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验完成时还没有结论功能，没有入库的结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验已停止，不产生结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ConclusionCard</name>
+    <message>
+        <source>规则版本 {version}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λc（参考值，不是最终结论）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ {value} EU/ml</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无效原因</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未满足的前提</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>规则来源：{source}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验完成后才会固化结论。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验结论</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>依据（+ 阳性，− 阴性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ConfirmDialog</name>
     <message>
         <source>取消</source>
@@ -241,7 +411,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>创建时间</source>
+        <source>完成时间</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -491,11 +661,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>完成时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>历史记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>双击一行打开回看；按条件查询和导出将在 P12 提供</source>
+        <source>双击一行打开回看</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -704,7 +878,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>待 P10</source>
+        <source>全部排读完后才能重试分析</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验异常：{reason}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -768,6 +962,30 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>恢复试验？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；分析失败的排用保留的原图重试。确定要恢复吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>暂不恢复</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已请求恢复试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已请求重试分析</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>试验数据记录</source>
         <translation type="unfinished"></translation>
     </message>
@@ -793,6 +1011,10 @@
     </message>
     <message>
         <source>打开历史记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重试分析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -836,11 +1058,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>该功能将在 P11 阶段实现</source>
+        <source>这个功能还在建设中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>报告打印预览、单批次报告、数字签名和验签在报告阶段提供。</source>
+        <source>这里将提供报告打印预览、单批次报告、数字签名和验签。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1003,6 +1225,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>缺少标示灵敏度 λ，不能进入下一步</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个模板按 λ 计算外加内毒素。请换一个有标示灵敏度的鲎试剂批次，或把灵敏度补录到备案信息后重新扫码。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>试剂未通过校验，流程已锁定，不能进入下一步</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1110,15 +1340,8 @@
         <source>当前角色无此权限</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>Phases</name>
     <message>
-        <source>P11 报告</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>P12 数据管理页</source>
+        <source>这个模板需要鲎试剂的标示灵敏度 λ</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1140,7 +1363,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>该页面将在 {phase} 阶段实现</source>
+        <source>这个页面还在建设中</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1786,6 +2009,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>这个试验现在不能恢复，软件重启后只能重试分析或停止</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个试验现在不能重试分析</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个模板需要鲎试剂的标示灵敏度 λ，当前试剂没有提供</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>第 {row} 排没有可播放的录像</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1987,6 +2222,10 @@
     </message>
     <message>
         <source>外加内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λ 倍数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2403,6 +2642,18 @@
     </message>
     <message>
         <source>阴性对照</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>供试品</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阳性对照</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>供试品阳性对照</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

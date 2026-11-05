@@ -35,6 +35,9 @@ class ServiceErrorCode(StrEnum):
     REVIEW_NOT_ALLOWED = "review_not_allowed"
     REVIEW_CONCLUSION_INVALID = "review_conclusion_invalid"
     REVIEW_CONFLICT = "review_conflict"
+    RESUME_NOT_ALLOWED = "resume_not_allowed"
+    RETRY_NOT_ALLOWED = "retry_not_allowed"
+    LAMBDA_REQUIRED = "lambda_required"
     MEDIA_MISSING = "media_missing"
     MEDIA_TAMPERED = "media_tampered"
 

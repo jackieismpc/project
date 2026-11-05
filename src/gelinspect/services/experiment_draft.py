@@ -24,9 +24,10 @@ class SampleRow:
     Attributes:
         name: 样品名称。
         batch_no: 样品批号，可留空。
-        spiked_endotoxin: 外加内毒素。
+        spiked_endotoxin: 外加内毒素。按倍数的行由 λ 算出，λ 未知时为 None。
         dilution_factor: 稀释倍数。
         role: 试管用途（来自模板，界面不编辑）。
+        lambda_multiple: 模板给的 λ 倍数；有值时这一行的外加内毒素不能手工改。
     """
 
     name: str
@@ -34,14 +35,16 @@ class SampleRow:
     spiked_endotoxin: float | None = None
     dilution_factor: float | None = None
     role: TubeRole = TubeRole.TEST
+    lambda_multiple: float | None = None
 
     def snapshot(self) -> tuple[str, str, float | None, float | None]:
-        """用于判断是否被编辑过的快照。
+        """用于判断是否被编辑过的快照（按 λ 算出的值不算编辑）。
 
         Returns:
             可比较的元组。
         """
-        return (self.name, self.batch_no, self.spiked_endotoxin, self.dilution_factor)
+        spike = None if self.lambda_multiple is not None else self.spiked_endotoxin
+        return (self.name, self.batch_no, spike, self.dilution_factor)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +91,7 @@ class ExperimentDraft:
         self._baseline: list[tuple[str, str, float | None, float | None]] = []
         self._selected: list[int] = []
         self._reagent_codes: dict[ReagentKind, str] = {}
+        self._labeled_sensitivity: float | None = None
 
     # ------------------------------------------------------------------ 模板
 
@@ -106,9 +110,10 @@ class ExperimentDraft:
         self._rows = [
             SampleRow(
                 name=item.sample_name,
-                spiked_endotoxin=item.spiked_endotoxin,
+                spiked_endotoxin=item.spike_for(self._labeled_sensitivity),
                 dilution_factor=item.dilution_factor,
                 role=item.role,
+                lambda_multiple=item.lambda_multiple,
             )
             for item in sorted(template.items, key=lambda i: i.tube_no)
         ]
@@ -194,6 +199,34 @@ class ExperimentDraft:
     def reagent_codes(self) -> dict[ReagentKind, str]:
         """三种试剂的扫码原文（已通过校验的才会留在这里）。"""
         return self._reagent_codes
+
+    @property
+    def labeled_sensitivity(self) -> float | None:
+        """当前鲎试剂的标示灵敏度 λ。"""
+        return self._labeled_sensitivity
+
+    def set_labeled_sensitivity(self, value: float | None) -> None:
+        """记录鲎试剂的 λ，并重新计算按倍数的外加内毒素。
+
+        Args:
+            value: 标示灵敏度，没有时为 None。
+        """
+        self._labeled_sensitivity = value
+        if self._template is None:
+            return
+        items = sorted(self._template.items, key=lambda i: i.tube_no)
+        for row, item in zip(self._rows, items, strict=True):
+            if item.lambda_multiple is not None:
+                row.spiked_endotoxin = item.spike_for(value)
+
+    @property
+    def lambda_missing(self) -> bool:
+        """当前模板需要 λ，但鲎试剂没有提供。"""
+        return (
+            self._template is not None
+            and self._template.requires_lambda
+            and (self._labeled_sensitivity is None or self._labeled_sensitivity <= 0)
+        )
 
     # ------------------------------------------------------------------ 状态
 

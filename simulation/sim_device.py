@@ -25,6 +25,7 @@ from gelinspect.interfaces.device import (
     DeviceStatus,
     DeviceTimeoutError,
     FlipResult,
+    PlatePlan,
     TrayPosition,
 )
 from simulation.clock import Clock, SystemClock
@@ -91,6 +92,7 @@ class SimDevice:
         self._last_done: tuple[int, float] | None = None  # 排号、完成的单调时间
         self._reads = 0
         self._start = self.clock.monotonic()
+        self.plate_plan: PlatePlan | None = None
         SimDevice._latest = weakref.ref(self)
 
     @classmethod
@@ -186,6 +188,14 @@ class SimDevice:
             return row_index in self._flipped
 
     # ----- DeviceController -----
+
+    def load_plate_plan(self, plan: PlatePlan) -> None:
+        """接收孔板内容，模拟视频据此按剂量关系绘制试管（``PlateAwareDevice``）。
+
+        Args:
+            plan: 孔板内容。
+        """
+        self.plate_plan = plan
 
     def connect(self) -> None:
         """建立连接，可重复调用。

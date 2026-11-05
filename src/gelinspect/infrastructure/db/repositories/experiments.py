@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Any, cast
 
 from sqlalchemy import ColumnElement, CursorResult, delete, exists, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from gelinspect.domain.conclusions import (
+    ExperimentConclusion,
+    conclusion_from_payload,
+    conclusion_payload,
+)
 from gelinspect.domain.entities import (
     Experiment,
     FeatureValue,
@@ -17,6 +23,7 @@ from gelinspect.domain.entities import (
     TubeResult,
 )
 from gelinspect.domain.enums import (
+    ConclusionVerdict,
     ExperimentType,
     GelState,
     Interpretation,
@@ -27,6 +34,7 @@ from gelinspect.domain.enums import (
 )
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.infrastructure.db.models import (
+    ExperimentConclusionRow,
     ExperimentRow,
     ReagentBatchRow,
     TubeAssignmentRow,
@@ -135,6 +143,45 @@ def _to_reagent(row: ReagentBatchRow) -> ReagentBatch:
     )
 
 
+def _write_conclusion(
+    session: Session, experiment_id: str, conclusion: ExperimentConclusion
+) -> None:
+    """写入结论，覆盖这个试验已有的一行。"""
+    if conclusion.computed_at is None:
+        raise ValueError("只有已经固化（带计算时间）的结论才能入库")
+    session.execute(
+        delete(ExperimentConclusionRow).where(
+            ExperimentConclusionRow.experiment_id == experiment_id
+        )
+    )
+    session.add(
+        ExperimentConclusionRow(
+            experiment_id=experiment_id,
+            verdict=conclusion.verdict.value,
+            value=conclusion.value,
+            rule_version=conclusion.rule_version,
+            labeled_sensitivity=conclusion.labeled_sensitivity,
+            computed_at=conclusion.computed_at,
+            payload=conclusion_payload(conclusion),
+        )
+    )
+
+
+def _to_conclusion(
+    experiment_type: ExperimentType, row: ExperimentConclusionRow
+) -> ExperimentConclusion:
+    """ORM 行还原结论，不重新计算。"""
+    return conclusion_from_payload(
+        experiment_type=experiment_type,
+        verdict=ConclusionVerdict(row.verdict),
+        value=row.value,
+        rule_version=row.rule_version,
+        labeled_sensitivity=row.labeled_sensitivity,
+        computed_at=row.computed_at,
+        payload=row.payload,
+    )
+
+
 def _upsert_results(session: Session, experiment_id: str, results: Sequence[TubeResult]) -> None:
     """覆盖写入一批单管结果。"""
     tube_nos = [result.tube_no for result in results]
@@ -212,9 +259,13 @@ class SqlExperimentRepository(ExperimentRepository):
             row.endotoxin_limit = experiment.endotoxin_limit
             row.signed_by = experiment.signed_by
             row.signed_at = experiment.signed_at
+            row.completed_at = experiment.completed_at
+            row.layout_confirmed = experiment.layout_confirmed
             session.flush()
             for table in (TubeAssignmentRow, ReagentBatchRow, TubeResultRow):
                 session.execute(delete(table).where(table.experiment_id == row.experiment_id))
+            if experiment.conclusion is not None:
+                _write_conclusion(session, experiment.experiment_id, experiment.conclusion)
             session.add_all(
                 TubeAssignmentRow(
                     experiment_id=experiment.experiment_id,
@@ -260,6 +311,34 @@ class SqlExperimentRepository(ExperimentRepository):
             if session.get(ExperimentRow, experiment_id) is None:
                 raise NotFoundError(f"试验不存在：{experiment_id}")
             _upsert_results(session, experiment_id, results)
+
+    def record_completion(
+        self,
+        experiment_id: str,
+        *,
+        completed_at: datetime,
+        measured_sensitivity: float | None,
+        conclusion: ExperimentConclusion,
+    ) -> None:
+        """写入完成时间、实测灵敏度和结论，与「已完成」状态在同一事务调用。
+
+        Args:
+            experiment_id: 试验标识。
+            completed_at: 完成时间。
+            measured_sensitivity: 实测灵敏度，结论不是合格或不合格时为 None。
+            conclusion: 已固化的结论。
+
+        Raises:
+            NotFoundError: 试验不存在。
+            ValueError: 结论没有计算时间。
+        """
+        with translate_lock_errors(), self._sessions() as session:
+            row = session.get(ExperimentRow, experiment_id)
+            if row is None:
+                raise NotFoundError(f"试验不存在：{experiment_id}")
+            row.completed_at = completed_at
+            row.measured_sensitivity = measured_sensitivity
+            _write_conclusion(session, experiment_id, conclusion)
 
     def update_state(
         self,
@@ -317,9 +396,11 @@ class SqlExperimentRepository(ExperimentRepository):
             results = session.execute(
                 select(TubeResultRow).where(TubeResultRow.experiment_id == experiment_id)
             ).scalars()
+            experiment_type = ExperimentType(row.experiment_type)
+            conclusion = session.get(ExperimentConclusionRow, experiment_id)
             return Experiment(
                 experiment_id=row.experiment_id,
-                experiment_type=ExperimentType(row.experiment_type),
+                experiment_type=experiment_type,
                 template_id=row.template_id,
                 instrument_no=row.instrument_no,
                 operator=row.operator,
@@ -333,6 +414,11 @@ class SqlExperimentRepository(ExperimentRepository):
                 endotoxin_limit=row.endotoxin_limit,
                 signed_by=row.signed_by,
                 signed_at=row.signed_at,
+                layout_confirmed=row.layout_confirmed,
+                completed_at=row.completed_at,
+                conclusion=(
+                    None if conclusion is None else _to_conclusion(experiment_type, conclusion)
+                ),
             )
 
     def query(self, query: ExperimentQuery, page: PageRequest) -> Page[ExperimentSummary]:
@@ -371,6 +457,7 @@ class SqlExperimentRepository(ExperimentRepository):
                     tube_count=int(count),
                     signed_by=row.signed_by,
                     signed_at=row.signed_at,
+                    completed_at=row.completed_at,
                 )
                 for row, count in session.execute(statement)
             )

@@ -208,6 +208,176 @@
     </message>
 </context>
 <context>
+    <name>Conclusion</name>
+    <message>
+        <source>合格</source>
+        <translation>Pass</translation>
+    </message>
+    <message>
+        <source>不合格</source>
+        <translation>Fail</translation>
+    </message>
+    <message>
+        <source>无效</source>
+        <translation>Invalid</translation>
+    </message>
+    <message>
+        <source>待定</source>
+        <translation>Pending</translation>
+    </message>
+    <message>
+        <source>项目任务书；中国药典通则 1143（条文原文待 QA 逐字核对）</source>
+        <translation>Project brief; Chinese Pharmacopoeia General Chapter 1143 (wording pending QA verification)</translation>
+    </message>
+    <message>
+        <source>中国药典通则 1143，待 QA 核对</source>
+        <translation>Chinese Pharmacopoeia General Chapter 1143, pending QA verification</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ = {lam} EU/mL</source>
+        <translation>Labeled sensitivity λ = {lam} EU/mL</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列（{tubes} 号管）：{readings}</source>
+        <translation>Series {series} (tubes {tubes}): {readings}</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL（{multiple}λ）</source>
+        <translation>Series {series} (tubes {tubes}): {readings}, endpoint {endpoint} EU/mL ({multiple}λ)</translation>
+    </message>
+    <message>
+        <source>阴性对照（{tubes} 号管）：全部阴性</source>
+        <translation>Negative control (tube {tubes}): all negative</translation>
+    </message>
+    <message>
+        <source>λc = antilg(mean(lg 终点)) = antilg(({terms}) / {count}) ≈ {value}</source>
+        <translation>λc = antilg(mean(lg endpoint)) = antilg(({terms}) / {count}) ≈ {value}</translation>
+    </message>
+    <message>
+        <source>λc = {value} EU/mL，判定范围 0.5λ–2λ（含）= {low}–{high} EU/mL</source>
+        <translation>λc = {value} EU/mL; acceptance range 0.5λ–2λ (inclusive) = {low}–{high} EU/mL</translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}</source>
+        <translation>{role} (tubes {tubes}): positive {positive}, negative {negative}, undetermined {other}</translation>
+    </message>
+    <message>
+        <source>模板布局待确认：没有安排试管</source>
+        <translation>Template layout awaiting confirmation: no tubes assigned</translation>
+    </message>
+    <message>
+        <source>模板布局待确认：模板标记为推定布局，等待 QA 确认</source>
+        <translation>Template layout awaiting confirmation: the template is marked as a presumed layout, awaiting QA</translation>
+    </message>
+    <message>
+        <source>模板布局待确认：{tubes} 号管没有标记用途</source>
+        <translation>Template layout awaiting confirmation: tubes {tubes} have no role assigned</translation>
+    </message>
+    <message>
+        <source>判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格</source>
+        <translation>Decision rule awaiting QA verification (Chinese Pharmacopoeia General Chapter 1143); no pass or fail is given</translation>
+    </message>
+    <message>
+        <source>{tubes} 号管还没有结果</source>
+        <translation>Tubes {tubes} have no result yet</translation>
+    </message>
+    <message>
+        <source>{tubes} 号管等待人工复核</source>
+        <translation>Tubes {tubes} are awaiting manual review</translation>
+    </message>
+    <message>
+        <source>没有可用的鲎试剂标示灵敏度 λ</source>
+        <translation>No usable labeled sensitivity λ for the LAL reagent</translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：阴性对照 {tubes} 号管加了内毒素</source>
+        <translation>Layout does not match the rule: negative control tube {tubes} has endotoxin added</translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：{tubes} 号管的外加内毒素不是 2λ、λ、λ/2、λ/4 之一</source>
+        <translation>Layout does not match the rule: the spiked endotoxin of tube {tubes} is not one of 2λ, λ, λ/2, λ/4</translation>
+    </message>
+    <message>
+        <source>管位与规则要求的布局不符：{multiple}λ 应有 {expected} 管，实际 {actual} 管</source>
+        <translation>Layout does not match the rule: {multiple}λ should have {expected} tubes, found {actual}</translation>
+    </message>
+    <message>
+        <source>模板没有标记阴性对照</source>
+        <translation>The template has no negative control marked</translation>
+    </message>
+    <message>
+        <source>最大浓度 {level} EU/mL 不是全部阳性（{tubes} 号管不是阳性）</source>
+        <translation>The highest concentration {level} EU/mL is not all positive (tubes {tubes} are not positive)</translation>
+    </message>
+    <message>
+        <source>最低浓度 {level} EU/mL 不是全部阴性（{tubes} 号管不是阴性）</source>
+        <translation>The lowest concentration {level} EU/mL is not all negative (tubes {tubes} are not negative)</translation>
+    </message>
+    <message>
+        <source>阴性对照不是阴性（{tubes} 号管）</source>
+        <translation>The negative control is not negative (tubes {tubes})</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考</source>
+        <translation>Series {series} is discontinuous (positive after negative) and needs a QA decision; the λc is for reference only</translation>
+    </message>
+    <message>
+        <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
+        <translation>λc = {value} EU/mL is outside 0.5λ–2λ ({low}–{high} EU/mL)</translation>
+    </message>
+    <message>
+        <source>这个试验完成时还没有结论功能，没有入库的结论</source>
+        <translation>This experiment finished before conclusions were recorded; no conclusion is stored</translation>
+    </message>
+    <message>
+        <source>试验已停止，不产生结论</source>
+        <translation>The experiment was stopped; no conclusion is produced</translation>
+    </message>
+</context>
+<context>
+    <name>ConclusionCard</name>
+    <message>
+        <source>规则版本 {version}</source>
+        <translation>Rule version {version}</translation>
+    </message>
+    <message>
+        <source>实测灵敏度 λc</source>
+        <translation>Measured sensitivity λc</translation>
+    </message>
+    <message>
+        <source>λc（参考值，不是最终结论）</source>
+        <translation>λc (reference only, not a final conclusion)</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ {value} EU/ml</source>
+        <translation>Labeled sensitivity λ {value} EU/ml</translation>
+    </message>
+    <message>
+        <source>无效原因</source>
+        <translation>Why it is invalid</translation>
+    </message>
+    <message>
+        <source>未满足的前提</source>
+        <translation>Unmet prerequisites</translation>
+    </message>
+    <message>
+        <source>规则来源：{source}</source>
+        <translation>Rule source: {source}</translation>
+    </message>
+    <message>
+        <source>试验完成后才会固化结论。</source>
+        <translation>The conclusion is fixed when the experiment completes. </translation>
+    </message>
+    <message>
+        <source>试验结论</source>
+        <translation>Conclusion</translation>
+    </message>
+    <message>
+        <source>依据（+ 阳性，− 阴性）</source>
+        <translation>Basis (+ positive, − negative)</translation>
+    </message>
+</context>
+<context>
     <name>ConfirmDialog</name>
     <message>
         <source>取消</source>
@@ -241,8 +411,8 @@
         <translation>Status</translation>
     </message>
     <message>
-        <source>创建时间</source>
-        <translation>Created</translation>
+        <source>完成时间</source>
+        <translation>Completed</translation>
     </message>
     <message>
         <source>工作台</source>
@@ -491,12 +661,16 @@
         <translation>Created</translation>
     </message>
     <message>
+        <source>完成时间</source>
+        <translation>Completed</translation>
+    </message>
+    <message>
         <source>历史记录</source>
         <translation>History</translation>
     </message>
     <message>
-        <source>双击一行打开回看；按条件查询和导出将在 P12 提供</source>
-        <translation>Double-click a row to review it; filtered search and export arrive in P12</translation>
+        <source>双击一行打开回看</source>
+        <translation>Double-click a row to review it</translation>
     </message>
     <message>
         <source>刷新</source>
@@ -704,8 +878,28 @@
         <translation>Not permitted for this role</translation>
     </message>
     <message>
-        <source>待 P10</source>
-        <translation>Pending P10</translation>
+        <source>全部排读完后才能重试分析</source>
+        <translation>Analysis can be retried after all rows are read</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. Rows {rows} were captured and can be re-analyzed (no flipping); rows {unread} missed their read time, so after analysis the experiment can only be stopped.</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. All rows were captured: rows {rows} can be re-analyzed (no flipping), and the experiment then finishes normally.</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. No row can be re-analyzed (not captured, or the capture time was not recorded). It can only be stopped.</translation>
+    </message>
+    <message>
+        <source>第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。</source>
+        <translation>Analysis failed for rows {rows}; the original images are kept. It can be retried after all rows are read.</translation>
+    </message>
+    <message>
+        <source>试验异常：{reason}</source>
+        <translation>Experiment fault: {reason}</translation>
     </message>
     <message>
         <source>回放第 {n} 排</source>
@@ -768,6 +962,30 @@
         <translation>Stop requested, finishing up</translation>
     </message>
     <message>
+        <source>恢复试验？</source>
+        <translation>Resume the experiment?</translation>
+    </message>
+    <message>
+        <source>恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；分析失败的排用保留的原图重试。确定要恢复吗？</source>
+        <translation>Check that the instrument and temperature are back to normal. Rows whose read failed will be flipped again, and gel that has been moved may have changed; rows whose analysis failed are retried from the kept images. Resume?</translation>
+    </message>
+    <message>
+        <source>恢复试验</source>
+        <translation>Resume experiment</translation>
+    </message>
+    <message>
+        <source>暂不恢复</source>
+        <translation>Not now</translation>
+    </message>
+    <message>
+        <source>已请求恢复试验</source>
+        <translation>Resume requested</translation>
+    </message>
+    <message>
+        <source>已请求重试分析</source>
+        <translation>Analysis retry requested</translation>
+    </message>
+    <message>
         <source>试验数据记录</source>
         <translation>Experiment data</translation>
     </message>
@@ -794,6 +1012,10 @@
     <message>
         <source>打开历史记录</source>
         <translation>Open history</translation>
+    </message>
+    <message>
+        <source>重试分析</source>
+        <translation>Retry analysis</translation>
     </message>
     <message>
         <source>{kind}批号</source>
@@ -836,12 +1058,12 @@
         <translation>No tubes</translation>
     </message>
     <message>
-        <source>该功能将在 P11 阶段实现</source>
-        <translation>This feature arrives in P11</translation>
+        <source>这个功能还在建设中</source>
+        <translation>This feature is under construction</translation>
     </message>
     <message>
-        <source>报告打印预览、单批次报告、数字签名和验签在报告阶段提供。</source>
-        <translation>Report preview, batch reports, signing and verification arrive in the report phase.</translation>
+        <source>这里将提供报告打印预览、单批次报告、数字签名和验签。</source>
+        <translation>Report print preview, single-batch reports, digital signing and verification will be available here.</translation>
     </message>
 </context>
 <context>
@@ -1003,6 +1225,14 @@
         <translation>Keep current</translation>
     </message>
     <message>
+        <source>缺少标示灵敏度 λ，不能进入下一步</source>
+        <translation>Labeled sensitivity λ is missing, so you cannot continue</translation>
+    </message>
+    <message>
+        <source>这个模板按 λ 计算外加内毒素。请换一个有标示灵敏度的鲎试剂批次，或把灵敏度补录到备案信息后重新扫码。</source>
+        <translation>This template calculates spiked endotoxin from λ. Use an LAL reagent batch with a labeled sensitivity, or add it to the registration data and scan again.</translation>
+    </message>
+    <message>
         <source>试剂未通过校验，流程已锁定，不能进入下一步</source>
         <translation>Reagent check failed. The workflow is locked and cannot continue.</translation>
     </message>
@@ -1110,16 +1340,9 @@
         <source>当前角色无此权限</source>
         <translation>Not permitted for your role</translation>
     </message>
-</context>
-<context>
-    <name>Phases</name>
     <message>
-        <source>P11 报告</source>
-        <translation>P11 (reports)</translation>
-    </message>
-    <message>
-        <source>P12 数据管理页</source>
-        <translation>P12 (data management pages)</translation>
+        <source>这个模板需要鲎试剂的标示灵敏度 λ</source>
+        <translation>This template needs the labeled sensitivity λ of the LAL reagent</translation>
     </message>
 </context>
 <context>
@@ -1140,8 +1363,8 @@
         <translation>Under construction</translation>
     </message>
     <message>
-        <source>该页面将在 {phase} 阶段实现</source>
-        <translation>Planned for {phase}</translation>
+        <source>这个页面还在建设中</source>
+        <translation>This page is under construction</translation>
     </message>
 </context>
 <context>
@@ -1786,6 +2009,18 @@
         <translation>The experiment changed meanwhile; refresh and try again</translation>
     </message>
     <message>
+        <source>这个试验现在不能恢复，软件重启后只能重试分析或停止</source>
+        <translation>This experiment cannot be resumed now; after a restart it can only be re-analyzed or stopped</translation>
+    </message>
+    <message>
+        <source>这个试验现在不能重试分析</source>
+        <translation>Analysis cannot be retried for this experiment now</translation>
+    </message>
+    <message>
+        <source>这个模板需要鲎试剂的标示灵敏度 λ，当前试剂没有提供</source>
+        <translation>This template needs the labeled sensitivity λ of the LAL reagent, and the current reagent has none</translation>
+    </message>
+    <message>
         <source>第 {row} 排没有可播放的录像</source>
         <translation>Row {row} has no playable recording</translation>
     </message>
@@ -1990,6 +2225,10 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>外加内毒素</source>
         <translation>Spiked endotoxin</translation>
+    </message>
+    <message>
+        <source>λ 倍数</source>
+        <translation>λ multiple</translation>
     </message>
     <message>
         <source>用途</source>
@@ -2406,6 +2645,18 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>阴性对照</source>
         <translation>Negative control</translation>
+    </message>
+    <message>
+        <source>供试品</source>
+        <translation>Sample</translation>
+    </message>
+    <message>
+        <source>阳性对照</source>
+        <translation>Positive control</translation>
+    </message>
+    <message>
+        <source>供试品阳性对照</source>
+        <translation>Sample positive control</translation>
     </message>
     <message>
         <source>用途待确认</source>

@@ -330,6 +330,7 @@ class EngineSnapshot:
         fault_kinds: 当前的异常原因分类。
         fault_reason: 最近一次异常的说明。
         temperature_c: 最近一次温度读数。
+        offline_retry: 这次运行是软件重启后的离线重试分析：不碰设备和视频。
     """
 
     experiment_id: str
@@ -339,6 +340,7 @@ class EngineSnapshot:
     fault_kinds: frozenset[FaultKind] = frozenset()
     fault_reason: str | None = None
     temperature_c: float | None = None
+    offline_retry: bool = False
 
 
 @dataclass(frozen=True, slots=True)

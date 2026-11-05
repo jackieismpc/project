@@ -18,6 +18,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Generic, Protocol, TypeVar
 
+from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentCheckStatus, ReagentKind
 from gelinspect.domain.state_machine import ExperimentState
@@ -217,6 +218,7 @@ class ExperimentSummary:
         tube_count: 试管数。
         signed_by: 签署人。
         signed_at: 签署时间。
+        completed_at: 转为已完成的时间，还没完成时为 None。
     """
 
     experiment_id: str
@@ -229,6 +231,7 @@ class ExperimentSummary:
     tube_count: int
     signed_by: str | None = None
     signed_at: datetime | None = None
+    completed_at: datetime | None = None
 
 
 class MediaKind(StrEnum):
@@ -253,6 +256,8 @@ class MediaFile:
         created_at: 记录时间。
         row_index: 排号 1–10，与排无关的文件为 None。
         size_bytes: 文件大小。
+        captured_at: 原图的帧采集时间，其他文件为 None。软件重启后重试分析要用。
+        flip_angle_deg: 原图所属那次翻转的实际角度，其他文件为 None。
     """
 
     file_id: str
@@ -263,6 +268,8 @@ class MediaFile:
     created_at: datetime
     row_index: int | None = None
     size_bytes: int | None = None
+    captured_at: datetime | None = None
+    flip_angle_deg: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -497,6 +504,22 @@ class ExperimentRepository(Protocol):
         """
         ...
 
+    def record_completion(
+        self,
+        experiment_id: str,
+        *,
+        completed_at: datetime,
+        measured_sensitivity: float | None,
+        conclusion: ExperimentConclusion,
+    ) -> None:
+        """写入完成时间、实测灵敏度和结论，与「已完成」状态在同一事务调用。
+
+        Raises:
+            NotFoundError: 试验不存在。
+            ValueError: 结论没有计算时间。
+        """
+        ...
+
     def update_state(
         self,
         experiment_id: str,
@@ -678,6 +701,11 @@ class TransactionalStorage(Protocol):
     @property
     def experiments(self) -> ExperimentRepository:
         """试验仓储，每个方法各自是一个事务。"""
+        ...
+
+    @property
+    def media(self) -> MediaRepository:
+        """媒体文件记录仓储。软件重启后重试分析要读。"""
         ...
 
     def unit_of_work(self) -> AbstractContextManager[UnitOfWork]:

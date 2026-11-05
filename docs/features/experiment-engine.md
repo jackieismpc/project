@@ -11,7 +11,7 @@
 - 任何停止或故障都不留悬挂的录制段、pin 和翻转状态。
 - 单管失败转待复核，**绝不默认判阴性**。
 
-纯 Python + `threading`，不依赖 Qt。判定结论（λc 等）留给 P10，这里只到单管和试验状态。
+纯 Python + `threading`，不依赖 Qt。试验转为已完成时，引擎在同一事务里写入结论（[conclusions.md](conclusions.md)），规则本身在 `domain/conclusions.py`。
 
 ## 流程
 
@@ -34,6 +34,8 @@ context.close()
 | `stop(user, reason)` | 停止运行中的试验 | `experiment_stop` |
 | `resume(user)` | 从异常恢复：未读的排继续，读数失败的排重读，分析失败的排重试 | `experiment_run` |
 | `retry_analysis(user)` | 只重试分析失败的排，不翻转 | `experiment_run` |
+| `retry_interrupted(id, user)` | 软件重启后离线重试分析：从磁盘读回原图，不碰设备，不翻转 | `experiment_run` |
+| `retryable_rows(id)` | 重启后的异常试验里还能重新分析的排 | — |
 | `recover_interrupted()` | 启动时把停留在运行中状态的试验标记为异常 | 系统调用 |
 | `stop_faulted(id, user, reason)` | 停止没有在运行的异常试验（启动恢复标记的） | `experiment_stop` |
 | `snapshot()` | 只读快照，任意线程可读 | — |
@@ -116,7 +118,7 @@ START：incubating，所有排的截止时间 = 现在 + 孵育时长（默认 6
 
 ### 启动恢复
 
-`recover_interrupted`（`build_app_context` 会调用）查询库内停留在 `incubating`、`reading`、`analyzing` 的试验，走状态机转 `faulted`，原因写审计：上次运行没有正常结束，设备实际状态未知，某排可能仍处于翻转状态，需要人工检查。**不自动继续**，也不碰设备。重启后这些试验只能 `stop_faulted`，`resume` 只对当前进程的运行有效（内存里的调度已经没了）。
+`recover_interrupted`（`build_app_context` 会调用）查询库内停留在 `incubating`、`reading`、`analyzing` 的试验，走状态机转 `faulted`，原因写审计：上次运行没有正常结束，设备实际状态未知，某排可能仍处于翻转状态，需要人工检查。**不自动继续**，也不碰设备。`resume` 只对当前进程的运行有效（内存里的调度已经没了）。重启后：已抓帧、没有结果的排可以 `retry_interrupted` 离线重新分析（抓帧时间和翻转角度已入库）；没有读数的排错过了读数时间，不能续读，分析完回到异常，试验只能 `stop_faulted`。
 
 ### 工作单元
 
@@ -171,7 +173,7 @@ P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷
 | `storage_busy_timeout_s` | 60 | 真实时间 |
 | `tray_out_on_finish` | true | |
 
-算法时限在 `analysis.timeout_ms`（默认 2000）。三态映射在 `interpretation`，例如 `{partially_gelled: positive}`。
+算法时限在 `analysis.timeout_ms`（默认 2000）。三态映射在 `interpretation`，例如 `{partially_gelled: positive}`；低置信度阈值在 `low_confidence_threshold`，默认不启用。
 
 **两个时钟**：`clock` 是真实时钟，与设备、视频帧同一基准，翻转标记和抓帧靠它；`schedule_clock` 是调度时钟，读数是设备时间，孵育和温度持续时间用它，默认按 `time_scale` 加速 `clock`。不能只用一个加速时钟：翻转标记的时间必须和帧时间可比，算法耗时也不能被加速。
 
@@ -183,8 +185,8 @@ P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷
 
 | 写入 | 时机 | 同一事务内 |
 |---|---|---|
-| `experiments.state` | 每次转换 | 对应的审计 |
-| `media_files` | 抓帧完成、停止或转异常（录像、原图）；结果到达（掩码，P9） | `row_captured` 转换和审计；掩码与结果、`row_analyzed` 审计同一事务 |
+| `experiments.state` | 每次转换 | 对应的审计；转为已完成时还有 `completed_at`、结论和 `conclusion_recorded` 审计 |
+| `media_files` | 抓帧完成、停止或转异常（录像、原图，含抓帧时间和翻转角度）；结果到达（掩码，P9） | `row_captured` 转换和审计；掩码与结果、`row_analyzed` 审计同一事务 |
 | `tube_results` | 算法结果到达 | `row_analyzed` 审计和可能的状态转换 |
 | `temperature_log` | 每 `temperature_log_interval_s` | 单独一个事务，失败只告警 |
 
@@ -199,6 +201,7 @@ P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷
 | `test_experiment_engine_stop.py` | 上表每个阶段的停止，算法卡死时的停止 |
 | `test_experiment_engine_concurrency.py` | 停止与到时竞争（12 个随机种子）、连续运行线程不增长、外部启动的管线不被关闭、并发写审计、写锁被占用时等待和等待超限、真实进程在结果事务提交前后被杀 |
 | `tests/infrastructure/db/test_unit_of_work.py` | 回滚、每一步失败、提交失败、吞掉异常不提交、写锁、并发下的哈希链、真实进程在事务各点被杀 |
+| `tests/services/test_engine_restart_retry.py` | 重启后离线重试（不碰设备、不翻转、用入库的抓帧时间）、原图被改、没有抓帧时间、还有未读的排、再次失败 |
 | `tests/services/test_mask_archive.py` | 掩码文件名往返；引擎把每管 4 个掩码存盘、哈希入库、与结果同一事务（结果事务失败则记录不入库）；存档失败转可重试的分析失败；翻转角度入特征；gel 可空、不覆盖、目录不可写时清理 |
 | `tests/services/test_config.py` | 默认配置、不合并、路径、错误信息、`simulation` 缺失、组装和一键运行 |
 
@@ -208,8 +211,8 @@ P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷
 
 ## 已知限制
 
-- **重启后不能续跑**：进程退出后调度和原图元数据都不在内存里，试验只能停止。
+- **重启后不能续读**：进程退出后调度不在内存里，设备状态未知，没有读数的排只能放弃。已抓帧的排可以离线重新分析。
 - **掩码存档占磁盘**：每管至多 4 个二值 PNG（12 MP 下每个约几十 KB 到几百 KB），保留策略随 `data/images`，默认不自动删除。
-- **低置信度不转待复核**：`GelStateMapping` 只看状态和三态，置信度只存储。
+- **低置信度默认不转待复核**：配置 `low_confidence_threshold` 后才启用，等 QA 确认（PLAN 第 7 节第 17 项）。
 - **翻转动作不可打断**：`DeviceController` 没有取消接口，停止要等当前动作返回。
 - **同时只运行一个试验**：设备只有一台。

@@ -18,6 +18,7 @@ from dataclasses import replace
 
 import numpy as np
 
+from gelinspect.interfaces.device import PlatePlan
 from gelinspect.interfaces.video import (
     VideoConfig,
     VideoDisconnectedError,
@@ -65,6 +66,7 @@ class SimVideoSource:
         """
         self.scene = scene
         self.scenario = scenario or Scenario()
+        self._plate_plan: PlatePlan | None = None
         self._synth = synth or SynthConfig(width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT)
         self._clock: Clock = clock or SystemClock()
         self._seed = seed
@@ -167,8 +169,18 @@ class SimVideoSource:
         device = SimDevice.latest()
         return device if device is not None else self._static
 
+    def _sync_plate_plan(self) -> None:
+        """设备换了孔板时更新场景，旧孔板的底图作废。"""
+        provider = self._provider()
+        plan = provider.plate_plan if isinstance(provider, SimDevice) else None
+        if plan is not None and plan is not self._plate_plan:
+            self._plate_plan = plan
+            self.scenario = self.scenario.with_plate_plan(plan)
+            self._cache.clear()
+
     def _render(self, snapshot: SceneSnapshot) -> Uint8Array:
         """渲染场景。无噪声的底图按进度量化后缓存，每帧只重新加噪声。"""
+        self._sync_plate_plan()
         key = (snapshot.row_index, round(snapshot.flip_phase * 60), round(snapshot.settle * 30))
         base = self._cache.get(key)
         if base is None:

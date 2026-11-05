@@ -66,13 +66,15 @@ class TemplateItemInput:
         sample_name: 样品名称。
         role: 用途。
         dilution_factor: 稀释倍数，留空为 None。
-        spiked_endotoxin: 外加内毒素，留空为 None。
+        spiked_endotoxin: 外加内毒素的绝对值，留空为 None。
+        lambda_multiple: λ 的倍数，留空为 None；有值时优先于绝对值。
     """
 
     sample_name: str
     role: TubeRole = TubeRole.TEST
     dilution_factor: float | None = None
     spiked_endotoxin: float | None = None
+    lambda_multiple: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,7 +106,9 @@ def draft_of(template: ExperimentTemplate) -> TemplateDraft:
         name=template.name,
         experiment_type=template.experiment_type,
         items=tuple(
-            TemplateItemInput(i.sample_name, i.role, i.dilution_factor, i.spiked_endotoxin)
+            TemplateItemInput(
+                i.sample_name, i.role, i.dilution_factor, i.spiked_endotoxin, i.lambda_multiple
+            )
             for i in ordered
         ),
     )
@@ -310,7 +314,11 @@ class TemplateService:
                         sample_name=sample,
                         role=item.role,
                         dilution_factor=item.dilution_factor,
-                        spiked_endotoxin=item.spiked_endotoxin,
+                        # 同时填了倍数和绝对值时以倍数为准，不留下两个互相矛盾的数。
+                        spiked_endotoxin=(
+                            None if item.lambda_multiple is not None else item.spiked_endotoxin
+                        ),
+                        lambda_multiple=item.lambda_multiple,
                     )
                 )
             except ValueError as error:

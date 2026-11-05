@@ -1,11 +1,11 @@
-"""统一的「建设中」占位页：说明页面将包含什么、对应哪个阶段。"""
+"""统一的「建设中」占位页：说明页面将包含什么。"""
 
 from __future__ import annotations
 
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
-from gelinspect.ui.routes import Route, phase_name, route_title
+from gelinspect.ui.routes import Route, route_title
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.icons import IconLoader
@@ -19,7 +19,7 @@ class PlaceholderPage(QWidget):
         """创建占位页。
 
         Args:
-            route: 页面路由，提供标题、阶段和说明。
+            route: 页面路由，提供标题和说明。
             parent: 父控件。
         """
         super().__init__(parent)
@@ -55,8 +55,7 @@ class PlaceholderPage(QWidget):
         """按当前语言刷新全部文字。"""
         self.title.setText(route_title(self.route))
         self.badge.set_text(self.tr("建设中"))
-        phase = phase_name(self.route.phase) if self.route.phase else ""
-        self.headline.setText(self.tr("该页面将在 {phase} 阶段实现").format(phase=phase))
+        self.headline.setText(self.tr("这个页面还在建设中"))
         self.summary.setText(QCoreApplication.translate("Routes", self.route.summary))
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802

@@ -30,6 +30,12 @@ class TubeRole(StrEnum):
     """试验管。"""
     NEGATIVE_CONTROL = "negative_control"
     """阴性对照。"""
+    SAMPLE = "sample"
+    """供试品。"""
+    POSITIVE_CONTROL = "positive_control"
+    """阳性对照。"""
+    SAMPLE_POSITIVE_CONTROL = "sample_positive_control"
+    """供试品阳性对照。"""
     UNCONFIRMED = "unconfirmed"
     """用途未确认，内置推定模板使用，等待甲方 QA 核对。"""
 
@@ -69,6 +75,19 @@ class Interpretation(StrEnum):
     """阴性。"""
     PENDING_REVIEW = "pending_review"
     """待复核，人工确认前不能签署。"""
+
+
+class ConclusionVerdict(StrEnum):
+    """试验结论。写入数据库和审计，属于稳定契约。"""
+
+    PASS = "pass"
+    """合格。"""
+    FAIL = "fail"
+    """不合格。"""
+    INVALID = "invalid"
+    """无效：有效性前提不满足，不得据此放行。"""
+    PENDING = "pending"
+    """待定：前提未满足或规则待确认，不是最终结论。"""
 
 
 class ReviewStatus(StrEnum):
@@ -139,6 +158,7 @@ class AuditAction(StrEnum):
     ANALYSIS_TIMEOUT = "analysis_timeout"
     ENGINE_ALERT = "engine_alert"
     TUBE_REVIEWED = "tube_reviewed"
+    CONCLUSION_RECORDED = "conclusion_recorded"
     EXPERIMENT_SIGNED = "experiment_signed"
     REPORT_EXPORTED = "report_exported"
     DATA_EXPORTED = "data_exported"

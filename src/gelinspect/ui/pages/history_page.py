@@ -1,6 +1,6 @@
 """历史记录页（最小入口）：列出已有的试验，双击打开回看。
 
-完整的按时间、类型、批号、状态查询和导出是 P12 的工作；这里只保证已完成的试验可以随时
+完整的按时间、类型、批号、状态查询和导出在数据管理阶段实现；这里只保证已完成的试验可以随时
 打开，回看结果、图像和录像（监控页只读模式）。
 """
 
@@ -100,6 +100,7 @@ class HistoryPage(QWidget):
             Column("state", self.tr("状态")),
             Column("operator", self.tr("操作人")),
             Column("created", self.tr("创建时间"), mono=True),
+            Column("completed", self.tr("完成时间"), mono=True),
         ]
 
     def refresh(self) -> None:
@@ -119,6 +120,7 @@ class HistoryPage(QWidget):
                     "state": experiment_state_label(s.state),
                     "operator": s.operator,
                     "created": _local(s.created_at),
+                    "completed": "" if s.completed_at is None else _local(s.completed_at),
                 }
                 for s in self._items
             ]
@@ -136,7 +138,7 @@ class HistoryPage(QWidget):
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("历史记录"))
-        self.hint.setText(self.tr("双击一行打开回看；按条件查询和导出将在 P12 提供"))
+        self.hint.setText(self.tr("双击一行打开回看"))
         self.refresh_button.setText(self.tr("刷新"))
         self.open_button.setText(self.tr("打开所选试验"))
         self.table.set_columns(self._columns())

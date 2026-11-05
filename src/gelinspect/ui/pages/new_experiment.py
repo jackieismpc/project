@@ -536,7 +536,7 @@ class NewExperimentPage(QWidget):
         self._draft.choose_template(info.template)
         for option in self._options:
             option.set_selected(option.template.template_id == template_id)
-        self._sync_samples()
+        self._sync_lambda()
         self._render()
 
     # ================================================================== 步骤 2
@@ -562,11 +562,27 @@ class NewExperimentPage(QWidget):
             self._draft.reagent_codes[kind] = scan.raw
         else:
             self._draft.reagent_codes.pop(kind, None)
+        self._sync_lambda()
         self._render()
         if scan.valid:
             self._focus_next_empty(kind)
         else:
             card.focus_input()
+
+    def _sync_lambda(self) -> None:
+        """把鲎试剂的 λ 交给草稿，并刷新样品表里按 λ 算出的外加内毒素。"""
+        lal = self._scans.get(ReagentKind.LAL_REAGENT)
+        value = lal.labeled_sensitivity if lal is not None and lal.valid else None
+        self._draft.set_labeled_sensitivity(value)
+        self._sync_samples()
+
+    def reagents_ready(self) -> bool:
+        """试剂是否满足进入下一步的条件：全部通过校验，且模板需要的 λ 已知。
+
+        Returns:
+            可以继续时为 True。
+        """
+        return self.reagents_ok() and not self._draft.lambda_missing
 
     def _show_banner_error(self, text: str) -> None:
         self.lock_banner.show_message("warning", "triangle-alert", text)
@@ -608,7 +624,18 @@ class NewExperimentPage(QWidget):
     def _render_lock(self) -> None:
         locked = self.locked_scans()
         if not locked:
-            self.lock_banner.clear()
+            if self.reagents_ok() and self._draft.lambda_missing:
+                self.lock_banner.show_message(
+                    "danger",
+                    "lock",
+                    self.tr("缺少标示灵敏度 λ，不能进入下一步"),
+                    self.tr(
+                        "这个模板按 λ 计算外加内毒素。请换一个有标示灵敏度的鲎试剂批次，"
+                        "或把灵敏度补录到备案信息后重新扫码。"
+                    ),
+                )
+            else:
+                self.lock_banner.clear()
             return
         lines = []
         for kind, scan in locked.items():
@@ -642,6 +669,10 @@ class NewExperimentPage(QWidget):
                     for i, row in enumerate(rows, start=1)
                 ]
             )
+            for i, row in enumerate(rows):
+                if row.lambda_multiple is not None:  # 由 λ 算出，不能手工改
+                    item = self.sample_table.cell_item(i, COL_SPIKE)
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.plate.set_selected(self._draft.selected)
         finally:
             self._syncing = False
@@ -656,6 +687,8 @@ class NewExperimentPage(QWidget):
             return
         sample = self._draft.rows[row]
         text = self.sample_table.cell_text(row, col)
+        if col == COL_SPIKE and sample.lambda_multiple is not None:
+            return
         if col == COL_NAME:
             sample.name = text
         elif col == COL_BATCH:
@@ -942,7 +975,7 @@ class NewExperimentPage(QWidget):
         if step > self._step:
             if step >= STEP_REAGENTS and self._draft.template is None:
                 return
-            if step >= STEP_SAMPLES and not self.reagents_ok():
+            if step >= STEP_SAMPLES and not self.reagents_ready():
                 return
             if step >= STEP_CONFIRM and not (
                 self._draft.tubes_match and not self._draft.sample_problems()
@@ -974,7 +1007,10 @@ class NewExperimentPage(QWidget):
         template_chosen = self._draft.template is not None
         self.template_next.setEnabled(template_chosen)
         self._render_lock()
-        self.reagent_next.setEnabled(self.reagents_ok())
+        self.reagent_next.setEnabled(self.reagents_ready())
+        self.reagent_next.setToolTip(
+            self.tr("这个模板需要鲎试剂的标示灵敏度 λ") if self._draft.lambda_missing else ""
+        )
         scan_allowed = self._session is not None and self._session.can(Permission.REAGENT_MANAGE)
         for card in self.reagent_cards.values():
             card.set_scan_enabled(scan_allowed)

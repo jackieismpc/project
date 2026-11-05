@@ -82,6 +82,7 @@ device:
 约定：
 
 - 后端类必须能**无参构造**，构造时不做耗时操作，也不连接硬件。资源在 `load`、`open`、`connect` 中获取，参数通过配置传入。`device.options`、`video.options`、`analysis.options` 可以给构造函数传关键字参数。
+- `PlateAwareDevice`（`interfaces/device.py`）是可选能力，不属于 `DeviceController`：实现了它的设备在试验启动前收到孔板内容（`PlatePlan`）。真实设备不需要实现，模拟设备用它按剂量关系生成画面。
 - 启动时按配置导入类，并用 `isinstance` 检查是否满足对应的 `Protocol`（`runtime_checkable` 只检查方法名，签名由 mypy 和契约测试保证）。不满足或导入失败时，启动报错，不回退到模拟实现。
 - **默认配置**：不指定配置文件时使用 `services/config.py` 的 `DEFAULT_CONFIG`，它指向 `simulation/`、时间加速 60 倍，这样在仓库里 `uv run gelinspect` 可以一键启动（2026-11-05 用户调整）。`simulation` 缺失时报清楚的错误。
 - **配置文件是完整配置，不与默认值合并**：文件里没写后端就报错，没写 `engine.time_scale` 就是 1。这样换成真实设备时不会悄悄沿用模拟后端或时间加速。

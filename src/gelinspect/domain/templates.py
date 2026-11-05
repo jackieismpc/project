@@ -2,17 +2,42 @@
 
 灵敏度复核模板取自参考视频；其余四类只有管数可考，布局为推定，
 以 ``needs_confirmation=True`` 显式标记，用途和数值留空，等待甲方 QA 核对。
-本模块不包含任何药典判定规则，判定规则由 P10 负责。
+
+灵敏度模板存**标示灵敏度 λ 的倍数**（2、1、0.5、0.25，阴性对照 0），创建试验时才按鲎试剂的 λ
+算出外加内毒素并固化到试验记录，见 :func:`spike_from_lambda`。判定规则在 ``conclusions.py``。
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from types import MappingProxyType
 
 from gelinspect.domain.enums import ExperimentType, TubeRole
 from gelinspect.domain.plate import tube_to_position
+
+
+def spike_from_lambda(labeled_sensitivity: float, multiple: float) -> float:
+    """按标示灵敏度和倍数算外加内毒素。
+
+    用十进制运算，结果不会出现 ``0.30000000000000004`` 这样的二进制浮点尾巴。
+
+    Args:
+        labeled_sensitivity: 标示灵敏度 λ，EU/mL，必须大于 0。
+        multiple: λ 的倍数，不能为负。
+
+    Returns:
+        外加内毒素，EU/mL。
+
+    Raises:
+        ValueError: λ 不大于 0 或倍数为负。
+    """
+    if labeled_sensitivity <= 0:
+        raise ValueError(f"标示灵敏度必须大于 0：{labeled_sensitivity}")
+    if multiple < 0:
+        raise ValueError(f"倍数不能为负：{multiple}")
+    return float(Decimal(repr(float(labeled_sensitivity))) * Decimal(repr(float(multiple))))
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,7 +49,9 @@ class TemplateTubeItem:
         sample_name: 默认样品名称。
         role: 试管用途。
         dilution_factor: 稀释倍数，未知时为 None。
-        spiked_endotoxin: 外加内毒素，未知时为 None。
+        spiked_endotoxin: 外加内毒素的绝对值（EU/mL），未知时为 None。旧的自定义模板使用。
+        lambda_multiple: 外加内毒素是 λ 的多少倍，设置后优先于 ``spiked_endotoxin``，
+            创建试验时按鲎试剂的 λ 计算。
     """
 
     tube_no: int
@@ -32,6 +59,7 @@ class TemplateTubeItem:
     role: TubeRole
     dilution_factor: float | None = None
     spiked_endotoxin: float | None = None
+    lambda_multiple: float | None = None
 
     def __post_init__(self) -> None:
         """校验管号和数值范围。
@@ -41,9 +69,24 @@ class TemplateTubeItem:
             ValueError: 稀释倍数或外加内毒素为负数。
         """
         tube_to_position(self.tube_no)
-        for value in (self.dilution_factor, self.spiked_endotoxin):
+        for value in (self.dilution_factor, self.spiked_endotoxin, self.lambda_multiple):
             if value is not None and value < 0:
                 raise ValueError(f"数值不能为负：{value}")
+
+    def spike_for(self, labeled_sensitivity: float | None) -> float | None:
+        """这支试管在给定 λ 下的外加内毒素。
+
+        Args:
+            labeled_sensitivity: 标示灵敏度 λ，未知时为 None。
+
+        Returns:
+            有倍数时按 λ 计算（λ 未知时为 None），否则是模板里的绝对值。
+        """
+        if self.lambda_multiple is None:
+            return self.spiked_endotoxin
+        if labeled_sensitivity is None or labeled_sensitivity <= 0:
+            return None
+        return spike_from_lambda(labeled_sensitivity, self.lambda_multiple)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +124,13 @@ class ExperimentTemplate:
         """模板的试管数。"""
         return len(self.items)
 
+    @property
+    def requires_lambda(self) -> bool:
+        """创建试验时是否必须有标示灵敏度 λ：灵敏度复核，或有管位按 λ 倍数计算。"""
+        return self.experiment_type is ExperimentType.SENSITIVITY_CONFIRMATION or any(
+            item.lambda_multiple is not None for item in self.items
+        )
+
 
 def _sensitivity_template() -> ExperimentTemplate:
     """构造灵敏度复核（2λ:1）模板。
@@ -88,16 +138,17 @@ def _sensitivity_template() -> ExperimentTemplate:
     Returns:
         17 管模板：4 个浓度梯度各 4 管，加 1 支阴性对照。
     """
-    # 参考视频新试验页（49.5 秒）中，这组值位于「外加内毒素」列，页面没有稀释倍数列。
+    # 参考视频新试验页（49.5 秒）中「外加内毒素」列是 1、0.5、0.25、0.125，那次试验 λ=0.5，
+    # 即 2λ、λ、λ/2、λ/4。这里存倍数，λ 不是 0.5 时才算得对。
     name = "灵敏度复核"
     items = [
         TemplateTubeItem(
             tube_no=index * 4 + offset,
             sample_name=name,
             role=TubeRole.TEST,
-            spiked_endotoxin=value,
+            lambda_multiple=multiple,
         )
-        for index, value in enumerate((1.0, 0.5, 0.25, 0.125))
+        for index, multiple in enumerate((2.0, 1.0, 0.5, 0.25))
         for offset in range(1, 5)
     ]
     items.append(
@@ -105,7 +156,7 @@ def _sensitivity_template() -> ExperimentTemplate:
             tube_no=17,
             sample_name="阴性对照",
             role=TubeRole.NEGATIVE_CONTROL,
-            spiked_endotoxin=0.0,
+            lambda_multiple=0.0,
         )
     )
     return ExperimentTemplate(

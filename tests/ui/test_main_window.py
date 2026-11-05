@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -216,8 +217,9 @@ def test_placeholder_page_names_its_phase(qapp: QApplication, window: MainWindow
     page = window.page("reports")
     assert isinstance(page, PlaceholderPage)
     assert page.badge.text() == "建设中"
-    assert "P11" in page.headline.text()
-    assert route_for("reports").phase == "P11"
+    assert page.headline.text() == "这个页面还在建设中"
+    assert not re.search(r"P\d+", page.headline.text() + page.summary.text())
+    assert route_for("reports").phase == "P11"  # 开发记录，不显示
     assert route_for("monitor").phase is None and route_for("history").phase is None
 
 

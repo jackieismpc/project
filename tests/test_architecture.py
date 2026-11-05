@@ -75,6 +75,7 @@ def test_experiment_engine_does_not_depend_on_qt_or_infrastructure() -> None:
         SRC / "services" / name
         for name in (
             "experiment_engine.py",
+            "engine_recovery.py",
             "engine_run.py",
             "engine_types.py",
             "engine_workers.py",

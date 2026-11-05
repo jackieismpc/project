@@ -1,6 +1,6 @@
 """页面路由表：设计稿里的 12 个页面加「关于」，每页的标题、所需权限和实现阶段。
 
-还没有实现的页面显示统一的「建设中」占位，说明它对应的阶段（见 ``docs/PLAN.md``）。
+还没有实现的页面显示统一的「建设中」占位，只说明页面将包含什么。``phase`` 是开发用的记录，不显示。
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ class Route:
         key: 稳定标识，侧栏、快捷栏和代码里都用它。
         title: 页面标题（简体中文源文本，显示时经翻译）。
         permission: 进入所需的权限，``None`` 表示所有登录用户。
-        phase: 占位页说明的实现阶段，已实现的页面为 ``None``。
+        phase: 计划实现的阶段（开发用，不显示给用户），已实现的页面为 ``None``。
         summary: 占位页说明本页将包含什么（源文本）。
         in_nav: 是否出现在侧栏。
     """
@@ -95,12 +95,6 @@ ROUTES: tuple[Route, ...] = (LOGIN_ROUTE, *PAGE_ROUTES)
 
 _BY_KEY = {route.key: route for route in ROUTES}
 
-PHASE_NAMES: dict[str, str] = {
-    "P11": str(QT_TRANSLATE_NOOP("Phases", "P11 报告")),
-    "P12": str(QT_TRANSLATE_NOOP("Phases", "P12 数据管理页")),
-}
-"""阶段的名称（源文本）。"""
-
 QUICK_ACTION_ROUTES: dict[str, str] = {
     "new_experiment": "new",
     "open_file": "history",
@@ -137,18 +131,6 @@ def route_title(route: Route) -> str:
         翻译后的标题。
     """
     return QCoreApplication.translate("Routes", route.title)
-
-
-def phase_name(phase: str) -> str:
-    """阶段名称的当前语言文字。
-
-    Args:
-        phase: 阶段代码，如 ``P8``。
-
-    Returns:
-        翻译后的名称。
-    """
-    return QCoreApplication.translate("Phases", PHASE_NAMES.get(phase, phase))
 
 
 def can_enter(route: Route, session: Session | None) -> bool:

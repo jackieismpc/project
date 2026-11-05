@@ -88,6 +88,8 @@ class SqlMediaRepository(MediaRepository):
                         row_index=media.row_index,
                         size_bytes=media.size_bytes,
                         created_at=media.created_at,
+                        captured_at=media.captured_at,
+                        flip_angle_deg=media.flip_angle_deg,
                     )
                 )
         except IntegrityError as error:
@@ -105,6 +107,8 @@ class SqlMediaRepository(MediaRepository):
             created_at=row.created_at,
             row_index=row.row_index,
             size_bytes=row.size_bytes,
+            captured_at=row.captured_at,
+            flip_angle_deg=row.flip_angle_deg,
         )
 
     def get(self, file_id: str) -> MediaFile | None:

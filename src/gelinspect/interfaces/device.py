@@ -6,11 +6,13 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
 from pydantic import AwareDatetime, Field
 
+from gelinspect.domain.enums import TubeRole
 from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.interfaces._base import ContractModel
 
@@ -178,4 +180,50 @@ class DeviceController(Protocol):
 
     def close(self) -> None:
         """断开连接并释放资源，可重复调用。"""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class PlateTube:
+    """孔板上的一支试管。
+
+    Attributes:
+        tube_no: 管号。
+        role: 用途。
+        spiked_endotoxin: 外加内毒素，EU/mL，未知时为 None。
+    """
+
+    tube_no: int
+    role: TubeRole
+    spiked_endotoxin: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PlatePlan:
+    """一次试验的孔板内容。
+
+    Attributes:
+        experiment_id: 试验标识。
+        labeled_sensitivity: 鲎试剂标示灵敏度 λ，未知时为 None。
+        tubes: 有样品的试管。
+    """
+
+    experiment_id: str
+    labeled_sensitivity: float | None
+    tubes: tuple[PlateTube, ...]
+
+
+@runtime_checkable
+class PlateAwareDevice(Protocol):
+    """可选能力：启动试验前想知道孔板内容的设备。
+
+    不是 :class:`DeviceController` 的一部分，真实设备不需要实现。模拟设备用它按剂量关系生成画面。
+    """
+
+    def load_plate_plan(self, plan: PlatePlan) -> None:
+        """接收孔板内容。
+
+        Args:
+            plan: 孔板内容。
+        """
         ...

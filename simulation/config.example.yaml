@@ -38,6 +38,11 @@ traceability:
   government:
     backend: "simulation.reagents:SimTraceabilityClient"
 
+# 判读（可选）：三态到阴阳性的映射，以及低置信度阈值。默认部分凝固待复核、阈值不启用，
+# 启用后低于阈值的结果转待复核，等 QA 确认（PLAN 第 7 节第 17 项）。
+# interpretation: { partially_gelled: pending_review }
+# low_confidence_threshold: 0.7
+
 # 账号安全（可选，下面是默认值，不属于默认配置的必写项）：
 # security:
 #   idle_lock_minutes: 15     # 空闲多久自动锁屏，0 表示不锁；锁屏时试验在后台继续

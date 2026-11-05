@@ -10,6 +10,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from gelinspect.domain.enums import (
     AuditAction,
@@ -27,6 +28,9 @@ from gelinspect.domain.errors import TransitionGuardError
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.plate import tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState, next_state
+
+if TYPE_CHECKING:
+    from gelinspect.domain.conclusions import ExperimentConclusion
 
 FeatureValue = float | bool | tuple[float, float] | None
 """算法特征快照的取值类型。"""
@@ -251,7 +255,16 @@ class TubeResult:
             InvalidPlatePositionError: 管号超出范围。
         """
         tube_to_position(tube_no)
-        interpretation = mapping.interpret(status, state)
+        interpretation = mapping.interpret(status, state, confidence)
+        if (
+            message is None
+            and interpretation is Interpretation.PENDING_REVIEW
+            and state is not None
+            and mapping.for_state(state) is not Interpretation.PENDING_REVIEW
+            and mapping.is_low_confidence(confidence)
+        ):
+            shown = "缺失" if confidence is None else f"{confidence:.2f}"
+            message = f"置信度 {shown} 低于阈值 {mapping.low_confidence_threshold:g}，转人工复核"
         return cls(
             tube_no=tube_no,
             analysis_status=status,
@@ -331,11 +344,15 @@ class Experiment:
         reagents: 试剂批次。
         state: 当前状态，只应通过 :meth:`apply` 和 :meth:`sign` 改变。
         results: 单管结果，按管号索引，只应通过方法写入。
-        measured_sensitivity: 实测灵敏度，由 P10 计算。
+        measured_sensitivity: 实测灵敏度 λc，只有结论为合格或不合格时才有值。
         mvd: 最大有效稀释倍数。
         endotoxin_limit: 内毒素限值。
         signed_by: 签署人用户名。
         signed_at: 签署时间。
+        layout_confirmed: 创建时模板布局是否已确认（快照，之后修改模板不影响本试验）。
+            默认 False：没有明确确认的布局不能得出合格或不合格。
+        completed_at: 试验转为「已完成」的时间。
+        conclusion: 入库的试验结论，试验完成时固化，之后修改规则或阈值不会改写它。
     """
 
     experiment_id: str
@@ -353,6 +370,9 @@ class Experiment:
     endotoxin_limit: float | None = None
     signed_by: str | None = None
     signed_at: datetime | None = None
+    layout_confirmed: bool = False
+    completed_at: datetime | None = None
+    conclusion: ExperimentConclusion | None = None
 
     def __post_init__(self) -> None:
         """校验创建时间和管号唯一性。

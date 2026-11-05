@@ -1,6 +1,7 @@
 import pytest
 
-from gelinspect.domain.enums import GelState, Interpretation, TubeAnalysisStatus
+from gelinspect.domain.entities import TubeResult
+from gelinspect.domain.enums import GelState, Interpretation, ReviewStatus, TubeAnalysisStatus
 from gelinspect.domain.interpretation import GelStateMapping
 
 P = Interpretation.POSITIVE
@@ -66,3 +67,46 @@ def test_invalid_config_is_rejected(config: dict[str, str]) -> None:
 def test_config_round_trip() -> None:
     mapping = GelStateMapping(partially_gelled=P)
     assert GelStateMapping.from_config(mapping.to_config()) == mapping
+
+
+def test_low_confidence_threshold_is_off_by_default() -> None:
+    mapping = GelStateMapping()
+    assert mapping.low_confidence_threshold is None
+    assert not mapping.is_low_confidence(None)
+    assert mapping.interpret(TubeAnalysisStatus.OK, GelState.FULLY_GELLED, 0.01) is (
+        Interpretation.POSITIVE
+    )
+    assert "low_confidence_threshold" not in mapping.to_config()
+
+
+def test_low_confidence_goes_to_review_when_enabled() -> None:
+    mapping = GelStateMapping.from_config({}, low_confidence_threshold=0.7)
+    assert mapping.interpret(TubeAnalysisStatus.OK, GelState.NOT_GELLED, 0.69) is (
+        Interpretation.PENDING_REVIEW
+    )
+    assert mapping.interpret(TubeAnalysisStatus.OK, GelState.NOT_GELLED, 0.7) is (
+        Interpretation.NEGATIVE
+    )
+    assert mapping.interpret(TubeAnalysisStatus.OK, GelState.FULLY_GELLED, None) is (
+        Interpretation.PENDING_REVIEW
+    )
+    assert mapping.to_config()["low_confidence_threshold"] == "0.7"
+
+
+def test_low_confidence_threshold_must_be_a_probability() -> None:
+    with pytest.raises(ValueError):
+        GelStateMapping(low_confidence_threshold=1.5)
+
+
+def test_low_confidence_result_explains_itself() -> None:
+    result = TubeResult.from_analysis(
+        tube_no=1,
+        status=TubeAnalysisStatus.OK,
+        state=GelState.FULLY_GELLED,
+        mapping=GelStateMapping(low_confidence_threshold=0.7),
+        confidence=0.5,
+    )
+    assert result.needs_review
+    assert result.review_status is ReviewStatus.PENDING
+    assert result.gel_state is GelState.FULLY_GELLED  # 三态原样保留
+    assert result.message is not None and "0.50" in result.message and "0.7" in result.message

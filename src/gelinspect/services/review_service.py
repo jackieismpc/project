@@ -1,8 +1,8 @@
 """人工复核：分析员对单管结果判阳性或阴性，意见必填，写审计。
 
 遵守试验状态机：只有「待复核」状态（全部排已分析）才能复核；最后一支待复核的试管处理完，
-同一个事务里把试验转为「已完成」（可签署），签署由 P11 实现。算法的原始结果不被覆盖：
-复核结论存在 ``reviewed_*`` 字段，``final_interpretation`` 以它为准。
+同一个事务里把试验转为「已完成」（可签署）并固化试验结论，签署由 P11 实现。算法的原始结果不被
+覆盖：复核结论存在 ``reviewed_*`` 字段，``final_interpretation`` 以它为准。
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
+from gelinspect.domain.conclusions import finalize_conclusion
 from gelinspect.domain.entities import TubeResult
 from gelinspect.domain.enums import AuditAction, Interpretation
 from gelinspect.domain.errors import TransitionGuardError
@@ -166,11 +167,27 @@ class ReviewService:
                     now,
                 )
             )
+            events.append(
+                audit_event(
+                    user,
+                    AuditAction.CONCLUSION_RECORDED,
+                    finalize_conclusion(experiment, now).summary_text(),
+                    experiment_id,
+                    now,
+                )
+            )
         try:
             with self._storage.unit_of_work() as uow:
                 # 总是带上「预期状态」写一次：别处改过试验状态时在这里发现，整个事务回滚。
                 uow.experiments.update_state(experiment_id, experiment.state, expected=before)
                 uow.experiments.save_results(experiment_id, [reviewed])
+                if experiment.conclusion is not None and experiment.completed_at is not None:
+                    uow.experiments.record_completion(
+                        experiment_id,
+                        completed_at=experiment.completed_at,
+                        measured_sensitivity=experiment.measured_sensitivity,
+                        conclusion=experiment.conclusion,
+                    )
                 uow.audit.append_many(events)
         except StateConflictError as exc:
             raise ServiceError(

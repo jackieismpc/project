@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from datetime import datetime
 
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal
@@ -45,9 +46,12 @@ from gelinspect.services.monitor_service import ExperimentView
 from gelinspect.services.video.events import VideoEvent, VideoEventCode, VideoEventLevel
 from gelinspect.ui.bridge import EngineBridge
 from gelinspect.ui.labels import (
+    describe_auth_error,
     describe_service_error,
+    format_concentration,
     reagent_kind_label,
 )
+from gelinspect.ui.pages.conclusion_card import ConclusionCard
 from gelinspect.ui.pages.monitor_format import (
     countdown,
     experiment_title,
@@ -159,6 +163,8 @@ class MonitorPage(QWidget):
         self.alerts = AlertStack()
         self._column.addWidget(self.alerts)
         self._build_facts()
+        self.conclusion_card = ConclusionCard()
+        self._column.addWidget(self.conclusion_card)
         self.tabs = Tabs(["", "", "", ""])
         self._column.addWidget(self.tabs)
         self.stack = QStackedWidget()
@@ -181,6 +187,8 @@ class MonitorPage(QWidget):
         self.plate.tubeClicked.connect(self._on_tube_clicked)
         self.table.rowActivated.connect(self._on_row_activated)
         self.stop_button.clicked.connect(self.request_stop)
+        self.resume_button.clicked.connect(self.request_resume)
+        self.retry_button.clicked.connect(self.request_retry)
         self.replay_button.clicked.connect(self.open_replay)
         self.replay_rows.currentIndexChanged.connect(self._on_replay_row)
         bridge.wellUpdated.connect(self._on_well)
@@ -220,13 +228,21 @@ class MonitorPage(QWidget):
         self.id_label = Label("", "meta", mono=True)
         self.badge = StatusBadge("")
         self.temperature = Label("", "readout", mono=True)
+        self.resume_button = Button("", ButtonVariant.PRIMARY, icon="play")
+        self.retry_button = Button("", ButtonVariant.SECONDARY, icon="rotate-ccw")
         self.stop_button = Button("", ButtonVariant.DANGER, icon="square")
         for widget in (self.title, self.id_label, self.badge):
             row.addWidget(widget)
         row.addStretch(1)
         row.addWidget(self.temperature)
+        row.addWidget(self.resume_button)
+        row.addWidget(self.retry_button)
         row.addWidget(self.stop_button)
         self._column.addWidget(self.header)
+        self.recovery_hint = Label("", "warn")
+        self.recovery_hint.setWordWrap(True)
+        self.recovery_hint.setVisible(False)
+        self._column.addWidget(self.recovery_hint)
 
     def _build_facts(self) -> None:
         self.facts_card = Card()
@@ -426,8 +442,10 @@ class MonitorPage(QWidget):
 
     def _show_empty(self, empty: bool) -> None:
         self.empty_card.setVisible(empty)
-        for widget in (self.header, self.facts_card, self.tabs, self.stack):
+        for widget in (self.header, self.facts_card, self.conclusion_card, self.tabs, self.stack):
             widget.setVisible(not empty)
+        if empty:
+            self.recovery_hint.setVisible(False)
         self.alerts.setVisible(not empty and bool(self.alerts.active_keys()))
 
     # ------------------------------------------------------------------ 事件
@@ -597,12 +615,58 @@ class MonitorPage(QWidget):
         elif view.live and not self.temperature.text():
             self.temperature.setText("–– ℃")
         self.stop_button.setVisible(view.can_stop)
+        self.resume_button.setVisible(view.can_resume)
+        self.retry_button.setVisible(bool(view.retry_rows or view.failed_rows))
+        self._render_recovery_hint()
         self._render_permissions()
 
     def _render_permissions(self) -> None:
         allowed = self._session is not None and self._session.can(Permission.EXPERIMENT_STOP)
         self.stop_button.setEnabled(allowed)
         self.stop_button.setToolTip("" if allowed else self.tr("当前角色无此权限"))
+        view = self._view
+        runnable = self._session is not None and self._session.can(Permission.EXPERIMENT_RUN)
+        denied = "" if runnable else self.tr("当前角色无此权限")
+        self.resume_button.setEnabled(runnable)
+        self.resume_button.setToolTip(denied)
+        waiting = view is not None and bool(view.failed_rows) and not view.retry_rows
+        self.retry_button.setEnabled(runnable and not waiting)
+        self.retry_button.setToolTip(
+            denied or (self.tr("全部排读完后才能重试分析") if waiting else "")
+        )
+
+    def _render_recovery_hint(self) -> None:
+        view = self._view
+        if view is None:
+            return
+        hint = ""
+        if view.interrupted and view.retry_rows and view.unread_rows:
+            hint = self.tr(
+                "软件重启过，调度已经丢失，这个试验不能恢复。"
+                "第 {rows} 排已抓帧，可以重试分析（不翻转）；"
+                "第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。"
+            ).format(
+                rows="、".join(str(r) for r in view.retry_rows),
+                unread="、".join(str(r) for r in view.unread_rows),
+            )
+        elif view.interrupted and view.retry_rows:
+            hint = self.tr(
+                "软件重启过，调度已经丢失，这个试验不能恢复。"
+                "全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。"
+            ).format(rows="、".join(str(r) for r in view.retry_rows))
+        elif view.interrupted:
+            hint = self.tr(
+                "软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排"
+                "（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。"
+            )
+        elif view.failed_rows and not view.retry_rows:
+            hint = self.tr("第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。").format(
+                rows="、".join(str(r) for r in view.failed_rows)
+            )
+        elif view.can_resume:
+            hint = self.tr("试验异常：{reason}").format(reason=view.fault_reason or "–")
+        self.recovery_hint.setText(hint)
+        self.recovery_hint.setVisible(bool(hint))
 
     def _render_facts(self) -> None:
         view = self._view
@@ -616,14 +680,15 @@ class MonitorPage(QWidget):
             "lambda": "–"
             if view.labeled_sensitivity is None
             else f"{view.labeled_sensitivity:g} EU/ml",
-            "lambda_c": self.tr("待 P10")
+            "lambda_c": "–"
             if view.measured_sensitivity is None
-            else f"{view.measured_sensitivity:g} EU/ml",
+            else f"{format_concentration(view.measured_sensitivity)} EU/ml",
             "operator": view.operator_name,
             "started": _clock(view.started_at),
         }
         for key, value in values.items():
             self._fact_values[key].setText(value)
+        self.conclusion_card.set_conclusion(view.conclusion, recorded=view.conclusion_recorded)
 
     def _render_video(self) -> None:
         view = self._view
@@ -735,8 +800,6 @@ class MonitorPage(QWidget):
         try:
             self._services.monitor.stop(self._session, view.experiment_id, "用户在试验监控页停止")
         except AuthError as error:
-            from gelinspect.ui.labels import describe_auth_error
-
             Toast.show_message(self, describe_auth_error(error), ToastKind.WARNING)
             return False
         except ServiceError as error:
@@ -744,6 +807,59 @@ class MonitorPage(QWidget):
             return False
         self.stop_button.setEnabled(False)
         Toast.show_message(self, self.tr("已请求停止，正在收尾"), ToastKind.INFO)
+        return True
+
+    def request_resume(self) -> bool:
+        """弹出确认框，确认后恢复异常的试验。
+
+        读数失败的排会重新翻转，翻动过的凝胶状态可能已变（PLAN 第 7 节第 15 项），所以必须由人确认。
+        恢复条件不满足时引擎发告警，显示在横幅里，试验保持异常。
+
+        Returns:
+            已提交恢复请求时为 True。
+        """
+        view = self._view
+        if view is None or not view.can_resume:
+            return False
+        confirmed = ConfirmDialog.ask(
+            self,
+            self.tr("恢复试验？"),
+            self.tr(
+                "恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；"
+                "分析失败的排用保留的原图重试。确定要恢复吗？"
+            ),
+            confirm_text=self.tr("恢复试验"),
+            cancel_text=self.tr("暂不恢复"),
+        )
+        if not confirmed:
+            return False
+        return self._run_recovery(self._services.monitor.resume, self.tr("已请求恢复试验"))
+
+    def request_retry(self) -> bool:
+        """重试分析失败的排：用保留的原图重新分析，不翻转。
+
+        Returns:
+            已提交重试请求时为 True。
+        """
+        view = self._view
+        if view is None or not view.retry_rows:
+            return False
+        return self._run_recovery(self._services.monitor.retry_analysis, self.tr("已请求重试分析"))
+
+    def _run_recovery(self, action: Callable[[Session | None, str], None], done: str) -> bool:
+        view = self._view
+        assert view is not None
+        try:
+            action(self._session, view.experiment_id)
+        except AuthError as error:
+            Toast.show_message(self, describe_auth_error(error), ToastKind.WARNING)
+            return False
+        except ServiceError as error:
+            Toast.show_message(self, describe_service_error(error), ToastKind.WARNING)
+            return False
+        Toast.show_message(self, done, ToastKind.INFO)
+        self._reload_pending = True
+        self._request_flush()
         return True
 
     def open_replay(self) -> None:
@@ -809,6 +925,8 @@ class MonitorPage(QWidget):
         )
         self.empty_history.setText(self.tr("打开历史记录"))
         self.stop_button.setText(self.tr("停止试验"))
+        self.resume_button.setText(self.tr("恢复试验"))
+        self.retry_button.setText(self.tr("重试分析"))
         for key, text in (
             ("lal", self.tr("{kind}批号").format(kind=reagent_kind_label(ReagentKind.LAL_REAGENT))),
             (
@@ -830,9 +948,9 @@ class MonitorPage(QWidget):
         self.table.set_columns(self._columns())
         self.table.set_empty_text(self.tr("没有试管"))
         for card in (self.report_tab, self.batch_tab):
-            card.headline.setText(self.tr("该功能将在 P11 阶段实现"))  # type: ignore[attr-defined]
+            card.headline.setText(self.tr("这个功能还在建设中"))  # type: ignore[attr-defined]
             card.summary.setText(  # type: ignore[attr-defined]
-                self.tr("报告打印预览、单批次报告、数字签名和验签在报告阶段提供。")
+                self.tr("这里将提供报告打印预览、单批次报告、数字签名和验签。")
             )
         self._signature = None
         if self._view is not None:

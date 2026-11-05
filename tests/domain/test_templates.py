@@ -17,13 +17,14 @@ def test_sensitivity_template_matches_specification() -> None:
     assert template.needs_confirmation is False
     assert template.tube_count == 17
     assert [item.tube_no for item in template.items] == list(range(1, 18))
-    assert [item.spiked_endotoxin for item in template.items] == [
+    assert [item.lambda_multiple for item in template.items] == [
+        *[2.0] * 4,
         *[1.0] * 4,
         *[0.5] * 4,
         *[0.25] * 4,
-        *[0.125] * 4,
         0.0,
     ]
+    assert all(item.spiked_endotoxin is None for item in template.items)
     assert all(item.dilution_factor is None for item in template.items)
     assert [item.role for item in template.items] == [
         *[TubeRole.TEST] * 16,
@@ -68,3 +69,27 @@ def test_item_rejects_bad_values() -> None:
         TemplateTubeItem(tube_no=81, sample_name="s", role=TubeRole.TEST)
     with pytest.raises(ValueError):
         TemplateTubeItem(tube_no=1, sample_name="s", role=TubeRole.TEST, dilution_factor=-1.0)
+
+
+def test_sensitivity_spikes_follow_lambda() -> None:
+    template = BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION]
+    assert template.requires_lambda
+    values = [item.spike_for(0.25) for item in template.items]
+    assert values == [*[0.5] * 4, *[0.25] * 4, *[0.125] * 4, *[0.0625] * 4, 0.0]
+    assert [item.spike_for(0.03) for item in template.items][:16:4] == [0.06, 0.03, 0.015, 0.0075]
+    assert template.items[0].spike_for(None) is None
+
+
+def test_absolute_spike_is_kept_for_old_custom_items() -> None:
+    item = TemplateTubeItem(1, "样品", TubeRole.TEST, spiked_endotoxin=0.3)
+    assert item.spike_for(0.5) == 0.3
+    assert item.spike_for(None) == 0.3
+
+
+def test_unconfirmed_templates_do_not_need_lambda() -> None:
+    assert not BUILTIN_TEMPLATES[ExperimentType.LIMIT].requires_lambda
+
+
+def test_negative_multiple_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        TemplateTubeItem(1, "样品", TubeRole.TEST, lambda_multiple=-1.0)

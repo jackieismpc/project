@@ -282,7 +282,11 @@ class TemplatesPage(QWidget):
                     "sample": item.sample_name,
                     "role": tube_role_label(item.role),
                     "dilution": _number(item.dilution_factor),
-                    "spike": _number(item.spiked_endotoxin),
+                    "spike": (
+                        _number(item.spiked_endotoxin)
+                        if item.lambda_multiple is None
+                        else f"{item.lambda_multiple:g}λ"
+                    ),
                 }
                 for item in sorted(template.items, key=lambda i: i.tube_no)
             ]

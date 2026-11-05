@@ -202,6 +202,8 @@ class AppConfig(_Section):
         device: 设备后端。
         engine: 试验引擎。``analysis_timeout_s`` 由 ``analysis.timeout_ms`` 决定。
         interpretation: 三态到阴阳性的映射，未写的状态用默认值。
+        low_confidence_threshold: 低置信度阈值（0–1），低于它的结果转待复核；默认不启用，
+            等 QA 确认（PLAN 第 7 节第 17 项）。
         security: 账号安全。
         bootstrap: 首次启动初始化钩子。
         traceability: 试剂码解析、备案清单和政府溯源平台。
@@ -214,6 +216,7 @@ class AppConfig(_Section):
     device: DeviceSection
     engine: EngineConfig = EngineConfig()
     interpretation: dict[str, str] = Field(default_factory=dict)
+    low_confidence_threshold: float | None = Field(default=None, ge=0, le=1)
     security: SecuritySection = SecuritySection()
     bootstrap: BootstrapSection = BootstrapSection()
     traceability: TraceabilitySection = TraceabilitySection()
@@ -268,7 +271,9 @@ class AppConfig(_Section):
         Returns:
             映射规则。
         """
-        return GelStateMapping.from_config(self.interpretation)
+        return GelStateMapping.from_config(
+            self.interpretation, low_confidence_threshold=self.low_confidence_threshold
+        )
 
 
 def project_root() -> Path:

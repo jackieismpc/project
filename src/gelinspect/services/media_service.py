@@ -13,8 +13,6 @@
 from __future__ import annotations
 
 import hashlib
-import re
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -32,13 +30,15 @@ from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.mask_archive import MaskKind, MaskPhase, latest_masks
 from gelinspect.services.replay import ReplayError, VideoClip
+from gelinspect.services.video.media import RAW_IMAGE_NAME, latest_raw_images
 from gelinspect.services.video.preview import resize_to_long_side
 
-_RAW_NAME = re.compile(r"^(?P<phase>before|after)_(?P<index>\d+)\.(?:png|jpg|jpeg)$", re.IGNORECASE)
 CROP_LONG_SIDE = 520
 """单管裁剪图的长边上限。"""
 SEQUENCE_LONG_SIDE = 220
 """3 帧序列缩略图的长边上限。"""
+MIN_SIDE_PADDING = 0.06
+"""裁剪框短边外扩量的下限，相对长边。"""
 
 Image = NDArray[np.uint8]
 Polygons = tuple[NDArray[np.int32], ...]
@@ -167,36 +167,22 @@ class _Reader:
         return np.asarray(decoded, dtype=np.uint8)
 
 
-def _latest_raw(files: Sequence[MediaFile]) -> dict[str, list[MediaFile]]:
-    """一排最新一次抓帧的原图，按序号升序：``{"before": [...], "after": [...]}``。"""
-    by_dir: dict[Path, list[tuple[str, int, MediaFile]]] = {}
-    for item in files:
-        if item.kind is not MediaKind.IMAGE:
-            continue
-        match = _RAW_NAME.match(Path(item.path).name)
-        if match is None:
-            continue
-        by_dir.setdefault(Path(item.path).parent, []).append(
-            (match["phase"].lower(), int(match["index"]), item)
-        )
-    result: dict[str, list[MediaFile]] = {"before": [], "after": []}
-    if not by_dir:
-        return result
-    newest = max(by_dir, key=lambda d: (max(i.created_at for _, _, i in by_dir[d]), d.name))
-    for phase, _, item in sorted(by_dir[newest], key=lambda e: (e[0], e[1])):
-        result[phase].append(item)
-    return result
-
-
 def _bounding_box(mask: Image, margin: float = 0.18) -> tuple[int, int, int, int] | None:
     """掩码的外接框，向外扩一圈。返回 ``(x0, y0, x1, y1)``，掩码为空时为 None。"""
     points = cv2.findNonZero(mask)
     if points is None:
         return None
     x, y, w, h = cv2.boundingRect(points)
-    pad = round(margin * max(w, h))
+    # 按各自方向外扩：都按长边外扩的话，竖长的试管两侧会留下大片背景。
+    # 短边至少外扩长边的 6%，管壁外留一点背景，掩码轮廓才看得清。
+    pad_x, pad_y = (round(max(margin * side, MIN_SIDE_PADDING * max(w, h))) for side in (w, h))
     height, width = mask.shape[:2]
-    return max(0, x - pad), max(0, y - pad), min(width, x + w + pad), min(height, y + h + pad)
+    return (
+        max(0, x - pad_x),
+        max(0, y - pad_y),
+        min(width, x + w + pad_x),
+        min(height, y + h + pad_y),
+    )
 
 
 def _column_box(shape: tuple[int, ...], position: int) -> tuple[int, int, int, int]:
@@ -325,7 +311,7 @@ class MediaService:
         rows = {
             i.row_index
             for i in files
-            if i.row_index is not None and _RAW_NAME.match(Path(i.path).name)
+            if i.row_index is not None and RAW_IMAGE_NAME.match(Path(i.path).name)
         }
         return sorted(rows)
 
@@ -354,7 +340,7 @@ class MediaService:
         files = self._storage.media.list_for_experiment(
             experiment_id, kind=MediaKind.IMAGE, row_index=row_index
         )
-        raw = _latest_raw(files)
+        raw = latest_raw_images(files)
         reader = _Reader()
         sides: dict[str, Image | None] = {}
         for phase in ("before", "after"):
@@ -382,7 +368,7 @@ class MediaService:
         files = self._storage.media.list_for_experiment(
             experiment_id, kind=MediaKind.IMAGE, row_index=position.row_index
         )
-        raw = _latest_raw(files)
+        raw = latest_raw_images(files)
         masks = {k: v for k, v in latest_masks(files).items() if k[0] == tube_no}
         reader = _Reader()
         if not any(key[1] == "tube" for key in masks):

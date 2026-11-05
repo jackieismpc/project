@@ -22,6 +22,8 @@ def draft_with(template: ExperimentTemplate = SENSITIVITY) -> ExperimentDraft:
 def test_rows_come_from_the_template_in_tube_order() -> None:
     draft = draft_with()
     assert draft.expected_count == 17
+    assert [r.spiked_endotoxin for r in draft.rows[:5]] == [None] * 5  # λ 还不知道
+    draft.set_labeled_sensitivity(0.5)
     assert [r.spiked_endotoxin for r in draft.rows[:5]] == [1.0, 1.0, 1.0, 1.0, 0.5]
     assert draft.rows[16].name == "阴性对照" and draft.rows[16].spiked_endotoxin == 0.0
 

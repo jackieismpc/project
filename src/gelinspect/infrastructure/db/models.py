@@ -24,6 +24,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy import text as sql_text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from gelinspect.infrastructure.db.columns import UtcDateTime
@@ -84,6 +85,7 @@ class TemplateItemRow(Base):
     role: Mapped[str] = mapped_column(String(32))
     dilution_factor: Mapped[float | None] = mapped_column(Float, nullable=True)
     spiked_endotoxin: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lambda_multiple: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class ExperimentRow(Base):
@@ -109,6 +111,26 @@ class ExperimentRow(Base):
     endotoxin_limit: Mapped[float | None] = mapped_column(Float, nullable=True)
     signed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     signed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    layout_confirmed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sql_text("0")
+    )
+
+
+class ExperimentConclusionRow(Base):
+    """试验结论表，每个试验一行，试验完成时写入。历史结论不随规则变化。"""
+
+    __tablename__ = "experiment_conclusions"
+
+    experiment_id: Mapped[str] = mapped_column(
+        ForeignKey("experiments.experiment_id", ondelete="CASCADE"), primary_key=True
+    )
+    verdict: Mapped[str] = mapped_column(String(16))
+    value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rule_version: Mapped[str] = mapped_column(String(64))
+    labeled_sensitivity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    computed_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
 
 
 class TubeAssignmentRow(Base):
@@ -220,6 +242,8 @@ class MediaFileRow(Base):
     row_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    captured_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    flip_angle_deg: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class ReportRow(Base):

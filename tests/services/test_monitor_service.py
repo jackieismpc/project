@@ -97,3 +97,15 @@ class _IdleEngine:
 
     def stop_faulted(self, experiment_id: str, user: object, reason: str = "") -> None:
         raise AssertionError("不应被调用")
+
+    def resume(self, user: object) -> bool:
+        raise AssertionError("不应被调用")
+
+    def retry_analysis(self, user: object) -> bool:
+        raise AssertionError("不应被调用")
+
+    def retry_interrupted(self, experiment_id: str, user: object) -> None:
+        raise AssertionError("不应被调用")
+
+    def retryable_rows(self, experiment_id: str) -> tuple[int, ...]:
+        return ()

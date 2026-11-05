@@ -22,6 +22,7 @@ from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.interfaces.analysis import GelAnalyzer
 from gelinspect.interfaces.device import DeviceController, DeviceError, DeviceStatus
 from gelinspect.interfaces.storage import ExperimentQuery, PageRequest, TransactionalStorage
+from gelinspect.services.engine_recovery import recovery_plan
 from gelinspect.services.engine_run import ACTIVE_STATES, SYSTEM_ACTOR, EngineDeps, EngineRun
 from gelinspect.services.engine_types import (
     EngineBusyError,
@@ -252,6 +253,50 @@ class ExperimentEngine:
         self._require(user, Permission.EXPERIMENT_RUN)
         run = self._run
         return run.request_resume(user, analysis_only=True) if run is not None else False
+
+    def retryable_rows(self, experiment_id: str) -> tuple[int, ...]:
+        """重启后的异常试验里，还能离线重新分析的排。
+
+        Args:
+            experiment_id: 试验标识。
+
+        Returns:
+            排号，升序；试验不存在、不是异常状态时为空。
+        """
+        experiment = self._storage.experiments.get(experiment_id)
+        if experiment is None or experiment.state is not ExperimentState.FAULTED:
+            return ()
+        media = self._storage.media.list_for_experiment(experiment_id)
+        return tuple(sorted(recovery_plan(experiment, media)))
+
+    def retry_interrupted(self, experiment_id: str, user: User) -> None:
+        """软件重启后重试分析：从磁盘读回原图、核对哈希后重新分析，不碰设备，也不翻转。
+
+        立即返回。还有排没有读数时，分析完回到异常，这个试验只能停止。
+
+        Args:
+            experiment_id: 试验标识。
+            user: 操作者，需要 ``experiment_run`` 权限。
+
+        Raises:
+            EnginePermissionError: 没有权限。
+            EngineBusyError: 已有试验在运行，或上一次的算法调用还没有返回。
+            EngineStateError: 试验不存在、不是异常状态，或没有可以重试的排。
+        """
+        self._require(user, Permission.EXPERIMENT_RUN)
+        with self._lock:
+            if self._run is not None and self._run.alive:
+                raise EngineBusyError(f"试验 {self._run.experiment_id} 正在运行")
+            if self._run is not None and self._run.analyzer_busy:
+                raise EngineBusyError("上一次的算法调用还没有返回，暂时不能重试")
+            experiment = self._load(experiment_id)
+            if experiment.state is not ExperimentState.FAULTED:
+                raise EngineStateError(f"试验 {experiment_id} 的状态不是异常")
+            plan = recovery_plan(experiment, self._storage.media.list_for_experiment(experiment_id))
+            if not plan:
+                raise EngineStateError(f"试验 {experiment_id} 没有可以重试分析的排")
+            self._run = EngineRun(experiment, user, self._deps, recovery=plan)
+            self._run.start()
 
     def wait(self, timeout_s: float | None = None) -> bool:
         """等待当前运行结束。

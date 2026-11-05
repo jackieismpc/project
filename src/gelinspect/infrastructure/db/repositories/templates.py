@@ -27,6 +27,7 @@ def _to_template(row: TemplateRow, items: list[TemplateItemRow]) -> ExperimentTe
                 role=TubeRole(item.role),
                 dilution_factor=item.dilution_factor,
                 spiked_endotoxin=item.spiked_endotoxin,
+                lambda_multiple=item.lambda_multiple,
             )
             for item in sorted(items, key=lambda item: item.tube_no)
         ),
@@ -73,6 +74,7 @@ class SqlTemplateRepository(TemplateRepository):
                     role=item.role.value,
                     dilution_factor=item.dilution_factor,
                     spiked_endotoxin=item.spiked_endotoxin,
+                    lambda_multiple=item.lambda_multiple,
                 )
                 for item in template.items
             )

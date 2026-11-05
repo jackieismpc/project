@@ -18,7 +18,7 @@
 | `mock_analyzer.py` | `MockAnalyzer`（`GelAnalyzer`）：阈值分割、特征、评分、三态，支持故障注入 |
 | `sim_device.py` | `SimDevice`（`DeviceController`）：滑台、翻转、温度、舱门、连接、故障，时间加速 |
 | `sim_video.py` | `SimVideoSource`（`VideoSource`）：按当前排和翻转状态生成帧流，含过渡帧，可注入断流 |
-| `scene.py`、`scenario.py` | 相机场景（排号、翻转进度），以及每支试管的真实状态（比例或按管号指定） |
+| `scene.py`、`scenario.py` | 相机场景（排号、翻转进度），以及每支试管的真实状态（按管号指定、按孔板内容的剂量关系，或比例） |
 | `clock.py` | 可注入时钟，`ManualClock` 让测试不真实 `sleep` |
 | `reagents.py` | 试剂码解析器、备案白名单（含已过期、未备案样例）、溯源平台占位 |
 | `sample_data.py` | 灵敏度复核示例数据 |
@@ -88,7 +88,9 @@
 
 ### 试剂和示例数据
 
-试剂码格式（模拟约定）：`产品编码|批号|种类|有效期|序列号`。`reagents.SAMPLE_CODES` 含有效、已过期（`LAL2501B`）、未备案（`LAL9999X`）等样例。`sample_data` 提供灵敏度复核示例：管 1–6 完全凝固（阳性），7 部分凝固（待复核），8–17 未凝固（阴性）；外加内毒素 1 / 0.5 / 0.25 / 0.125 各 4 管加 1 支 0。
+试剂码格式（模拟约定）：`产品编码|批号|种类|有效期|序列号`。`reagents.SAMPLE_CODES` 含有效、已过期（`LAL2501B`）、未备案（`LAL9999X`）等样例。`sample_data` 提供灵敏度复核示例：管 1–6 完全凝固（阳性），7 部分凝固（待复核），8–17 未凝固（阴性）；λ=0.5 时外加内毒素 1 / 0.5 / 0.25 / 0.125 各 4 管加 1 支 0，7 号复核为阳性时 λc≈0.59。
+
+**默认场景的剂量关系**：引擎启动时把孔板内容（`PlatePlan`）交给 `SimDevice.load_plate_plan`，`SimVideoSource` 据此绘制：≥2λ 完全凝固，≤λ/4 和阴性对照未凝固，中间按每个系列抽到的真实终点（λ 或 λ/2）决定，边界附近有部分凝固，由随机种子决定（`simulation/scenario.py` 的 `dose_response_states`）。显式的 `tube_states` 优先；推定模板的管没有剂量可依，仍按 `state_ratios` 抽取。规则见 [conclusions.md](conclusions.md)。
 
 ### 替换为真实实现
 

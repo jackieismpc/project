@@ -1,7 +1,8 @@
 """示例试验数据：灵敏度复核（2λ:1）。
 
-17 支试管，外加内毒素列为 1 / 0.5 / 0.25 / 0.125 各 4 管加 1 支 0（阴性对照）。
+17 支试管，λ=0.5 时外加内毒素列为 1 / 0.5 / 0.25 / 0.125 各 4 管加 1 支 0（阴性对照）。
 状态：1–6 号完全凝固（阳性），7 号部分凝固（待复核），8 号及 9–17 号未凝固（阴性）。
+7 号复核为阳性时，4 个系列的终点是 0.5、0.5、0.5、1，λc≈0.59。
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from datetime import UTC, date, datetime
 from types import MappingProxyType
 
 from gelinspect.domain.entities import Experiment, ReagentBatch, Sample, TubeAssignment
-from gelinspect.domain.enums import ExperimentType, GelState, Interpretation
+from gelinspect.domain.enums import ExperimentType, GelState, Interpretation, ReagentKind
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.plate import TUBE_COUNT
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
@@ -32,9 +33,12 @@ SENSITIVITY_EXPECTED: Mapping[int, Interpretation] = MappingProxyType(
 )
 """按默认映射得到的预期判读：1–6 阳性，7 待复核，其余阴性。"""
 
+SAMPLE_LAMBDA = 0.5
+"""示例试验的标示灵敏度，取参考视频里的 0.5（模拟白名单的 ``LAL2606A`` 是 0.25）。"""
+
 SENSITIVITY_ENDOTOXIN: Mapping[int, float] = MappingProxyType(
     {
-        item.tube_no: item.spiked_endotoxin or 0.0
+        item.tube_no: item.spike_for(SAMPLE_LAMBDA) or 0.0
         for item in BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION].items
     }
 )
@@ -68,7 +72,11 @@ def sensitivity_reagents() -> tuple[ReagentBatch, ...]:
             batch_no=entry.batch_no,
             expiry_date=entry.expiry_date,
             registered=True,
-            labeled_sensitivity=entry.labeled_sensitivity,
+            labeled_sensitivity=(
+                SAMPLE_LAMBDA
+                if entry.kind is ReagentKind.LAL_REAGENT
+                else entry.labeled_sensitivity
+            ),
         )
         for entry in WHITELIST
         if entry.batch_no in wanted
@@ -96,7 +104,7 @@ def sensitivity_experiment(created_at: datetime | None = None) -> Experiment:
             ),
             role=item.role,
             dilution_factor=item.dilution_factor,
-            spiked_endotoxin=item.spiked_endotoxin,
+            spiked_endotoxin=item.spike_for(SAMPLE_LAMBDA),
         )
         for item in template.items
     )
@@ -109,6 +117,7 @@ def sensitivity_experiment(created_at: datetime | None = None) -> Experiment:
         created_at=created_at or datetime(2026, 11, 4, 9, 0, tzinfo=UTC),
         assignments=assignments,
         reagents=sensitivity_reagents(),
+        layout_confirmed=True,
     )
 
 
