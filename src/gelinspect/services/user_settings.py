@@ -65,6 +65,7 @@ class InstrumentSettings:
         video_path: 视频文件或图片文件夹的路径；沿用配置文件时为空。
         retention_days: 视频和图像的保留天数，None 表示不自动删除。
         copyright_holder: 报告页脚的版权方名称。
+        encrypt_exports: 敏感导出（Excel、批量导出报告）是否打成带密码的 ZIP。
     """
 
     instrument_no: str
@@ -78,6 +79,7 @@ class InstrumentSettings:
     video_path: str
     retention_days: int | None
     copyright_holder: str
+    encrypt_exports: bool = False
 
     @property
     def temperature_range_c(self) -> tuple[float, float]:
@@ -103,7 +105,7 @@ IMPACTING_FIELDS: frozenset[str] = frozenset(
         "video_path",
     }
 )
-"""影响试验运行的设置项：试验进行中不能修改。其余项（仪器编号、保留天数、版权方）随时可改。"""
+"""影响试验运行的设置项：试验进行中不能修改。其余项（仪器编号、保留天数、版权方、导出加密）随时可改。"""
 
 NUMBER_LIMITS: dict[str, tuple[float, float]] = {
     "incubation_minutes": (0.1, 1440.0),
@@ -174,6 +176,7 @@ class SettingsDraft:
         video_path: 路径。
         retention_days: 保留天数；留空表示不自动删除。
         copyright_holder: 版权方名称。
+        encrypt_exports: 导出加密（勾选框）。
     """
 
     instrument_no: str
@@ -187,6 +190,7 @@ class SettingsDraft:
     video_path: str
     retention_days: str
     copyright_holder: str
+    encrypt_exports: bool = False
 
     @classmethod
     def from_settings(cls, settings: InstrumentSettings) -> SettingsDraft:
@@ -210,6 +214,7 @@ class SettingsDraft:
             video_path=settings.video_path,
             retention_days="" if settings.retention_days is None else str(settings.retention_days),
             copyright_holder=settings.copyright_holder,
+            encrypt_exports=settings.encrypt_exports,
         )
 
 
@@ -342,6 +347,7 @@ def parse_draft(
             video_path=path,
             retention_days=retention,
             copyright_holder=holder,
+            encrypt_exports=draft.encrypt_exports,
         ),
         [],
     )
@@ -373,6 +379,7 @@ def settings_of(config: AppConfig) -> InstrumentSettings:
         video_path=video.device if kind is not VideoInput.CONFIG else "",
         retention_days=config.retention_days,
         copyright_holder=config.reports.copyright_holder,
+        encrypt_exports=config.exports.encrypt,
     )
 
 
@@ -415,6 +422,7 @@ def apply_settings(base: AppConfig, settings: InstrumentSettings) -> AppConfig:
             "reports": base.reports.model_copy(
                 update={"copyright_holder": settings.copyright_holder}
             ),
+            "exports": base.exports.model_copy(update={"encrypt": settings.encrypt_exports}),
         }
     )
 
@@ -438,6 +446,7 @@ class _Overrides(BaseModel):
     video_path: str
     retention_days: int | None = Field(ge=1, le=36500)
     copyright_holder: str = Field(min_length=1, max_length=MAX_HOLDER_LENGTH)
+    encrypt_exports: bool
 
 
 def settings_file(data_dir: Path) -> Path:
@@ -505,6 +514,7 @@ _FILLERS: dict[str, Any] = {
     "video_path": "",
     "retention_days": None,
     "copyright_holder": "x",
+    "encrypt_exports": False,
 }
 """校验用的占位值：让只写了部分项的文件也能过模型的必填检查，占位值不会被返回。"""
 

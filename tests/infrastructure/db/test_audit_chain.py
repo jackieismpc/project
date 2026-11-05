@@ -205,7 +205,16 @@ def test_verification_spans_multiple_batches(
 
 def test_audit_repository_is_append_only() -> None:
     public = {name for name in dir(SqlAuditRepository) if not name.startswith("_")}
-    assert public == {"append", "append_many", "get", "query", "verify_chain"}
+    # begin_segment 也只追加（切换事件 + 分段行），segments 只读。
+    assert public == {
+        "append",
+        "append_many",
+        "begin_segment",
+        "get",
+        "query",
+        "segments",
+        "verify_chain",
+    }
     forbidden = ("update", "delete", "remove", "set", "clear", "purge", "edit", "modify")
     assert not [name for name in public if name.startswith(forbidden)]
 

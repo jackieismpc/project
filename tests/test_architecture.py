@@ -150,6 +150,9 @@ def test_new_services_do_not_depend_on_qt_or_infrastructure() -> None:
             "user_settings.py",
             "export_service.py",
             "excel_export.py",
+            "encrypted_zip.py",
+            "license.py",
+            "runtime_paths.py",
         )
     ]
     violations = [
@@ -169,3 +172,18 @@ def test_only_the_composition_root_knows_infrastructure_and_ui_together() -> Non
             assert not any(m.startswith("gelinspect.app_context") for m in roots), path
             assert not any(m.startswith("gelinspect.startup") for m in roots), path
             assert not any(m.startswith("gelinspect.bootstrap") for m in roots), path
+
+
+def test_security_code_has_no_qt_and_services_never_import_it() -> None:
+    """密钥保护、清单校验在基础设施层，不依赖 Qt；服务层只认 ``interfaces.security`` 的协议。"""
+    security = modules_in("infrastructure/security")
+    assert security
+    qt = [p.name for p in security for m in imported_roots(p) if m.split(".")[0] == "PySide6"]
+    assert qt == []
+    leaks = [
+        f"{p.relative_to(SRC)}: {m}"
+        for p in modules_in("services")
+        for m in imported_roots(p)
+        if m.startswith("gelinspect.infrastructure")
+    ]
+    assert leaks == []

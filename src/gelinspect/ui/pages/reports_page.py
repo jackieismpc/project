@@ -39,7 +39,7 @@ from gelinspect.domain.signing import SigningBlocker
 from gelinspect.interfaces.storage import ExperimentSummary, ReportRecord, StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
-from gelinspect.services.errors import ServiceError
+from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.export_service import suggested_filename
 from gelinspect.services.reporting.renderer import configure_printer
 from gelinspect.services.reporting.report_service import (
@@ -57,6 +57,7 @@ from gelinspect.ui.labels import (
     experiment_state_label,
     experiment_type_label,
 )
+from gelinspect.ui.pages.export_password import PasswordProvider, ask_export_password
 from gelinspect.ui.pages.report_dialogs import BatchExportDialog, SignDialog
 from gelinspect.ui.report_labels import (
     describe_signing_blocks,
@@ -106,6 +107,7 @@ class ReportsPage(QWidget):
             parent: 父控件。
         """
         super().__init__(parent)
+        self.export_password_provider: PasswordProvider = ask_export_password
         self._services = services
         self._session: Session | None = None
         self._experiments: list[ExperimentSummary] = []
@@ -927,9 +929,14 @@ class ReportsPage(QWidget):
         experiment_id = self.experiment_id
         if experiment_id is None or self._session is None:
             return False
+        password: str | None = None
+        if self._services.exports.encryption_required:
+            password = self.export_password_provider(self)
+            if password is None:
+                return False
         try:
             summary = self._services.exports.export_results(
-                self._session, [experiment_id], destination, export_labels()
+                self._session, [experiment_id], destination, export_labels(), password=password
             )
         except (AuthError, ServiceError) as error:
             self._fail(error)
@@ -949,7 +956,17 @@ class ReportsPage(QWidget):
             return
 
         def export(ids: Sequence[str], directory: str) -> ExportResult:
-            return self._services.reports.export_reports(session, ids, Path(directory))
+            password: str | None = None
+            if self._services.exports.encryption_required:
+                password = self.export_password_provider(self)
+                if password is None:
+                    raise ServiceError(
+                        "已开启导出加密，必须设置导出密码",
+                        ServiceErrorCode.EXPORT_PASSWORD_REQUIRED,
+                    )
+            return self._services.reports.export_reports(
+                session, ids, Path(directory), password=password
+            )
 
         BatchExportDialog(records, export, parent=self).exec()
 

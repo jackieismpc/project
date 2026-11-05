@@ -4,8 +4,9 @@
   有效期来自配置。证书在软件里是「本机信任的那张」，也是验签时唯一的信任根。
 * 文件被 ``.gitignore``（``*.pem``、``*.key``）忽略。私钥文件权限收紧为 600（目录 700）；
   Windows 没有等价的 POSIX 权限，只能依赖用户目录的访问控制，部署文档里说明。
-* **私钥目前以明文 PEM 保存**，加密留给 P13：:class:`KeyProtector` 是预留的接口，
-  P13 提供实现（口令或系统凭据保护）后注入 :class:`LocalKeyStore` 即可，调用方不用改。
+* 私钥落盘前由 :class:`KeyProtector` 加密（P13：Windows DPAPI、macOS 钥匙串，都不可用时
+  用安装密钥派生的口令，见 ``infrastructure/security/protectors.py``）。P13 之前留下的明文私钥
+  在 :meth:`LocalKeyStore.migrate` 时加密，原明文文件先用随机数据覆盖再替换。
 * 私钥永远不进日志、审计和异常信息；日志里只出现证书指纹。
 * 这是自签证书：它只能证明「文件自签署后没有被改动，且由本机的这把密钥签署」，
   **不具有第三方 CA 的法律效力**。
@@ -16,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import secrets
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -27,6 +29,8 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.x509.oid import NameOID
+
+from gelinspect.interfaces.security import KeyProtectionError, KeyProtector
 
 _log = logging.getLogger(__name__)
 
@@ -42,20 +46,11 @@ class KeyStoreError(Exception):
     """证书或私钥无法使用：文件损坏、不成对，或有证书没有私钥。信息面向部署人员。"""
 
 
-class KeyProtector(Protocol):
-    """私钥落盘前后的保护，P13 提供加密实现。"""
-
-    def protect(self, key_pem: bytes) -> bytes:
-        """落盘前处理私钥 PEM（例如加密）。"""
-        ...
-
-    def unprotect(self, data: bytes) -> bytes:
-        """读盘后还原私钥 PEM。"""
-        ...
+_PEM_PREFIX = b"-----BEGIN"
 
 
 class PlainKeyProtector:
-    """不做保护：明文保存。P13 之前的默认实现。"""
+    """不做保护：明文保存。只用于测试和 P13 之前的兼容，正式运行由组装根注入加密实现。"""
 
     def protect(self, key_pem: bytes) -> bytes:
         """原样返回。
@@ -176,7 +171,7 @@ class LocalKeyStore:
             organization: 证书组织名（来自配置）。
             valid_days: 证书有效天数。
             algorithm: 密钥算法。
-            protector: 私钥保护，默认明文（P13 换成加密）。
+            protector: 私钥保护，默认明文（组装根注入加密实现）。
             clock: 返回带时区当前时间的函数，测试注入。
         """
         self._dir = directory
@@ -246,7 +241,56 @@ class LocalKeyStore:
             self._tighten(self.key_path)
             return SigningIdentity(certificate, key)
 
+    def migrate(self) -> str | None:
+        """把旧格式的私钥文件改成当前的保护方式（启动时调用一次）。
+
+        * 明文 PEM（P13 之前）：加密后替换，原明文文件先用随机数据覆盖并落盘。
+        * 用的不是首选保护方式（例如原来回退到了安装密钥，现在钥匙串可用）：重新保护。
+
+        Returns:
+            ``"plaintext"`` 或 ``"reprotected"`` 表示做了迁移；没有私钥或无需迁移时为 None。
+
+        Raises:
+            KeyStoreError: 私钥文件损坏或无法解密。
+        """
+        with self._lock:
+            if not self.key_path.is_file() or isinstance(self._protector, PlainKeyProtector):
+                return None
+            data = self.key_path.read_bytes()
+            if data.lstrip().startswith(_PEM_PREFIX):
+                key = self._load_pem(data)
+                self._replace_key(key, wipe=True)
+                _log.warning("已把明文私钥 %s 加密保存，原明文已覆盖删除", self.key_path.name)
+                return "plaintext"
+            needs_upgrade = getattr(self._protector, "needs_upgrade", None)
+            if callable(needs_upgrade) and needs_upgrade(data):
+                key = self._read_key()
+                self._replace_key(key, wipe=False)
+                _log.info("私钥已改用新的保护方式")
+                return "reprotected"
+            return None
+
+    @property
+    def protected(self) -> bool:
+        """私钥是否加密保存（不是明文保护器）。"""
+        return not isinstance(self._protector, PlainKeyProtector)
+
     # ------------------------------------------------------------------ 内部
+
+    def _replace_key(self, key: PrivateKey, *, wipe: bool) -> None:
+        """用当前保护方式重写私钥文件；``wipe`` 时先覆盖旧文件内容。"""
+        pem = key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        try:
+            protected = self._protector.protect(pem)
+        except KeyProtectionError as exc:
+            raise KeyStoreError(f"无法加密私钥：{exc}") from exc
+        if wipe:
+            _overwrite(self.key_path)
+        self._write_atomic(self.key_path, protected)
 
     def _generate(self) -> SigningIdentity:
         key: PrivateKey
@@ -264,7 +308,11 @@ class LocalKeyStore:
             serialization.NoEncryption(),
         )
         # 先写私钥再写证书：中途失败只会留下「只有私钥」，下次自动补发证书。
-        self._write_atomic(self.key_path, self._protector.protect(key_pem))
+        try:
+            protected = self._protector.protect(key_pem)
+        except KeyProtectionError as exc:
+            raise KeyStoreError(f"无法加密私钥：{exc}") from exc
+        self._write_atomic(self.key_path, protected)
         self._write_atomic(self.certificate_path, self._pem_certificate(certificate))
         identity = SigningIdentity(certificate, key)
         _log.info("已生成本地签名证书，指纹 %s", identity.fingerprint)
@@ -318,9 +366,27 @@ class LocalKeyStore:
 
     def _read_key(self) -> PrivateKey:
         try:
-            pem = self._protector.unprotect(self.key_path.read_bytes())
+            data = self.key_path.read_bytes()
+        except OSError as exc:
+            raise KeyStoreError(f"无法读取私钥 {self.key_path.name}") from exc
+        if self.protected and data.lstrip().startswith(_PEM_PREFIX):
+            # 启动时没来得及迁移的明文私钥：照常读出，并顺手加密。
+            key = self._load_pem(data)
+            self._replace_key(key, wipe=True)
+            return key
+        try:
+            pem = self._protector.unprotect(data)
+        except KeyProtectionError as exc:
+            raise KeyStoreError(
+                f"无法解密私钥 {self.key_path.name}：{exc}。"
+                "已签署的报告仍可验签；请在原来的电脑和系统用户下运行，或从备份恢复"
+            ) from exc
+        return self._load_pem(pem)
+
+    def _load_pem(self, pem: bytes) -> PrivateKey:
+        try:
             key = serialization.load_pem_private_key(pem, password=None)
-        except (OSError, ValueError, TypeError) as exc:
+        except (ValueError, TypeError) as exc:
             # 不把异常原文带出去：它可能包含密钥内容的片段。
             raise KeyStoreError(f"无法读取私钥 {self.key_path.name}（文件损坏或受保护）") from exc
         if not isinstance(key, ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey):
@@ -353,3 +419,18 @@ class LocalKeyStore:
             raise
         if os.name == "posix":
             os.chmod(path, 0o600)
+
+
+def _overwrite(path: Path) -> None:
+    """用随机数据覆盖文件内容并落盘（「安全删除」的尽力版本）。
+
+    SSD 的磨损均衡、APFS/NTFS 的写时复制和快照都可能保留旧数据块，所以只能挡住简单的恢复工具。
+    """
+    try:
+        size = path.stat().st_size
+        with path.open("r+b") as handle:
+            handle.write(secrets.token_bytes(size))
+            handle.flush()
+            os.fsync(handle.fileno())
+    except FileNotFoundError:
+        return

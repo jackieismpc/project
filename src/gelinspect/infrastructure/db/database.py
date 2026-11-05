@@ -16,7 +16,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from gelinspect.infrastructure.db.repositories._common import is_lock_error
-from gelinspect.infrastructure.db.repositories.audit import SqlAuditRepository
+from gelinspect.infrastructure.db.repositories.audit import ChainKeys, SqlAuditRepository
 from gelinspect.infrastructure.db.repositories.experiments import SqlExperimentRepository
 from gelinspect.infrastructure.db.repositories.files import SqlMediaRepository, SqlReportRepository
 from gelinspect.infrastructure.db.repositories.reagent_checks import SqlReagentCheckRepository
@@ -75,17 +75,18 @@ class SqlUnitOfWork:
     不提交，所以完整性错误仍在仓储方法内抛出并被转换，提交由 ``Database.unit_of_work`` 负责。
     """
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, chain_keys: ChainKeys | None = None) -> None:
         """绑定会话。
 
         Args:
             session: 已开始事务的会话。
+            chain_keys: 审计链的可信分段和密钥。
         """
         self._session = session
         self._open = True
         self._poisoned = False
         self._experiments = SqlExperimentRepository(self._bound)
-        self._audit = SqlAuditRepository(self._bound)
+        self._audit = SqlAuditRepository(self._bound, chain_keys)
         self._media = SqlMediaRepository(self._bound)
         self._telemetry = SqlTelemetryRepository(self._bound)
         self._templates = SqlTemplateRepository(self._bound)
@@ -177,6 +178,22 @@ class Database:
         """
         self.engine = engine
         self._sessions = sessionmaker(engine, expire_on_commit=False)
+        self._chain_keys: ChainKeys | None = None
+
+    def use_chain_keys(self, keys: ChainKeys | None) -> None:
+        """设置审计链的可信分段和密钥（来自受保护的密钥文件）。
+
+        之后的写入用当前分段的密钥计算 HMAC，校验以这些分段为准。
+
+        Args:
+            keys: 分段和密钥；None 表示不用密钥（纯 SHA-256 链）。
+        """
+        self._chain_keys = keys
+
+    @property
+    def chain_keys(self) -> ChainKeys | None:
+        """审计链的可信分段和密钥。"""
+        return self._chain_keys
 
     @contextmanager
     def session(self) -> Iterator[Session]:
@@ -211,7 +228,7 @@ class Database:
                     if is_lock_error(error):
                         raise StorageBusyError(f"等待写锁超时：{error}") from error
                     raise
-                uow = SqlUnitOfWork(session)
+                uow = SqlUnitOfWork(session, self._chain_keys)
                 yield uow
                 if uow.poisoned:
                     raise StorageError("工作单元内有写入失败，事务已回滚")
@@ -243,7 +260,7 @@ class Database:
     @property
     def audit(self) -> SqlAuditRepository:
         """审计仓储。"""
-        return SqlAuditRepository(self.session)
+        return SqlAuditRepository(self.session, self._chain_keys)
 
     @property
     def media(self) -> SqlMediaRepository:
@@ -266,7 +283,7 @@ class Database:
         return SqlReagentCheckRepository(self.session)
 
 
-def open_database(path: str | Path) -> Database:
+def open_database(path: str | Path, *, chain_keys: ChainKeys | None = None) -> Database:
     """创建或升级数据库并打开。
 
     父目录不存在时自动创建。连接启用 WAL 和外键。迁移脚本用包内路径定位，
@@ -274,6 +291,8 @@ def open_database(path: str | Path) -> Database:
 
     Args:
         path: SQLite 文件路径。
+        chain_keys: 审计链的可信分段和密钥（来自受保护的密钥文件）；None 表示不用密钥。
+            应用启动时由 ``activate_audit_hmac`` 设置，这里供校验工具和测试直接传入。
 
     Returns:
         已升级到最新版本的数据库。
@@ -290,4 +309,6 @@ def open_database(path: str | Path) -> Database:
     except Exception:
         engine.dispose()
         raise
-    return Database(engine)
+    database = Database(engine)
+    database.use_chain_keys(chain_keys)
+    return database

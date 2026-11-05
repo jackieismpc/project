@@ -103,9 +103,11 @@ uv run pytest tests/contract --analyzer-backend=<真实类路径>               
 
 ### 从发布包排除
 
-`pyproject.toml` 的 `[tool.hatch.build.targets.wheel] packages` 目前包含 `simulation`。发布包不需要模拟时：
+**发布包默认排除**：`uv run python scripts/build.py` 构建的正式包不跟随导入 `simulation`，并检查编译报告里没有它的模块；只有 `--with-simulation` 构建的演示包才带模拟后端和演示账号（见 [deployment.md](../deployment.md)）。
 
-1. 从 `packages` 中去掉 `"simulation"`（P13 的 Nuitka 脚本提供排除选项）；
+`pyproject.toml` 的 `[tool.hatch.build.targets.wheel] packages` 目前包含 `simulation`（wheel 分发用）。要从仓库里彻底去掉模拟时：
+
+1. 从 `packages` 中去掉 `"simulation"`；
 2. 确认配置不指向 `simulation.*`；
 3. 可直接删除 `simulation/` 和 `tests/simulation/`，主代码仍能导入，`uv run pytest` 其余测试照常通过（`mypy` 的 `files` 里也去掉 `simulation`）。
 

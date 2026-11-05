@@ -1,0 +1,31 @@
+# GelInspect 正式发布包的默认配置（构建时复制为程序目录下的 config/gelinspect.yaml）。
+#
+# 发布包不含 simulation/，也没有任何默认账号：首次启动显示「创建管理员」。
+# 设备、相机和算法尚未接入时使用「未接入」占位后端：软件能启动和管理数据，
+# 但启动试验会明确报错，绝不产生假结果。
+#
+# 接入真实后端时，不要改程序目录里的这个文件（会触发完整性校验告警），而是把完整配置
+# 写到数据目录下的 config.yaml（macOS ~/Library/Application Support/GelInspect/config.yaml，
+# Windows %LOCALAPPDATA%\GelInspect\config.yaml），或用 --config 指定。
+# 没写 data_dir 时数据放在平台标准位置。
+
+analysis:
+  backend: gelinspect.infrastructure.unconfigured:UnconfiguredAnalyzer
+  timeout_ms: 2000
+video:
+  source: gelinspect.infrastructure.unconfigured:UnconfiguredVideoSource
+  device: camera
+  width: 1920
+  height: 1080
+  fps: 15
+device:
+  backend: gelinspect.infrastructure.unconfigured:UnconfiguredDevice
+engine:
+  incubation_minutes: 60
+security:
+  key_protection: auto
+  integrity_check: true
+exports:
+  encrypt: false
+license:
+  enabled: false

@@ -43,7 +43,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     # 隐藏参数：完整启动一遍后自动退出，用于干净克隆验证和 CI。
     parser.add_argument("--smoke-test", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--data-dir", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        metavar="DIR",
+        help="数据目录（数据库、日志、密钥）；默认仓库下的 data/，发布包为平台标准位置",
+    )
+    # 隐藏参数：不启动界面，打印运行模式、路径和程序完整性校验结果（打包验证、排错）。
+    parser.add_argument("--diagnose", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 
@@ -61,6 +68,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.simulate and args.config is not None:
         parser.error("--simulate 与 --config 不能同时使用")
     # 延迟导入：--version 和 --help 不需要加载 Qt。
+    if args.diagnose:
+        from gelinspect.startup import print_diagnosis
+
+        return print_diagnosis(args.config, args.data_dir)
     from gelinspect.startup import run_gui
 
     return run_gui(

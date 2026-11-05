@@ -20,11 +20,14 @@
 ```text
 uv run gelinspect
  ├─ 读配置（默认 DEFAULT_CONFIG，指向 simulation/；--config 指定文件）
+ ├─ （P13）判断运行模式：仓库模式用 ./data；发布包用平台标准数据目录，见 deployment.md
  ├─ 配置日志 data/logs/gelinspect.log（滚动 1 MB × 5）+ 未捕获异常兜底
  ├─ 创建 QApplication → 主题 → 语言（读取 QSettings，缺 .qm 时调用 lrelease 编译）
- ├─ build_app_context：加载后端 → 打开数据库（自动建 data/ 与迁移）→ 补全内置模板
+ ├─ build_app_context：加载后端 → 打开数据库（自动建 data/ 与迁移）→ 启用审计链 HMAC、
+ │    加密迁移签名私钥（P13，见 security.md）→ 补全内置模板
  │    └─ 用户表为空：运行 bootstrap.hook（模拟配置创建三个演示账号）
  ├─ 启动恢复：停留在运行中的试验标记为异常
+ ├─ （P13）程序完整性校验：发布包按签名清单校验，不一致时提示并写审计；仓库模式跳过并写日志
  ├─ MainWindow：有账号 → 登录页；没有账号 → 创建管理员页
  └─ 事件循环 → 退出：确认 → 仪器监视 → 引擎 → 视频管线 → 设备 → 数据库 → 日志
 ```
@@ -155,4 +158,4 @@ QT_QPA_PLATFORM=offscreen uv run gelinspect --smoke-test
 - Windows：`uv run gelinspect` 启动、`QSettings` 写注册表、`lrelease.exe` 编译、中文路径。
 - macOS 真机上的快捷键提示和语言菜单。
 - 英文文案的措辞需要英文母语者或业务方审校。
-- 发布包（P13）需要把 `translations/` 作为数据文件带上，并在构建时先生成 `.qm`。
+- 发布包（P13）：构建时用 `lrelease` 生成 `.qm`，与 `.ts` 一起放进程序目录的 `translations/`；发布包里不再调用 `lrelease`，直接用构建时的 `.qm`。macOS 发布包已实际验证切换英文（冒烟测试）。

@@ -19,6 +19,15 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.interfaces.video import VideoConfig
 from gelinspect.services.engine_types import EngineConfig
+from gelinspect.services.runtime_paths import (
+    PACKAGED_CONFIG,
+    USER_CONFIG_FILE,
+    RunMode,
+    app_root,
+    default_data_dir,
+    run_mode,
+)
+from gelinspect.services.runtime_paths import project_root as _project_root
 from gelinspect.services.video.config import (
     BufferConfig,
     PreviewConfig,
@@ -137,17 +146,46 @@ class DeviceSection(_Section):
 
 
 class SecuritySection(_Section):
-    """账号安全配置。
+    """账号安全与基础防护配置。
 
     Attributes:
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不自动锁屏。
         max_login_attempts: 连续失败多少次后锁定。
         lockout_minutes: 锁定时长。
+        key_protection: 报告签名私钥和审计链密钥的保护方式：``auto``（系统凭据可用就用，
+            否则用安装密钥派生的口令）、``os``（只用 Windows DPAPI 或 macOS 钥匙串，不可用就报错）、
+            ``file``（只用安装密钥）。环境变量 ``GELINSPECT_KEY_PROTECTION`` 可以覆盖。
+        integrity_check: 发布包启动时是否校验程序文件清单（仓库模式总是跳过）。
     """
 
     idle_lock_minutes: float = Field(default=15.0, ge=0)
     max_login_attempts: int = Field(default=5, ge=1)
     lockout_minutes: float = Field(default=5.0, gt=0)
+    key_protection: Literal["auto", "os", "file"] = "auto"
+    integrity_check: bool = True
+
+
+class ExportSection(_Section):
+    """导出配置。
+
+    Attributes:
+        encrypt: 敏感导出（Excel、批量导出报告）是否打成带密码的 ZIP（AES-256）。
+            默认不加密；也可以在「仪器设置」里打开。
+    """
+
+    encrypt: bool = False
+
+
+class LicenseSection(_Section):
+    """设备绑定授权（接口预留，默认不启用）。
+
+    Attributes:
+        enabled: 是否启用授权检查。启用后也只提示，不会阻止使用（见 ``services/license.py``）。
+        file: 离线授权文件，相对路径相对数据目录；默认数据目录下的 ``license.json``。
+    """
+
+    enabled: bool = False
+    file: Path | None = None
 
 
 class BootstrapSection(_Section):
@@ -234,6 +272,8 @@ class AppConfig(_Section):
         instrument_no: 仪器编号，写入每个新试验。
         reports: 报告与数字签名。
         retention_days: 视频和图像的保留天数，None 表示不自动删除（默认）。
+        exports: 导出（是否加密）。
+        license: 设备绑定授权（默认不启用）。
     """
 
     data_dir: Path = Path("data")
@@ -249,6 +289,8 @@ class AppConfig(_Section):
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
     reports: ReportSection = ReportSection()
     retention_days: int | None = Field(default=None, ge=1, le=36500)
+    exports: ExportSection = ExportSection()
+    license: LicenseSection = LicenseSection()
 
     @property
     def reports_dir(self) -> Path:
@@ -315,24 +357,25 @@ class AppConfig(_Section):
 
 
 def project_root() -> Path:
-    """定位仓库根目录：从本文件向上找 ``pyproject.toml``，找不到时用当前目录。
+    """配置里相对路径的基准目录：仓库模式是仓库根目录，发布模式是程序所在目录。
 
     Returns:
         相对路径的基准目录。
     """
-    here = Path(__file__).resolve()
-    for parent in here.parents:
-        if (parent / "pyproject.toml").is_file():
-            return parent
-    return Path.cwd()
+    if run_mode() is RunMode.PACKAGED:
+        return app_root(RunMode.PACKAGED)
+    return _project_root()
 
 
 def parse_config(data: Mapping[str, Any], *, base_dir: Path | None = None) -> AppConfig:
     """校验配置字典，并把相对路径转成绝对路径。
 
+    ``data_dir`` 没写时用 :func:`~gelinspect.services.runtime_paths.default_data_dir`
+    （仓库模式是仓库下的 ``data/``，发布模式是平台标准位置）；写了相对路径时相对 ``base_dir``。
+
     Args:
         data: 配置内容。
-        base_dir: 相对路径的基准，默认仓库根目录，与当前工作目录无关。
+        base_dir: 相对路径的基准，默认仓库根目录（发布模式是程序目录），与当前工作目录无关。
 
     Returns:
         配置。
@@ -358,17 +401,18 @@ def parse_config(data: Mapping[str, Any], *, base_dir: Path | None = None) -> Ap
     video = config.video
     if video.source in _FILE_SOURCES:
         video = video.model_copy(update={"device": str(base / video.device)})
-    return config.model_copy(
-        update={"data_dir": base / config.data_dir, "analysis": analysis, "video": video}
-    )
+    data_dir = base / config.data_dir if "data_dir" in data else default_data_dir()
+    return config.model_copy(update={"data_dir": data_dir, "analysis": analysis, "video": video})
 
 
 def load_config(path: Path | None = None, *, base_dir: Path | None = None) -> AppConfig:
     """读取配置。
 
     Args:
-        path: YAML 文件，None 时使用 :data:`DEFAULT_CONFIG`。文件内容就是完整配置，不与默认值合并。
-        base_dir: 相对路径的基准，默认仓库根目录。
+        path: YAML 文件。None 时：仓库模式使用 :data:`DEFAULT_CONFIG`；发布模式依次找数据目录下的
+            ``config.yaml``（部署人员写的）和发布包内的 ``config/gelinspect.yaml``。文件内容就是
+            完整配置，不与默认值合并。
+        base_dir: 相对路径的基准，默认仓库根目录（发布模式是程序目录）。
 
     Returns:
         配置。
@@ -377,7 +421,9 @@ def load_config(path: Path | None = None, *, base_dir: Path | None = None) -> Ap
         ConfigError: 文件读不了、不是 YAML 字典，或内容有误。
     """
     if path is None:
-        return parse_config(DEFAULT_CONFIG, base_dir=base_dir)
+        path = default_config_file()
+        if path is None:
+            return parse_config(DEFAULT_CONFIG, base_dir=base_dir)
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError) as exc:
@@ -387,6 +433,22 @@ def load_config(path: Path | None = None, *, base_dir: Path | None = None) -> Ap
     if not isinstance(data, dict):
         raise ConfigError(f"配置文件 {path} 的顶层必须是字典")
     return parse_config(data, base_dir=base_dir)
+
+
+def default_config_file() -> Path | None:
+    """不指定 ``--config`` 时使用的配置文件。
+
+    Returns:
+        仓库模式为 None（用 :data:`DEFAULT_CONFIG`）；发布模式是数据目录下的 ``config.yaml``
+        （存在时），否则是发布包内的 ``config/gelinspect.yaml``；都没有时为 None。
+    """
+    if run_mode() is not RunMode.PACKAGED:
+        return None
+    user = default_data_dir() / USER_CONFIG_FILE
+    if user.is_file():
+        return user
+    bundled = app_root(RunMode.PACKAGED) / PACKAGED_CONFIG
+    return bundled if bundled.is_file() else None
 
 
 def explain_import_failure(setting: str, spec: str, error: BaseException) -> str:

@@ -6,10 +6,13 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 from gelinspect.bootstrap import (
     Argon2Hasher,
@@ -17,11 +20,26 @@ from gelinspect.bootstrap import (
     initialize_accounts,
     load_bootstrap_hook,
 )
+from gelinspect.domain.entities import AuditEvent
+from gelinspect.domain.enums import AuditAction
 from gelinspect.infrastructure.db import Database, open_database
+from gelinspect.infrastructure.db.seed import SYSTEM_ACTOR
+from gelinspect.infrastructure.security.audit_keys import (
+    AUDIT_KEY_FILE,
+    ActivationResult,
+    AuditKeyRing,
+    activate_audit_hmac,
+)
+from gelinspect.infrastructure.security.protectors import (
+    MultiKeyProtector,
+    ProtectionMode,
+    create_key_protector,
+)
 from gelinspect.infrastructure.video.factory import VideoSourceConfigError, create_video_source
 from gelinspect.interfaces.analysis import GelAnalyzer
 from gelinspect.interfaces.bootstrap import DemoAccount
 from gelinspect.interfaces.device import DeviceController
+from gelinspect.interfaces.security import KeyProtectionError
 from gelinspect.interfaces.traceability import (
     GovernmentTraceabilityClient,
     ReagentCodeParser,
@@ -42,13 +60,14 @@ from gelinspect.services.dashboard_service import DashboardService
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.experiment_service import ExperimentService
-from gelinspect.services.export_service import ExportService
+from gelinspect.services.export_service import ExportPolicy, ExportService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
+from gelinspect.services.license import LICENSE_FILE, LicenseService
 from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import MonitorService
 from gelinspect.services.queries import QueryService
 from gelinspect.services.reagent_service import ReagentService
-from gelinspect.services.reporting.keystore import LocalKeyStore
+from gelinspect.services.reporting.keystore import KeyStoreError, LocalKeyStore
 from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
 from gelinspect.services.settings_service import InstrumentSettingsService
@@ -56,6 +75,11 @@ from gelinspect.services.template_service import TemplateService
 from gelinspect.services.user_service import UserService
 from gelinspect.services.user_settings import apply_overrides, load_overrides, settings_file
 from gelinspect.services.video import VideoPipeline
+
+_log = logging.getLogger(__name__)
+
+KEY_PROTECTION_ENV = "GELINSPECT_KEY_PROTECTION"
+"""覆盖 ``security.key_protection`` 的环境变量（``auto``、``os``、``file``）。"""
 
 
 @dataclass(slots=True)
@@ -89,6 +113,10 @@ class AppContext:
         base_config: 没有叠加用户设置的默认配置。
         demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
+        key_protector: 签名私钥和审计链密钥的保护方式。
+        audit_keys: 启动时启用审计链 HMAC 的结果。
+        license: 设备绑定授权（默认不启用）。
+        export_policy: 导出加密策略。
     """
 
     config: AppConfig
@@ -117,6 +145,10 @@ class AppContext:
     base_config: AppConfig
     demo_accounts: tuple[DemoAccount, ...] = ()
     first_run: bool = False
+    key_protector: MultiKeyProtector | None = None
+    audit_keys: ActivationResult | None = None
+    license: LicenseService | None = None
+    export_policy: ExportPolicy | None = None
 
     def services(self, *, log_dir: Path | None = None) -> AppServices:
         """生成界面使用的服务集合。
@@ -203,12 +235,14 @@ class _RuntimeApplier:
         experiments: ExperimentService,
         reports: ReportService,
         config: AppConfig,
+        export_policy: ExportPolicy,
     ) -> None:
         self._engine = engine
         self._pipeline = pipeline
         self._experiments = experiments
         self._reports = reports
         self._config = config
+        self._export_policy = export_policy
         self._context: AppContext | None = None
 
     def attach(self, context: AppContext) -> None:
@@ -236,6 +270,7 @@ class _RuntimeApplier:
             raise
         self._experiments.set_instrument_no(new.instrument_no)
         self._reports.set_copyright_holder(new.reports.copyright_holder)
+        self._export_policy.set_encrypt(new.exports.encrypt)
         self._config = new
         if self._context is not None:
             self._context.config = new
@@ -337,8 +372,17 @@ def build_app_context(
     hook = load_bootstrap_hook(settings)
     parser, registry, government = _load_traceability(settings)
     pipeline = VideoPipeline(source, settings.pipeline_config())
+    try:
+        protector = create_key_protector(settings.keys_dir, key_protection_mode(settings))
+    except KeyProtectionError as exc:
+        raise ConfigError(f"security.key_protection：{exc}") from exc
     database = open_database(settings.database_path)
     try:
+        audit_keys = activate_audit_hmac(
+            database,
+            AuditKeyRing(settings.keys_dir / AUDIT_KEY_FILE, protector),
+            clock=clock,
+        )
         first_run = initialize_accounts(database, hook)
         security = settings.security
         auth = AuthService(
@@ -375,17 +419,22 @@ def build_app_context(
     monitor = MonitorService(auth, database, engine, pipeline)
     media = MediaService(auth, database)
     reports = settings.reports
+    keystore = LocalKeyStore(
+        settings.keys_dir,
+        common_name=reports.certificate_common_name,
+        organization=reports.certificate_organization,
+        valid_days=reports.certificate_valid_days,
+        algorithm=reports.key_algorithm,
+        protector=protector,
+    )
+    _migrate_signing_key(keystore, database, clock)
+    export_policy = ExportPolicy(settings.exports.encrypt)
     report_service = ReportService(
         auth,
         database,
         data_dir=settings.data_dir,
-        keystore=LocalKeyStore(
-            settings.keys_dir,
-            common_name=reports.certificate_common_name,
-            organization=reports.certificate_organization,
-            valid_days=reports.certificate_valid_days,
-            algorithm=reports.key_algorithm,
-        ),
+        keystore=keystore,
+        export_policy=export_policy,
         media=media,
         copyright_holder=reports.copyright_holder,
         include_images=reports.include_images,
@@ -394,7 +443,9 @@ def build_app_context(
     experiments = ExperimentService(
         auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
     )
-    applier = _RuntimeApplier(engine, pipeline, experiments, report_service, settings)
+    applier = _RuntimeApplier(
+        engine, pipeline, experiments, report_service, settings, export_policy
+    )
     context = AppContext(
         config=settings,
         database=database,
@@ -417,7 +468,7 @@ def build_app_context(
         reports=report_service,
         users=UserService(auth, database, clock=clock),
         audit=AuditService(auth, database, clock=clock),
-        exports=ExportService(auth, database, clock=clock),
+        exports=ExportService(auth, database, clock=clock, policy=export_policy),
         settings=InstrumentSettingsService(
             auth,
             database,
@@ -431,6 +482,68 @@ def build_app_context(
         base_config=base_config,
         demo_accounts=tuple(hook.accounts()) if hook is not None else (),
         first_run=first_run,
+        key_protector=protector,
+        audit_keys=audit_keys,
+        license=_license_service(settings),
+        export_policy=export_policy,
     )
     applier.attach(context)
     return context
+
+
+def key_protection_mode(config: AppConfig) -> ProtectionMode:
+    """密钥保护方式：环境变量 ``GELINSPECT_KEY_PROTECTION`` 优先，其次配置。
+
+    Args:
+        config: 配置。
+
+    Returns:
+        ``auto``、``os`` 或 ``file``。
+
+    Raises:
+        ConfigError: 环境变量的值不认识。
+    """
+    override = os.environ.get(KEY_PROTECTION_ENV, "").strip()
+    if not override:
+        return config.security.key_protection
+    if override not in ("auto", "os", "file"):
+        raise ConfigError(f"环境变量 {KEY_PROTECTION_ENV} 只能是 auto、os 或 file：{override!r}")
+    return cast(ProtectionMode, override)
+
+
+def _migrate_signing_key(
+    keystore: LocalKeyStore, database: Database, clock: Callable[[], datetime] | None
+) -> None:
+    """启动时把明文私钥加密保存，并写审计。私钥损坏不阻止启动（签署时会报错说明）。"""
+    try:
+        migrated = keystore.migrate()
+    except KeyStoreError as exc:
+        _log.error("签名私钥无法迁移：%s", exc)
+        return
+    if migrated is None:
+        return
+    detail = (
+        "报告签名私钥由明文改为加密保存，原明文文件已覆盖删除"
+        if migrated == "plaintext"
+        else "报告签名私钥改用新的保护方式重新加密"
+    )
+    database.audit.append(
+        AuditEvent(
+            occurred_at=(clock or (lambda: datetime.now(UTC)))(),
+            actor=SYSTEM_ACTOR,
+            actor_role=None,
+            action=AuditAction.KEY_PROTECTION_CHANGED,
+            detail=detail,
+        )
+    )
+
+
+def _license_service(config: AppConfig) -> LicenseService:
+    """按配置创建授权服务（默认不启用）。"""
+    section = config.license
+    path = section.file
+    if path is None:
+        path = config.data_dir / LICENSE_FILE
+    elif not path.is_absolute():
+        path = config.data_dir / path
+    return LicenseService(enabled=section.enabled, license_file=path)

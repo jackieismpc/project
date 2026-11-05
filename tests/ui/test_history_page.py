@@ -209,3 +209,52 @@ def test_export_follows_the_role(
     if not can_export:
         assert "无此权限" in page.export_list_button.toolTip()
     assert page.open_button.isEnabled()  # 所有角色都能打开回看
+
+
+def test_encrypted_export_asks_for_a_password_and_writes_a_zip(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from gelinspect.services.encrypted_zip import read_encrypted_zip
+
+    assert app_context.export_policy is not None
+    app_context.export_policy.set_encrypt(True)
+    page = open_history(qapp, window, app_context)
+    asked: list[object] = []
+
+    def cancel(parent: object) -> None:
+        asked.append(parent)
+        return None
+
+    page.export_password_provider = cancel
+    select_rows(page.table, [0])
+    out = tmp_path / "out"
+    out.mkdir()
+    export_with(qapp, page, monkeypatch, out / "c.xlsx", "request_export_selected")
+    assert asked == [page] and not list(out.iterdir())  # 取消密码框：什么都不导出
+
+    page.export_password_provider = lambda _parent: "Export#2026"
+    export_with(qapp, page, monkeypatch, out / "e.xlsx", "request_export_selected")
+    assert [p.name for p in out.iterdir()] == ["e.zip"]
+    assert list(read_encrypted_zip(out / "e.zip", "Export#2026")) == ["e.xlsx"]
+
+
+def test_export_password_dialog_checks_length_and_confirmation(qapp: QApplication) -> None:
+    from gelinspect.ui.pages.export_password import ExportPasswordDialog
+
+    dialog = ExportPasswordDialog()
+    dialog.password.setText("short")
+    dialog.confirm.setText("short")
+    dialog.ok_button.click()
+    assert dialog.result() == 0 and "8" in dialog.error_label.text()
+    dialog.password.setText("Export#2026")
+    dialog.confirm.setText("Export#2027")
+    dialog.ok_button.click()
+    assert dialog.result() == 0 and dialog.error_label.text() == "两次输入的密码不一致"
+    dialog.confirm.setText("Export#2026")
+    dialog.ok_button.click()
+    assert dialog.result() == 1 and dialog.value() == "Export#2026"
+    dialog.deleteLater()

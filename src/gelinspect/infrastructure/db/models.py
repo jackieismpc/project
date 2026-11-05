@@ -316,6 +316,19 @@ class AuditChainHeadRow(Base):
     last_hash: Mapped[str] = mapped_column(String(64))
 
 
+class AuditChainSegmentRow(Base):
+    """审计链分段：从 ``from_seq`` 起改用 HMAC-SHA256，``key_id`` 是所用密钥的标识。
+
+    这里只是数据库里的副本；校验以受系统凭据保护的密钥文件为准，两者不一致视为篡改。
+    """
+
+    __tablename__ = "audit_chain_segments"
+
+    from_seq: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    key_id: Mapped[str] = mapped_column(String(32))
+    algorithm: Mapped[str] = mapped_column(String(32))
+
+
 class TemperatureLogRow(Base):
     """温度日志表。"""
 

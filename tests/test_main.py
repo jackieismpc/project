@@ -19,7 +19,6 @@ from sqlalchemy.exc import OperationalError
 from gelinspect import __version__, startup
 from gelinspect.__main__ import build_parser, main
 from gelinspect.domain.enums import AuditAction
-from gelinspect.infrastructure.db import open_database
 from gelinspect.interfaces.storage import AuditQuery, DatabaseVersionError, PageRequest
 from gelinspect.logging_setup import (
     BACKUP_COUNT,
@@ -39,6 +38,7 @@ from gelinspect.startup import (
     describe_startup_error,
     run_gui,
 )
+from tests.keyed_db import open_keyed
 
 ROOT = Path(__file__).parents[1]
 
@@ -126,7 +126,7 @@ def test_config_option_and_simulate_alias(monkeypatch: pytest.MonkeyPatch, tmp_p
 
 def test_smoke_flags_are_hidden_from_help() -> None:
     help_text = build_parser().format_help()
-    assert "--smoke-test" not in help_text and "--data-dir" not in help_text
+    assert "--smoke-test" not in help_text and "--diagnose" not in help_text
     assert "--config" in help_text and "--simulate" in help_text
 
 
@@ -142,7 +142,7 @@ def test_first_start_creates_data_dir_database_logs_and_demo_accounts(
     assert code == EXIT_OK
     assert (data / "gelinspect.db").is_file()
     assert (data / "logs" / LOG_FILE_NAME).is_file()
-    db = open_database(data / "gelinspect.db")
+    db = open_keyed(data)
     try:
         assert [u.username for u in db.users.list_all()] == ["admin", "analyst", "experimenter"]
         assert len(db.templates.list_all()) == 5
@@ -160,7 +160,7 @@ def test_first_start_creates_data_dir_database_logs_and_demo_accounts(
 def test_second_start_does_not_initialize_again(qapp: QApplication, tmp_path: Path) -> None:
     data = tmp_path / "data"
     assert run_gui(data_dir=data, smoke_test=True, app=qapp) == EXIT_OK
-    db = open_database(data / "gelinspect.db")
+    db = open_keyed(data)
     users_before = sorted(u.user_id for u in db.users.list_all())
     template_events = len(
         db.audit.query(AuditQuery(action=AuditAction.TEMPLATE_CHANGED), PageRequest()).items
@@ -170,7 +170,7 @@ def test_second_start_does_not_initialize_again(qapp: QApplication, tmp_path: Pa
     )
     db.close()
     assert run_gui(data_dir=data, smoke_test=True, app=qapp) == EXIT_OK
-    db = open_database(data / "gelinspect.db")
+    db = open_keyed(data)
     try:
         assert sorted(u.user_id for u in db.users.list_all()) == users_before
         assert (
@@ -196,7 +196,7 @@ def test_changed_demo_password_survives_a_restart(qapp: QApplication, tmp_path: 
     assert run_gui(data_dir=data, smoke_test=True, app=qapp) == EXIT_OK
     from gelinspect.bootstrap import Argon2Hasher
 
-    db = open_database(data / "gelinspect.db")
+    db = open_keyed(data)
     user = db.users.get_by_username("analyst")
     assert user is not None
     db.users.set_password_hash(
@@ -204,7 +204,7 @@ def test_changed_demo_password_survives_a_restart(qapp: QApplication, tmp_path: 
     )
     db.close()
     assert run_gui(data_dir=data, smoke_test=True, app=qapp) == EXIT_OK
-    db = open_database(data / "gelinspect.db")
+    db = open_keyed(data)
     try:
         credentials = db.users.get_credentials("analyst")
         assert credentials is not None
@@ -219,7 +219,7 @@ def test_real_config_has_no_default_accounts(qapp: QApplication, tmp_path: Path)
     data.pop("bootstrap")
     path.write_text(yaml.safe_dump(data))
     assert run_gui(config_path=path, smoke_test=True, app=qapp) == EXIT_OK
-    db = open_database(tmp_path / "data" / "gelinspect.db")
+    db = open_keyed(tmp_path / "data")
     try:
         assert db.users.list_all() == []  # 真实配置：不创建任何账号，更没有默认密码
         assert len(db.templates.list_all()) == 5

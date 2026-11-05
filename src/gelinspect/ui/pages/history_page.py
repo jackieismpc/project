@@ -31,6 +31,7 @@ from gelinspect.ui.labels import (
     experiment_state_label,
     experiment_type_label,
 )
+from gelinspect.ui.pages.export_password import PasswordProvider, ask_export_password
 from gelinspect.ui.pages.page_frame import build_page_column, labeled
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -69,6 +70,7 @@ class HistoryPage(QWidget):
             parent: 父控件。
         """
         super().__init__(parent)
+        self.export_password_provider: PasswordProvider = ask_export_password
         self._services = services
         self._session: Session | None = None
         self._items: list[ExperimentSummary] = []
@@ -370,8 +372,13 @@ class HistoryPage(QWidget):
         if session is None or not ids:
             return
         labels = export_labels()
+        password, ok = self._export_password()
+        if not ok:
+            return
         self._start_export(
-            lambda: self._services.exports.export_results(session, ids, destination, labels)
+            lambda: self._services.exports.export_results(
+                session, ids, destination, labels, password=password
+            )
         )
 
     def request_export_list(self) -> None:
@@ -396,9 +403,21 @@ class HistoryPage(QWidget):
             return
         query = self.current_query()
         labels = export_labels()
+        password, ok = self._export_password()
+        if not ok:
+            return
         self._start_export(
-            lambda: self._services.exports.export_history(session, query, destination, labels)
+            lambda: self._services.exports.export_history(
+                session, query, destination, labels, password=password
+            )
         )
+
+    def _export_password(self) -> tuple[str | None, bool]:
+        """开启了导出加密时先要密码。返回（密码，是否继续）。"""
+        if not self._services.exports.encryption_required:
+            return None, True
+        password = self.export_password_provider(self)
+        return password, password is not None
 
     def _start_export(self, job: Callable[[], ExportSummary]) -> None:
         self._export_busy = True

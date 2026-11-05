@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import shutil
 from datetime import timedelta
 from pathlib import Path
@@ -18,7 +19,9 @@ from gelinspect.domain.enums import (
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import ReportRecord
 from gelinspect.services.auth import PermissionDeniedError
+from gelinspect.services.encrypted_zip import read_encrypted_zip
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
+from gelinspect.services.export_service import ExportPolicy
 from gelinspect.services.reporting.report_service import ExportResult, ReportService
 from gelinspect.services.reporting.verify import verify_pdf_bytes
 from tests.services.conftest import PASSWORDS, Stack
@@ -286,3 +289,24 @@ def test_exporting_100_signed_reports_takes_under_10_seconds(
     with capsys.disabled():
         print(f"\n批量导出 100 份已签署报告（每份约 {size_kb:.0f} KB）：{result.elapsed_s:.3f} 秒")
     assert result.elapsed_s < 10.0
+
+
+def test_encrypted_batch_report_export(signing_stack: Stack, tmp_path: Path) -> None:
+    stack = signing_stack
+    service, _ = make_service(stack, tmp_path, export_policy=ExportPolicy(True))
+    analyst = stack.login("analyst")
+    make_completed(stack, experiment_id="EXP-A")
+    record = service.sign(analyst, "EXP-A", PASSWORDS["analyst"]).record
+    with pytest.raises(ServiceError) as missing:
+        service.export_reports(analyst, [record.report_id], tmp_path / "o")
+    assert missing.value.code is ServiceErrorCode.EXPORT_PASSWORD_REQUIRED
+    result = service.export_reports(
+        analyst, [record.report_id], tmp_path / "o", password="Export#2026"
+    )
+    assert result.archive is not None and result.manifest == result.archive
+    assert [p.name for p in (tmp_path / "o").iterdir()] == [result.archive.name]
+    content = read_encrypted_zip(result.archive, "Export#2026")
+    assert hashlib.sha256(content["EXP-A.pdf"]).hexdigest() == record.sha256
+    rows = list(csv.DictReader(io.StringIO(content["manifest.csv"].decode("utf-8-sig"))))
+    assert rows[0]["status"] == "ok" and rows[0]["experiment_id"] == "EXP-A"
+    assert any("已加密" in d for d in stack.audit(AuditAction.REPORT_EXPORTED))

@@ -17,8 +17,8 @@ from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
 
-from gelinspect.services.config import project_root
 from gelinspect.services.reporting.strings import SOURCES, S
+from gelinspect.services.runtime_paths import translations_dir
 
 _log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def load_catalog(language: ReportLanguage, directory: Path | None = None) -> Cat
     """
     if language is ReportLanguage.ZH_CN:
         return {}
-    path = (directory or project_root() / "translations") / f"gelinspect_{language.value}.ts"
+    path = (directory or translations_dir()) / f"gelinspect_{language.value}.ts"
     try:
         stamp = path.stat().st_mtime
     except OSError:

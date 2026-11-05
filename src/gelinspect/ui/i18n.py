@@ -22,7 +22,8 @@ import PySide6
 from PySide6.QtCore import QLibraryInfo, QObject, QSettings, QTranslator, Signal
 from PySide6.QtWidgets import QApplication
 
-from gelinspect.services.config import project_root
+from gelinspect.services.runtime_paths import RunMode, run_mode
+from gelinspect.services.runtime_paths import translations_dir as _translations_dir
 
 _log = logging.getLogger(__name__)
 
@@ -52,12 +53,12 @@ LANGUAGE_NAMES: dict[Language, str] = {
 
 
 def translations_dir() -> Path:
-    """翻译文件目录：仓库根目录下的 ``translations/``。
+    """翻译文件目录：仓库根目录（发布包是程序目录）下的 ``translations/``。
 
     Returns:
         目录路径。
     """
-    return project_root() / "translations"
+    return _translations_dir()
 
 
 def ts_path(language: Language, directory: Path | None = None) -> Path:
@@ -117,7 +118,8 @@ def compile_translations(
             _log.warning("缺少翻译文件：%s", ts)
             continue
         qm = ts.with_suffix(".qm")
-        if not _is_stale(ts, qm):
+        # 发布包里的 .qm 是构建时生成的，包内没有 lrelease，也不应改动程序目录。
+        if not _is_stale(ts, qm) or (qm.is_file() and run_mode() is RunMode.PACKAGED):
             result[language] = qm
             continue
         built = _run_lrelease(ts, qm) or _run_lrelease(

@@ -31,3 +31,7 @@ __pycache__/
 /dist/
 *.qm
 /simulation/generated/
+
+# 构建脚本临时生成的构建信息（构建结束即删除）
+/src/gelinspect/_build_info.py
+nuitka-crash-report.xml

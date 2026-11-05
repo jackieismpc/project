@@ -170,6 +170,22 @@ class ChainFailure(StrEnum):
     """序号不连续或尾部缺失，有记录被删除。"""
     HEAD_MISMATCH = "head_mismatch"
     """链头记录与最后一条记录不符。"""
+    SEGMENT_MISMATCH = "segment_mismatch"
+    """数据库里的分段（从哪个序号起用 HMAC、用哪把密钥）与密钥文件的记录不符：
+    链可能被降级回 SHA-256 后整条重算，或切换点被伪造。"""
+    KEY_UNAVAILABLE = "key_unavailable"
+    """这一段用 HMAC 计算，但它的密钥不可用（密钥文件丢失、换了电脑或系统用户），无法校验。"""
+
+
+class ChainType(StrEnum):
+    """审计链的类型。"""
+
+    SHA256 = "sha256"
+    """全部记录按 SHA-256 链接：能改库的人重算整条链就发现不了。"""
+    HMAC_SHA256 = "hmac-sha256"
+    """全部记录按 HMAC-SHA256 链接：没有密钥无法重算。"""
+    MIXED = "sha256+hmac-sha256"
+    """旧记录按 SHA-256，从切换事件起按 HMAC-SHA256（升级前已有记录的数据库）。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,6 +199,8 @@ class ChainVerification:
             链头缺失时为 None。
         failure: 异常原因，完好时为 None。
         message: 面向用户的说明。
+        chain_type: 链的类型。
+        hmac_from_seq: 从哪个序号起使用 HMAC-SHA256；纯 SHA-256 链为 None。
     """
 
     ok: bool
@@ -190,6 +208,8 @@ class ChainVerification:
     first_bad_seq: int | None = None
     failure: ChainFailure | None = None
     message: str = ""
+    chain_type: ChainType = ChainType.SHA256
+    hmac_from_seq: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -820,6 +840,7 @@ __all__ = [
     "AuditRecord",
     "AuditRepository",
     "ChainFailure",
+    "ChainType",
     "ChainVerification",
     "DatabaseVersionError",
     "DeviceLogEntry",

@@ -191,6 +191,7 @@ _FIELD_LABELS: dict[str, str] = {
     "video_path": "视频路径",
     "retention_days": "数据保留天数",
     "copyright_holder": "版权方名称",
+    "encrypt_exports": "导出加密",
 }
 _INPUT_LABELS = {
     VideoInput.CONFIG: "沿用配置文件",
@@ -206,6 +207,8 @@ def _show(name: str, value: object) -> str:
         return "不自动删除"
     if name == "video_path" and value == "":
         return "（无）"
+    if isinstance(value, bool):
+        return "开启" if value else "关闭"
     if isinstance(value, float):
         return f"{value:g}"
     return str(value)

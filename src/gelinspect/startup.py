@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import signal
 import sqlite3
 import sys
@@ -15,6 +17,7 @@ import tempfile
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
@@ -22,6 +25,14 @@ from PySide6.QtWidgets import QApplication, QWidget
 from sqlalchemy.exc import SQLAlchemyError
 
 from gelinspect.app_context import AppContext, build_app_context
+from gelinspect.domain.entities import AuditEvent
+from gelinspect.domain.enums import AuditAction
+from gelinspect.infrastructure.db.seed import SYSTEM_ACTOR
+from gelinspect.infrastructure.security.integrity import (
+    IntegrityReport,
+    IntegrityStatus,
+    verify_manifest,
+)
 from gelinspect.interfaces.storage import DatabaseVersionError, StorageError
 from gelinspect.logging_setup import (
     configure_logging,
@@ -31,8 +42,17 @@ from gelinspect.logging_setup import (
 from gelinspect.services.config import (
     AppConfig,
     ConfigError,
+    default_config_file,
     load_config,
-    project_root,
+)
+from gelinspect.services.runtime_paths import (
+    DATA_DIR_ENV,
+    USER_CONFIG_FILE,
+    RunMode,
+    app_root,
+    build_info,
+    default_data_dir,
+    run_mode,
 )
 
 EXIT_OK = 0
@@ -193,7 +213,7 @@ class _CrashRelay(QObject):
 
 
 def resolve_log_dir(config: AppConfig | None) -> Path:
-    """日志目录：数据目录下的 ``logs``；配置读不出来时用仓库的 ``data/logs``。
+    """日志目录：数据目录下的 ``logs``；配置读不出来时用默认数据目录下的 ``logs``。
 
     Args:
         config: 已读取的配置，可为 None。
@@ -201,7 +221,7 @@ def resolve_log_dir(config: AppConfig | None) -> Path:
     Returns:
         日志目录。
     """
-    base = config.data_dir if config is not None else project_root() / "data"
+    base = config.data_dir if config is not None else default_data_dir()
     return base / "logs"
 
 
@@ -228,8 +248,10 @@ def run_gui(
     """启动图形界面并运行到退出。
 
     Args:
-        config_path: 配置文件，None 使用默认的模拟配置。
-        data_dir: 覆盖配置里的数据目录（隐藏参数，测试和冒烟测试使用）。
+        config_path: 配置文件，None 时仓库模式用默认的模拟配置，发布模式用数据目录里的
+            ``config.yaml`` 或发布包内的默认配置。
+        data_dir: 覆盖配置里的数据目录（``--data-dir``）；None 时看环境变量
+            ``GELINSPECT_DATA_DIR``。
         smoke_test: 冒烟测试：完整启动、登录、切换语言、关窗退出，不进入事件循环。
         present_error: 显示启动失败的函数，默认弹出错误对话框；冒烟测试不弹窗，只打印到 stderr。
         app: 已有的 ``QApplication``（测试传入）；None 时自己创建。
@@ -239,6 +261,14 @@ def run_gui(
     """
     config: AppConfig | None = None
     config_error: ConfigError | None = None
+    if data_dir is None and os.environ.get(DATA_DIR_ENV):
+        data_dir = Path(os.environ[DATA_DIR_ENV]).expanduser()
+    if run_mode() is RunMode.PACKAGED:
+        # 发布包里 .py 迁移脚本由 Alembic 按文件加载：不要往程序目录写 __pycache__。
+        sys.dont_write_bytecode = True
+        if config_path is None and data_dir is not None:
+            candidate = data_dir / USER_CONFIG_FILE
+            config_path = candidate if candidate.is_file() else None
     try:
         config = load_config(config_path)
         if data_dir is not None:
@@ -249,7 +279,12 @@ def run_gui(
         resolve_log_dir(config) if config is not None or data_dir is None else data_dir / "logs"
     )
     log_path = _start_logging(log_dir)
-    _log.info("GelInspect 启动 config=%s smoke=%s", config_path, smoke_test)
+    _log.info(
+        "GelInspect 启动 mode=%s config=%s smoke=%s",
+        run_mode().value,
+        config_path or default_config_file() or "<内置模拟配置>",
+        smoke_test,
+    )
 
     owns_app = app is None
     qapp = app or QApplication.instance() or QApplication(sys.argv[:1])
@@ -284,6 +319,16 @@ def run_gui(
     except Exception as exc:
         return fail(exc)
 
+    integrity = check_program_integrity(config)
+    if not record_integrity(context, integrity):
+        warning = describe_integrity_failure(integrity)
+        if smoke_test:
+            print(f"{warning.title}\n{warning.message}", file=sys.stderr)
+            context.close()
+            shutdown_logging()
+            return EXIT_ERROR
+        (present_error or show_error_dialog)(warning, log_path)
+
     from gelinspect.ui.main_window import MainWindow
 
     window: MainWindow | None = None
@@ -317,6 +362,138 @@ def run_gui(
         shutdown_logging()
         if owns_app:
             qapp.processEvents()
+
+
+def check_program_integrity(config: AppConfig) -> IntegrityReport:
+    """校验发布包的程序文件清单。
+
+    仓库模式（开发运行）没有清单，跳过；配置 ``security.integrity_check: false`` 也跳过。
+
+    Args:
+        config: 配置。
+
+    Returns:
+        校验结果。
+    """
+    info = build_info()
+    if info is None:
+        return IntegrityReport(IntegrityStatus.SKIPPED, "开发模式（仓库运行），跳过程序完整性校验")
+    if not config.security.integrity_check:
+        return IntegrityReport(IntegrityStatus.SKIPPED, "配置关闭了程序完整性校验")
+    return verify_manifest(app_root(RunMode.PACKAGED), info.manifest_public_key)
+
+
+def record_integrity(context: AppContext, report: IntegrityReport) -> bool:
+    """记录完整性校验的结果：通过和跳过写日志，不通过时再写审计。
+
+    Args:
+        context: 应用依赖。
+        report: 校验结果。
+
+    Returns:
+        是否通过（跳过也算通过）。
+    """
+    if report.ok:
+        _log.info("%s（%.2f 秒）", report.message, report.elapsed_s)
+        return True
+    detail = report.summary()
+    _log.error("程序完整性校验未通过：%s", detail)
+    try:
+        context.database.audit.append(
+            AuditEvent(
+                occurred_at=datetime.now(UTC),
+                actor=SYSTEM_ACTOR,
+                actor_role=None,
+                action=AuditAction.INTEGRITY_CHECKED,
+                detail=f"程序完整性校验未通过（{report.status.value}）：{detail}",
+            )
+        )
+    except Exception:  # 审计写不进去不能挡住启动，日志里已有记录
+        _log.exception("完整性校验结果写审计失败")
+    return False
+
+
+def describe_integrity_failure(report: IntegrityReport) -> StartupFailure:
+    """完整性校验不通过时的提示（不阻止启动）。
+
+    Args:
+        report: 校验结果。
+
+    Returns:
+        对话框内容。
+    """
+    return StartupFailure(
+        QCoreApplication.translate("Startup", "程序文件校验未通过"),
+        QCoreApplication.translate(
+            "Startup",
+            "程序目录里有文件与发布时的清单不一致，程序可能被改动或损坏。"
+            "这件事已写入审计追踪。请联系管理员核实，必要时重新安装软件。",
+        ),
+        report.summary(limit=20),
+        EXIT_ERROR,
+    )
+
+
+def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> dict[str, object]:
+    """不启动界面，报告运行模式、路径和完整性校验结果（``--diagnose``，打包验证和排错用）。
+
+    Args:
+        config_path: 配置文件。
+        data_dir: 覆盖数据目录。
+
+    Returns:
+        可序列化为 JSON 的诊断信息。
+    """
+    import importlib.util
+
+    info = build_info()
+    result: dict[str, object] = {
+        "mode": run_mode().value,
+        "app_root": str(app_root()),
+        "build": None
+        if info is None
+        else {"version": info.version, "build_id": info.build_id, "variant": info.variant},
+        "default_data_dir": str(default_data_dir()),
+        "config_file": str(config_path or default_config_file() or "<DEFAULT_CONFIG>"),
+        "simulation_importable": importlib.util.find_spec("simulation") is not None,
+    }
+    try:
+        config = load_config(config_path)
+        if data_dir is not None:
+            config = config.model_copy(update={"data_dir": data_dir})
+        result["data_dir"] = str(config.data_dir)
+        result["bootstrap_hook"] = config.bootstrap.hook
+        result["device_backend"] = config.device.backend
+        report = check_program_integrity(config)
+        result["integrity"] = {
+            "status": report.status.value,
+            "message": report.message,
+            "checked": report.checked,
+            "elapsed_s": round(report.elapsed_s, 3),
+            "modified": list(report.modified[:20]),
+            "missing": list(report.missing[:20]),
+            "added": list(report.added[:20]),
+        }
+    except ConfigError as exc:
+        result["config_error"] = str(exc)
+    return result
+
+
+def print_diagnosis(config_path: Path | None = None, data_dir: Path | None = None) -> int:
+    """打印 :func:`diagnose` 的结果。
+
+    Args:
+        config_path: 配置文件。
+        data_dir: 覆盖数据目录。
+
+    Returns:
+        退出码：完整性校验不通过或配置有误时为 1。
+    """
+    result = diagnose(config_path, data_dir)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    integrity = result.get("integrity")
+    status = integrity.get("status") if isinstance(integrity, dict) else None
+    return 0 if status in ("ok", "skipped") and "config_error" not in result else 1
 
 
 def _install_sigint(app: QApplication) -> None:

@@ -41,7 +41,22 @@ uv run gelinspect --version          # 只打印版本号
 
 启动失败（配置有误、`simulation/` 缺失、数据库被占用等）会弹出说明原因的对话框，并写入 `data/logs/gelinspect.log`（滚动，单个 1 MB，保留 5 份）。部署和配置细节见 [部署说明](docs/deployment.md)。
 
-> 当前状态：外壳、登录与权限、中英文切换已完成；工作台为骨架，其余页面显示「建设中」。开发进度见 [docs/PLAN.md](docs/PLAN.md)。
+> 开发进度见 [docs/PLAN.md](docs/PLAN.md)。P13 起有 Windows 和 macOS 发布包（见下文「发布包」）。
+
+## 发布包（Windows、macOS）
+
+不想装 uv 的使用者用发布包：Nuitka 编译、目录模式，不依赖仓库。
+
+```bash
+uv run python scripts/build.py                    # 正式包：不含 simulation/，首次启动「创建管理员」
+uv run python scripts/build.py --with-simulation  # 演示包：模拟后端 + 演示账号
+```
+
+- macOS 生成 `dist/GelInspect.app` 和 `.dmg`（没有 Apple 签名，首次打开要右键「打开」放行）；Windows 生成 `dist\GelInspect\GelInspect.exe` 和 `.zip`，可选 Inno Setup 安装程序。Windows 包也可以用 GitHub Actions（`.github/workflows/build.yml`）构建。
+- 发布包的数据放在平台标准位置：Windows `%LOCALAPPDATA%\GelInspect`，macOS `~/Library/Application Support/GelInspect`（可用 `--data-dir` 或 `GELINSPECT_DATA_DIR` 改）。仓库里 `uv run gelinspect` 仍用 `./data`。
+- 基础防护：签名私钥和审计链密钥由系统凭据（DPAPI / 钥匙串）加密保护，审计链改用 HMAC-SHA256，敏感导出可选 AES-256 加密 ZIP，启动时按签名清单校验程序文件。能防什么、不能防什么见 [安全与基础防护](docs/features/security.md)。
+
+步骤、首次运行、备份和许可证结论见 [部署说明](docs/deployment.md)。
 
 ## 环境要求
 
@@ -79,7 +94,8 @@ uv sync --extra inference
 | `tests/` | 自动化测试 |
 | `docs/` | 计划、架构、功能文档与用户手册 |
 | `translations/` | 界面翻译源文件（`.ts`）；`.qm` 在启动时自动生成，不纳入版本库 |
-| `scripts/` | 开发脚本（更新翻译） |
+| `scripts/` | 开发脚本（更新翻译、构建发布包） |
+| `packaging/` | 发布包的入口、默认配置、许可文本、Inno Setup 脚本 |
 | `data/` | 运行时数据（数据库、视频、图像、日志），不纳入版本库 |
 
 ## 文档
@@ -92,4 +108,5 @@ uv sync --extra inference
 - [用户手册](docs/user-manual.md)
 - [部署说明](docs/deployment.md)
 - [登录、权限与多语言](docs/features/auth-and-i18n.md)
+- [安全与基础防护](docs/features/security.md)
 - [变更日志](docs/CHANGELOG.md)

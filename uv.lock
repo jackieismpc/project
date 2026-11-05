@@ -400,6 +400,7 @@ inference = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "nuitka" },
     { name = "pytest" },
     { name = "pytest-qt" },
     { name = "ruff" },
@@ -427,6 +428,7 @@ provides-extras = ["inference"]
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy" },
+    { name = "nuitka", specifier = ">=4.3.4" },
     { name = "pytest" },
     { name = "pytest-qt" },
     { name = "ruff" },
@@ -672,6 +674,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/d0/6f/43edf3be2748d0e40
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/99/7b1adac7e97ce7bbda34792dc6e9b2f5cc5cffd1875883f78a818b2a2687/mypy_extensions-1.2.0-py3-none-any.whl", hash = "sha256:993e7a20aa5671eb41a7132cf555af30062da99729601601b9a8382b11cae768", size = 5114, upload-time = "2026-11-03T16:26:32.731Z" },
 ]
+
+[[package]]
+name = "nuitka"
+version = "4.3.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/19/9e0a68ea7bf6124843eaf2163430edc80569d4ce33511928e3958c960fb3/nuitka-4.3.4.tar.gz", hash = "sha256:e98e0c9a3224b581cf8ec0fab92b039b90fb7fa78673550c22833a82de444b25", size = 4779496, upload-time = "2026-11-01T07:44:15.061Z" }
 
 [[package]]
 name = "numpy"

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import logging
 import os
 import re
@@ -53,7 +54,9 @@ from gelinspect.interfaces.storage import (
     UserRepository,
 )
 from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.encrypted_zip import EncryptedZipError, write_encrypted_zip
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
+from gelinspect.services.export_service import ExportPolicy
 from gelinspect.services.media_service import MediaService
 from gelinspect.services.monitor_service import audit_event
 from gelinspect.services.reporting.document import (
@@ -229,8 +232,9 @@ class ExportResult:
         directory: 导出目录。
         exported: 已导出的文件数。
         failures: 没能导出的报告。
-        manifest: 清单 CSV 的路径。
+        manifest: 清单 CSV 的路径；加密导出时清单在 ZIP 里，这里是 ZIP 的路径。
         elapsed_s: 用时（秒）。
+        archive: 加密导出时生成的 ZIP（AES-256），不加密时为 None。
     """
 
     directory: Path
@@ -238,6 +242,7 @@ class ExportResult:
     failures: tuple[ExportFailure, ...]
     manifest: Path
     elapsed_s: float
+    archive: Path | None = None
 
 
 def bgr_to_qimage(image: NDArray[np.uint8]) -> QImage:
@@ -275,6 +280,7 @@ class ReportService:
         signer: Signer | None = None,
         clock: Callable[[], datetime] | None = None,
         zone: tzinfo | None = None,
+        export_policy: ExportPolicy | None = None,
     ) -> None:
         """创建服务。
 
@@ -290,8 +296,10 @@ class ReportService:
             signer: PDF 签名函数，测试可注入会失败的实现。
             clock: 返回带时区当前时间的函数，测试注入。
             zone: 报告里显示时间用的时区，默认本机时区。
+            export_policy: 批量导出的加密策略（与 Excel 导出共用），默认不要求加密。
         """
         self._auth = auth
+        self._export_policy = export_policy or ExportPolicy()
         self._storage = storage
         self._data_dir = data_dir
         self._keystore = keystore
@@ -916,16 +924,23 @@ class ReportService:
         return destination
 
     def export_reports(
-        self, session: Session | None, report_ids: Sequence[str], directory: Path
+        self,
+        session: Session | None,
+        report_ids: Sequence[str],
+        directory: Path,
+        *,
+        password: str | None = None,
     ) -> ExportResult:
         """批量导出已签署报告到目录：复制 PDF，并写一份清单 CSV。
 
         每份文件先与库里的 SHA-256 核对：被改动或缺失的不导出，在清单里标出原因。
+        给出密码时，PDF 和清单不落成明文，而是打进目录里的一个 AES-256 加密 ZIP。
 
         Args:
             session: 调用者的会话，需要 ``data_export`` 权限。
             report_ids: 要导出的报告标识。
             directory: 目标目录，不存在时创建。
+            password: 导出密码；开启了导出加密时必须给出。
 
         Returns:
             导出结果。
@@ -935,9 +950,11 @@ class ReportService:
             ServiceError: 没有选择任何报告（``EXPORT_EMPTY``）、目录无法写入（``EXPORT_FAILED``）。
         """
         user = self._auth.authorize(session, Permission.DATA_EXPORT)
+        self._export_policy.check(password)
         if not report_ids:
             raise ServiceError("没有可导出的报告", ServiceErrorCode.EXPORT_EMPTY)
         started = time.perf_counter()
+        packed: list[tuple[str, Path | bytes]] = []
         try:
             directory.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
@@ -958,7 +975,10 @@ class ReportService:
             status = "ok"
             try:
                 data = self._read_checked(record)
-                (directory / name).write_bytes(data)
+                if password is None:
+                    (directory / name).write_bytes(data)
+                else:
+                    packed.append((name, data))
                 exported += 1
             except ServiceError as exc:
                 status = (
@@ -986,7 +1006,19 @@ class ReportService:
                     status,
                 ]
             )
-        manifest = self._write_manifest(directory, rows)
+        archive: Path | None = None
+        if password is None:
+            manifest = self._write_manifest(directory, rows)
+        else:
+            archive = directory / f"reports_{self._clock():%Y%m%d_%H%M%S}.zip"
+            packed.append(("manifest.csv", self._manifest_bytes(rows)))
+            try:
+                write_encrypted_zip(archive, packed, password)
+            except (OSError, EncryptedZipError) as exc:
+                raise ServiceError(
+                    f"写入导出目录失败：{exc}", ServiceErrorCode.EXPORT_FAILED, reason=str(exc)
+                ) from exc
+            manifest = archive
         elapsed = time.perf_counter() - started
         self._audit_best_effort(
             AuditEvent(
@@ -997,10 +1029,11 @@ class ReportService:
                 detail=(
                     f"批量导出报告：{exported} 份成功，{len(failures)} 份失败，"
                     f"目录 {directory.name}"
+                    + ("" if archive is None else f"，已加密（AES-256 ZIP {archive.name}）")
                 ),
             )
         )
-        return ExportResult(directory, exported, tuple(failures), manifest, elapsed)
+        return ExportResult(directory, exported, tuple(failures), manifest, elapsed, archive)
 
     def resolve(self, record: ReportRecord) -> Path:
         """报告文件的绝对路径（记录里存的是相对数据目录的路径）。
@@ -1164,25 +1197,31 @@ class ReportService:
         path = directory / "manifest.csv"
         if path.exists():
             path = directory / f"manifest_{datetime.now(UTC):%Y%m%d_%H%M%S}.csv"
-        with path.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.writer(handle)
-            writer.writerow(
-                [
-                    "report_id",
-                    "scope",
-                    "experiment_id",
-                    "batch_no",
-                    "file",
-                    "sha256",
-                    "signed_by",
-                    "signed_at",
-                    "language",
-                    "content_sha256",
-                    "status",
-                ]
-            )
-            writer.writerows(rows)
+        path.write_bytes(ReportService._manifest_bytes(rows))
         return path
+
+    @staticmethod
+    def _manifest_bytes(rows: list[list[str]]) -> bytes:
+        """清单 CSV 的内容（UTF-8 带 BOM，Excel 能直接打开）。"""
+        buffer = io.StringIO(newline="")
+        writer = csv.writer(buffer)
+        writer.writerow(
+            [
+                "report_id",
+                "scope",
+                "experiment_id",
+                "batch_no",
+                "file",
+                "sha256",
+                "signed_by",
+                "signed_at",
+                "language",
+                "content_sha256",
+                "status",
+            ]
+        )
+        writer.writerows(rows)
+        return buffer.getvalue().encode("utf-8-sig")
 
     def _audit_verification(
         self,

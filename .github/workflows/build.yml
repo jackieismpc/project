@@ -1,0 +1,91 @@
+# 在 Windows 和 macOS 上构建发布包（正式包和演示包），冒烟测试后上传产物。
+# 本仓库只在本地提交、不推送；推送到 GitHub 后手动触发（Actions → build → Run workflow）
+# 或推送 v* 标签时运行。
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.os }} / ${{ matrix.variant }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        variant: [release, demo]
+    env:
+      UV_PYTHON: "3.11"
+      QT_QPA_PLATFORM: offscreen
+      # CI 机器上不往系统钥匙串写条目；安装后的真实运行默认 auto（DPAPI / 钥匙串）。
+      GELINSPECT_KEY_PROTECTION: file
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.19"
+
+      - name: 安装依赖（含构建工具 Nuitka）
+        run: uv sync --frozen
+
+      - name: 代码检查
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy
+
+      - name: 构建
+        shell: bash
+        run: |
+          if [ "${{ matrix.variant }}" = "demo" ]; then
+            uv run python scripts/build.py --with-simulation
+          else
+            uv run python scripts/build.py
+          fi
+
+      - name: 冒烟测试（Windows）
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          if [ "${{ matrix.variant }}" = "demo" ]; then app="dist/GelInspect-Demo"; else app="dist/GelInspect"; fi
+          "$app/GelInspect.exe" --diagnose --data-dir "$RUNNER_TEMP/diag"
+          "$app/GelInspect.exe" --smoke-test --data-dir "$RUNNER_TEMP/data"
+
+      - name: 冒烟测试（macOS）
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ "${{ matrix.variant }}" = "demo" ]; then app="dist/GelInspect Demo.app"; else app="dist/GelInspect.app"; fi
+          "$app/Contents/MacOS/gelinspect-app" --diagnose --data-dir "$RUNNER_TEMP/diag"
+          "$app/Contents/MacOS/gelinspect-app" --smoke-test --data-dir "$RUNNER_TEMP/data"
+
+      - name: Inno Setup 安装程序（Windows 正式包，可选）
+        if: runner.os == 'Windows' && matrix.variant == 'release'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (Test-Path $iscc) {
+            & $iscc /DAppVersion=$(uv run python -c "import gelinspect; print(gelinspect.__version__)") packaging\windows\gelinspect.iss
+          } else {
+            Write-Host "没有安装 Inno Setup，跳过安装程序（zip 包已生成）"
+          }
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: gelinspect-${{ runner.os }}-${{ matrix.variant }}
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/*.exe
+            dist/build-report-*.json
+          if-no-files-found: error

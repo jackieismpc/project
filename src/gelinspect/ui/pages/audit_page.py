@@ -17,7 +17,13 @@ from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QWidget
 
 from gelinspect.domain.permissions import Permission
-from gelinspect.interfaces.storage import AuditRecord, ChainFailure, ChainVerification, PageRequest
+from gelinspect.interfaces.storage import (
+    AuditRecord,
+    ChainFailure,
+    ChainType,
+    ChainVerification,
+    PageRequest,
+)
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.audit_service import AuditFilter
 from gelinspect.services.auth import AuthError, Session
@@ -26,6 +32,7 @@ from gelinspect.services.export_service import ExportSummary, suggested_filename
 from gelinspect.ui.background import BackgroundRunner
 from gelinspect.ui.export_labels import export_labels
 from gelinspect.ui.labels import describe_auth_error, describe_service_error, role_label
+from gelinspect.ui.pages.export_password import PasswordProvider, ask_export_password
 from gelinspect.ui.pages.page_frame import build_page_column, labeled
 from gelinspect.ui.pages.wizard_widgets import Banner
 from gelinspect.ui.widgets.button import Button, ButtonVariant
@@ -69,6 +76,7 @@ class AuditPage(QWidget):
             parent: 父控件。
         """
         super().__init__(parent)
+        self.export_password_provider: PasswordProvider = ask_export_password
         self._services = services
         self._session: Session | None = None
         self._records: list[AuditRecord] = []
@@ -398,7 +406,8 @@ class AuditPage(QWidget):
                 self.tr("校验通过：哈希链完好"),
                 self.tr("共校验 {count} 条记录，没有发现被改动或删除的记录。").format(
                     count=result.checked
-                ),
+                )
+                + self._chain_type_text(result),
             )
         where = (
             self.tr("链头记录缺失")
@@ -433,12 +442,28 @@ class AuditPage(QWidget):
         self._sync_state()
         self.verified.emit()
 
+    def _chain_type_text(self, result: ChainVerification) -> str:
+        """链类型的说明（接在校验通过的说明后面）。"""
+        if result.chain_type is ChainType.HMAC_SHA256:
+            return self.tr("全部记录使用密钥（HMAC-SHA256）链接。")
+        if result.chain_type is ChainType.MIXED:
+            return self.tr(
+                "序号 {seq} 之前的旧记录使用 SHA-256，从序号 {seq} 起使用密钥（HMAC-SHA256）。"
+            ).format(seq=result.hmac_from_seq)
+        return self.tr("记录使用 SHA-256 链接（未启用密钥）。")
+
     def _failure_text(self, failure: ChainFailure | None) -> str:
         return {
             ChainFailure.HASH_MISMATCH: self.tr("这条记录的内容与它的哈希不符，内容可能被改动。"),
             ChainFailure.LINK_BROKEN: self.tr("这条记录与上一条的哈希衔接不上，前一条可能被改动。"),
             ChainFailure.MISSING: self.tr("序号不连续，这个序号的记录可能被删除。"),
             ChainFailure.HEAD_MISMATCH: self.tr("链头与最后一条记录不符，末尾的记录可能被删除。"),
+            ChainFailure.SEGMENT_MISMATCH: self.tr(
+                "链的类型或切换点与密钥文件的记录不符，审计链可能被降级后整条重算。"
+            ),
+            ChainFailure.KEY_UNAVAILABLE: self.tr(
+                "这一段记录用密钥计算，但密钥不可用（密钥文件丢失，或换了电脑、系统用户），无法校验。"
+            ),
             None: "",
         }[failure]
 
@@ -466,11 +491,18 @@ class AuditPage(QWidget):
             return
         audit_filter = self.current_filter()
         labels = export_labels()
+        password: str | None = None
+        if self._services.exports.encryption_required:
+            password = self.export_password_provider(self)
+            if password is None:
+                return
         self._exporting = True
         self._sync_state()
 
         def job() -> ExportSummary:
-            return self._services.exports.export_audit(session, audit_filter, destination, labels)
+            return self._services.exports.export_audit(
+                session, audit_filter, destination, labels, password=password
+            )
 
         self._runner.submit(job, self._export_done, self._export_failed)
 

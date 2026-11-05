@@ -433,3 +433,13 @@ def test_a_failed_runtime_apply_is_rolled_back_and_nothing_is_saved(
     assert context.engine.config.incubation_minutes == 0.05  # 已撤销
     assert context.config.video.source == "simulation.sim_video:SimVideoSource"
     assert audit_lines(context) == []
+
+
+def test_settings_switch_encryption_on_immediately_and_persist(context: AppContext) -> None:
+    assert not context.exports.encryption_required
+    result = context.settings.save(admin(context), draft_of(context, encrypt_exports=True))
+    assert "encrypt_exports" in result.changed
+    assert context.exports.encryption_required
+    saved = json.loads(settings_file(context.config.data_dir).read_text(encoding="utf-8"))
+    assert saved["settings"] == {"encrypt_exports": True}
+    assert context.settings.current(admin(context)).settings.encrypt_exports

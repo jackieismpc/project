@@ -59,7 +59,7 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 | 尾部被删除 | 第一条缺失的序号 | `missing` |
 | 链头被改或缺失 | 最后一条（链头缺失时为空） | `head_mismatch` |
 
-**限制**：本阶段不使用密钥。能直接写库文件的人，如果同时重算从被改处起的整条链**和**链头，校验无法发现。密钥（HMAC 或签名）和库文件加密由 P13 负责。
+**限制（P3）与改进（P13）**：只用 SHA-256 时，能直接写库文件的人如果同时重算从被改处起的整条链**和**链头，校验无法发现。P13 起链从切换事件（`audit_chain_keyed`）开始改用 **HMAC-SHA256**，密钥由 `KeyProtector`（DPAPI / 钥匙串）保护、不在数据库里；旧记录仍按 SHA-256 校验，新表 `audit_chain_segments`（迁移 0005）记录分段，校验结果带链类型。新增的失败原因：`segment_mismatch`（分段与密钥文件不符，链被降级或切换点被伪造）、`key_unavailable`（这一段的密钥不可用）。细节和仍然防不住的情况见 [security.md](security.md#审计链-hmac)。库文件本身没有加密。
 
 ### 查询与分页
 
@@ -144,7 +144,7 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 需要人工验证：
 
 - Windows 上的 `open_database`、WAL 与文件锁行为（特别是库文件放在网络盘或被杀毒软件扫描时）。
-- 打包产物（P13）中迁移能运行，即 `migrations/` 目录已随包分发。
+- 打包产物中迁移能运行：`scripts/build.py` 把 `migrations/` 下的 `.py` 作为数据文件复制进发布包，macOS 演示包和正式包已实际验证首次启动建库（见 [deployment.md](../deployment.md)）；Windows 待实测。
 
 ## P12 对数据层的补充
 

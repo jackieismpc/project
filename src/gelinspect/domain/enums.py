@@ -186,3 +186,6 @@ class AuditAction(StrEnum):
     AUDIT_VIEWED = "audit_viewed"
     AUDIT_VERIFIED = "audit_verified"
     LIMITS_CHANGED = "limits_changed"
+    AUDIT_CHAIN_KEYED = "audit_chain_keyed"
+    KEY_PROTECTION_CHANGED = "key_protection_changed"
+    INTEGRITY_CHECKED = "integrity_checked"

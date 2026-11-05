@@ -13,6 +13,7 @@ import logging
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -145,6 +146,12 @@ class SettingsPage(QWidget):
         self.instrument_card = Card(" ")
         for name in ("instrument_no", "copyright_holder", "retention_days"):
             self.instrument_card.body.addWidget(self.fields[name])
+        self.encrypt_box = QCheckBox()
+        self.encrypt_box.setMinimumHeight(44)
+        self.encrypt_hint = Label("", "meta")
+        self.encrypt_hint.setWordWrap(True)
+        self.instrument_card.body.addWidget(self.encrypt_box)
+        self.instrument_card.body.addWidget(self.encrypt_hint)
         left.addWidget(self.instrument_card)
 
         self.run_card = Card(" ")
@@ -317,6 +324,7 @@ class SettingsPage(QWidget):
             video_path=self.path_edit.text(),
             retention_days=text["retention_days"],
             copyright_holder=text["copyright_holder"],
+            encrypt_exports=self.encrypt_box.isChecked(),
         )
 
     def video_input(self) -> VideoInput:
@@ -344,6 +352,7 @@ class SettingsPage(QWidget):
         self.type_box.setCurrentIndex(self.type_box.findData(draft.video_input.value))
         self.type_box.blockSignals(False)
         self.path_edit.setText(draft.video_path)
+        self.encrypt_box.setChecked(draft.encrypt_exports)
         self._on_type_changed()
         self._update_range()
 
@@ -367,6 +376,7 @@ class SettingsPage(QWidget):
         for name, field in self.fields.items():
             impacting = name in IMPACTING_FIELDS
             field.edit.setEnabled(editable and not (impacting and self._locked))
+        self.encrypt_box.setEnabled(editable)
         video_enabled = editable and not self._locked
         self.type_box.setEnabled(video_enabled)
         self.path_edit.setEnabled(video_enabled and self.video_input() is not VideoInput.CONFIG)
@@ -575,6 +585,13 @@ class SettingsPage(QWidget):
             field.label.setText(setting_label(name))
         self.fields["retention_days"].set_hint(
             self.tr("留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。")
+        )
+        self.encrypt_box.setText(self.tr("敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）"))
+        self.encrypt_hint.setText(
+            self.tr(
+                "开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。"
+                "请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。"
+            )
         )
         self.fields["instrument_no"].set_hint(self.tr("写入之后新建的每个试验和报告。"))
         self.type_label.setText(setting_label("video_input"))

@@ -160,6 +160,18 @@
         <translation>Verification did not complete</translation>
     </message>
     <message>
+        <source>全部记录使用密钥（HMAC-SHA256）链接。</source>
+        <translation>All records are chained with a key (HMAC-SHA256).</translation>
+    </message>
+    <message>
+        <source>序号 {seq} 之前的旧记录使用 SHA-256，从序号 {seq} 起使用密钥（HMAC-SHA256）。</source>
+        <translation>Records before #{seq} use SHA-256; from #{seq} on they are chained with a key (HMAC-SHA256).</translation>
+    </message>
+    <message>
+        <source>记录使用 SHA-256 链接（未启用密钥）。</source>
+        <translation>Records are chained with SHA-256 (no key).</translation>
+    </message>
+    <message>
         <source>这条记录的内容与它的哈希不符，内容可能被改动。</source>
         <translation>This record&apos;s content does not match its hash; it may have been altered.</translation>
     </message>
@@ -174,6 +186,14 @@
     <message>
         <source>链头与最后一条记录不符，末尾的记录可能被删除。</source>
         <translation>The chain head does not match the last record; trailing records may have been deleted.</translation>
+    </message>
+    <message>
+        <source>链的类型或切换点与密钥文件的记录不符，审计链可能被降级后整条重算。</source>
+        <translation>The chain type or switch point does not match the key file. The chain may have been downgraded and recomputed.</translation>
+    </message>
+    <message>
+        <source>这一段记录用密钥计算，但密钥不可用（密钥文件丢失，或换了电脑、系统用户），无法校验。</source>
+        <translation>These records are keyed, but the key is unavailable (key file lost, or a different computer or user), so they cannot be verified.</translation>
     </message>
     <message>
         <source>导出审计追踪</source>
@@ -1125,6 +1145,45 @@
     <message>
         <source>哈希</source>
         <translation>Hash</translation>
+    </message>
+</context>
+<context>
+    <name>ExportPasswordDialog</name>
+    <message>
+        <source>导出密码至少 {min} 个字符</source>
+        <translation>The export password must have at least {min} characters</translation>
+    </message>
+    <message>
+        <source>两次输入的密码不一致</source>
+        <translation>The passwords do not match.</translation>
+    </message>
+    <message>
+        <source>设置导出密码</source>
+        <translation>Set export password</translation>
+    </message>
+    <message>
+        <source>已开启导出加密：文件将打成 AES-256 加密的 ZIP，打开时需要这个密码。</source>
+        <translation>Export encryption is on: the file is packed into an AES-256 encrypted ZIP and needs this password to open.</translation>
+    </message>
+    <message>
+        <source>导出密码</source>
+        <translation>Export password</translation>
+    </message>
+    <message>
+        <source>再输入一次</source>
+        <translation>Repeat password</translation>
+    </message>
+    <message>
+        <source>软件不保存这个密码，忘记后无法找回。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持 AES 加密。</source>
+        <translation>The password is not stored and cannot be recovered. Extract with 7-Zip, Keka or similar; the built-in system tools do not support AES.</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>导出</source>
+        <translation>Export</translation>
     </message>
 </context>
 <context>
@@ -3358,6 +3417,14 @@
         <translation>Export failed: {reason}</translation>
     </message>
     <message>
+        <source>已开启导出加密，请设置导出密码</source>
+        <translation>Export encryption is on. Please set an export password</translation>
+    </message>
+    <message>
+        <source>导出密码至少 {min} 个字符</source>
+        <translation>The export password must have at least {min} characters</translation>
+    </message>
+    <message>
         <source>用户不存在</source>
         <translation>User not found</translation>
     </message>
@@ -3451,6 +3518,10 @@
     <message>
         <source>版权方名称</source>
         <translation>Copyright holder</translation>
+    </message>
+    <message>
+        <source>导出加密</source>
+        <translation>Export encryption</translation>
     </message>
 </context>
 <context>
@@ -3574,6 +3645,14 @@
     <message>
         <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
         <translation>Leave empty for no automatic deletion (default). Expiry cleanup is not enabled yet, so no files are deleted for now.</translation>
+    </message>
+    <message>
+        <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
+        <translation>Encrypt sensitive exports (Excel and batch report exports as password-protected ZIP)</translation>
+    </message>
+    <message>
+        <source>开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。</source>
+        <translation>When on, every export asks for a password and produces an AES-256 encrypted ZIP. Extract with 7-Zip, Keka or similar; the built-in system tools do not support it.</translation>
     </message>
     <message>
         <source>写入之后新建的每个试验和报告。</source>
@@ -3899,6 +3978,14 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>程序遇到了意外错误，已写入日志。当前操作可能没有完成；建议保存工作后重新启动。</source>
         <translation>An unexpected error occurred and was written to the log. The current action may not have completed; consider saving your work and restarting.</translation>
+    </message>
+    <message>
+        <source>程序文件校验未通过</source>
+        <translation>Program file check failed</translation>
+    </message>
+    <message>
+        <source>程序目录里有文件与发布时的清单不一致，程序可能被改动或损坏。这件事已写入审计追踪。请联系管理员核实，必要时重新安装软件。</source>
+        <translation>Some files in the program folder do not match the release manifest; the program may have been modified or damaged. This has been recorded in the audit trail. Ask your administrator to check, and reinstall if needed.</translation>
     </message>
 </context>
 <context>

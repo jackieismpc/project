@@ -394,6 +394,12 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ),
     ServiceErrorCode.EXPORT_EMPTY: str(QT_TRANSLATE_NOOP("ServiceError", "没有可导出的报告")),
     ServiceErrorCode.EXPORT_FAILED: str(QT_TRANSLATE_NOOP("ServiceError", "导出失败：{reason}")),
+    ServiceErrorCode.EXPORT_PASSWORD_REQUIRED: str(
+        QT_TRANSLATE_NOOP("ServiceError", "已开启导出加密，请设置导出密码")
+    ),
+    ServiceErrorCode.EXPORT_PASSWORD_WEAK: str(
+        QT_TRANSLATE_NOOP("ServiceError", "导出密码至少 {min} 个字符")
+    ),
     ServiceErrorCode.USER_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "用户不存在")),
     ServiceErrorCode.USER_DUPLICATE: str(QT_TRANSLATE_NOOP("ServiceError", "登录名已存在：{name}")),
     ServiceErrorCode.USER_LAST_ADMIN: str(
@@ -639,6 +645,7 @@ SETTING_LABELS: dict[str, str] = {
     "video_path": str(QT_TRANSLATE_NOOP("Settings", "视频路径")),
     "retention_days": str(QT_TRANSLATE_NOOP("Settings", "数据保留天数")),
     "copyright_holder": str(QT_TRANSLATE_NOOP("Settings", "版权方名称")),
+    "encrypt_exports": str(QT_TRANSLATE_NOOP("Settings", "导出加密")),
 }
 """设置项的显示名（带单位），设置页的标签和校验提示共用。"""
 

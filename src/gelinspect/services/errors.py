@@ -51,6 +51,8 @@ class ServiceErrorCode(StrEnum):
     BATCH_NOT_SIGNABLE = "batch_not_signable"
     EXPORT_EMPTY = "export_empty"
     EXPORT_FAILED = "export_failed"
+    EXPORT_PASSWORD_REQUIRED = "export_password_required"
+    EXPORT_PASSWORD_WEAK = "export_password_weak"
     USER_NOT_FOUND = "user_not_found"
     USER_DUPLICATE = "user_duplicate"
     USER_LAST_ADMIN = "user_last_admin"
