@@ -24,6 +24,7 @@ from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
     count_where,
     page_of,
+    translate_lock_errors,
 )
 from gelinspect.interfaces.storage import (
     GENESIS_HASH,
@@ -163,11 +164,14 @@ class SqlAuditRepository(AuditRepository):
 
         Returns:
             新增的记录。
+
+        Raises:
+            StorageBusyError: 等写锁超时，什么都没有写入，可以稍后重试。
         """
         records: list[AuditRecord] = []
         if not events:
             return records
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             session.execute(
                 update(AuditChainHeadRow)
                 .where(AuditChainHeadRow.id == 1)

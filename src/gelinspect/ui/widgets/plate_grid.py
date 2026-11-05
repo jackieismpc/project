@@ -108,6 +108,7 @@ class PlateGrid(QWidget):
         self._kb_focus = False
         self._limit: int | None = None
         self._show_countdown = True
+        self._show_labels = True
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -204,6 +205,16 @@ class PlateGrid(QWidget):
         self.updateGeometry()
         self.update()
 
+    def set_row_labels_visible(self, visible: bool) -> None:
+        """是否显示列头的 ``Row01`` 标签（新试验向导的管位选择与设计稿一致，不显示）。
+
+        Args:
+            visible: 是否显示。
+        """
+        self._show_labels = visible
+        self.updateGeometry()
+        self.update()
+
     # ------------------------------------------------------------------ 选择
 
     def selected_tubes(self) -> list[int]:
@@ -295,9 +306,11 @@ class PlateGrid(QWidget):
         """列头区域高度。
 
         Returns:
-            行标签加（可选）倒计时行的高度。
+            行标签和（可选）倒计时行的高度，都不显示时为 0。
         """
-        height = _LABEL_H + 6
+        height = 0
+        if self._show_labels:
+            height += _LABEL_H + 6
         if self._show_countdown:
             height += _LABEL_H + 6
         return height
@@ -529,11 +542,13 @@ class PlateGrid(QWidget):
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         col_w, d, _, _ = self._metrics()
         label_font = mono_font(12, medium=True)
+        countdown_top = _LABEL_H + 6 if self._show_labels else 0
         for row in range(1, ROW_COUNT + 1):
-            cell = QRectF((row - 1) * col_w, 0, col_w, _LABEL_H)
-            p.setFont(label_font)
-            p.setPen(QColor(c.ink))
-            p.drawText(cell, int(Qt.AlignmentFlag.AlignCenter), row_label(row))
+            if self._show_labels:
+                cell = QRectF((row - 1) * col_w, 0, col_w, _LABEL_H)
+                p.setFont(label_font)
+                p.setPen(QColor(c.ink))
+                p.drawText(cell, int(Qt.AlignmentFlag.AlignCenter), row_label(row))
             if self._show_countdown and row in self._countdowns:
                 text, active = self._countdowns[row]
                 p.setFont(mono_font(12, medium=active))
@@ -541,7 +556,7 @@ class PlateGrid(QWidget):
                 fm = QFontMetrics(p.font())
                 elided = fm.elidedText(text, Qt.TextElideMode.ElideRight, int(col_w))
                 p.drawText(
-                    QRectF((row - 1) * col_w, _LABEL_H + 6, col_w, _LABEL_H),
+                    QRectF((row - 1) * col_w, countdown_top, col_w, _LABEL_H),
                     int(Qt.AlignmentFlag.AlignCenter),
                     elided,
                 )

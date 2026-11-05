@@ -6,7 +6,7 @@ import inspect
 
 import pytest
 
-from gelinspect.domain.enums import Role
+from gelinspect.domain.enums import AuditAction, Role
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.infrastructure.db import Database, seed_defaults, verify_audit_chain
 from gelinspect.infrastructure.db.passwords import needs_rehash, verify_password
@@ -26,11 +26,25 @@ def test_seed_creates_templates_and_admin(database: Database) -> None:
     credentials = database.users.get_credentials("admin")
     assert credentials is not None
     assert credentials.user.role is Role.ADMIN
-    assert credentials.must_change_password is True
+    assert credentials.must_change_password is False  # 密码是调用方（管理员本人）设的，直接生效
     assert credentials.password_hash.startswith("$argon2id$")
     assert PASSWORD not in credentials.password_hash
     assert verify_password(credentials.password_hash, PASSWORD)
     assert not needs_rehash(credentials.password_hash)
+
+
+def test_seed_can_require_a_password_change_for_a_delegated_password(database: Database) -> None:
+    seed_defaults(database, admin_password=PASSWORD, must_change_password=True)
+    credentials = database.users.get_credentials("admin")
+    assert credentials is not None and credentials.must_change_password is True
+    page = database.audit.query(AuditQuery(action=AuditAction.USER_CHANGED), PageRequest())
+    assert any("首次登录须修改密码" in r.event.detail for r in page.items)
+
+
+def test_seed_without_forced_change_does_not_mention_it_in_the_audit(database: Database) -> None:
+    seed_defaults(database, admin_password=PASSWORD)
+    page = database.audit.query(AuditQuery(action=AuditAction.USER_CHANGED), PageRequest())
+    assert [r.event.detail for r in page.items] == ["初始化管理员 admin"]
 
 
 def test_seed_is_idempotent_and_does_not_reset_password(database: Database) -> None:

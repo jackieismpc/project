@@ -39,17 +39,7 @@ LOGIN_ROUTE = Route("login", str(QT_TRANSLATE_NOOP("Routes", "登录")), in_nav=
 
 PAGE_ROUTES: tuple[Route, ...] = (
     Route("dashboard", str(QT_TRANSLATE_NOOP("Routes", "工作台"))),
-    Route(
-        "new",
-        str(QT_TRANSLATE_NOOP("Routes", "新试验")),
-        Permission.EXPERIMENT_CREATE,
-        "P8",
-        str(
-            QT_TRANSLATE_NOOP(
-                "Routes", "选择检测模板、扫码校验试剂、录入样品并选择管位，然后启动试验。"
-            )
-        ),
-    ),
+    Route("new", str(QT_TRANSLATE_NOOP("Routes", "新试验")), Permission.EXPERIMENT_CREATE),
     Route(
         "monitor",
         str(QT_TRANSLATE_NOOP("Routes", "试验监控")),
@@ -72,20 +62,8 @@ PAGE_ROUTES: tuple[Route, ...] = (
         "P12",
         str(QT_TRANSLATE_NOOP("Routes", "按时间、类型、批号和状态查询历史试验。")),
     ),
-    Route(
-        "templates",
-        str(QT_TRANSLATE_NOOP("Routes", "模板管理")),
-        Permission.TEMPLATE_VIEW,
-        "P8",
-        str(QT_TRANSLATE_NOOP("Routes", "查看和维护五类检测模板的管位布局。")),
-    ),
-    Route(
-        "reagents",
-        str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")),
-        Permission.EXPERIMENT_VIEW,
-        "P8",
-        str(QT_TRANSLATE_NOOP("Routes", "扫码校验鲎试剂、内毒素和检查用水的批号与效期。")),
-    ),
+    Route("templates", str(QT_TRANSLATE_NOOP("Routes", "模板管理")), Permission.TEMPLATE_VIEW),
+    Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")), Permission.EXPERIMENT_VIEW),
     Route(
         "reports",
         str(QT_TRANSLATE_NOOP("Routes", "报告中心")),
@@ -124,7 +102,6 @@ ROUTES: tuple[Route, ...] = (LOGIN_ROUTE, *PAGE_ROUTES)
 _BY_KEY = {route.key: route for route in ROUTES}
 
 PHASE_NAMES: dict[str, str] = {
-    "P8": str(QT_TRANSLATE_NOOP("Phases", "P8 新试验流程")),
     "P9": str(QT_TRANSLATE_NOOP("Phases", "P9 监控与结果")),
     "P11": str(QT_TRANSLATE_NOOP("Phases", "P11 报告")),
     "P12": str(QT_TRANSLATE_NOOP("Phases", "P12 数据管理页")),

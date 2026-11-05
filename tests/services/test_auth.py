@@ -246,10 +246,11 @@ def test_first_admin_requires_empty_system(tmp_path: Path, clock: Clock) -> None
         service.create_first_admin(username="has space", display_name="", password="long-enough1")
     service.create_first_admin(username="root", display_name="", password="long-enough1")
     assert not service.needs_first_admin()
-    # 首个管理员首次登录必须改密，且没有任何默认账号
+    # 密码是管理员自己设的，直接生效、首次登录不强制改密；系统里没有任何默认账号
     assert [u.username for u in db.users.list_all()] == ["root"]
     session = service.login("root", "long-enough1")
-    assert session.must_change_password and session.role is Role.ADMIN
+    assert not session.must_change_password and session.role is Role.ADMIN
+    service.authorize(session, Permission.USER_MANAGE)
     with pytest.raises(SetupNotAllowedError):
         service.create_first_admin(username="again", display_name="", password="long-enough1")
     db.close()
@@ -305,3 +306,124 @@ def test_query_service_rejects_a_forged_session(auth: AuthService, database: Dat
         queries.recent_audit(forged)
     with pytest.raises(PermissionDeniedError):
         queries.recent_experiments(None)
+
+
+# ---------------------------------------------------------------------------
+# 等写锁超时：抛 AuthStorageBusyError（不是原始的 SQLAlchemy 异常），不崩溃
+
+import sqlite3  # noqa: E402
+from collections.abc import Iterator  # noqa: E402
+from contextlib import contextmanager  # noqa: E402
+
+from gelinspect.services.auth import AuthErrorCode, AuthStorageBusyError  # noqa: E402
+
+
+@pytest.fixture
+def busy_auth(
+    tmp_path: Path, clock: Clock, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[tuple[AuthService, Database, Path]]:
+    monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
+    path = tmp_path / "busy.db"
+    db = open_database(path)
+    initialize_accounts(db, DemoAccounts())
+    service = AuthService(db, Argon2Hasher(), clock=clock, seeder=DatabaseFirstAdminSeeder(db))
+    yield service, db, path
+    db.close()
+
+
+@contextmanager
+def writer_holding_the_lock(path: Path) -> Iterator[None]:
+    holder = sqlite3.connect(path, isolation_level=None)
+    holder.execute("BEGIN IMMEDIATE")
+    try:
+        yield
+    finally:
+        holder.execute("ROLLBACK")
+        holder.close()
+
+
+def test_login_while_the_database_is_busy_raises_a_clear_error(
+    busy_auth: tuple[AuthService, Database, Path],
+) -> None:
+    service, db, path = busy_auth
+    with writer_holding_the_lock(path):
+        with pytest.raises(AuthStorageBusyError) as caught:
+            service.login("admin", PASSWORDS["admin"])
+        assert caught.value.code is AuthErrorCode.STORAGE_BUSY
+        assert not isinstance(caught.value, sqlite3.Error)
+    # 没有留痕的登录不成功，也没有留下半个会话；锁释放后可以正常登录
+    assert audit_of(db, AuditAction.LOGIN, "admin") == []
+    session = service.login("admin", PASSWORDS["admin"])
+    assert audit_of(db, AuditAction.LOGIN, "admin") == ["登录成功"]
+    service.authorize(session, Permission.USER_MANAGE)
+
+
+def test_wrong_password_while_busy_is_still_reported_as_wrong(
+    busy_auth: tuple[AuthService, Database, Path],
+) -> None:
+    service, _db, path = busy_auth
+    with writer_holding_the_lock(path), pytest.raises(InvalidCredentialsError):
+        service.login("admin", "wrong-password")
+
+
+def test_protective_actions_still_work_while_busy(
+    busy_auth: tuple[AuthService, Database, Path],
+) -> None:
+    """拒绝、锁屏、退出是保护动作：数据库忙时照样生效，只是审计缺失只记日志。"""
+    service, _db, path = busy_auth
+    session = service.login("analyst", PASSWORDS["analyst"])
+    with writer_holding_the_lock(path):
+        with pytest.raises(PermissionDeniedError) as denied:
+            service.authorize(session, Permission.USER_MANAGE)
+        assert denied.value.code is AuthErrorCode.DENIED
+        service.lock(session)
+        assert session.locked
+        with pytest.raises(PermissionDeniedError):
+            service.authorize(session, Permission.EXPERIMENT_VIEW)
+    service.unlock(session, PASSWORDS["analyst"])
+    with writer_holding_the_lock(path):
+        service.logout(session)  # 不抛异常
+    with pytest.raises(PermissionDeniedError):
+        service.authorize(session, Permission.EXPERIMENT_VIEW)
+
+
+def test_unlock_while_busy_keeps_the_screen_locked(
+    busy_auth: tuple[AuthService, Database, Path],
+) -> None:
+    service, db, path = busy_auth
+    session = service.login("analyst", PASSWORDS["analyst"])
+    service.lock(session)
+    with writer_holding_the_lock(path):
+        with pytest.raises(AuthStorageBusyError):
+            service.unlock(session, PASSWORDS["analyst"])
+        assert session.locked
+    service.unlock(session, PASSWORDS["analyst"])
+    assert not session.locked
+    assert audit_of(db, AuditAction.SCREEN_UNLOCKED, "analyst") == ["解锁屏幕"]
+
+
+def test_change_password_while_busy_changes_nothing(
+    busy_auth: tuple[AuthService, Database, Path],
+) -> None:
+    service, _db, path = busy_auth
+    session = service.login("analyst", PASSWORDS["analyst"])
+    with writer_holding_the_lock(path), pytest.raises(AuthStorageBusyError):
+        service.change_password(session, PASSWORDS["analyst"], "Brand-new-pass1")
+    service.login("analyst", PASSWORDS["analyst"])  # 旧密码仍然有效
+    with pytest.raises(InvalidCredentialsError):
+        service.login("analyst", "Brand-new-pass1")
+
+
+def test_first_admin_while_busy_raises_a_clear_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
+    path = tmp_path / "empty.db"
+    db = open_database(path)
+    service = AuthService(db, Argon2Hasher(), seeder=DatabaseFirstAdminSeeder(db))
+    with writer_holding_the_lock(path), pytest.raises(AuthStorageBusyError):
+        service.create_first_admin(username="root", display_name="", password="long-enough1")
+    assert service.needs_first_admin()
+    service.create_first_admin(username="root", display_name="", password="long-enough1")
+    assert not service.needs_first_admin()
+    db.close()

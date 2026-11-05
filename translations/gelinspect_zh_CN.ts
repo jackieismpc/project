@@ -133,6 +133,10 @@
         <source>当前配置不允许在界面创建管理员</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>数据库正忙，操作没有生效，请稍后再试</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChangePasswordDialog</name>
@@ -470,11 +474,274 @@
     </message>
 </context>
 <context>
-    <name>Phases</name>
+    <name>NewExperimentPage</name>
     <message>
-        <source>P8 新试验流程</source>
+        <source>序号</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>点击录入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>排</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验试剂</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录入样品和管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>确认启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择检测模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板决定试管数量和每管的样品、外加内毒素。标「布局待确认」的模板仍可使用。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有可用的模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>下一步：校验试剂</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用扫码枪扫试剂上的码（扫完自动回车），或手输后按回车。三种试剂都合格才能继续。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>上一步</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>下一步：录入样品和管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>更换模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>8 乘 10 管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自动选择</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部清除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>下一步：确认启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验信息</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>确认后设备会连接并送入滑台，随后开始孵育。启动前会检查温度、舱门和视频。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品与管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有样品</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>离开新试验向导？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>向导里已录入的内容还没有提交，离开后会丢失。确定要离开吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>离开</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留在向导</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>更换模板？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>更换模板会清空已录入的样品和已选的管位。确定要更换吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>更换</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保留当前模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂未通过校验，流程已锁定，不能进入下一步</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> · 标示灵敏度 {value:g} EU/mL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> · {count} 管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已选 {picked} / {total} ·</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请先选择模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请在孔板上选择管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位已对应</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还差 {n} 个</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>多选了 {n} 个</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {rows} 行的样品名称为空，请填写</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位数量要与模板一致，样品名称不能为空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{count} 管 · {rows}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>孵育时长</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{minutes:g} 分钟</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{batch} · 效期至 {date}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在连接设备、检查温度和视频，请稍候……</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动失败，试验仍为就绪，可以重试</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>原因：</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>重试启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>确认并启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Phases</name>
     <message>
         <source>P9 监控与结果</source>
         <translation type="unfinished"></translation>
@@ -628,6 +895,296 @@
     </message>
 </context>
 <context>
+    <name>ReagentCard</name>
+    <message>
+        <source>点击填入并校验这个示例码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已通过</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已锁定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请重新扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码或输入试剂码，按回车确认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{name}试剂码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>示例码</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReagentKind</name>
+    <message>
+        <source>鲎试剂</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检查用水</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReagentResultView</name>
+    <message>
+        <source>（即将到期）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 {value:g} EU/mL</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReagentScan</name>
+    <message>
+        <source>已备案</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已过期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未备案</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效期未知，无法确认在有效期内</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这是{found}，不是{expected}，请扫对应的试剂</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法识别这个码，请重新扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>备案清单不可用，无法确认试剂合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未配置试剂码解析或备案清单，无法确认试剂合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>效期至 {date}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已于 {date} 过期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>剩余 {n} 天</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>今天到期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已过期 {n} 天</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReagentTile</name>
+    <message>
+        <source>未校验</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ReagentsPage</name>
+    <message>
+        <source>种类</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>效期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>剩余天数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>最近校验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>操作者</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{kind} · 查询结果不写入校验记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已过期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未备案</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效期未知</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>即将到期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有录入的试剂批次</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>在新试验向导里扫码校验后，批次会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>通过</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已过期，锁定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>未备案，锁定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效期未知，锁定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>缺少，锁定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有校验记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>接入预留</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>尚未配置政府溯源客户端。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂溯源</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码或输入试剂码，按回车查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查询只检查备案和效期，不会录入批次。批次在新试验向导里扫码校验后录入。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已录入批次</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>校验记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>政府溯源码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>政府溯源码（接入预留）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>上报</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Role</name>
     <message>
         <source>管理员</source>
@@ -654,10 +1211,6 @@
     </message>
     <message>
         <source>新试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>选择检测模板、扫码校验试剂、录入样品并选择管位，然后启动试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -689,15 +1242,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>查看和维护五类检测模板的管位布局。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>试剂溯源</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>扫码校验鲎试剂、内毒素和检查用水的批号与效期。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -734,6 +1279,81 @@
     </message>
     <message>
         <source>关于</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ServiceError</name>
+    <message>
+        <source>数据库正忙，操作没有生效，请稍后再试</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板不存在</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内置模板 {name} 只读，请复制后再编辑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板名称不能为空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已有同名模板：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板名称不能超过 {max} 个字符</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板的试管数应在 1 到 {max} 之间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {index} 支试管的样品名称不能为空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {index} 支试管的数值不合法（不能为负数）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请先选择检测模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板要求 {expected} 支试管，实际安排了 {actual} 支</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位不合法</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {index} 行的样品名称为空</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验不存在：{id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id} 不是就绪状态，不能启动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已有试验正在运行，设备同一时间只能运行一个试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>引擎拒绝启动试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂未通过校验，流程已锁定</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -907,6 +1527,230 @@
     <name>StepIndicator</name>
     <message>
         <source>步骤 {no} / {total}：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TemplateEditorDialog</name>
+    <message>
+        <source>管号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用途</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>共 {count} 支试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>编辑模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>添加试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除最后一支</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TemplateOption</name>
+    <message>
+        <source>内置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自定义</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{type} · {count} 管 · {source}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>布局待确认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>，布局待确认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板 {name}，{count} 管</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TemplatesPage</name>
+    <message>
+        <source>名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>来源</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>状态</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品名称</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用途</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>稀释倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外加内毒素</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已创建</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已复制，可以点「编辑」修改</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>自定义</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>布局待确认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位详情</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>管位详情 · {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色无此权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内置模板只读，请先复制再编辑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前角色只能查看模板，新建、复制和编辑需要管理员。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板管理</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>只读</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复制</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>编辑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有选中的模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TubeRole</name>
+    <message>
+        <source>试验管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性对照</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用途待确认</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -15,9 +15,11 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from gelinspect.infrastructure.db.repositories._common import is_lock_error
 from gelinspect.infrastructure.db.repositories.audit import SqlAuditRepository
 from gelinspect.infrastructure.db.repositories.experiments import SqlExperimentRepository
 from gelinspect.infrastructure.db.repositories.files import SqlMediaRepository, SqlReportRepository
+from gelinspect.infrastructure.db.repositories.reagent_checks import SqlReagentCheckRepository
 from gelinspect.infrastructure.db.repositories.telemetry import SqlTelemetryRepository
 from gelinspect.infrastructure.db.repositories.templates import SqlTemplateRepository
 from gelinspect.infrastructure.db.repositories.users import SqlUserRepository
@@ -28,10 +30,6 @@ MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 BUSY_TIMEOUT_MS = 5000
 """写锁等待时间。"""
-
-_SQLITE_BUSY = 5
-_SQLITE_LOCKED = 6
-_PRIMARY_CODE_MASK = 0xFF
 
 
 def _configure_connection(dbapi_connection: sqlite3.Connection, _record: Any) -> None:
@@ -49,19 +47,6 @@ def _configure_connection(dbapi_connection: sqlite3.Connection, _record: Any) ->
         cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
     finally:
         cursor.close()
-
-
-def _is_lock_error(error: OperationalError) -> bool:
-    """判断 SQLite 错误是否是拿不到锁。
-
-    Args:
-        error: SQLAlchemy 包装的操作错误。
-
-    Returns:
-        主错误码是 ``SQLITE_BUSY`` 或 ``SQLITE_LOCKED`` 时为 True。
-    """
-    code = getattr(error.orig, "sqlite_errorcode", None)
-    return isinstance(code, int) and code & _PRIMARY_CODE_MASK in (_SQLITE_BUSY, _SQLITE_LOCKED)
 
 
 def _migrate(engine: Engine) -> None:
@@ -103,6 +88,8 @@ class SqlUnitOfWork:
         self._audit = SqlAuditRepository(self._bound)
         self._media = SqlMediaRepository(self._bound)
         self._telemetry = SqlTelemetryRepository(self._bound)
+        self._templates = SqlTemplateRepository(self._bound)
+        self._reagent_checks = SqlReagentCheckRepository(self._bound)
 
     @contextmanager
     def _bound(self) -> Iterator[Session]:
@@ -152,6 +139,16 @@ class SqlUnitOfWork:
         """本事务的温度与设备日志仓储。"""
         return self._telemetry
 
+    @property
+    def templates(self) -> SqlTemplateRepository:
+        """本事务的模板仓储。"""
+        return self._templates
+
+    @property
+    def reagent_checks(self) -> SqlReagentCheckRepository:
+        """本事务的试剂校验记录仓储。"""
+        return self._reagent_checks
+
 
 class Database:
     """已打开的数据库，持有引擎并提供会话和各仓储。
@@ -199,7 +196,7 @@ class Database:
                 try:
                     session.connection().exec_driver_sql("BEGIN IMMEDIATE")
                 except OperationalError as error:
-                    if _is_lock_error(error):
+                    if is_lock_error(error):
                         raise StorageBusyError(f"等待写锁超时：{error}") from error
                     raise
                 uow = SqlUnitOfWork(session)
@@ -250,6 +247,11 @@ class Database:
     def telemetry(self) -> SqlTelemetryRepository:
         """温度与设备日志仓储。"""
         return SqlTelemetryRepository(self.session)
+
+    @property
+    def reagent_checks(self) -> SqlReagentCheckRepository:
+        """试剂校验记录仓储。"""
+        return SqlReagentCheckRepository(self.session)
 
 
 def open_database(path: str | Path) -> Database:

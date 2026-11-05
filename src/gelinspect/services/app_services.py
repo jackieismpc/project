@@ -13,8 +13,11 @@ from gelinspect.interfaces.bootstrap import DemoAccount
 from gelinspect.services.auth import AuthService
 from gelinspect.services.engine_types import RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
+from gelinspect.services.experiment_service import ExperimentService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
 from gelinspect.services.queries import QueryService
+from gelinspect.services.reagent_service import ReagentService
+from gelinspect.services.template_service import TemplateService
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +29,9 @@ class AppServices:
         queries: 只读查询。
         engine: 试验引擎（启动、停止、事件订阅、退出确认）。
         instrument: 仪器状态监视器。
+        templates: 检测模板管理。
+        reagents: 试剂扫码校验与溯源。
+        experiments: 创建和启动试验。
         demo_accounts: 登录页「演示账号」提示的内容，真实配置下为空。
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不锁。
         recovered: 启动恢复时被标记为异常的试验。
@@ -38,6 +44,9 @@ class AppServices:
     queries: QueryService
     engine: ExperimentEngine
     instrument: InstrumentMonitor
+    templates: TemplateService
+    reagents: ReagentService
+    experiments: ExperimentService
     demo_accounts: Sequence[DemoAccount] = ()
     idle_lock_minutes: float = 15.0
     recovered: Sequence[RecoveredExperiment] = ()

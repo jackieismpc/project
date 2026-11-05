@@ -31,7 +31,10 @@ from gelinspect.ui.labels import role_label
 from gelinspect.ui.pages.about import AboutPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
 from gelinspect.ui.pages.dashboard import DashboardPage
+from gelinspect.ui.pages.new_experiment import NewExperimentPage
 from gelinspect.ui.pages.placeholder import PlaceholderPage
+from gelinspect.ui.pages.reagents_page import ReagentsPage
+from gelinspect.ui.pages.templates_page import TemplatesPage
 from gelinspect.ui.routes import (
     PAGE_ROUTES,
     QUICK_ACTION_ROUTES,
@@ -115,7 +118,7 @@ class MainWindow(QMainWindow):
         self.setup_page.submitted.connect(self._on_setup_submitted)
         self.login_page.submitted.connect(self._on_login_submitted)
         self.lock_page.submitted.connect(self._on_unlock_submitted)
-        self.lock_page.logoutRequested.connect(self.logout)
+        self.lock_page.logoutRequested.connect(lambda: self.logout(confirm=False))
         for page in (self.setup_page, self.login_page, self.lock_page):
             page.languageRequested.connect(self._on_language_selected)
         toolbar = self.shell.toolbar
@@ -242,7 +245,7 @@ class MainWindow(QMainWindow):
         )
         accepted = dialog.exec() == QDialog.DialogCode.Accepted
         if not accepted:
-            self.logout()
+            self.logout(confirm=False)
             return False
         self._apply_permissions()
         self.navigate(self._current_route)
@@ -254,8 +257,19 @@ class MainWindow(QMainWindow):
         toolbar.set_user_permissions(session.permissions() if session is not None else ())
         self.shell.nav.set_denied(denied_nav_keys(session))
 
-    def logout(self) -> None:
-        """退出登录，回到登录页。试验在后台继续。"""
+    def logout(self, *, confirm: bool = True) -> bool:
+        """退出登录，回到登录页。试验在后台继续。
+
+        向导里有未完成的内容时先确认。
+
+        Args:
+            confirm: 为 False 时不确认（被强制退出，例如取消强制改密）。
+
+        Returns:
+            已退出时为 True；用户在确认里选择留下时为 False。
+        """
+        if confirm and not self._confirm_leave_current():
+            return False
         session = self._session
         if session is not None:
             self._services.auth.logout(session)
@@ -265,6 +279,7 @@ class MainWindow(QMainWindow):
         self.shell.toolbar.set_user("", "")
         self._apply_permissions()
         self.show_start_screen()
+        return True
 
     def lock_screen(self) -> None:
         """锁屏：试验继续运行，输入密码解锁。没有登录时无操作。"""
@@ -300,7 +315,7 @@ class MainWindow(QMainWindow):
             self.lock_page.password.clear()
             self.lock_page.show_auth_error(error)
             if error.code.value == "session_invalid":
-                self.logout()
+                self.logout(confirm=False)
             return
         self.lock_page.reset()
         self._apply_permissions()
@@ -330,6 +345,8 @@ class MainWindow(QMainWindow):
                 ToastKind.WARNING,
             )
             return False
+        if key != self._current_route and not self._confirm_leave_current():
+            return False
         page = self._pages.get(key)
         if page is None:
             page = self._create_page(route)
@@ -339,9 +356,16 @@ class MainWindow(QMainWindow):
         self._current_route = key
         nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "monitor"
         self.shell.nav.set_current(nav_key)
-        if isinstance(page, DashboardPage):
+        if isinstance(page, DashboardPage | TemplatesPage | ReagentsPage | NewExperimentPage):
             page.refresh()
         self.setWindowTitle(self._window_title())
+        return True
+
+    def _confirm_leave_current(self) -> bool:
+        """离开当前页面前的确认：新试验向导里有未完成的内容时要用户确认。"""
+        page = self._pages.get(self._current_route)
+        if isinstance(page, NewExperimentPage):
+            return page.confirm_leave()
         return True
 
     def _create_page(self, route: Route) -> QWidget:
@@ -358,7 +382,26 @@ class MainWindow(QMainWindow):
             return dashboard
         if route.key == "about":
             return AboutPage(self._services)
+        if route.key == "new":
+            wizard = NewExperimentPage(self._services, self.bridge)
+            wizard.set_session(self._session)
+            wizard.started.connect(self._on_experiment_started)
+            return wizard
+        if route.key == "templates":
+            templates = TemplatesPage(self._services)
+            templates.set_session(self._session)
+            return templates
+        if route.key == "reagents":
+            reagents = ReagentsPage(self._services)
+            reagents.set_session(self._session)
+            return reagents
         return PlaceholderPage(route)
+
+    def _on_experiment_started(self, experiment_id: str) -> None:
+        """向导启动了试验：留在向导页的用户跳到试验监控页（P9 实现）。"""
+        _log.info("试验 %s 已启动", experiment_id)
+        if self._current_route == "new":
+            self.navigate("monitor")
 
     def _drop_pages(self) -> None:
         for page in self._pages.values():

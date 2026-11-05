@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import uuid
 from collections import OrderedDict
@@ -21,7 +22,9 @@ from typing import NoReturn, Protocol
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, Role
 from gelinspect.domain.permissions import Permission, has_permission, permissions_of
-from gelinspect.interfaces.storage import AuditRepository, UserRepository
+from gelinspect.interfaces.storage import AuditRepository, StorageBusyError, UserRepository
+
+_log = logging.getLogger(__name__)
 
 MAX_USERNAME_LENGTH = 32
 """登录名最大长度。"""
@@ -47,6 +50,7 @@ class AuthErrorCode(StrEnum):
     DENIED = "denied"
     ALREADY_INITIALIZED = "already_initialized"
     SETUP_DISABLED = "setup_disabled"
+    STORAGE_BUSY = "storage_busy"
 
 
 class AuthError(Exception):
@@ -129,6 +133,12 @@ class SetupNotAllowedError(AuthError):
     """系统已经初始化，或当前配置不允许创建管理员。"""
 
 
+class AuthStorageBusyError(AuthError):
+    """数据库正忙（等写锁超时），操作没有生效，稍后重试即可。"""
+
+    code = AuthErrorCode.STORAGE_BUSY
+
+
 class PasswordHasher(Protocol):
     """密码哈希，由组装根注入（具体算法在基础设施层）。"""
 
@@ -149,12 +159,12 @@ class FirstAdminSeeder(Protocol):
     """创建首个管理员（并写入内置模板），由组装根注入。"""
 
     def seed_first_admin(self, *, username: str, display_name: str, password: str) -> None:
-        """创建管理员，首次登录须改密。
+        """创建管理员。密码是管理员自己设的，直接生效，首次登录不强制改密。
 
         Args:
             username: 登录名。
             display_name: 显示名称。
-            password: 初始密码。
+            password: 管理员设置的密码。
         """
         ...
 
@@ -291,6 +301,7 @@ class AuthService:
             InvalidCredentialsError: 用户名或密码错误。
             AccountLockedError: 失败次数过多，暂时锁定。
             AccountDisabledError: 账号已停用（密码正确时才提示）。
+            AuthStorageBusyError: 数据库正忙，没有登录，稍后重试。
         """
         name = username.strip()
         user, must_change = self._verify(name, password, purpose="登录")
@@ -300,9 +311,10 @@ class AuthService:
             started_at=self._clock(),
             session_id=uuid.uuid4().hex,
         )
+        # 先留痕再登记会话：审计写不进去（数据库忙）时登录不成功，也不留下半个会话。
+        self._audit(user, AuditAction.LOGIN, "登录成功" + ("，须先修改密码" if must_change else ""))
         with self._lock:
             self._sessions[session.session_id] = session
-        self._audit(user, AuditAction.LOGIN, "登录成功" + ("，须先修改密码" if must_change else ""))
         return session
 
     def logout(self, session: Session) -> None:
@@ -314,7 +326,7 @@ class AuthService:
         with self._lock:
             known = self._sessions.pop(session.session_id, None)
         if known is not None:
-            self._audit(session.user, AuditAction.LOGOUT, "退出登录")
+            self._audit_best_effort(session.user, AuditAction.LOGOUT, "退出登录")
 
     def lock(self, session: Session) -> None:
         """锁屏：会话保留，但在解锁前拒绝一切操作。试验在后台继续。
@@ -326,7 +338,8 @@ class AuthService:
             if session.session_id not in self._sessions or session.locked:
                 return
             session.locked = True
-        self._audit(session.user, AuditAction.SCREEN_LOCKED, "锁定屏幕")
+        # 锁屏是保护动作：数据库忙时也要锁住，审计缺失只记日志。
+        self._audit_best_effort(session.user, AuditAction.SCREEN_LOCKED, "锁定屏幕")
 
     def unlock(self, session: Session, password: str) -> None:
         """用密码解锁。失败计入登录失败次数。
@@ -340,14 +353,15 @@ class AuthService:
             AccountLockedError: 失败次数过多。
             AccountDisabledError: 账号已被停用。
             PermissionDeniedError: 会话已失效。
+            AuthStorageBusyError: 数据库正忙，仍保持锁定，稍后重试。
         """
         with self._lock:
             if session.session_id not in self._sessions:
                 raise PermissionDeniedError("会话已失效，请重新登录", AuthErrorCode.SESSION_INVALID)
         self._verify(session.user.username, password, purpose="解锁")
+        self._audit(session.user, AuditAction.SCREEN_UNLOCKED, "解锁屏幕")  # 写不进去就保持锁定
         with self._lock:
             session.locked = False
-        self._audit(session.user, AuditAction.SCREEN_UNLOCKED, "解锁屏幕")
 
     def change_password(self, session: Session, old_password: str, new_password: str) -> None:
         """修改自己的密码，成功后清除「必须改密」标记。
@@ -362,19 +376,24 @@ class AuthService:
             InvalidCredentialsError: 当前密码错误。
             AccountLockedError: 失败次数过多。
             PasswordPolicyError: 新密码过短，或与当前密码、登录名相同。
+            AuthStorageBusyError: 数据库正忙，密码没有修改，稍后重试。
         """
         with self._lock:
             if session.session_id not in self._sessions or session.locked:
                 raise PermissionDeniedError("会话已失效或已锁屏", AuthErrorCode.SESSION_INVALID)
         self._check_new_password(new_password, old_password, session.user.username)
         self._verify(session.user.username, old_password, purpose="修改密码")
-        self._storage.users.set_password_hash(
-            session.user.user_id,
-            self._hasher.hash(new_password),
-            must_change_password=False,
-        )
+        try:
+            self._storage.users.set_password_hash(
+                session.user.user_id,
+                self._hasher.hash(new_password),
+                must_change_password=False,
+            )
+        except StorageBusyError as error:
+            raise AuthStorageBusyError("数据库正忙，密码没有修改") from error
         session.must_change_password = False
-        self._audit(session.user, AuditAction.PASSWORD_CHANGED, "修改密码")
+        # 密码已经改了，无法回滚；审计缺失只记日志，不让用户以为没改成。
+        self._audit_best_effort(session.user, AuditAction.PASSWORD_CHANGED, "修改密码")
 
     # ------------------------------------------------------------------ 权限
 
@@ -412,7 +431,10 @@ class AuthService:
         return user
 
     def _deny(self, user: User, permission: Permission, why: str) -> NoReturn:
-        self._audit(user, AuditAction.PERMISSION_DENIED, f"拒绝 {permission.value}：{why}")
+        # 拒绝本身总是安全的：审计写不进去（数据库忙）时仍然拒绝，只记日志。
+        self._audit_best_effort(
+            user, AuditAction.PERMISSION_DENIED, f"拒绝 {permission.value}：{why}"
+        )
         raise PermissionDeniedError(f"没有权限：{permission.value}", AuthErrorCode.DENIED)
 
     # ------------------------------------------------------------------ 首个管理员
@@ -426,7 +448,7 @@ class AuthService:
         return not self._storage.users.list_all()
 
     def create_first_admin(self, *, username: str, display_name: str, password: str) -> None:
-        """创建首个管理员。只在没有任何账号时可用，管理员首次登录须改密。
+        """创建首个管理员。只在没有任何账号时可用，密码直接生效，首次登录不强制改密。
 
         Args:
             username: 登录名。
@@ -436,6 +458,7 @@ class AuthService:
         Raises:
             SetupNotAllowedError: 已有账号，或没有配置创建方式。
             PasswordPolicyError: 登录名或密码不符合要求。
+            AuthStorageBusyError: 数据库正忙，稍后重试。
         """
         if self._seeder is None:
             raise SetupNotAllowedError(
@@ -459,9 +482,12 @@ class AuthService:
                 raise SetupNotAllowedError(
                     "系统已经初始化，不能再创建首个管理员", AuthErrorCode.ALREADY_INITIALIZED
                 )
-            self._seeder.seed_first_admin(
-                username=name, display_name=display_name.strip() or name, password=password
-            )
+            try:
+                self._seeder.seed_first_admin(
+                    username=name, display_name=display_name.strip() or name, password=password
+                )
+            except StorageBusyError as error:
+                raise AuthStorageBusyError("数据库正忙，管理员没有创建") from error
 
     # ------------------------------------------------------------------ 内部
 
@@ -489,7 +515,9 @@ class AuthService:
             if state is not None and state.locked_until is not None:
                 if state.locked_until > now:
                     remaining = (state.locked_until - now).total_seconds()
-                    self._audit_name(name, AuditAction.LOGIN_FAILED, f"{purpose}被拒绝：账号锁定中")
+                    self._audit_name_best_effort(
+                        name, AuditAction.LOGIN_FAILED, f"{purpose}被拒绝：账号锁定中"
+                    )
                     raise AccountLockedError(remaining)
                 state.failures = 0
                 state.locked_until = None
@@ -504,14 +532,19 @@ class AuthService:
         with self._lock:
             self._attempts.pop(name, None)
         if not credentials.user.active:
-            self._audit(credentials.user, AuditAction.LOGIN_FAILED, f"{purpose}被拒绝：账号已停用")
+            self._audit_best_effort(
+                credentials.user, AuditAction.LOGIN_FAILED, f"{purpose}被拒绝：账号已停用"
+            )
             raise AccountDisabledError("账号已停用，请联系管理员")
         if self._hasher.needs_rehash(credentials.password_hash):
-            self._storage.users.set_password_hash(
-                credentials.user.user_id,
-                self._hasher.hash(password),
-                must_change_password=credentials.must_change_password,
-            )
+            try:
+                self._storage.users.set_password_hash(
+                    credentials.user.user_id,
+                    self._hasher.hash(password),
+                    must_change_password=credentials.must_change_password,
+                )
+            except StorageBusyError:
+                _log.warning("数据库正忙，暂不升级 %s 的密码哈希参数，下次登录再试", name)
         return credentials.user, credentials.must_change_password
 
     def _fail(self, name: str, user: User | None, purpose: str, why: str) -> NoReturn:
@@ -530,10 +563,11 @@ class AuthService:
         detail = f"{purpose}失败：{why}（第 {count} 次）"
         if locked:
             detail += f"，账号锁定 {self._policy.lockout_s:g} 秒"
+        # 失败的结果已经确定，审计写不进去（数据库忙）时不改变结果，只记日志。
         if user is not None:
-            self._audit(user, AuditAction.LOGIN_FAILED, detail)
+            self._audit_best_effort(user, AuditAction.LOGIN_FAILED, detail)
         else:
-            self._audit_name(name or "(空)", AuditAction.LOGIN_FAILED, detail)
+            self._audit_name_best_effort(name or "(空)", AuditAction.LOGIN_FAILED, detail)
         if locked:
             raise AccountLockedError(self._policy.lockout_s)
         raise InvalidCredentialsError(self._policy.max_attempts - count)
@@ -562,4 +596,22 @@ class AuthService:
 
     def _write(self, event: AuditEvent) -> None:
         # 审计写入失败时让异常传出：登录等操作没有留痕就不应该成功。
-        self._storage.audit.append(event)
+        # 等写锁超时（数据库被别的写入者占着）转成 AuthStorageBusyError，界面据此提示稍后重试。
+        try:
+            self._storage.audit.append(event)
+        except StorageBusyError as error:
+            raise AuthStorageBusyError("数据库正忙，审计没有写入，操作未生效") from error
+
+    def _audit_name_best_effort(self, name: str, action: AuditAction, detail: str) -> None:
+        """同 :meth:`_audit_best_effort`，操作者只有名字（用户不存在或尚未确认）。"""
+        try:
+            self._audit_name(name, action, detail)
+        except AuthStorageBusyError:
+            _log.error("数据库正忙，审计缺失：%s %s（%s）", name, action.value, detail)
+
+    def _audit_best_effort(self, user: User, action: AuditAction, detail: str) -> None:
+        """写审计，数据库忙时只记日志：用于拒绝、锁屏、退出这类不应因审计失败而改变结果的动作。"""
+        try:
+            self._audit(user, action, detail)
+        except AuthStorageBusyError:
+            _log.error("数据库正忙，审计缺失：%s %s（%s）", user.username, action.value, detail)

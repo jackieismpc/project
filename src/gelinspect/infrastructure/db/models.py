@@ -147,6 +147,30 @@ class ReagentBatchRow(Base):
     labeled_sensitivity: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
+class ReagentCheckRow(Base):
+    """试剂扫码校验记录表。只追加；``experiment_id`` 不设外键（扫码时试验可能尚未创建）。"""
+
+    __tablename__ = "reagent_checks"
+    __table_args__ = (
+        Index("ix_reagent_checks_kind_batch_no", "kind", "batch_no"),
+        Index("ix_reagent_checks_checked_at", "checked_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    checked_at: Mapped[datetime] = mapped_column(UtcDateTime)
+    actor: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32))
+    batch_no: Mapped[str] = mapped_column(String(128))
+    product_code: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(32))
+    registered: Mapped[bool] = mapped_column(Boolean)
+    expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    labeled_sensitivity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    message: Mapped[str] = mapped_column(Text)
+    raw_code: Mapped[str] = mapped_column(Text)
+    experiment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
 class TubeResultRow(Base):
     """单管结果表。``auto_interpretation`` 等是阴阳性与复核信息。"""
 

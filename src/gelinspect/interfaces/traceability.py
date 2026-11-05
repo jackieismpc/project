@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
 from typing import Protocol, runtime_checkable
 
@@ -58,11 +59,15 @@ class ReagentVerification(ContractModel):
         code: 被校验的试剂码。
         status: 校验结果，不是 ``VALID`` 时试验会被锁定。
         message: 面向用户的补充说明。
+        expiry_date: 备案清单确认的有效期；试剂码里没有有效期时靠它得知，未备案时为 None。
+        labeled_sensitivity: 备案清单给出的标示灵敏度（EU/mL），仅鲎试剂有。
     """
 
     code: ReagentCode
     status: ReagentCheckStatus
     message: str | None = None
+    expiry_date: date | None = None
+    labeled_sensitivity: float | None = None
 
 
 class TraceabilityRecord(ContractModel):
@@ -151,5 +156,21 @@ class GovernmentTraceabilityClient(Protocol):
 
         Raises:
             TraceabilitySubmissionError: 提交失败。
+        """
+        ...
+
+
+@runtime_checkable
+class SampleCodeProvider(Protocol):
+    """可选：解析器或备案清单若能提供示例扫码内容，界面在试剂校验处列出，点一下填入。
+
+    只用于演示和联调（模拟配置的示例码）。真实实现不必提供，界面就不显示示例。
+    """
+
+    def sample_codes(self) -> Mapping[str, str]:
+        """列出示例扫码内容。
+
+        Returns:
+            显示名称到扫码原文的映射。
         """
         ...

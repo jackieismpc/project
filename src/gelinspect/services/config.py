@@ -53,8 +53,13 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
     "device": {"backend": "simulation.sim_device:SimDevice"},
     "engine": {"incubation_minutes": 60, "time_scale": 60},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
+    "traceability": {
+        "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},
+        "registry": {"backend": "simulation.reagents:SimReagentRegistry"},
+        "government": {"backend": "simulation.reagents:SimTraceabilityClient"},
+    },
 }
-"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号。"""
+"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号，试剂码和备案清单用模拟白名单。"""
 
 
 class ConfigError(Exception):
@@ -158,6 +163,35 @@ class BootstrapSection(_Section):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+class BackendRef(_Section):
+    """一个可替换后端的引用。
+
+    Attributes:
+        backend: 类路径 ``包.模块:类名``。
+        options: 构造函数的关键字参数。
+    """
+
+    backend: str = Field(min_length=1)
+    options: dict[str, Any] = Field(default_factory=dict)
+
+
+class TraceabilitySection(_Section):
+    """试剂溯源：试剂码解析、备案清单和政府溯源平台，三者都可替换。
+
+    试剂码格式和备案清单尚未提供（``docs/PLAN.md`` 第 7 节第 6 项），所以没有内置实现；
+    不配置解析器或备案清单时，试剂无法校验，向导停在「校验试剂」并说明原因，**不会放行**。
+
+    Attributes:
+        parser: 实现 ``ReagentCodeParser`` 的后端。
+        registry: 实现 ``ReagentRegistry`` 的后端。
+        government: 实现 ``GovernmentTraceabilityClient`` 的后端，未配置表示未接入。
+    """
+
+    parser: BackendRef | None = None
+    registry: BackendRef | None = None
+    government: BackendRef | None = None
+
+
 class AppConfig(_Section):
     """软件的完整配置。加载后路径都已是绝对路径。
 
@@ -170,6 +204,8 @@ class AppConfig(_Section):
         interpretation: 三态到阴阳性的映射，未写的状态用默认值。
         security: 账号安全。
         bootstrap: 首次启动初始化钩子。
+        traceability: 试剂码解析、备案清单和政府溯源平台。
+        instrument_no: 仪器编号，写入每个新试验。
     """
 
     data_dir: Path = Path("data")
@@ -180,6 +216,8 @@ class AppConfig(_Section):
     interpretation: dict[str, str] = Field(default_factory=dict)
     security: SecuritySection = SecuritySection()
     bootstrap: BootstrapSection = BootstrapSection()
+    traceability: TraceabilitySection = TraceabilitySection()
+    instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
 
     @property
     def database_path(self) -> Path:

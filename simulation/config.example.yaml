@@ -28,6 +28,16 @@ engine:
 bootstrap:
   hook: "simulation.demo_accounts:DemoAccounts"
 
+# 试剂溯源：试剂码解析、备案清单、政府溯源平台（接入预留）。三项都可以换成真实实现。
+# 不写这一段时，试剂无法校验，新试验向导会停在「校验试剂」并说明原因，不会放行。
+traceability:
+  parser:
+    backend: "simulation.reagents:SimReagentCodeParser"
+  registry:
+    backend: "simulation.reagents:SimReagentRegistry"
+  government:
+    backend: "simulation.reagents:SimTraceabilityClient"
+
 # 账号安全（可选，下面是默认值，不属于默认配置的必写项）：
 # security:
 #   idle_lock_minutes: 15     # 空闲多久自动锁屏，0 表示不锁；锁屏时试验在后台继续

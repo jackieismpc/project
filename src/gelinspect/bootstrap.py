@@ -116,7 +116,10 @@ class DatabaseProvisioner:
 
 
 class DatabaseFirstAdminSeeder:
-    """``FirstAdminSeeder`` 的数据库实现：调用 ``seed_defaults``，管理员首次登录须改密。"""
+    """``FirstAdminSeeder`` 的数据库实现：调用 ``seed_defaults``。
+
+    密码是管理员在「创建管理员」页自己设的，直接生效，首次登录不强制改密。
+    """
 
     def __init__(self, database: Database) -> None:
         """绑定数据库。
@@ -132,13 +135,14 @@ class DatabaseFirstAdminSeeder:
         Args:
             username: 登录名。
             display_name: 显示名称。
-            password: 初始密码。
+            password: 管理员自己设的密码，直接生效。
         """
         seed_defaults(
             self._database,
             admin_password=password,
             admin_username=username,
             admin_display_name=display_name,
+            must_change_password=False,
         )
 
 

@@ -214,3 +214,91 @@ def test_the_checker_detects_a_real_overflow(qapp: QApplication) -> None:
     report = overflow_report(root)
     assert any("文字被截断" in p for p in report)
     assert any("超出窗口" in p for p in report)
+
+
+# ---------------------------------------------------------------------------
+# P8：向导四步、模板管理、试剂溯源和模板编辑器（中英文 × 1280×800 与 1024×700）
+
+
+@pytest.mark.parametrize("size", SIZES, ids=lambda s: f"{s[0]}x{s[1]}")
+@pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)
+def test_wizard_steps_fit(
+    qapp: QApplication,
+    window: MainWindow,
+    language: LanguageManager,
+    lang: Language,
+    size: tuple[int, int],
+) -> None:
+    from gelinspect.domain.enums import ReagentKind
+    from simulation.reagents import SAMPLE_CODES
+    from tests.ui.wizard_helpers import (
+        choose_template,
+        click,
+        open_wizard,
+        pass_reagents,
+        scan,
+    )
+
+    use(window, language, lang, size)
+    page = open_wizard(qapp, window)
+    assert overflow_report(window) == [], "步骤 1"
+    choose_template(qapp, page, "灵敏度复核 (2λ:1)")
+    click(qapp, page.template_next)
+    scan(qapp, page, ReagentKind.LAL_REAGENT, SAMPLE_CODES["lal_expired"])
+    assert page.is_locked()
+    assert overflow_report(window) == [], "步骤 2（锁定）"
+    pass_reagents(qapp, page)
+    assert overflow_report(window) == [], "步骤 2（通过）"
+    click(qapp, page.reagent_next)
+    click(qapp, page.auto_button)
+    assert overflow_report(window) == [], "步骤 3"
+    page.sample_table.cell_item(2, 1).setText(" ")  # 出现「名称为空」提示
+    assert overflow_report(window) == [], "步骤 3（提示）"
+    page.sample_table.cell_item(2, 1).setText("样品")
+    click(qapp, page.sample_next)
+    assert overflow_report(window) == [], "步骤 4"
+    page._start_error = "温度 40.0 ℃ 不在 37±1 ℃ 内"
+    page._render()
+    assert overflow_report(window) == [], "步骤 4（启动失败）"
+    page.reset()
+
+
+@pytest.mark.parametrize("size", SIZES, ids=lambda s: f"{s[0]}x{s[1]}")
+@pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)
+def test_templates_reagents_pages_and_editor_fit(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    language: LanguageManager,
+    lang: Language,
+    size: tuple[int, int],
+) -> None:
+    from gelinspect.domain.enums import ExperimentType, ReagentKind
+    from gelinspect.domain.templates import BUILTIN_TEMPLATES
+    from gelinspect.services.template_service import draft_of
+    from gelinspect.ui.pages.template_editor import TemplateEditorDialog
+    from simulation.reagents import SAMPLE_CODES
+
+    use(window, language, lang, size)
+    sign_in(qapp, window, "admin")
+    sign_in(qapp, window, "experimenter")
+    for kind, key in (
+        (ReagentKind.LAL_REAGENT, "lal_expired"),
+        (ReagentKind.LAL_REAGENT, "lal_valid"),
+        (ReagentKind.ENDOTOXIN, "endotoxin_valid"),
+    ):
+        app_context.reagents.scan(window.session, SAMPLE_CODES[key], expected_kind=kind)
+    for key in ("reagents", "templates"):
+        assert window.navigate(key)
+        assert overflow_report(window) == [], f"{key} / {lang.value}"
+    window.logout()
+    sign_in(qapp, window, "admin")
+    assert window.navigate("templates")
+    assert overflow_report(window) == [], "templates（管理员）"
+    template = BUILTIN_TEMPLATES[ExperimentType.INTERFERENCE]
+    dialog = TemplateEditorDialog(lambda d: template, initial=draft_of(template))
+    dialog.show()
+    settle(qapp)
+    dialog._show_error("x " * 60)
+    assert overflow_report(dialog) == []
+    dialog.close()

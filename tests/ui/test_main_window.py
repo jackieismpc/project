@@ -204,6 +204,8 @@ def test_every_designed_page_has_a_route_and_a_working_page(
                 assert page is not None
                 if route.phase is not None:
                     assert isinstance(page, PlaceholderPage)
+                else:
+                    assert not isinstance(page, PlaceholderPage), route.key
         window.logout()
     assert reached == {r.key for r in PAGE_ROUTES}
 
@@ -405,23 +407,7 @@ def test_setup_page_when_the_config_has_no_bootstrap_hook(
         settle(qapp)
         assert screen_of(win) is Screen.LOGIN
         assert [u.username for u in context.database.users.list_all()] == ["root"]
-        # 首次登录强制改密：取消对话框等于退出登录
-        monkeypatch.setattr(ChangePasswordDialog, "exec", lambda self: 0)
-        win.login_page.username.setText("root")
-        win.login_page.password.setText("long-enough1")
-        win.login_page.submit_button.click()
-        assert screen_of(win) is Screen.LOGIN and win.session is None
-
-        # 完成改密后才能进入系统
-        def change_then_accept(self: ChangePasswordDialog) -> int:
-            assert self.cancel_button.text() == "退出登录"
-            self.old.setText("long-enough1")
-            self.new.setText("Fresh-pass-9")
-            self.confirm.setText("Fresh-pass-9")
-            self.ok_button.click()
-            return int(self.result())
-
-        monkeypatch.setattr(ChangePasswordDialog, "exec", change_then_accept)
+        # 密码是管理员自己设的，直接生效：首次登录不弹改密对话框，直接进入系统
         win.login_page.username.setText("root")
         win.login_page.password.setText("long-enough1")
         win.login_page.submit_button.click()
@@ -432,3 +418,42 @@ def test_setup_page_when_the_config_has_no_bootstrap_hook(
         win.bridge.close()
         win.close()
         context.close()
+
+
+def test_forced_password_change_still_applies_to_an_account_marked_for_it(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """别人代设初始密码的账号（must_change_password）首次登录仍要改密；取消等于退出登录。"""
+    from gelinspect.domain.entities import User
+    from gelinspect.infrastructure.db.passwords import hash_password
+
+    app_context.database.users.add(
+        User("u-delegated", "delegated", "代设账号", Role.ADMIN),
+        password_hash=hash_password("Initial-pass1"),
+        must_change_password=True,
+    )
+    monkeypatch.setattr(ChangePasswordDialog, "exec", lambda self: 0)
+    window.login_page.username.setText("delegated")
+    window.login_page.password.setText("Initial-pass1")
+    window.login_page.submit_button.click()
+    settle(qapp)
+    assert screen_of(window) is Screen.LOGIN and window.session is None
+
+    def change_then_accept(self: ChangePasswordDialog) -> int:
+        assert self.cancel_button.text() == "退出登录"
+        self.old.setText("Initial-pass1")
+        self.new.setText("Fresh-pass-9")
+        self.confirm.setText("Fresh-pass-9")
+        self.ok_button.click()
+        return int(self.result())
+
+    monkeypatch.setattr(ChangePasswordDialog, "exec", change_then_accept)
+    window.login_page.username.setText("delegated")
+    window.login_page.password.setText("Initial-pass1")
+    window.login_page.submit_button.click()
+    settle(qapp)
+    assert screen_of(window) is Screen.SHELL
+    assert window.session is not None and not window.session.must_change_password

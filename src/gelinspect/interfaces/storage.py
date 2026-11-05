@@ -14,12 +14,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Generic, Protocol, TypeVar
 
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
-from gelinspect.domain.enums import AuditAction, ExperimentType
+from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentCheckStatus, ReagentKind
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 
@@ -324,6 +324,68 @@ class DeviceLogEntry:
     experiment_id: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ReagentCheckRecord:
+    """一次试剂扫码校验的记录（试剂溯源页的「校验记录」）。
+
+    Attributes:
+        checked_at: 校验时间，带时区。
+        actor: 操作者用户名。
+        kind: 试剂种类。
+        batch_no: 批号。
+        product_code: 产品编码。
+        status: 当时的校验结果。
+        registered: 备案清单中是否有该批次。
+        expiry_date: 有效期，未知时为 None。
+        labeled_sensitivity: 标示灵敏度，仅鲎试剂有。
+        message: 补充说明，例如过期日期。
+        raw_code: 扫码得到的原文。
+        experiment_id: 关联试验，向导里扫码时试验尚未创建，为 None。
+        record_id: 记录序号，由存储层生成；新记录为 None。
+    """
+
+    checked_at: datetime
+    actor: str
+    kind: ReagentKind
+    batch_no: str
+    product_code: str
+    status: ReagentCheckStatus
+    registered: bool
+    expiry_date: date | None = None
+    labeled_sensitivity: float | None = None
+    message: str = ""
+    raw_code: str = ""
+    experiment_id: str | None = None
+    record_id: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ReagentBatchEntry:
+    """已录入的试剂批次：同一种类同一批号只出现一次，取最近一次校验。
+
+    Attributes:
+        kind: 试剂种类。
+        batch_no: 批号。
+        product_code: 产品编码。
+        expiry_date: 有效期，未知时为 None。
+        registered: 备案清单中是否有该批次。
+        labeled_sensitivity: 标示灵敏度。
+        last_checked_at: 最近一次校验时间。
+        last_actor: 最近一次校验的操作者。
+        check_count: 累计校验次数。
+    """
+
+    kind: ReagentKind
+    batch_no: str
+    product_code: str
+    expiry_date: date | None
+    registered: bool
+    labeled_sensitivity: float | None
+    last_checked_at: datetime
+    last_actor: str
+    check_count: int
+
+
 class UserRepository(Protocol):
     """用户仓储。"""
 
@@ -397,6 +459,26 @@ class TemplateRepository(Protocol):
 
     def is_builtin(self, template_id: str) -> bool:
         """模板是否为内置模板，不存在时为 False。"""
+        ...
+
+
+class ReagentCheckRepository(Protocol):
+    """试剂校验记录仓储。只追加。"""
+
+    def add(self, record: ReagentCheckRecord) -> None:
+        """追加一条校验记录。
+
+        Raises:
+            StorageBusyError: 等写锁超时，什么都没有写入。
+        """
+        ...
+
+    def list_batches(self, limit: int = 200) -> list[ReagentBatchEntry]:
+        """列出已录入的批次，按最近校验时间倒序。"""
+        ...
+
+    def query(self, page: PageRequest) -> Page[ReagentCheckRecord]:
+        """分页查询校验记录，最新在前。"""
         ...
 
 
@@ -579,6 +661,16 @@ class UnitOfWork(Protocol):
         """本事务的温度与设备日志仓储。"""
         ...
 
+    @property
+    def templates(self) -> TemplateRepository:
+        """本事务的模板仓储。"""
+        ...
+
+    @property
+    def reagent_checks(self) -> ReagentCheckRepository:
+        """本事务的试剂校验记录仓储。"""
+        ...
+
 
 class TransactionalStorage(Protocol):
     """试验引擎需要的存储：读试验，加上开启工作单元。"""
@@ -621,6 +713,9 @@ __all__ = [
     "NotFoundError",
     "Page",
     "PageRequest",
+    "ReagentBatchEntry",
+    "ReagentCheckRecord",
+    "ReagentCheckRepository",
     "ReportRecord",
     "ReportRepository",
     "StateConflictError",

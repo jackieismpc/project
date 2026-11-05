@@ -127,7 +127,17 @@ def test_ui_does_not_touch_engine_threads_or_databases() -> None:
 def test_new_services_do_not_depend_on_qt_or_infrastructure() -> None:
     modules = [
         SRC / "services" / name
-        for name in ("auth.py", "queries.py", "instrument_monitor.py", "app_services.py")
+        for name in (
+            "auth.py",
+            "queries.py",
+            "instrument_monitor.py",
+            "app_services.py",
+            "errors.py",
+            "template_service.py",
+            "reagent_service.py",
+            "experiment_draft.py",
+            "experiment_service.py",
+        )
     ]
     violations = [
         f"{path.name}: {module}"

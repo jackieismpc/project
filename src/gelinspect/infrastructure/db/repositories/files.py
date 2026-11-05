@@ -6,7 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from gelinspect.infrastructure.db.models import MediaFileRow, ReportRow
-from gelinspect.infrastructure.db.repositories._common import SessionProvider
+from gelinspect.infrastructure.db.repositories._common import (
+    SessionProvider,
+    translate_lock_errors,
+)
 from gelinspect.interfaces.storage import (
     DuplicateError,
     MediaFile,
@@ -74,7 +77,7 @@ class SqlMediaRepository(MediaRepository):
         if media.row_index is not None and not 1 <= media.row_index <= 10:
             raise ValueError(f"排号应在 1–10 内：{media.row_index}")
         try:
-            with self._sessions() as session:
+            with translate_lock_errors(), self._sessions() as session:
                 session.add(
                     MediaFileRow(
                         file_id=media.file_id,
@@ -184,7 +187,7 @@ class SqlReportRepository(ReportRepository):
         """
         _require_sha256(report.sha256)
         try:
-            with self._sessions() as session:
+            with translate_lock_errors(), self._sessions() as session:
                 session.add(
                     ReportRow(
                         report_id=report.report_id,

@@ -7,7 +7,10 @@ from sqlalchemy import delete, select
 from gelinspect.domain.enums import ExperimentType, TubeRole
 from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem
 from gelinspect.infrastructure.db.models import TemplateItemRow, TemplateRow
-from gelinspect.infrastructure.db.repositories._common import SessionProvider
+from gelinspect.infrastructure.db.repositories._common import (
+    SessionProvider,
+    translate_lock_errors,
+)
 from gelinspect.interfaces.storage import TemplateRepository
 
 
@@ -49,7 +52,7 @@ class SqlTemplateRepository(TemplateRepository):
             template: 模板。
             builtin: 是否内置模板。
         """
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             row = session.get(TemplateRow, template.template_id)
             if row is None:
                 row = TemplateRow(template_id=template.template_id)

@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from gelinspect.bootstrap import (
@@ -20,6 +22,11 @@ from gelinspect.infrastructure.video.factory import VideoSourceConfigError, crea
 from gelinspect.interfaces.analysis import GelAnalyzer
 from gelinspect.interfaces.bootstrap import DemoAccount
 from gelinspect.interfaces.device import DeviceController
+from gelinspect.interfaces.traceability import (
+    GovernmentTraceabilityClient,
+    ReagentCodeParser,
+    ReagentRegistry,
+)
 from gelinspect.interfaces.video import VideoSource
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthService, LoginPolicy
@@ -32,8 +39,11 @@ from gelinspect.services.config import (
 )
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
+from gelinspect.services.experiment_service import ExperimentService
 from gelinspect.services.instrument_monitor import InstrumentMonitor
 from gelinspect.services.queries import QueryService
+from gelinspect.services.reagent_service import ReagentService
+from gelinspect.services.template_service import TemplateService
 from gelinspect.services.video import VideoPipeline
 
 
@@ -53,6 +63,9 @@ class AppContext:
         auth: 登录与权限服务。
         queries: 只读查询服务。
         instrument: 仪器状态监视器，由界面决定何时启动。
+        templates: 检测模板管理服务。
+        reagents: 试剂扫码校验与溯源服务。
+        experiments: 创建和启动试验的服务。
         demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
     """
@@ -68,6 +81,9 @@ class AppContext:
     auth: AuthService
     queries: QueryService
     instrument: InstrumentMonitor
+    templates: TemplateService
+    reagents: ReagentService
+    experiments: ExperimentService
     demo_accounts: tuple[DemoAccount, ...] = ()
     first_run: bool = False
 
@@ -86,6 +102,9 @@ class AppContext:
             queries=self.queries,
             engine=self.engine,
             instrument=self.instrument,
+            templates=self.templates,
+            reagents=self.reagents,
+            experiments=self.experiments,
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),
@@ -119,11 +138,50 @@ def _create_video_source(config: AppConfig) -> VideoSource:
         raise ConfigError(explain_import_failure("video.source", spec, cause)) from exc
 
 
+def _load_traceability(
+    config: AppConfig,
+) -> tuple[ReagentCodeParser | None, ReagentRegistry | None, GovernmentTraceabilityClient | None]:
+    """按配置加载试剂码解析器、备案清单和政府溯源客户端；没配置的为 None。"""
+    section = config.traceability
+    parser = (
+        None
+        if section.parser is None
+        else load_backend(
+            "traceability.parser",
+            section.parser.backend,
+            ReagentCodeParser,  # type: ignore[type-abstract]
+            section.parser.options,
+        )
+    )
+    registry = (
+        None
+        if section.registry is None
+        else load_backend(
+            "traceability.registry",
+            section.registry.backend,
+            ReagentRegistry,  # type: ignore[type-abstract]
+            section.registry.options,
+        )
+    )
+    government = (
+        None
+        if section.government is None
+        else load_backend(
+            "traceability.government",
+            section.government.backend,
+            GovernmentTraceabilityClient,  # type: ignore[type-abstract]
+            section.government.options,
+        )
+    )
+    return parser, registry, government
+
+
 def build_app_context(
     config: AppConfig | None = None,
     *,
     config_path: Path | None = None,
     on_event: EngineEventListener | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> AppContext:
     """按配置创建全部依赖，并执行启动恢复。
 
@@ -133,6 +191,8 @@ def build_app_context(
         config: 配置，为 None 时从 ``config_path`` 读取。
         config_path: YAML 文件，为 None 时使用默认配置（指向 ``simulation/``）。
         on_event: 引擎事件监听者。
+        clock: 试剂校验和试验创建使用的当前时间（带时区），默认系统时间；测试注入固定日期，
+            这样模拟白名单的有效期不会随真实日期过期。
 
     Returns:
         应用依赖。
@@ -156,6 +216,7 @@ def build_app_context(
         settings.analysis.options,
     )
     hook = load_bootstrap_hook(settings)
+    parser, registry, government = _load_traceability(settings)
     pipeline = VideoPipeline(source, settings.pipeline_config())
     database = open_database(settings.database_path)
     try:
@@ -181,6 +242,14 @@ def build_app_context(
             on_event=on_event,
         )
         recovered = engine.recover_interrupted()
+        reagents = ReagentService(
+            auth,
+            database,
+            parser=parser,
+            registry=registry,
+            government=government,
+            clock=clock,
+        )
     except BaseException:
         database.close()
         raise
@@ -196,6 +265,11 @@ def build_app_context(
         auth=auth,
         queries=QueryService(auth, database),
         instrument=InstrumentMonitor(engine),
+        templates=TemplateService(auth, database),
+        reagents=reagents,
+        experiments=ExperimentService(
+            auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
+        ),
         demo_accounts=tuple(hook.accounts()) if hook is not None else (),
         first_run=first_run,
     )

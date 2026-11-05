@@ -13,6 +13,7 @@ from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
     count_where,
     page_of,
+    translate_lock_errors,
 )
 from gelinspect.interfaces.storage import (
     DeviceLogEntry,
@@ -50,7 +51,7 @@ class SqlTelemetryRepository(TelemetryRepository):
         if not samples:
             return 0
         try:
-            with self._sessions() as session:
+            with translate_lock_errors(), self._sessions() as session:
                 session.execute(
                     insert(TemperatureLogRow),
                     [
@@ -127,7 +128,7 @@ class SqlTelemetryRepository(TelemetryRepository):
         if not entries:
             return 0
         try:
-            with self._sessions() as session:
+            with translate_lock_errors(), self._sessions() as session:
                 session.execute(
                     insert(DeviceLogRow),
                     [

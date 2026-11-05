@@ -22,6 +22,7 @@ def themed(qapp: QApplication) -> None:
 import threading  # noqa: E402
 import time  # noqa: E402
 from collections.abc import Callable, Iterator  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from gelinspect.app_context import AppContext, build_app_context  # noqa: E402
@@ -70,10 +71,14 @@ def make_config(tmp_path: Path, **overrides: object) -> dict[str, object]:
     return config
 
 
+FIXED_NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
+"""测试里的「当前时间」：模拟白名单里的 LAL2606A 在此刻有效，LAL2501B 已过期，不随真实日期变化。"""
+
+
 @pytest.fixture
 def app_context(tmp_path: Path) -> Iterator[AppContext]:
     """用模拟后端装配好的应用，退出时有序关闭并确认没有线程残留。"""
-    context = build_app_context(parse_config(make_config(tmp_path)))
+    context = build_app_context(parse_config(make_config(tmp_path)), clock=lambda: FIXED_NOW)
     yield context
     context.close()
     deadline = time.monotonic() + 8.0

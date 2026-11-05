@@ -10,7 +10,10 @@ from sqlalchemy.exc import IntegrityError
 from gelinspect.domain.entities import User
 from gelinspect.domain.enums import Role
 from gelinspect.infrastructure.db.models import UserRow
-from gelinspect.infrastructure.db.repositories._common import SessionProvider
+from gelinspect.infrastructure.db.repositories._common import (
+    SessionProvider,
+    translate_lock_errors,
+)
 from gelinspect.interfaces.storage import (
     DuplicateError,
     NotFoundError,
@@ -51,9 +54,10 @@ class SqlUserRepository(UserRepository):
 
         Raises:
             DuplicateError: 用户标识或登录名已存在。
+            StorageBusyError: 等写锁超时，什么都没有写入。
         """
         try:
-            with self._sessions() as session:
+            with translate_lock_errors(), self._sessions() as session:
                 session.add(
                     UserRow(
                         user_id=user.user_id,
@@ -134,7 +138,7 @@ class SqlUserRepository(UserRepository):
         Raises:
             NotFoundError: 用户不存在。
         """
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             row = session.get(UserRow, user.user_id)
             if row is None:
                 raise NotFoundError(f"用户不存在：{user.user_id}")
@@ -154,8 +158,9 @@ class SqlUserRepository(UserRepository):
 
         Raises:
             NotFoundError: 用户不存在。
+            StorageBusyError: 等写锁超时，什么都没有写入。
         """
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             row = session.get(UserRow, user_id)
             if row is None:
                 raise NotFoundError(f"用户不存在：{user_id}")

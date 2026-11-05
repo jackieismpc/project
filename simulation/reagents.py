@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -99,6 +100,20 @@ class SimReagentCodeParser:
             serial_no=serial,
         )
 
+    def sample_codes(self) -> Mapping[str, str]:
+        """示例扫码内容，界面在试剂校验处列出，点一下填入输入框。
+
+        Returns:
+            显示名称（批号加结果）到扫码原文。
+        """
+        return {
+            "LAL2606A (valid)": SAMPLE_CODES["lal_valid"],
+            "LAL2501B (expired)": SAMPLE_CODES["lal_expired"],
+            "LAL9999X (unregistered)": SAMPLE_CODES["lal_unregistered"],
+            "CSE2605A (valid)": SAMPLE_CODES["endotoxin_valid"],
+            "WAT2607A (valid)": SAMPLE_CODES["water_valid"],
+        }
+
 
 class SimReagentRegistry:
     """模拟备案校验，数据来自 :data:`WHITELIST`。
@@ -142,9 +157,18 @@ class SimReagentRegistry:
         expiry = code.expiry_date or entry.expiry_date
         if on_date > expiry:
             return ReagentVerification(
-                code=code, status=ReagentCheckStatus.EXPIRED, message=f"已于 {expiry} 过期"
+                code=code,
+                status=ReagentCheckStatus.EXPIRED,
+                message=f"已于 {expiry} 过期",
+                expiry_date=expiry,
+                labeled_sensitivity=entry.labeled_sensitivity,
             )
-        return ReagentVerification(code=code, status=ReagentCheckStatus.VALID)
+        return ReagentVerification(
+            code=code,
+            status=ReagentCheckStatus.VALID,
+            expiry_date=expiry,
+            labeled_sensitivity=entry.labeled_sensitivity,
+        )
 
 
 class SimTraceabilityClient:

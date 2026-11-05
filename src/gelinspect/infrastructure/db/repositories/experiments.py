@@ -36,6 +36,7 @@ from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
     count_where,
     page_of,
+    translate_lock_errors,
 )
 from gelinspect.interfaces.storage import (
     ExperimentQuery,
@@ -195,7 +196,7 @@ class SqlExperimentRepository(ExperimentRepository):
         Args:
             experiment: 试验聚合。
         """
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             row = session.get(ExperimentRow, experiment.experiment_id)
             if row is None:
                 row = ExperimentRow(experiment_id=experiment.experiment_id)
@@ -255,7 +256,7 @@ class SqlExperimentRepository(ExperimentRepository):
         Raises:
             NotFoundError: 试验不存在。
         """
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             if session.get(ExperimentRow, experiment_id) is None:
                 raise NotFoundError(f"试验不存在：{experiment_id}")
             _upsert_results(session, experiment_id, results)
@@ -281,7 +282,7 @@ class SqlExperimentRepository(ExperimentRepository):
         statement = update(ExperimentRow).where(ExperimentRow.experiment_id == experiment_id)
         if expected is not None:
             statement = statement.where(ExperimentRow.state == expected.value)
-        with self._sessions() as session:
+        with translate_lock_errors(), self._sessions() as session:
             result = cast("CursorResult[Any]", session.execute(statement.values(state=state.value)))
             if result.rowcount == 0:
                 if session.get(ExperimentRow, experiment_id) is None:

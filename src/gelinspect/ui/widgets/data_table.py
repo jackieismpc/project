@@ -51,6 +51,9 @@ class Column:
         mono: 是否用等宽字体（管号、批号、时间等）。
         kind: ``text`` 为普通文字；``state`` 的值是 :class:`WellState`，显示标记加文字。
         align_right: 是否右对齐。
+
+    行字典里可以带 ``"_tone"`` 键（值为 ``"danger"`` 或 ``"warning"``）来高亮整行，
+    例如过期和即将过期的试剂批次；颜色取自 token，不只靠颜色：调用方应同时在文字里写明状态。
     """
 
     key: str
@@ -204,6 +207,14 @@ class _CellDelegate(QStyledItemDelegate):
         rect = QRectF(option.rect)
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        tone = model.rows[index.row()].get("_tone")
+        text_color = c.ink
+        if tone == "danger":
+            painter.fillRect(rect, QColor(c.danger_bg))
+            text_color = c.danger
+        elif tone == "warning":
+            painter.fillRect(rect, QColor(c.warning_bg))
+            text_color = c.warning
         if option.state & option.state.__class__.State_Selected:
             painter.fillRect(rect, QColor(c.primary_soft))
         painter.setPen(QPen(QColor(c.border_soft), 1))
@@ -217,7 +228,7 @@ class _CellDelegate(QStyledItemDelegate):
         else:
             font = mono_font(13) if column.mono else sans_font(13)
         painter.setFont(font)
-        painter.setPen(QColor(c.ink))
+        painter.setPen(QColor(text_color))
         flags = int(
             (Qt.AlignmentFlag.AlignRight if column.align_right else Qt.AlignmentFlag.AlignLeft)
             | Qt.AlignmentFlag.AlignVCenter

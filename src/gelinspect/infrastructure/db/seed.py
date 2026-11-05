@@ -1,7 +1,8 @@
 """初始数据：内置模板与默认管理员。
 
 默认管理员的密码**必须由调用方传入**，本模块不含任何可用的默认密码。
-管理员以「首次登录必须改密」标记创建。
+管理员默认不要求首次登录改密：密码是调用方（例如「创建管理员」页上的管理员本人）自己设的；
+需要强制改密的场景（别人代为设置初始密码）传 ``must_change_password=True``。
 """
 
 from __future__ import annotations
@@ -68,6 +69,7 @@ def seed_defaults(
     admin_password: str,
     admin_username: str = "admin",
     admin_display_name: str = "系统管理员",
+    must_change_password: bool = False,
 ) -> SeedResult:
     """写入内置模板和默认管理员，可重复调用。
 
@@ -79,6 +81,8 @@ def seed_defaults(
         admin_password: 管理员初始密码，由调用方提供，不少于 8 个字符。
         admin_username: 管理员登录名。
         admin_display_name: 管理员显示名称。
+        must_change_password: 管理员首次登录是否必须改密。密码由管理员自己设置时为 False
+            （默认），由他人代设的初始密码应为 True。
 
     Returns:
         本次新增的内容。
@@ -103,7 +107,7 @@ def seed_defaults(
                 role=Role.ADMIN,
             ),
             password_hash=hash_password(admin_password),
-            must_change_password=True,
+            must_change_password=must_change_password,
         )
         database.audit.append(
             AuditEvent(
@@ -111,7 +115,10 @@ def seed_defaults(
                 actor=SYSTEM_ACTOR,
                 actor_role=None,
                 action=AuditAction.USER_CHANGED,
-                detail=f"初始化管理员 {admin_username}，首次登录须修改密码",
+                detail=(
+                    f"初始化管理员 {admin_username}"
+                    + ("，首次登录须修改密码" if must_change_password else "")
+                ),
             )
         )
     return SeedResult(admin_created=admin_created, templates_added=templates_added)
