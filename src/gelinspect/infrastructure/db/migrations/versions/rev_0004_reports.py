@@ -6,7 +6,7 @@ Revises: 0003
 迁移脚本是某一时刻的快照，不要导入应用代码，时间列写成 ``String(27)``。
 
 单批次报告汇总多个试验，所以 ``reports.experiment_id`` 改为可空，成员试验放在 ``experiment_ids``
-（JSON 数组）。已有的报告记录（P11 之前没有任何入口生成报告）按单个试验的未签署报告处理。
+（JSON 数组）。已有的报告记录（此前没有任何入口生成报告）按单个试验的未签署报告处理。
 """
 
 from __future__ import annotations

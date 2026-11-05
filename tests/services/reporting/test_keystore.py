@@ -45,7 +45,7 @@ def test_first_use_generates_a_self_signed_certificate_from_configuration(tmp_pa
     assert (
         certificate.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value == "某某公司"
     )
-    assert identity.subject == "我方签名证书（某某公司）"
+    assert identity.subject == "我方签名证书 (某某公司)"
     assert isinstance(identity.private_key, ec.EllipticCurvePrivateKey)
     span = certificate.not_valid_after_utc - certificate.not_valid_before_utc
     assert timedelta(days=3649) < span < timedelta(days=3651)

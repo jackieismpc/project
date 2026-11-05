@@ -4,8 +4,8 @@
   有效期来自配置。证书在软件里是「本机信任的那张」，也是验签时唯一的信任根。
 * 文件被 ``.gitignore``（``*.pem``、``*.key``）忽略。私钥文件权限收紧为 600（目录 700）；
   Windows 没有等价的 POSIX 权限，只能依赖用户目录的访问控制，部署文档里说明。
-* 私钥落盘前由 :class:`KeyProtector` 加密（P13：Windows DPAPI、macOS 钥匙串，都不可用时
-  用安装密钥派生的口令，见 ``infrastructure/security/protectors.py``）。P13 之前留下的明文私钥
+* 私钥落盘前由 :class:`KeyProtector` 加密（Windows DPAPI、macOS 钥匙串，都不可用时
+  用安装密钥派生的口令，见 ``infrastructure/security/protectors.py``）。早期版本留下的明文私钥
   在 :meth:`LocalKeyStore.migrate` 时加密，原明文文件先用随机数据覆盖再替换。
 * 私钥永远不进日志、审计和异常信息；日志里只出现证书指纹。
 * 这是自签证书：它只能证明「文件自签署后没有被改动，且由本机的这把密钥签署」，
@@ -50,7 +50,7 @@ _PEM_PREFIX = b"-----BEGIN"
 
 
 class PlainKeyProtector:
-    """不做保护：明文保存。只用于测试和 P13 之前的兼容，正式运行由组装根注入加密实现。"""
+    """不做保护：明文保存。只用于测试和早期版本的兼容，正式运行由组装根注入加密实现。"""
 
     def protect(self, key_pem: bytes) -> bytes:
         """原样返回。
@@ -119,7 +119,7 @@ def certificate_fingerprint(certificate: x509.Certificate) -> str:
 
 
 def certificate_subject(certificate: x509.Certificate) -> str:
-    """证书主题的可读文字，例如 ``GelInspect Report Signing（GelInspect）``。
+    """证书主题的可读文字，例如 ``GelInspect Report Signing (GelInspect)``。
 
     Args:
         certificate: 证书。
@@ -134,7 +134,7 @@ def certificate_subject(certificate: x509.Certificate) -> str:
 
     common = first(NameOID.COMMON_NAME)
     organization = first(NameOID.ORGANIZATION_NAME)
-    return f"{common}（{organization}）" if organization else common
+    return f"{common} ({organization})" if organization else common
 
 
 class KeyStore(Protocol):
@@ -244,7 +244,7 @@ class LocalKeyStore:
     def migrate(self) -> str | None:
         """把旧格式的私钥文件改成当前的保护方式（启动时调用一次）。
 
-        * 明文 PEM（P13 之前）：加密后替换，原明文文件先用随机数据覆盖并落盘。
+        * 明文 PEM（早期版本）：加密后替换，原明文文件先用随机数据覆盖并落盘。
         * 用的不是首选保护方式（例如原来回退到了安装密钥，现在钥匙串可用）：重新保护。
 
         Returns:

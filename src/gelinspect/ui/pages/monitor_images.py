@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
 
@@ -17,6 +19,8 @@ from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.imaging import bgr_to_qimage
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.video_view import VideoView
+
+_log = logging.getLogger(__name__)
 
 
 def warning_text(warnings: tuple[ImageWarning, ...]) -> str:
@@ -179,6 +183,8 @@ class ImagesTab(Card):
         try:
             rows = self._media.rows_with_images(self._session, experiment_id)
         except Exception:
+            # 读不出就显示空状态，不让监控页因此打不开；原因写日志
+            _log.exception("读取试验 %s 的抓拍图像列表失败", experiment_id)
             rows = []
         self.empty.setText(self.tr("这个试验还没有抓拍图像，每排读数后会显示在这里"))
         self.empty.setVisible(not rows)

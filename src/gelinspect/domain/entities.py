@@ -556,7 +556,7 @@ class User:
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:
-    """审计事件。序号和哈希链由数据层（P3）在写入时生成。
+    """审计事件。序号和哈希链由数据层在写入时生成。
 
     Attributes:
         occurred_at: 发生时间，必须带时区。

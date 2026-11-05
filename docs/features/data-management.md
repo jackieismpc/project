@@ -146,7 +146,7 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 - Windows 上的 `open_database`、WAL 与文件锁行为（特别是库文件放在网络盘或被杀毒软件扫描时）。
 - 打包产物中迁移能运行：`scripts/build.py` 把 `migrations/` 下的 `.py` 作为数据文件复制进发布包，macOS 演示包和正式包已实际验证首次启动建库（见 [deployment.md](../deployment.md)）；Windows 待实测。
 
-## P12 对数据层的补充
+## 数据管理页对数据层的补充
 
 页面和服务见 [admin-pages.md](admin-pages.md)，这里只记数据层的变化。**没有新的数据库迁移**：MVD 和内毒素限值的列（`experiments.mvd`、`experiments.endotoxin_limit`）从初始迁移起就在，P12 只是让向导可以录入、让报告显示它们。
 

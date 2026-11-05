@@ -41,6 +41,7 @@ from gelinspect.services.reagent_service import ReagentLockedError, ReagentScan
 from gelinspect.services.template_service import TemplateInfo
 from gelinspect.ui.bridge import EngineBridge
 from gelinspect.ui.labels import (
+    builtin_name_text,
     describe_auth_error,
     describe_lock_reasons,
     describe_scan,
@@ -51,6 +52,7 @@ from gelinspect.ui.labels import (
     role_label,
 )
 from gelinspect.ui.pages.wizard_widgets import Banner, ReagentCard, ReagentTile, TemplateOption
+from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
@@ -764,7 +766,7 @@ class NewExperimentPage(QWidget):
                 else ""
             )
             self.summary_line.setText(
-                f"{template.name}"
+                f"{builtin_name_text(template.name)}"
                 + self.tr(" · {count} 管").format(count=template.tube_count)
                 + sensitivity
             )
@@ -793,9 +795,7 @@ class NewExperimentPage(QWidget):
         empty = draft.sample_problems()
         if empty:
             self.sample_problem.setText(
-                self.tr("第 {rows} 行的样品名称为空，请填写").format(
-                    rows="、".join(str(n) for n in empty)
-                )
+                self.tr("第 {rows} 行的样品名称为空，请填写").format(rows=join_items(empty))
             )
         self.sample_problem.setVisible(bool(empty))
         bad_limits = draft.limit_problems()
@@ -842,7 +842,7 @@ class NewExperimentPage(QWidget):
             span = "–"
         user = session.user
         facts: list[tuple[str, str, bool]] = [
-            (self.tr("模板"), template.name, False),
+            (self.tr("模板"), builtin_name_text(template.name), False),
             (self.tr("试验类型"), experiment_type_label(template.experiment_type), False),
             (
                 self.tr("试管"),

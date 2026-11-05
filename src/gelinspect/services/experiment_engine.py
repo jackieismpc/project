@@ -1,6 +1,6 @@
 """试验引擎：把设备、视频管线、算法和存储串成一次完整的试验。
 
-纯 Python + ``threading``，不依赖 Qt，P9 再用信号桥接 :class:`~.engine_types.EngineEvent`。
+纯 Python + ``threading``，不依赖 Qt，界面层再用信号桥接 :class:`~.engine_types.EngineEvent`。
 本模块是门面：校验权限和前置条件，转交给 :class:`~.engine_run.EngineRun`；
 恢复上次未正常结束的试验也在这里。行为说明见 ``docs/features/experiment-engine.md``。
 

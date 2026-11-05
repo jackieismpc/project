@@ -47,8 +47,11 @@ from gelinspect.services.monitor_service import ExperimentView
 from gelinspect.services.video.events import VideoEvent, VideoEventCode, VideoEventLevel
 from gelinspect.ui.bridge import EngineBridge
 from gelinspect.ui.labels import (
+    builtin_name_text,
+    describe_alert,
     describe_auth_error,
     describe_service_error,
+    describe_video_event,
     format_concentration,
     reagent_kind_label,
 )
@@ -62,6 +65,7 @@ from gelinspect.ui.pages.monitor_format import (
 )
 from gelinspect.ui.pages.monitor_images import ImagesTab
 from gelinspect.ui.pages.replay_dialog import ReplayDialog
+from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.alert_stack import AlertStack
 from gelinspect.ui.widgets.badge import StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
@@ -564,7 +568,13 @@ class MonitorPage(QWidget):
             return
         if alert.code in (AlertCode.STOP_IGNORED,):
             return
-        self.alerts.post(f"engine:{alert.code.value}", _ENGINE_TONES[alert.level], alert.message)
+        text = describe_alert(
+            alert.code,
+            alert.message,
+            alert.row_index,
+            closed=alert.level is AlertLevel.INFO,
+        )
+        self.alerts.post(f"engine:{alert.code.value}", _ENGINE_TONES[alert.level], text)
         self.alerts.setVisible(True)
 
     def _on_video_event(self, event: VideoEvent) -> None:
@@ -580,7 +590,9 @@ class MonitorPage(QWidget):
             return
         if event.level is VideoEventLevel.INFO:
             return
-        self.alerts.post(key, _VIDEO_TONES[event.level], event.message)
+        self.alerts.post(
+            key, _VIDEO_TONES[event.level], describe_video_event(event.code, event.message)
+        )
         self.alerts.setVisible(True)
 
     def _on_preview(self, image: QImage) -> None:
@@ -625,7 +637,7 @@ class MonitorPage(QWidget):
         rows = [
             {
                 "tube": t.tube_no,
-                "sample": t.sample_name,
+                "sample": builtin_name_text(t.sample_name),
                 "serial": t.serial_no or "",
                 "batch": t.batch_no or "",
                 "dilution": _plain(t.dilution_factor),
@@ -711,14 +723,14 @@ class MonitorPage(QWidget):
                 "第 {rows} 排已抓帧，可以重试分析（不翻转）；"
                 "第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。"
             ).format(
-                rows="、".join(str(r) for r in view.retry_rows),
-                unread="、".join(str(r) for r in view.unread_rows),
+                rows=join_items(view.retry_rows),
+                unread=join_items(view.unread_rows),
             )
         elif view.interrupted and view.retry_rows:
             hint = self.tr(
                 "软件重启过，调度已经丢失，这个试验不能恢复。"
                 "全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。"
-            ).format(rows="、".join(str(r) for r in view.retry_rows))
+            ).format(rows=join_items(view.retry_rows))
         elif view.interrupted:
             hint = self.tr(
                 "软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排"
@@ -726,7 +738,7 @@ class MonitorPage(QWidget):
             )
         elif view.failed_rows and not view.retry_rows:
             hint = self.tr("第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。").format(
-                rows="、".join(str(r) for r in view.failed_rows)
+                rows=join_items(view.failed_rows)
             )
         elif view.can_resume:
             hint = self.tr("试验异常：{reason}").format(reason=view.fault_reason or "–")

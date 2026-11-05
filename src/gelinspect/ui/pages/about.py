@@ -15,7 +15,7 @@ from gelinspect.ui.widgets.label import Label
 
 _LICENSES = (
     ("Qt for Python (PySide6)", "LGPL-3.0"),
-    ("Noto Sans SC、IBM Plex Mono", "SIL OFL 1.1"),
+    ("Noto Sans SC, IBM Plex Mono", "SIL OFL 1.1"),
     ("Lucide Icons", "ISC"),
 )
 

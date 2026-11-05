@@ -16,6 +16,7 @@ from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.errors import ServiceError
 from gelinspect.services.template_service import TemplateInfo, draft_of
 from gelinspect.ui.labels import (
+    builtin_name_text,
     describe_auth_error,
     describe_service_error,
     describe_storage_busy,
@@ -241,7 +242,7 @@ class TemplatesPage(QWidget):
         self.list_table.set_rows(
             [
                 {
-                    "name": i.template.name,
+                    "name": builtin_name_text(i.template.name),
                     "type": experiment_type_label(i.template.experiment_type),
                     "count": i.template.tube_count,
                     "source": self.tr("内置") if i.builtin else self.tr("自定义"),
@@ -272,14 +273,16 @@ class TemplatesPage(QWidget):
             self.detail_badge.setVisible(False)
             return
         template = info.template
-        self.detail_card.set_title(self.tr("管位详情 · {name}").format(name=template.name))
+        self.detail_card.set_title(
+            self.tr("管位详情 · {name}").format(name=builtin_name_text(template.name))
+        )
         self.detail_badge.set_text(self.tr("布局待确认"))
         self.detail_badge.setVisible(template.needs_confirmation)
         self.detail_table.set_rows(
             [
                 {
                     "no": item.tube_no,
-                    "sample": item.sample_name,
+                    "sample": builtin_name_text(item.sample_name),
                     "role": tube_role_label(item.role),
                     "dilution": _number(item.dilution_factor),
                     "spike": (

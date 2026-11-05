@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gelinspect.ui.punctuation import colon
 from gelinspect.ui.theme.fonts import sans_font
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.icons import IconLoader
@@ -86,7 +87,7 @@ class NavItem(QAbstractButton):
         label = QCoreApplication.translate("SideNav", self.entry.label)
         self.setText(label)
         self.setAccessibleName(label)
-        self.setToolTip(self._denied_reason and f"{label}：{self._denied_reason}")
+        self.setToolTip(self._denied_reason and colon(label, self._denied_reason))
 
     def set_denied(self, denied: bool) -> None:
         """标记当前角色无权进入：置灰并禁用，提示原因。

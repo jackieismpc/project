@@ -61,6 +61,149 @@
     </message>
 </context>
 <context>
+    <name>Alert</name>
+    <message>
+        <source>设备故障</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转复位失败，该排可能仍处于翻转状态，需要人工检查</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>退出滑台失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频断流</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频已重连</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频质量告警</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录制段异常</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读数失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>读数晚于到时过久</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>温度超出允许范围</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>温度回到范围内</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分析超时，继续等待结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法分析失败，该排转人工复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法结果不符合接口约定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复请求被拒绝</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法线程未在时限内退出，它会在算法返回后自行结束</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>写入数据库失败</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数据库被其他操作占用，正在等待写入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>程序内部错误</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>舱门被打开，到时的排等舱门关闭后才读数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>舱门已关闭</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>画面过暗（黑屏）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>画面过曝</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>画面长时间没有变化（卡帧）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频帧率过低</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频源丢帧</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>很久没有收到新画面</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在重连视频</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频无法恢复</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>抓拍缓存溢出，抓拍帧可能丢失</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频处理出错</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频回调出错</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录制队列已满，丢弃了录制帧</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录制段不完整</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>视频线程没有及时停止</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AlertStack</name>
     <message>
         <source>另有 {n} 条告警</source>
@@ -2305,6 +2448,21 @@
     </message>
 </context>
 <context>
+    <name>Punctuation</name>
+    <message>
+        <source>{text}（{note}）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{text}：{note}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>QuickToolbar</name>
     <message>
         <source>新建试验</source>
@@ -4053,6 +4211,37 @@
     </message>
     <message>
         <source>保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TemplateName</name>
+    <message>
+        <source>灵敏度复核 (2λ:1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>灵敏度复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>干扰试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>复试试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>半定量试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>限度试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴性对照</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

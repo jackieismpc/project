@@ -24,10 +24,12 @@ from gelinspect.domain.enums import (
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.auth import AuthError, AuthErrorCode
+from gelinspect.services.engine_types import AlertCode
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.reagent_service import ReagentLockedError, ReagentScan, ScanOutcome
 from gelinspect.services.settings_service import SettingsError
 from gelinspect.services.user_settings import SettingsProblem, SettingsProblemCode
+from gelinspect.services.video.events import VideoEventCode
 
 _ROLES: dict[Role, str] = {
     Role.ADMIN: str(QT_TRANSLATE_NOOP("Role", "管理员")),
@@ -588,7 +590,11 @@ def conclusion_note_text(note: ConclusionNote) -> str:
     params = dict(note.params)
     if "role" in params:
         params["role"] = tube_role_label(TubeRole(params["role"]))
-    return QCoreApplication.translate("Conclusion", NOTE_TEMPLATES[note.code]).format(**params)
+    source = NOTE_TEMPLATES[note.code]
+    translated = QCoreApplication.translate("Conclusion", source)
+    text = translated.format(**params)
+    # 管号列表由领域层用顿号连接；非中文界面改成英文标点。
+    return text if translated == source else text.replace("、", ", ")
 
 
 def format_concentration(value: float) -> str:
@@ -720,3 +726,120 @@ def describe_settings_error(error: SettingsError) -> list[str]:
         每个不合法项一行。
     """
     return [describe_settings_problem(p) for p in error.problems]
+
+
+_BUILTIN_NAMES: tuple[str, ...] = (
+    str(QT_TRANSLATE_NOOP("TemplateName", "灵敏度复核 (2λ:1)")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "灵敏度复核")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "干扰试验")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "复试试验")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "半定量试验")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "限度试验")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "阴性对照")),
+)
+"""内置模板的名称和默认样品名（入库的原文），显示时按语言翻译。"""
+
+
+def builtin_name_text(name: str) -> str:
+    """内置模板名称或默认样品名的当前语言文字，自定义的名称原样返回。
+
+    Args:
+        name: 入库的名称原文。
+
+    Returns:
+        内置名称返回译文，其余原样返回。
+    """
+    return QCoreApplication.translate("TemplateName", name) if name in _BUILTIN_NAMES else name
+
+
+_ALERT_TEXTS: dict[AlertCode, str] = {
+    AlertCode.DEVICE_FAULT: str(QT_TRANSLATE_NOOP("Alert", "设备故障")),
+    AlertCode.RESTORE_FAILED: str(
+        QT_TRANSLATE_NOOP("Alert", "翻转复位失败，该排可能仍处于翻转状态，需要人工检查")
+    ),
+    AlertCode.TRAY_FAILED: str(QT_TRANSLATE_NOOP("Alert", "退出滑台失败")),
+    AlertCode.VIDEO_DISCONNECTED: str(QT_TRANSLATE_NOOP("Alert", "视频断流")),
+    AlertCode.VIDEO_RECONNECTED: str(QT_TRANSLATE_NOOP("Alert", "视频已重连")),
+    AlertCode.VIDEO_QUALITY: str(QT_TRANSLATE_NOOP("Alert", "视频质量告警")),
+    AlertCode.SEGMENT_INTERRUPTED: str(QT_TRANSLATE_NOOP("Alert", "录制段异常")),
+    AlertCode.READ_FAILED: str(QT_TRANSLATE_NOOP("Alert", "读数失败")),
+    AlertCode.ROW_LATE: str(QT_TRANSLATE_NOOP("Alert", "读数晚于到时过久")),
+    AlertCode.TEMPERATURE_EXCURSION: str(QT_TRANSLATE_NOOP("Alert", "温度超出允许范围")),
+    AlertCode.TEMPERATURE_RECOVERED: str(QT_TRANSLATE_NOOP("Alert", "温度回到范围内")),
+    AlertCode.ANALYSIS_TIMEOUT: str(QT_TRANSLATE_NOOP("Alert", "分析超时，继续等待结果")),
+    AlertCode.ANALYSIS_FAILED: str(QT_TRANSLATE_NOOP("Alert", "算法分析失败，该排转人工复核")),
+    AlertCode.ANALYSIS_CONTRACT: str(QT_TRANSLATE_NOOP("Alert", "算法结果不符合接口约定")),
+    AlertCode.RESUME_REJECTED: str(QT_TRANSLATE_NOOP("Alert", "恢复请求被拒绝")),
+    AlertCode.WORKER_STUCK: str(
+        QT_TRANSLATE_NOOP("Alert", "算法线程未在时限内退出，它会在算法返回后自行结束")
+    ),
+    AlertCode.STORAGE_FAILED: str(QT_TRANSLATE_NOOP("Alert", "写入数据库失败")),
+    AlertCode.STORAGE_BUSY: str(QT_TRANSLATE_NOOP("Alert", "数据库被其他操作占用，正在等待写入")),
+    AlertCode.INTERNAL_ERROR: str(QT_TRANSLATE_NOOP("Alert", "程序内部错误")),
+}
+
+_DOOR_OPEN_TEXT = str(QT_TRANSLATE_NOOP("Alert", "舱门被打开，到时的排等舱门关闭后才读数"))
+_DOOR_CLOSED_TEXT = str(QT_TRANSLATE_NOOP("Alert", "舱门已关闭"))
+
+
+def describe_alert(code: AlertCode, message: str, row_index: int | None, *, closed: bool) -> str:
+    """引擎告警的当前语言文字。
+
+    简体中文显示引擎给出的完整说明（含具体数值）；英文按告警码显示概要，
+    具体数值和原因见审计追踪。
+
+    Args:
+        code: 告警码。
+        message: 引擎给出的完整说明（简体中文）。
+        row_index: 相关的排，没有时为 None。
+        closed: 仅对舱门告警有意义：True 表示舱门已关闭的恢复通知。
+
+    Returns:
+        用于横幅和提示的文字。
+    """
+    if code is AlertCode.DOOR_OPEN:
+        source = _DOOR_CLOSED_TEXT if closed else _DOOR_OPEN_TEXT
+    else:
+        source = _ALERT_TEXTS.get(code, "")
+    if not source:
+        return message
+    text = QCoreApplication.translate("Alert", source)
+    if text == source:
+        return message
+    return text if row_index is None else f"Row{row_index:02d}: {text}"
+
+
+_VIDEO_TEXTS: dict[VideoEventCode, str] = {
+    VideoEventCode.BLACK_FRAME: str(QT_TRANSLATE_NOOP("Alert", "画面过暗（黑屏）")),
+    VideoEventCode.OVEREXPOSED: str(QT_TRANSLATE_NOOP("Alert", "画面过曝")),
+    VideoEventCode.FROZEN_FRAME: str(QT_TRANSLATE_NOOP("Alert", "画面长时间没有变化（卡帧）")),
+    VideoEventCode.LOW_FPS: str(QT_TRANSLATE_NOOP("Alert", "视频帧率过低")),
+    VideoEventCode.FRAMES_DROPPED: str(QT_TRANSLATE_NOOP("Alert", "视频源丢帧")),
+    VideoEventCode.STREAM_STALLED: str(QT_TRANSLATE_NOOP("Alert", "很久没有收到新画面")),
+    VideoEventCode.DISCONNECTED: str(QT_TRANSLATE_NOOP("Alert", "视频断流")),
+    VideoEventCode.RECONNECTING: str(QT_TRANSLATE_NOOP("Alert", "正在重连视频")),
+    VideoEventCode.RECONNECT_FAILED: str(QT_TRANSLATE_NOOP("Alert", "视频无法恢复")),
+    VideoEventCode.PIN_OVERFLOW: str(QT_TRANSLATE_NOOP("Alert", "抓拍缓存溢出，抓拍帧可能丢失")),
+    VideoEventCode.CONSUMER_ERROR: str(QT_TRANSLATE_NOOP("Alert", "视频处理出错")),
+    VideoEventCode.CALLBACK_ERROR: str(QT_TRANSLATE_NOOP("Alert", "视频回调出错")),
+    VideoEventCode.RECORDING_DROPPED: str(QT_TRANSLATE_NOOP("Alert", "录制队列已满，丢弃了录制帧")),
+    VideoEventCode.SEGMENT_INTERRUPTED: str(QT_TRANSLATE_NOOP("Alert", "录制段不完整")),
+    VideoEventCode.STOP_TIMEOUT: str(QT_TRANSLATE_NOOP("Alert", "视频线程没有及时停止")),
+}
+
+
+def describe_video_event(code: VideoEventCode, message: str) -> str:
+    """视频管线告警的当前语言文字，规则同 :func:`describe_alert`。
+
+    Args:
+        code: 事件码。
+        message: 管线给出的完整说明（简体中文）。
+
+    Returns:
+        用于横幅的文字。
+    """
+    source = _VIDEO_TEXTS.get(code, "")
+    if not source:
+        return message
+    text = QCoreApplication.translate("Alert", source)
+    return message if text == source else text

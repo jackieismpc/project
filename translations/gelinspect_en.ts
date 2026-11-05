@@ -61,6 +61,149 @@
     </message>
 </context>
 <context>
+    <name>Alert</name>
+    <message>
+        <source>设备故障</source>
+        <translation>Device fault</translation>
+    </message>
+    <message>
+        <source>翻转复位失败，该排可能仍处于翻转状态，需要人工检查</source>
+        <translation>Flip reset failed; the row may still be flipped and needs a manual check</translation>
+    </message>
+    <message>
+        <source>退出滑台失败</source>
+        <translation>Failed to move the tray out</translation>
+    </message>
+    <message>
+        <source>视频断流</source>
+        <translation>Video stream lost</translation>
+    </message>
+    <message>
+        <source>视频已重连</source>
+        <translation>Video reconnected</translation>
+    </message>
+    <message>
+        <source>视频质量告警</source>
+        <translation>Video quality warning</translation>
+    </message>
+    <message>
+        <source>录制段异常</source>
+        <translation>Recording segment error</translation>
+    </message>
+    <message>
+        <source>读数失败</source>
+        <translation>Reading failed</translation>
+    </message>
+    <message>
+        <source>读数晚于到时过久</source>
+        <translation>Reading started much later than due</translation>
+    </message>
+    <message>
+        <source>温度超出允许范围</source>
+        <translation>Temperature outside the allowed range</translation>
+    </message>
+    <message>
+        <source>温度回到范围内</source>
+        <translation>Temperature back in range</translation>
+    </message>
+    <message>
+        <source>分析超时，继续等待结果</source>
+        <translation>Analysis timed out; still waiting for the result</translation>
+    </message>
+    <message>
+        <source>算法分析失败，该排转人工复核</source>
+        <translation>Analysis failed; the row goes to manual review</translation>
+    </message>
+    <message>
+        <source>算法结果不符合接口约定</source>
+        <translation>Analysis result violates the interface contract</translation>
+    </message>
+    <message>
+        <source>恢复请求被拒绝</source>
+        <translation>Resume request rejected</translation>
+    </message>
+    <message>
+        <source>算法线程未在时限内退出，它会在算法返回后自行结束</source>
+        <translation>The analysis thread did not exit in time; it ends when the analysis returns</translation>
+    </message>
+    <message>
+        <source>写入数据库失败</source>
+        <translation>Failed to write to the database</translation>
+    </message>
+    <message>
+        <source>数据库被其他操作占用，正在等待写入</source>
+        <translation>The database is busy; waiting to write</translation>
+    </message>
+    <message>
+        <source>程序内部错误</source>
+        <translation>Internal error</translation>
+    </message>
+    <message>
+        <source>舱门被打开，到时的排等舱门关闭后才读数</source>
+        <translation>The door is open; rows that are due will be read after it closes</translation>
+    </message>
+    <message>
+        <source>舱门已关闭</source>
+        <translation>The door is closed</translation>
+    </message>
+    <message>
+        <source>画面过暗（黑屏）</source>
+        <translation>Image too dark (black screen)</translation>
+    </message>
+    <message>
+        <source>画面过曝</source>
+        <translation>Image overexposed</translation>
+    </message>
+    <message>
+        <source>画面长时间没有变化（卡帧）</source>
+        <translation>Image has not changed for a long time (frozen)</translation>
+    </message>
+    <message>
+        <source>视频帧率过低</source>
+        <translation>Video frame rate too low</translation>
+    </message>
+    <message>
+        <source>视频源丢帧</source>
+        <translation>Video source dropped frames</translation>
+    </message>
+    <message>
+        <source>很久没有收到新画面</source>
+        <translation>No new image received for a long time</translation>
+    </message>
+    <message>
+        <source>正在重连视频</source>
+        <translation>Reconnecting video</translation>
+    </message>
+    <message>
+        <source>视频无法恢复</source>
+        <translation>Video cannot be recovered</translation>
+    </message>
+    <message>
+        <source>抓拍缓存溢出，抓拍帧可能丢失</source>
+        <translation>Capture buffer overflow; captured frames may be lost</translation>
+    </message>
+    <message>
+        <source>视频处理出错</source>
+        <translation>Video processing error</translation>
+    </message>
+    <message>
+        <source>视频回调出错</source>
+        <translation>Video callback error</translation>
+    </message>
+    <message>
+        <source>录制队列已满，丢弃了录制帧</source>
+        <translation>Recording queue full; recorded frames were dropped</translation>
+    </message>
+    <message>
+        <source>录制段不完整</source>
+        <translation>Recording segment incomplete</translation>
+    </message>
+    <message>
+        <source>视频线程没有及时停止</source>
+        <translation>A video thread did not stop in time</translation>
+    </message>
+</context>
+<context>
     <name>AlertStack</name>
     <message>
         <source>另有 {n} 条告警</source>
@@ -2305,6 +2448,21 @@
     </message>
 </context>
 <context>
+    <name>Punctuation</name>
+    <message>
+        <source>{text}（{note}）</source>
+        <translation>{text} ({note})</translation>
+    </message>
+    <message>
+        <source>{text}：{note}</source>
+        <translation>{text}: {note}</translation>
+    </message>
+    <message>
+        <source>、</source>
+        <translation>, </translation>
+    </message>
+</context>
+<context>
     <name>QuickToolbar</name>
     <message>
         <source>新建试验</source>
@@ -4056,6 +4214,37 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>保存</source>
         <translation>Save</translation>
+    </message>
+</context>
+<context>
+    <name>TemplateName</name>
+    <message>
+        <source>灵敏度复核 (2λ:1)</source>
+        <translation>Sensitivity check (2λ:1)</translation>
+    </message>
+    <message>
+        <source>灵敏度复核</source>
+        <translation>Sensitivity check</translation>
+    </message>
+    <message>
+        <source>干扰试验</source>
+        <translation>Interference test</translation>
+    </message>
+    <message>
+        <source>复试试验</source>
+        <translation>Retest</translation>
+    </message>
+    <message>
+        <source>半定量试验</source>
+        <translation>Semi-quantitative test</translation>
+    </message>
+    <message>
+        <source>限度试验</source>
+        <translation>Limit test</translation>
+    </message>
+    <message>
+        <source>阴性对照</source>
+        <translation>Negative control</translation>
     </message>
 </context>
 <context>

@@ -1,7 +1,7 @@
 """运行模式与路径：仓库内运行（``uv run gelinspect``）还是发布包。
 
 * **仓库模式**：从源码运行。资源（翻译、默认配置引用的 ``simulation/``）在仓库根目录，
-  数据目录是仓库下的 ``data/``，行为与 P13 之前完全一样。
+  数据目录是仓库下的 ``data/``，行为与加入发布包之前完全一样。
 * **发布模式**：Nuitka 编译的发布包。资源在程序所在目录，**不依赖仓库路径**；数据目录默认
   放在平台标准位置（Windows ``%LOCALAPPDATA%/GelInspect``，macOS
   ``~/Library/Application Support/GelInspect``），可以用环境变量 ``GELINSPECT_DATA_DIR``、

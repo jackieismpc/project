@@ -6,7 +6,8 @@
 2. 用 ``VideoConfig.device`` 中的序列号打开相机，设置分辨率、帧率和曝光。
 3. 把 SDK 的像素格式（通常是 Bayer）转换为 H×W×3、uint8、BGR。
 4. 把 SDK 错误转换为 ``gelinspect.interfaces.video`` 中的异常。
-5. 在配置中设置 ``video.source`` 指向本类，并按 4000×3000 运行 P5 的压力测试。
+5. 在配置中设置 ``video.source`` 指向本类，并按 4000×3000 运行视频管线的压力测试
+   （``uv run pytest -m video_perf``）。
 """
 
 from __future__ import annotations

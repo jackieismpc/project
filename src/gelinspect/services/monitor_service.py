@@ -243,7 +243,7 @@ class ExperimentView:
         started_at: 开始孵育的时间，从未开始时为 None。
         reagent_batches: 三种试剂的批号。
         labeled_sensitivity: 标示灵敏度 λ（EU/ml）。
-        measured_sensitivity: 实测灵敏度 λc，P10 之前为 None。
+        measured_sensitivity: 实测灵敏度 λc，没有结论的旧试验为 None。
         tubes: 全部试管，按管号升序。
         rows: 有样品的排，按排号升序。
         pending_review: 待复核的管号。

@@ -11,6 +11,7 @@ from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.signing import SigningBlock, SigningBlocker
 from gelinspect.services.reporting.verify import SignatureVerification, VerifyFailure
 from gelinspect.ui.labels import conclusion_note_text, experiment_state_label
+from gelinspect.ui.punctuation import join_items
 
 _BLOCKS: dict[SigningBlocker, str] = {
     SigningBlocker.ALREADY_SIGNED: str(
@@ -69,7 +70,7 @@ def describe_signing_blocks(
     for block in blocks:
         template = QCoreApplication.translate("Signing", _BLOCKS[block.blocker])
         state = "" if block.state is None else experiment_state_label(block.state)
-        lines.append(template.format(tubes="、".join(map(str, block.tubes)), state=state))
+        lines.append(template.format(tubes=join_items(block.tubes), state=state))
         if (
             block.blocker in (SigningBlocker.VERDICT_INVALID, SigningBlocker.VERDICT_PENDING)
             and conclusion is not None

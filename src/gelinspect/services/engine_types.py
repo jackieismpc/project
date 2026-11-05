@@ -1,6 +1,6 @@
 """试验引擎的配置、事件、快照和异常。
 
-只依赖标准库、Pydantic 和 domain，不依赖 Qt。P9 用 Qt 信号桥接 :class:`EngineEvent`。
+只依赖标准库、Pydantic 和 domain，不依赖 Qt。界面层用 Qt 信号桥接 :class:`EngineEvent`。
 """
 
 from __future__ import annotations

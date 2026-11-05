@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.domain.permissions import Permission
+from gelinspect.ui.punctuation import annotate, colon
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
@@ -426,7 +427,7 @@ class QuickToolbar(QFrame):
         Args:
             text: 说明文字，例如「展开侧栏」。
         """
-        full = f"{text}（{native_shortcut_text('Ctrl+B')}）"
+        full = annotate(text, native_shortcut_text("Ctrl+B"))
         self.menu_button.setToolTip(full)
         self.menu_button.setAccessibleDescription(text)
 
@@ -535,9 +536,9 @@ class QuickToolbar(QFrame):
             action.setEnabled(allowed)
             self._shortcuts[spec.id].setEnabled(allowed)
             if allowed:
-                action.setToolTip(f"{name}（{native_shortcut_text(spec.shortcut)}）")
+                action.setToolTip(annotate(name, native_shortcut_text(spec.shortcut)))
             else:
-                action.setToolTip(f"{name}：" + self.tr("当前角色无此权限"))
+                action.setToolTip(colon(name, self.tr("当前角色无此权限")))
             self._buttons[spec.id].setToolTip(action.toolTip())
 
     def _after_status_change(self) -> None:

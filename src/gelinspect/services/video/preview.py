@@ -1,7 +1,7 @@
 """实时预览：latest-wins 单槽，限帧率，在自己的线程里缩放。
 
 采集线程只调用 :meth:`PreviewWorker.offer`（限速后放入单槽，非阻塞）。缩放和回调都在预览线程中完成，
-回调很慢时只会丢预览帧，不会影响采集、录制和抓帧。P9 再用 Qt Signal 桥接 ``on_preview``。
+回调很慢时只会丢预览帧，不会影响采集、录制和抓帧。界面层再用 Qt Signal 桥接 ``on_preview``。
 """
 
 from __future__ import annotations

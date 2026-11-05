@@ -41,7 +41,7 @@ uv run gelinspect --version          # 只打印版本号
 
 启动失败（配置有误、`simulation/` 缺失、数据库被占用等）会弹出说明原因的对话框，并写入 `data/logs/gelinspect.log`（滚动，单个 1 MB，保留 5 份）。部署和配置细节见 [部署说明](docs/deployment.md)。
 
-> 开发进度见 [docs/PLAN.md](docs/PLAN.md)。P13 起有 Windows 和 macOS 发布包（见下文「发布包」）。
+> 开发计划见 [docs/PLAN.md](docs/PLAN.md)；日常使用见 [用户手册](docs/user-manual.md)；Windows 和 macOS 发布包见下文「发布包」。
 
 ## 发布包（Windows、macOS）
 
@@ -94,7 +94,7 @@ uv sync --extra inference
 | `tests/` | 自动化测试 |
 | `docs/` | 计划、架构、功能文档与用户手册 |
 | `translations/` | 界面翻译源文件（`.ts`）；`.qm` 在启动时自动生成，不纳入版本库 |
-| `scripts/` | 开发脚本（更新翻译、构建发布包） |
+| `scripts/` | 开发脚本（更新翻译、构建发布包、验收指标测量、手册截图、英文界面检查） |
 | `packaging/` | 发布包的入口、默认配置、许可文本、Inno Setup 脚本 |
 | `data/` | 运行时数据（数据库、视频、图像、日志），不纳入版本库 |
 
@@ -106,6 +106,8 @@ uv sync --extra inference
 - [算法接口](docs/algorithm-interface.md)
 - [功能文档](docs/features/README.md)
 - [用户手册](docs/user-manual.md)
+- [验收指标报告](docs/acceptance-report.md)
+- [交接说明](docs/handover.md)（算法、硬件、甲方 QA）
 - [部署说明](docs/deployment.md)
 - [登录、权限与多语言](docs/features/auth-and-i18n.md)
 - [安全与基础防护](docs/features/security.md)

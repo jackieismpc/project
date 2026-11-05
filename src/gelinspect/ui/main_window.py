@@ -23,12 +23,17 @@ from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget
 from gelinspect.domain.enums import BatchKind
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
-from gelinspect.services.engine_types import EngineAlert, StateChanged, TemperatureChanged
+from gelinspect.services.engine_types import (
+    AlertLevel,
+    EngineAlert,
+    StateChanged,
+    TemperatureChanged,
+)
 from gelinspect.services.instrument_monitor import InstrumentStatus
 from gelinspect.ui.bridge import EngineBridge
 from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.idle import IdleWatcher
-from gelinspect.ui.labels import role_label
+from gelinspect.ui.labels import describe_alert, role_label
 from gelinspect.ui.pages.about import AboutPage
 from gelinspect.ui.pages.audit_page import AuditPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
@@ -616,7 +621,10 @@ class MainWindow(QMainWindow):
             "warning": ToastKind.WARNING,
             "error": ToastKind.DANGER,
         }[alert.level.value]
-        Toast.show_message(self, alert.message, kind, 6000)
+        text = describe_alert(
+            alert.code, alert.message, alert.row_index, closed=alert.level is AlertLevel.INFO
+        )
+        Toast.show_message(self, text, kind, 6000)
 
     def active_experiment_id(self) -> str | None:
         """正在运行的试验。

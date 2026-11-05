@@ -20,6 +20,7 @@ from gelinspect.domain.enums import ReagentKind
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.reagent_service import ReagentScan
 from gelinspect.ui.labels import (
+    builtin_name_text,
     describe_scan,
     experiment_type_label,
     reagent_kind_label,
@@ -81,6 +82,7 @@ class TemplateOption(QFrame):
     def retranslate(self) -> None:
         """按当前语言刷新文字。"""
         template = self.template
+        self.name.setText(builtin_name_text(template.name))
         source = self.tr("内置") if self.builtin else self.tr("自定义")
         self.meta.setText(
             self.tr("{type} · {count} 管 · {source}").format(
@@ -92,7 +94,9 @@ class TemplateOption(QFrame):
         self.badge.set_text(self.tr("布局待确认"))
         note = self.tr("，布局待确认") if template.needs_confirmation else ""
         self.setAccessibleName(
-            self.tr("模板 {name}，{count} 管").format(name=template.name, count=template.tube_count)
+            self.tr("模板 {name}，{count} 管").format(
+                name=builtin_name_text(template.name), count=template.tube_count
+            )
             + note
         )
 
