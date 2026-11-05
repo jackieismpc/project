@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import tempfile
 from pathlib import Path
 
 from gelinspect.domain.plate import ROW_COUNT
-from gelinspect.services.video.errors import InvalidIdentifierError
+from gelinspect.services.video.errors import InvalidIdentifierError, RecorderError
 
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
@@ -155,3 +156,49 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def needs_ascii_path(path: Path) -> bool:
+    """判断 ``cv2.VideoWriter`` 能否直接写这个路径。
+
+    OpenCV 在 Windows 上用 ANSI 接口打开文件，路径含中文等非 ASCII 字符时会失败；
+    macOS 和 Linux 使用 UTF-8，没有这个问题。
+
+    Args:
+        path: 目标路径。
+
+    Returns:
+        需要改用纯 ASCII 临时路径写入时为 True。
+    """
+    return os.name == "nt" and not str(path).isascii()
+
+
+def make_ascii_scratch_dir() -> Path:
+    """创建一个路径纯 ASCII 的临时目录，供不支持中文路径的编码器写文件。
+
+    系统临时目录常常位于含中文用户名的目录下，所以依次尝试临时目录、公共目录、
+    ``ProgramData`` 和系统盘根目录，取第一个路径为纯 ASCII 且可写的。
+
+    Returns:
+        新建的目录，调用方负责删除。
+
+    Raises:
+        RecorderError: 找不到可用的纯 ASCII 目录。
+    """
+    candidates = [
+        tempfile.gettempdir(),
+        os.environ.get("PUBLIC"),
+        os.environ.get("PROGRAMDATA"),
+        (os.environ.get("SYSTEMDRIVE") or "C:") + os.sep,
+    ]
+    for candidate in candidates:
+        if not candidate or not candidate.isascii() or not os.path.isdir(candidate):
+            continue
+        try:
+            return Path(tempfile.mkdtemp(prefix="gelinspect_", dir=candidate))
+        except OSError:
+            continue
+    raise RecorderError(
+        "数据目录含非 ASCII 字符，而 OpenCV 在 Windows 上无法写这样的路径，"
+        "且找不到纯 ASCII 的临时目录；请把数据目录改为纯英文路径"
+    )

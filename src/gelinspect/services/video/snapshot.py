@@ -346,9 +346,10 @@ class SnapshotGrabber:
         directory = base / next_free_name(base, f"row_{row_index:02d}", "")
         directory.mkdir()
         jobs: list[tuple[Phase, int, VideoFrame, Path]] = []
-        for phase, frames in (("before", before), ("after", after)):
+        phases: list[tuple[Phase, Sequence[VideoFrame]]] = [("before", before), ("after", after)]
+        for phase, frames in phases:
             for index, frame in enumerate(frames, start=1):
-                jobs.append((phase, index, frame, directory / f"{phase}_{index:02d}.{fmt}"))  # type: ignore[arg-type]
+                jobs.append((phase, index, frame, directory / f"{phase}_{index:02d}.{fmt}"))
         pool = self._io()
         futures = [pool.submit(self._write_one, fmt, *job) for job in jobs]
         saved: list[SavedImage] = []

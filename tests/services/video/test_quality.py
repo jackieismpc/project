@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -30,7 +30,7 @@ class StepClock:
         with self._lock:
             return self._t
 
-    def now(self):  # type: ignore[no-untyped-def]
+    def now(self) -> datetime:
         return T0 + timedelta(seconds=self.monotonic())
 
 

@@ -34,7 +34,8 @@ ui → services → interfaces → domain
 | 线程 | 数量 | 运行内容 | 不允许做的事 |
 |---|---|---|---|
 | Qt 主线程 | 1 | 全部界面对象 | 调用设备、算法、视频源；执行耗时数据库操作 |
-| 采集线程 | 1 | `VideoSource` 的全部方法、写环形缓冲 | 访问界面对象、等待设备或算法 |
+| 采集线程 | 1 | `VideoSource` 的全部方法、写环形缓冲、对消费者调用非阻塞的 `offer` | 访问界面对象、等待设备或算法、被任何消费者阻塞 |
+| 视频辅助线程 | 约 4 + 每个录制段 1 个 | `video-preview`（预览，单槽 latest-wins）、`video-quality`（质量检查和看门狗）、`video-events`（事件分发）、`video-writer-rowNN`（录制段写盘，段结束即退出）；抓帧时按需创建 `video-grab`（2 个）和 `video-imgio`（编码写盘） | 访问界面对象；阻塞采集线程。预览回调在 `video-preview` 上调用，界面自己切回主线程 |
 | 试验引擎线程 | 1 | 状态机、10 排调度、`DeviceController` 的全部方法、结果写库 | 访问界面对象、直接调用算法 |
 | 分析工作线程 | 1 | `GelAnalyzer` 的全部方法 | 访问界面对象、数据库和设备 |
 
@@ -55,6 +56,7 @@ Qt 主线程 ←─────────────────── 试验
 - **引擎和算法**：引擎把 `RowAnalysisRequest` 提交给单线程执行器，得到 `Future`。`load`、`analyze_row`、`close` 都在这条线程上串行执行，所以算法实现不需要处理并发。
 - **超时**：`analyze_row` 超过配置的时限（默认 2 秒）时写告警和审计事件，但不中断，继续等待结果。Python 线程无法安全地强制终止。引擎等待期间继续响应停止命令和其他排的倒计时。
 - **设备调用**：`DeviceController` 的方法同步阻塞，由引擎线程调用。P6 需要保证翻转等待期间，其他排的倒计时仍然按真实时钟计算（使用截止时间，而不是累减计数）。
+- **视频管线的线程**：采集线程只做「读帧、写缓冲、通知消费者」，消费者的 `offer` 都是非阻塞的（预览单槽覆盖、录制有界队列满则丢帧、质量检查只计数），事件经独立线程异步分发，所以慢的界面回调或磁盘不会拖慢采集。线程图和配置见 `docs/features/video-pipeline.md`。
 - **帧的所有权**：`VideoFrame.image` 写入环形缓冲后不再被改写。`CapturedFrame.image` 可以直接引用同一个数组，不需要复制；任何消费者都不得修改。
 - **时钟**：`VideoFrame.captured_at` 和 `FlipResult` 的时间使用同一个本机时钟，抓帧按此定位翻转前后的帧。
 
@@ -68,8 +70,8 @@ analysis:
   config_path: "config/analyzer.yaml"   # 传给 GelAnalyzer.load，可为空
   timeout_ms: 2000                      # 超时只告警
 video:
-  source: "gelinspect.infrastructure.video.opencv:OpenCvCameraSource"
-  device: "0"                           # 对应 VideoConfig.device
+  source: "file"                        # 别名 file / images，或"包.模块:类名"
+  device: "data/samples/demo.mp4"       # 对应 VideoConfig.device：文件、图片文件夹或相机序列号
 device:
   backend: "gelinspect.infrastructure.device.modbus:ModbusController"
 ```
@@ -81,7 +83,7 @@ device:
 - 配置项没有默认的模拟后端。只有 `--simulate` 才加载模拟配置。
 - 加载配置的代码由 P6 实现，本阶段只确定约定。
 
-上面示例中的 `yolo_onnx`、`opencv`、`modbus` 模块是后续阶段的产物，当前还不存在。
+上面示例中的 `yolo_onnx`、`modbus` 模块是后续阶段的产物，当前还不存在。视频源已有实现：别名 `file` 对应 `FileVideoSource`（视频文件），`images` 对应 `ImageSequenceSource`（图片文件夹）；真实相机尚未选型，没有 `OpenCvCameraSource`，选型后新增一个视频源类（模板见 `infrastructure/video/industrial_template.py`）再配置类路径即可。视频源由 `infrastructure.video.factory.create_video_source` 创建。
 
 ## 4. `simulation/` 隔离规则
 

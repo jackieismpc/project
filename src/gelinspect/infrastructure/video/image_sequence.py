@@ -166,12 +166,28 @@ _FRAME_SPACING_S = 0.1
 _PHASE_GAP_S = 10.0
 
 
+def _phase_files(directory: Path, name: str) -> list[Path]:
+    """返回一排中 ``name``（``before`` 或 ``after``）阶段的图片。
+
+    优先用子目录 ``<directory>/<name>/``；没有子目录时，兼容 :class:`SnapshotGrabber`
+    落盘的平铺格式 ``<directory>/<name>_01.png``，这样抓拍过的一排可以直接重新分析。
+    """
+    sub = directory / name
+    if not sub.is_dir() and directory.is_dir():
+        flat = [p for p in list_images(directory) if p.stem.lower().startswith(f"{name}_")]
+        if flat:
+            return flat
+    return list_images(sub)
+
+
 def load_row_capture(directory: Path, *, min_frames: int = MIN_FRAMES_PER_SIDE) -> RowCapture:
     """读取 ``<directory>/before`` 与 ``<directory>/after`` 下的一排图片。
 
     每组至少 ``min_frames`` 张（算法接口要求 n≥3），所有图片分辨率必须一致。照片没有可靠的采集
     时间，``captured_at`` 按「最早的文件修改时间 + 序号 × 0.1 秒」合成，翻转后的第一张比翻转前的
     最后一张晚 10 秒，保证满足 ``RowAnalysisRequest`` 的时间顺序要求；``source_path`` 指向原文件。
+
+    也接受抓帧器落盘的平铺格式（``<directory>/before_01.png``、``after_01.png``）。
 
     Args:
         directory: 一排的目录。
@@ -185,7 +201,7 @@ def load_row_capture(directory: Path, *, min_frames: int = MIN_FRAMES_PER_SIDE) 
     """
     groups: dict[str, list[Path]] = {}
     for name in ("before", "after"):
-        files = list_images(directory / name)
+        files = _phase_files(directory, name)
         if len(files) < min_frames:
             raise ImageLoadError(
                 f"{directory / name} 至少需要 {min_frames} 张图片，实际只有 {len(files)} 张"

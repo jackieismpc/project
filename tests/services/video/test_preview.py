@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
+from functools import partial
 
 import numpy as np
 
@@ -24,7 +25,7 @@ class StepClock:
     def monotonic(self) -> float:
         return self.t
 
-    def now(self):  # type: ignore[no-untyped-def]
+    def now(self) -> datetime:
         return T0 + timedelta(seconds=self.t)
 
 
@@ -109,7 +110,7 @@ def test_callback_exception_does_not_kill_worker() -> None:
     try:
         for k in range(5):
             worker.offer(frame(k))
-            assert wait_until(lambda n=k: n in calls)
+            assert wait_until(partial(calls.__contains__, k))
         assert worker.errors == 5
     finally:
         worker.stop(2.0)

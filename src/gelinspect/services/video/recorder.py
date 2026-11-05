@@ -8,6 +8,9 @@
 → 刷目录 → 计算 SHA-256。（临时文件保留 ``.mp4`` 结尾，因为 OpenCV 按扩展名选择封装格式，
 ``.mp4.part`` 在本机验证打不开。）已有文件绝不覆盖，重录同一排会得到 ``row_XX_02.mp4``。
 
+**中文路径**：OpenCV 在 Windows 上打不开含非 ASCII 字符的路径。此时编码器先写到纯 ASCII 的
+临时目录，封存时再移动到 ``.part.mp4``，之后的改名、哈希流程不变（见 ``paths.needs_ascii_path``）。
+
 **断流处理**：采集线程调用 :meth:`abort_segment` 后，当前段在写盘线程里封存
 （文件可播放、有哈希），记录标记 ``interrupted=True``，重连后不会自动续录；
 调用方随后 ``stop_segment`` 取回记录。
@@ -17,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import threading
 from collections import deque
 from dataclasses import dataclass
@@ -42,6 +46,8 @@ from gelinspect.services.video.paths import (
     experiment_dir,
     fsync_directory,
     fsync_file,
+    make_ascii_scratch_dir,
+    needs_ascii_path,
     next_free_name,
     sha256_file,
     validate_experiment_id,
@@ -127,6 +133,8 @@ class _Segment:
         row_index: int,
         part_path: Path,
         final_path: Path,
+        writer_path: Path,
+        scratch_dir: Path | None,
         writer: cv2.VideoWriter,
         width: int,
         height: int,
@@ -138,6 +146,8 @@ class _Segment:
         self.row_index = row_index
         self.part_path = part_path
         self.final_path = final_path
+        self.writer_path = writer_path
+        self.scratch_dir = scratch_dir
         self.writer = writer
         self.width = width
         self.height = height
@@ -270,11 +280,17 @@ class SegmentRecorder:
             name = next_free_name(directory, f"row_{row_index:02d}", ".mp4")
             final_path = directory / name
             part_path = directory / f"{final_path.stem}.part.mp4"
+            # OpenCV 在 Windows 上打不开含中文的路径：此时先写到纯 ASCII 临时目录，
+            # 收尾时再移到 part_path。
+            scratch_dir = make_ascii_scratch_dir() if needs_ascii_path(part_path) else None
+            writer_path = scratch_dir / "segment.mp4" if scratch_dir is not None else part_path
             fourcc = cv2.VideoWriter.fourcc(*self._config.fourcc)
-            writer = cv2.VideoWriter(str(part_path), fourcc, rate, (width, height))
+            writer = cv2.VideoWriter(str(writer_path), fourcc, rate, (width, height))
             if not writer.isOpened():
                 writer.release()
                 part_path.unlink(missing_ok=True)
+                if scratch_dir is not None:
+                    shutil.rmtree(scratch_dir, ignore_errors=True)
                 raise RecorderError(
                     f"无法创建视频写入器（编码 {self._config.fourcc}，{width}×{height}，"
                     f"{rate:.1f} fps，路径 {part_path}），请检查编码器和磁盘权限"
@@ -284,6 +300,8 @@ class SegmentRecorder:
                 row_index=row_index,
                 part_path=part_path,
                 final_path=final_path,
+                writer_path=writer_path,
+                scratch_dir=scratch_dir,
                 writer=writer,
                 width=width,
                 height=height,
@@ -436,6 +454,8 @@ class SegmentRecorder:
             segment.failure = RecorderError(f"录制失败：{exc!r}")
             self._discard_part(segment)
         finally:
+            if segment.scratch_dir is not None:
+                shutil.rmtree(segment.scratch_dir, ignore_errors=True)
             with self._lock:
                 if self._segment is segment:
                     self._segment = None
@@ -498,6 +518,8 @@ class SegmentRecorder:
                 f"第 {segment.row_index} 排录制段内没有任何帧，未生成文件"
             )
             return
+        if segment.writer_path != segment.part_path:
+            shutil.move(segment.writer_path, segment.part_path)
         size = segment.part_path.stat().st_size if segment.part_path.exists() else 0
         if size <= 0:
             self._discard_part(segment)
@@ -533,3 +555,4 @@ class SegmentRecorder:
         except Exception:
             logger.debug("释放 VideoWriter 失败", exc_info=True)
         segment.part_path.unlink(missing_ok=True)
+        segment.writer_path.unlink(missing_ok=True)

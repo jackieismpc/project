@@ -1,6 +1,7 @@
 """压测：4000×3000、10 fps、约 20 秒，同时预览和录制，周期性抓拍。
 
-默认跳过（约 40 秒），设置 ``GELINSPECT_PERF_VIDEO=1`` 或 ``-m video_perf`` 运行，用 ``-s`` 查看实测数字。
+默认跳过（约 40 秒），设置 ``GELINSPECT_PERF_VIDEO=1`` 或 ``-m video_perf`` 运行，
+用 ``-s`` 查看实测数字。
 模拟帧复用同一块底图：每帧 ``copy`` 一份（约 36 MB，几毫秒）再把序号写进左上角像素，
 这样每帧占用独立内存，RSS 的变化才反映真实情况。
 """
@@ -162,8 +163,10 @@ def test_4000x3000_10fps_preview_record_and_snapshots(tmp_path: Path) -> None:
     growth = steady[-1] - steady[0]
     print(
         f"\n[perf] 采集 {stats.frames_captured} 帧 / {wall:.1f}s = {fps:.2f} fps；"
-        f"预览送出 {stats.preview_delivered}（跳过 {stats.preview_skipped}，覆盖 {stats.preview_dropped}）；"
-        f"录制 {record.frame_count} 帧、丢 {record.dropped_frames}、{record.width}×{record.height}、"
+        f"预览送出 {stats.preview_delivered}（跳过 {stats.preview_skipped}，"
+        f"覆盖 {stats.preview_dropped}）；"
+        f"录制 {record.frame_count} 帧、丢 {record.dropped_frames}、"
+        f"{record.width}×{record.height}、"
         f"{record.size_bytes / 1e6:.1f} MB；\n[perf] 缓冲峰值 {peak_buffer / 1e6:.0f} MB（上限 "
         f"{config.buffer.max_bytes / 1e6:.0f} MB）；RSS {steady[0]:.0f} → {steady[-1]:.0f} MB "
         f"（稳态增长 {growth:+.0f} MB，最大 {max(steady):.0f} MB）；抓拍 {len(snapshots)} 次；"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -47,11 +47,11 @@ def test_start_stop_and_source_methods_run_on_one_capture_thread(
     source = FakeSource()
     assert isinstance(source, VideoSource)
     pipeline = VideoPipeline(source, make_config(tmp_path))
-    assert pipeline.state is PipelineState.STOPPED and pipeline.info is None
+    assert state_of(pipeline) is PipelineState.STOPPED and pipeline.info is None
     info = pipeline.start()
     assert (info.width, info.height, info.is_live) == (64, 48, True)
     assert pipeline.start() is info  # 幂等
-    assert pipeline.is_running and pipeline.state is PipelineState.RUNNING
+    assert pipeline.is_running and state_of(pipeline) is PipelineState.RUNNING
     assert wait_until(lambda: pipeline.stats().frames_captured >= 10)
     pipeline.stop()
     pipeline.stop()  # 幂等
@@ -408,15 +408,25 @@ def test_reconnect_can_be_disabled(tmp_path: Path, no_thread_leak: None) -> None
         pipeline.stop()
 
 
+class _FailsAfterFirstOpen(FakeSource):
+    """第一次 ``open`` 成功，之后每次都失败，让管线一直停在重连等待。"""
+
+    def open(self, config: VideoConfig) -> VideoInfo:
+        if self.open_calls:
+            self.open_calls += 1
+            raise VideoOpenError("x")
+        return super().open(config)
+
+
+def state_of(pipeline: VideoPipeline) -> PipelineState:
+    """每次重新读取状态，避免 mypy 沿用前一个断言把枚举字面量窄化。"""
+    return pipeline.state
+
+
 def test_stop_during_reconnect_backoff_returns_promptly(
     tmp_path: Path, no_thread_leak: None
 ) -> None:
-    source = FakeSource(interval_s=0.002, disconnect_after=5)
-    source.open = lambda config: (
-        (_ for _ in ()).throw(VideoOpenError("x"))
-        if source.open_calls
-        else FakeSource.open(source, config)
-    )  # type: ignore[method-assign,assignment]
+    source = _FailsAfterFirstOpen(interval_s=0.002, disconnect_after=5)
     reconnect = ReconnectConfig(initial_delay_s=30.0, max_delay_s=30.0)
     pipeline = VideoPipeline(source, make_config(tmp_path, reconnect=reconnect))
     pipeline.start()
@@ -464,7 +474,7 @@ def test_events_use_injected_clock(tmp_path: Path, no_thread_leak: None) -> None
         def monotonic(self) -> float:
             return 4242.0
 
-        def now(self):  # type: ignore[no-untyped-def]
+        def now(self) -> datetime:
             return T0 + timedelta(days=1)
 
     source = FakeSource(interval_s=0.002, disconnect_after=5)

@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import pytest
 
+from gelinspect.infrastructure.video._ascii_path import link_to_ascii_path
 from gelinspect.infrastructure.video.factory import (
     VideoSourceConfigError,
     create_video_source,
@@ -28,10 +29,11 @@ from gelinspect.interfaces.video import (
     VideoSource,
 )
 
+FILE_SOURCE = "gelinspect.infrastructure.video.file_source"
 NO_SLEEP = {"sleep": lambda s: None}
 
 
-def numbered(k: int, width: int = 64, height: int = 48) -> np.ndarray:  # type: ignore[type-arg]
+def numbered(k: int, width: int = 64, height: int = 48) -> np.ndarray:
     image = np.full((height, width, 3), 50, np.uint8)
     image[:, :, 0] = k * 10
     return image
@@ -103,6 +105,55 @@ def test_file_source_accepts_chinese_path(tmp_path: Path) -> None:
     source.open(VideoConfig(device=str(path)))
     assert source.read() is not None
     source.close()
+
+
+def test_file_source_hands_opencv_an_ascii_path_when_required(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """模拟 Windows：OpenCV 打不开中文路径，改走 ASCII 临时副本，关闭后清理。"""
+    folder = tmp_path / "视频 样片"
+    folder.mkdir()
+    path = make_mp4(folder / "翻转.mp4", 4)
+    monkeypatch.setattr(FILE_SOURCE + ".needs_ascii_path", lambda p: True)
+    opened: list[str] = []
+    real_capture = cv2.VideoCapture
+
+    def spy(name: str) -> cv2.VideoCapture:
+        opened.append(name)
+        return real_capture(name)
+
+    monkeypatch.setattr(FILE_SOURCE + ".cv2.VideoCapture", spy)
+    source = FileVideoSource(realtime=False)
+    source.open(VideoConfig(device=str(path)))
+    assert len(opened) == 1 and opened[0].isascii() and opened[0] != str(path)
+    scratch = Path(opened[0]).parent
+    assert scratch.is_dir()
+    frames = []
+    while (frame := source.read()) is not None:
+        frames.append(frame)
+    assert len(frames) == 4
+    source.close()
+    assert not scratch.exists()
+    assert path.exists()  # 原文件不受影响
+
+
+def test_file_source_ascii_fallback_cleans_up_on_open_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broken = tmp_path / "坏文件.mp4"
+    broken.write_bytes(b"not a video at all")
+    monkeypatch.setattr(FILE_SOURCE + ".needs_ascii_path", lambda p: True)
+    seen: list[Path] = []
+    real_link = link_to_ascii_path
+
+    def link(p: Path) -> Path:
+        seen.append(real_link(p))
+        return seen[-1]
+
+    monkeypatch.setattr(FILE_SOURCE + ".link_to_ascii_path", link)
+    with pytest.raises(VideoOpenError):
+        FileVideoSource().open(VideoConfig(device=str(broken)))
+    assert seen and not seen[0].parent.exists()
 
 
 # ------------------------------------------------------------------ 中文路径读写
@@ -249,6 +300,17 @@ def test_load_row_capture_builds_valid_request(tmp_path: Path) -> None:
         frames_after=capture.frames_after,
     )
     assert request.image_size == (48, 64)
+
+
+def test_load_row_capture_reads_flat_layout_written_by_snapshot_grabber(tmp_path: Path) -> None:
+    row = tmp_path / "row_01"
+    for k in range(3):
+        write_image(row / f"before_{k + 1:02d}.png", numbered(k))
+        write_image(row / f"after_{k + 1:02d}.png", numbered(k + 5))
+    write_image(row / "unrelated.png", numbered(9))
+    capture = load_row_capture(row)
+    assert [int(f.image[0, 0, 0]) for f in capture.frames_before] == [0, 10, 20]
+    assert [int(f.image[0, 0, 0]) for f in capture.frames_after] == [50, 60, 70]
 
 
 def test_load_row_capture_requires_three_frames_per_side(tmp_path: Path) -> None:

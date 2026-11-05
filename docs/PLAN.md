@@ -231,8 +231,8 @@ class DeviceController(Protocol):
 | P2 | 界面设计与设计系统 | 已完成，框架已确认（2026-11-05） | 34ba114、57e743c |
 | P3 | 数据层 | 已完成 | 72bc1e8 |
 | P4 | 模拟数据 | 已完成 | fa5f51c |
-| P5 | 视频管线 | 进行中 | |
-| P6 | 试验引擎 | 未开始 | |
+| P5 | 视频管线 | 已完成 | 见 git log |
+| P6 | 试验引擎 | 进行中 | |
 | P7 | 外壳与权限 | 未开始 | |
 | P8 | 新试验流程 | 未开始 | |
 | P9 | 监控与结果 | 未开始 | |
@@ -243,19 +243,6 @@ class DeviceController(Protocol):
 | P14 | 收尾验收 | 未开始 | |
 
 依赖关系：P0 → P1 → P2/P3/P4 → P5 → P6 → P7 → P8–P12 → P13 → P14。子 agent 按顺序执行，改同一批文件时不并行。由我审查每个阶段的结果后再提交。
-
-**恢复工作**
-
-1. 确认第 4 节的框架调整（快捷栏、菜单自动隐藏）。确认前不开始 P7 之后的页面。
-2. 合并 `wip/p5-video-pipeline`，并完成 P5 剩余工作：
-   - 修复 6 处 E501 和 9 个 mypy 错误（该分支 116 项视频测试已通过）。
-   - 跑一次 `uv run pytest -m video_perf`（4000×3000 压测，尚未运行）。
-   - 编写 `docs/features/video-pipeline.md`，并更新 `docs/architecture.md` 中仍提到 `OpenCvCameraSource` 的内容。
-   - 确认第 3 节的图片输入（`ImageSequenceSource`、`load_row_capture`）及其测试齐全：P5 是在实现过程中被中止的，这一点没有逐项核对。
-3. 进入 P6 试验引擎。注意保存结果和写审计要放进同一个工作单元（P3 中两者是独立事务）。
-4. P7 实现 `uv run gelinspect` 一键启动和中英文切换，不做繁体。
-
-已有但未验证：真实窗口的鼠标悬停、触摸屏操作、Windows 上的任何运行。
 
 ## 6. Git 与文档规范
 

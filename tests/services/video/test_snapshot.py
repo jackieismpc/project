@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
+from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
 
@@ -21,19 +22,20 @@ from gelinspect.services.video.errors import (
 from gelinspect.services.video.pipeline import VideoPipeline
 from tests.services.video.helpers import T0, FakeSource, frame_number, make_config, wait_until
 
-# 合成时间：第 k 帧在 T0 + 0.1k 秒。翻转 [5.0, 7.0] 秒，稳定 1.0 秒 → 翻转后帧从 8.0 秒（第 80 帧）起。
+# 合成时间：第 k 帧在 T0 + 0.1k 秒。翻转 [5.0, 7.0] 秒，稳定 1.0 秒
+# → 翻转后帧从 8.0 秒（第 80 帧）起。
 FLIP_START = T0 + timedelta(seconds=5.0)
 FLIP_END = T0 + timedelta(seconds=7.0)
 
 
 @pytest.fixture
-def running(tmp_path: Path, no_thread_leak: None) -> VideoPipeline:  # type: ignore[misc]
+def running(tmp_path: Path, no_thread_leak: None) -> Iterator[VideoPipeline]:
     source = FakeSource(interval_s=0.001)
     pipeline = VideoPipeline(
         source, make_config(tmp_path, snapshot=SnapshotConfig(wait_timeout_s=3.0, settle_s=1.0))
     )
     pipeline.start()
-    yield pipeline  # type: ignore[misc]
+    yield pipeline
     pipeline.stop()
 
 
@@ -216,6 +218,7 @@ def test_png_files_are_lossless_hashed_and_assembled(
         assert hashlib.sha256(data).hexdigest() == saved.sha256
         assert saved.size_bytes == len(data)
         decoded = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        assert decoded is not None
         assert np.array_equal(decoded, frame.image)  # 无损：逐像素一致
         assert frame_number(decoded) == saved.sequence
     assert not list(result.directory.glob("*.part"))

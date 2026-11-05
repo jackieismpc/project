@@ -1,4 +1,7 @@
-"""集成：模拟设备 + 模拟视频源 → 管线（翻转、录制、抓帧）→ MockAnalyzer；图片文件夹 → MockAnalyzer。"""
+"""集成：模拟设备 + 模拟视频源 → 管线（翻转、录制、抓帧）→ MockAnalyzer。
+
+另一条路径：图片文件夹 → ``load_row_capture`` → MockAnalyzer。
+"""
 
 from __future__ import annotations
 

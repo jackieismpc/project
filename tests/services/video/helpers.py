@@ -58,9 +58,9 @@ def stamped_image(base: np.ndarray[Any, Any], number: int) -> np.ndarray[Any, An
 class FakeSource:
     """带已知时间戳和编号的假视频源。
 
-    第 k 帧的 ``sequence`` 为 k，``captured_at`` 为 ``T0 + k * frame_dt``（合成时间，与真实时间无关），
-    图像左上角像素编码帧号。真实产帧间隔为 ``interval_s``，因此测试可以用很短的真实时间
-    跑出很长的「视频时间」。
+    第 k 帧的 ``sequence`` 为 k，``captured_at`` 为 ``T0 + k * frame_dt``
+    （合成时间，与真实时间无关），图像左上角像素编码帧号。真实产帧间隔为
+    ``interval_s``，因此测试可以用很短的真实时间跑出很长的「视频时间」。
 
     ``read`` 记录调用线程，用来断言所有方法都在同一个采集线程上执行。
     """

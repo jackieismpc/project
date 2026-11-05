@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -140,7 +140,7 @@ class LatestSlotWorker(Generic[T]):  # noqa: UP046
                     have = True
             if have:
                 try:
-                    self._handler(item)  # type: ignore[arg-type]
+                    self._handler(cast("T", item))
                 except Exception as exc:
                     self._safe_error(exc)
                 with self._cond:

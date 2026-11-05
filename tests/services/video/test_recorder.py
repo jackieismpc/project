@@ -21,8 +21,11 @@ from gelinspect.services.video.errors import (
     RecorderError,
 )
 from gelinspect.services.video.events import VideoEvent, VideoEventCode
+from gelinspect.services.video.paths import make_ascii_scratch_dir
 from gelinspect.services.video.recorder import SegmentRecorder
 from tests.services.video.helpers import T0, stamped_image
+
+RECORDER_MODULE = "gelinspect.services.video.recorder"
 
 
 def frame(k: int, width: int = 320, height: int = 240) -> VideoFrame:
@@ -216,7 +219,7 @@ def test_slow_writer_drops_frames_without_blocking_offer(tmp_path: Path) -> None
     real_write = segment.writer.write
     gate = threading.Event()
 
-    def slow_write(image: np.ndarray) -> None:  # type: ignore[type-arg]
+    def slow_write(image: np.ndarray) -> None:
         gate.wait(5)
         real_write(image)
 
@@ -300,8 +303,57 @@ def test_close_finalizes_active_segment_and_joins_writer(tmp_path: Path) -> None
     assert record.interrupted and record.frame_count == 4
 
 
+def test_part_file_exists_while_recording_and_is_renamed_on_stop(tmp_path: Path) -> None:
+    recorder = make_recorder(tmp_path)
+    final = recorder.start_segment("EXP-P", 1, fps=10.0)
+    part = final.with_name("row_01.part.mp4")
+    for k in range(4):
+        recorder.offer(frame(k))
+    assert part.exists() and not final.exists()  # 录制中只有 .part
+    recorder.stop_segment()
+    assert final.exists() and not part.exists()
+
+
+def test_non_ascii_path_writes_through_ascii_scratch_then_moves(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """模拟 Windows：编码器写纯 ASCII 临时目录，收尾时移到中文目录，临时目录被清理。"""
+    made: list[Path] = []
+    real_make = make_ascii_scratch_dir
+
+    def make() -> Path:
+        made.append(real_make())
+        return made[-1]
+
+    monkeypatch.setattr(RECORDER_MODULE + ".needs_ascii_path", lambda p: True)
+    monkeypatch.setattr(RECORDER_MODULE + ".make_ascii_scratch_dir", make)
+
+    recorder = make_recorder(tmp_path / "数据 目录")
+    final = recorder.start_segment("EXP-CN2", 2, fps=10.0)
+    assert len(made) == 1 and str(made[0]).isascii()
+    assert (made[0] / "segment.mp4").exists()  # 编码器写的是 ASCII 临时文件
+    for k in range(6):
+        recorder.offer(frame(k))
+    record = recorder.stop_segment()
+
+    assert record.path == final and read_back(final)[0] == 6
+    assert hashlib.sha256(final.read_bytes()).hexdigest() == record.sha256
+    assert list(final.parent.iterdir()) == [final]  # .part 与临时文件都无残留
+    assert not made[0].exists()
+
+
+def test_no_ascii_scratch_dir_is_an_explicit_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("tempfile.gettempdir", lambda: "/临时")
+    for name in ("PUBLIC", "PROGRAMDATA", "SYSTEMDRIVE"):
+        monkeypatch.setenv(name, "/不存在的目录")
+    with pytest.raises(RecorderError, match="纯英文路径"):
+        make_ascii_scratch_dir()
+
+
 def test_chinese_data_dir_for_video_and_images(tmp_path: Path) -> None:
-    """数据目录含中文：macOS 下验证通过；Windows 下 cv2.VideoWriter 的行为需实机验证。"""
+    """数据目录含中文：直接写（macOS/Linux）；Windows 走 ASCII 临时目录，见上一个测试。"""
     data = tmp_path / "数据 目录"
     recorder = make_recorder(data)
     recorder.start_segment("EXP-CN", 1, fps=10.0)
