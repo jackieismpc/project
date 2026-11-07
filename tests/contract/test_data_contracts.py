@@ -90,7 +90,7 @@ def test_contract_models_are_frozen_and_reject_extra_fields() -> None:
         TubeSlot(tube_no=1, position_in_row=1, extra=1)  # type: ignore[call-arg]
 
 
-@pytest.mark.parametrize(("tube_no", "position"), [(1, 2), (9, 2), (0, 1), (81, 1), (1, 9)])
+@pytest.mark.parametrize(("tube_no", "position"), [(1, 2), (9, 2), (0, 1), (97, 1), (1, 9)])
 def test_tube_slot_rejects_inconsistent_position(tube_no: int, position: int) -> None:
     with pytest.raises(ValidationError):
         TubeSlot(tube_no=tube_no, position_in_row=position)
@@ -100,7 +100,7 @@ def test_tube_slot_rejects_inconsistent_position(tube_no: int, position: int) ->
     "overrides",
     [
         {"row_index": 0},
-        {"row_index": 11},
+        {"row_index": 13},
         {"tubes": []},
         {"tubes": [TubeSlot.from_tube_no(9)]},
         {"tubes": [TubeSlot.from_tube_no(1), TubeSlot.from_tube_no(1)]},

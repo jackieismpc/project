@@ -8,7 +8,7 @@ class DomainError(Exception):
 
 
 class InvalidPlatePositionError(DomainError, ValueError):
-    """管号、排号或孔号超出 8×10 孔板范围。"""
+    """管号、排号或孔号超出孔板范围（12 排×8 支）。"""
 
 
 class IllegalTransitionError(DomainError):

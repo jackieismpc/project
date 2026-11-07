@@ -10,7 +10,7 @@ import pytest
 
 from gelinspect.domain.entities import ReagentBatch
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind, TubeRole
-from gelinspect.domain.plate import tube_to_position
+from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
 from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageRequest
@@ -179,7 +179,7 @@ def test_create_refuses_duplicate_out_of_range_and_blank(stack: Stack) -> None:
         is ServiceErrorCode.DRAFT_TUBES_INVALID
     )
     assert (
-        attempt([*base[:7], SampleAssignmentInput(81, "越界")])
+        attempt([*base[:7], SampleAssignmentInput(TUBE_COUNT + 1, "越界")])
         is ServiceErrorCode.DRAFT_TUBES_INVALID
     )
     assert attempt([*base[:7], SampleAssignmentInput(8, "  ")]) is (

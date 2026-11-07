@@ -9,7 +9,13 @@ from PySide6.QtWidgets import QApplication, QLineEdit
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind
-from gelinspect.domain.plate import HOLES_PER_ROW, ROW_COUNT, position_to_tube, tube_to_position
+from gelinspect.domain.plate import (
+    HOLES_PER_ROW,
+    ROW_COUNT,
+    TUBE_COUNT,
+    position_to_tube,
+    tube_to_position,
+)
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageRequest
@@ -326,8 +332,8 @@ def test_plate_selection_uses_the_domain_numbering(qapp: QApplication, window: M
             column = int(rect.center().x() // (plate.width() / ROW_COUNT)) + 1
             assert column == row == tube_to_position(tube).row_index
     plate.clear_selection()
-    select_tubes(qapp, page, [position_to_tube(3, 2), position_to_tube(10, 8)])
-    assert page.draft().selected == [18, 80]
+    select_tubes(qapp, page, [position_to_tube(3, 2), position_to_tube(ROW_COUNT, 8)])
+    assert page.draft().selected == [18, TUBE_COUNT]
 
 
 def test_editing_samples_and_blank_names_block_the_next_step(

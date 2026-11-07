@@ -192,7 +192,7 @@ def test_path_traversal_ids_are_rejected(tmp_path: Path, bad: str) -> None:
     assert not (tmp_path.parent / "x").exists()
 
 
-@pytest.mark.parametrize("row", [0, 11, -1, True])
+@pytest.mark.parametrize("row", [0, 13, -1, True])
 def test_bad_row_index_is_rejected(tmp_path: Path, row: int) -> None:
     with pytest.raises(InvalidIdentifierError):
         make_recorder(tmp_path).start_segment("EXP-OK", row)

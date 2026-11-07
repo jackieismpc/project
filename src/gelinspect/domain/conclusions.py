@@ -392,7 +392,29 @@ def lambda_c_from_endpoints(endpoints: Sequence[float]) -> float:
 
 
 def _tube_list(tubes: Sequence[int]) -> str:
-    return "、".join(str(no) for no in sorted(tubes))
+    """把管号排成文字：连续 3 个以上合并为“起–止”，其余用顿号隔开。
+
+    整板 96 管时逐个列出会占好几行，合并后“1–96”一眼可读。
+
+    Args:
+        tubes: 管号。
+
+    Returns:
+        例如 ``1–8、10、12–14``。
+    """
+    ordered = sorted(set(tubes))
+    parts: list[str] = []
+    index = 0
+    while index < len(ordered):
+        end = index
+        while end + 1 < len(ordered) and ordered[end + 1] == ordered[end] + 1:
+            end += 1
+        if end - index >= 2:
+            parts.append(f"{ordered[index]}–{ordered[end]}")
+        else:
+            parts.extend(str(no) for no in ordered[index : end + 1])
+        index = end + 1
+    return "、".join(parts)
 
 
 def _final(result: TubeResult | None) -> Interpretation | None:

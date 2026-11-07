@@ -155,7 +155,7 @@ class TubeAssignment:
     """试验中一支试管的安排，对应结果表的一行。
 
     Attributes:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
         sample: 样品。
         role: 试管用途。
         dilution_factor: 稀释倍数。
@@ -182,7 +182,7 @@ class TubeResult:
     """单管结果。
 
     Attributes:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
         analysis_status: 算法状态。
         gel_state: 算法三态，无法判定时为 None。
         auto_interpretation: 按映射规则得出的判读。

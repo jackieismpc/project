@@ -249,7 +249,7 @@ def test_rejects_bad_identifiers(running: VideoPipeline, tmp_path: Path) -> None
             )
     with pytest.raises(InvalidIdentifierError):
         running.grab(
-            11, 3, experiment_id="ok", flip_completed_at=FLIP_END, flip_started_at=FLIP_START
+            13, 3, experiment_id="ok", flip_completed_at=FLIP_END, flip_started_at=FLIP_START
         )
     assert not (tmp_path.parent / "evil").exists()
 

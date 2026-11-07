@@ -23,7 +23,7 @@ from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.marks import WellState
-from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend, TubeStrip
+from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend, TubeStrip, plate_title
 from gelinspect.ui.widgets.quick_toolbar import QuickToolbar
 from gelinspect.ui.widgets.tabs import Tabs
 
@@ -161,7 +161,7 @@ class MonitorPage(QWidget):
         Returns:
             卡片。
         """
-        card = Card("孔板 8 × 10")
+        card = Card(plate_title())
         assert card.header is not None
         card.header.addWidget(PlateLegend())
         self.plate = PlateGrid()

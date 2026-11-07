@@ -24,6 +24,7 @@ from gelinspect.domain.enums import (
     TubeRole,
 )
 from gelinspect.domain.interpretation import GelStateMapping
+from gelinspect.domain.plate import TUBE_COUNT
 from gelinspect.domain.state_machine import ExperimentEvent
 from gelinspect.services.reporting.document import ReportDocument, build_section
 from gelinspect.services.reporting.renderer import ReportRenderer, ensure_fonts
@@ -35,9 +36,9 @@ from .pdftext import flat_text, has_text, pdf_font_report, pdf_page_count, pdf_p
 
 
 def big_experiment(
-    tubes: int = 80, *, name: str = "供试品", batch: str = "批号-2606"
+    tubes: int = TUBE_COUNT, *, name: str = "供试品", batch: str = "批号-2606"
 ) -> Experiment:
-    """80 管的限度试验（规则待 QA 核对，结论是待定），用来测多页排版。"""
+    """整板（全部管位）的限度试验（规则待 QA 核对，结论是待定），用来测多页排版。"""
     assignments = tuple(
         TubeAssignment(
             tube_no=no,
@@ -111,19 +112,24 @@ def test_eighty_tubes_span_pages_and_repeat_the_table_header_and_footer() -> Non
         assert f"第 {number} 页 / 共 {pages} 页" in text  # 页脚逐页
         assert "SHA-256" in text and "未经许可不得复制" in text
     everything = "\n".join(page_texts)
-    for tube in (1, 40, 80):
+    for tube in (1, 40, TUBE_COUNT):
         assert f"供试品{tube}" in everything
     assert "未签署" in everything  # 预览页脚明确说明还没有签署
-    # 80 行全部排进了表里：每个管号都出现
-    assert all(f"SN{no:04d}" in flat_text(data) for no in range(1, 81))
+    # 全部行排进了表里：每个管号都出现
+    assert all(f"SN{no:04d}" in flat_text(data) for no in range(1, TUBE_COUNT + 1))
 
 
 def test_rows_never_split_across_pages_and_nothing_is_cut_off() -> None:
     data, pages = ReportRenderer(zone=UTC).render_pdf(
         document_of(big_experiment()), ReportTexts(ReportLanguage.ZH_CN)
     )
-    seen = [no for text in pdf_pages_text(data) for no in range(1, 81) if f"SN{no:04d}" in text]
-    assert sorted(seen) == list(range(1, 81))  # 每行恰好出现在一页上
+    seen = [
+        no
+        for text in pdf_pages_text(data)
+        for no in range(1, TUBE_COUNT + 1)
+        if f"SN{no:04d}" in text
+    ]
+    assert sorted(seen) == list(range(1, TUBE_COUNT + 1))  # 每行恰好出现在一页上
     assert pages >= 3
 
 

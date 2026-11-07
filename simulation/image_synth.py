@@ -33,8 +33,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from gelinspect.domain.enums import GelState
+from gelinspect.domain.plate import HOLES_PER_ROW
 
-SLOT_COUNT = 8
+SLOT_COUNT = HOLES_PER_ROW
 """一排的管位数。"""
 GEL_VISIBLE_TRANSMITTANCE = 0.88
 """样品团相对背光的透光率低于该值才会被当作可见的凝胶。"""

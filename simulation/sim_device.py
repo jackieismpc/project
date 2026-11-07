@@ -165,7 +165,7 @@ class SimDevice:
         """设置相机对着的排，不触发动作。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Raises:
             ValueError: 排号超出范围。
@@ -178,7 +178,7 @@ class SimDevice:
         """某排当前是否处于翻转状态。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             已翻转（含正在完成的翻转）时为 True。
@@ -234,7 +234,7 @@ class SimDevice:
         """翻转一排并保持翻转状态。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             翻转结果，角度为 180° 附近。
@@ -251,7 +251,7 @@ class SimDevice:
         """把一排复位到翻转前的姿态。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             复位结果，角度为 0° 附近。
@@ -358,7 +358,7 @@ class SimDevice:
         """开始翻转或复位但不等待，动作按时钟自行完成，供演示和测试观察过渡画面。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
             flip: True 为翻转，False 为复位。
 
         Raises:

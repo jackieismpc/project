@@ -1,8 +1,8 @@
-"""8×10 孔板 PlateGrid、图例 PlateLegend 与暗底 8 连管 TubeStrip。
+"""12 排×8 支孔板 PlateGrid、图例 PlateLegend 与暗底 8 连管 TubeStrip。
 
-管号一律通过 :mod:`gelinspect.domain.plate` 换算：竖向编号，第 1 列（Row01）是 1–8，
-第 2 列（Row02）是 9–16，依此类推。孔用 QPainter 自绘，开启抗锯齿，随 Qt 的高 DPI
-缩放保持圆滑。
+管号一律通过 :mod:`gelinspect.domain.plate` 换算：每排一竖列，第 1 列（Row01）是 1–8，
+第 2 列（Row02）是 9–16，依此类推，第 12 列（Row12）是 89–96。
+孔用 QPainter 自绘，开启抗锯齿，随 Qt 的高 DPI 缩放保持圆滑。
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, QPointF, QRectF, QSize, Qt,
 from PySide6.QtGui import (
     QColor,
     QFocusEvent,
+    QFont,
     QFontMetrics,
     QKeyEvent,
     QLinearGradient,
@@ -52,6 +53,38 @@ class PlateMode(Enum):
     """选择：点击切换选中，发出 ``selectionChanged``。"""
 
 
+def plate_title() -> str:
+    """孔板的显示标题，例如“孔板 12 排 × 8 支”，数字取自领域层常量。
+
+    Returns:
+        当前界面语言的标题。
+    """
+    return QCoreApplication.translate("PlateGrid", "孔板 {rows} 排 × {holes} 支").format(
+        rows=ROW_COUNT, holes=HOLES_PER_ROW
+    )
+
+
+def _fit_mono_font(text: str, active: bool, width: float) -> QFont:
+    """倒计时文字的字体：12 号放不下时逐级缩小，最小 9 号，仍放不下才由调用方省略。
+
+    12 排时每列只有 50～65px，英文的 ``Analyzing`` 在 12 号等宽字下略宽。
+
+    Args:
+        text: 要显示的文字。
+        active: 是否为进行中状态（加粗）。
+        width: 可用宽度（像素）。
+
+    Returns:
+        能放下文字的等宽字体。
+    """
+    font = mono_font(12, medium=active)
+    for size in (12, 11, 10, 9):
+        font = mono_font(size, medium=active)
+        if QFontMetrics(font).horizontalAdvance(text) <= width:
+            break
+    return font
+
+
 _LABEL_H = 18
 _GAP_Y = {PlateMode.DISPLAY: 6, PlateMode.SELECT: 4}
 _PREFERRED_D = {PlateMode.DISPLAY: 38, PlateMode.SELECT: 44}
@@ -62,7 +95,7 @@ def well_accessible_name(tube_no: int, state: WellState, *, selected: bool = Fal
     """生成孔的无障碍名称，与设计稿的 ``aria-label`` 一致。
 
     Args:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
         state: 显示状态。
         selected: 选择模式下是否已选中。
 
@@ -78,7 +111,7 @@ def well_accessible_name(tube_no: int, state: WellState, *, selected: bool = Fal
 
 
 class PlateGrid(QWidget):
-    """8×10 孔板。
+    """12 排×8 支孔板。
 
     Signals:
         tubeClicked: 显示模式下点击（或在焦点孔上按空格、回车），参数为管号。
@@ -140,7 +173,7 @@ class PlateGrid(QWidget):
         """设置单个孔的显示状态。
 
         Args:
-            tube_no: 管号，1–80。
+            tube_no: 管号，1–96。
             state: 显示状态。
 
         Raises:
@@ -170,7 +203,7 @@ class PlateGrid(QWidget):
         """查询孔的显示状态。
 
         Args:
-            tube_no: 管号，1–80。
+            tube_no: 管号，1–96。
 
         Returns:
             显示状态，未设置时为 ``EMPTY``。
@@ -181,7 +214,7 @@ class PlateGrid(QWidget):
         """设置一排的倒计时文字。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
             text: 文字，例如 ``12:48``、``已读数``；空串表示清除。
             active: 是否为当前活动排（主色加粗）。
 
@@ -332,7 +365,7 @@ class PlateGrid(QWidget):
         """返回某个孔的外接矩形（控件坐标）。
 
         Args:
-            tube_no: 管号，1–80。
+            tube_no: 管号，1–96。
 
         Returns:
             孔的外接正方形。
@@ -491,7 +524,7 @@ class PlateGrid(QWidget):
         """返回键盘焦点所在的管号。
 
         Returns:
-            管号，1–80。
+            管号，1–96。
         """
         return self._current
 
@@ -499,7 +532,7 @@ class PlateGrid(QWidget):
         """移动键盘焦点孔。
 
         Args:
-            tube_no: 管号，1–80。
+            tube_no: 管号，1–96。
 
         Raises:
             InvalidPlatePositionError: 管号超出范围。
@@ -511,7 +544,7 @@ class PlateGrid(QWidget):
 
     def _update_accessible(self) -> None:
         """刷新无障碍名称与描述（读屏软件读出当前孔）。"""
-        self.setAccessibleName(self.tr("孔板 8 乘 10"))
+        self.setAccessibleName(plate_title())
         tube = self._current
         self.setAccessibleDescription(
             well_accessible_name(tube, self.state(tube), selected=tube in self._selected)
@@ -530,7 +563,7 @@ class PlateGrid(QWidget):
     # ------------------------------------------------------------------ 绘制
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """绘制列头、倒计时与 80 个孔。
+        """绘制列头、倒计时与全部孔。
 
         Args:
             event: 绘制事件。
@@ -551,7 +584,7 @@ class PlateGrid(QWidget):
                 p.drawText(cell, int(Qt.AlignmentFlag.AlignCenter), row_label(row))
             if self._show_countdown and row in self._countdowns:
                 text, active = self._countdowns[row]
-                p.setFont(mono_font(12, medium=active))
+                p.setFont(_fit_mono_font(text, active, col_w - 2))
                 p.setPen(QColor(c.primary if active else c.ink_muted))
                 fm = QFontMetrics(p.font())
                 elided = fm.elidedText(text, Qt.TextElideMode.ElideRight, int(col_w))

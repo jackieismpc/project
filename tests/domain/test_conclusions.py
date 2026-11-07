@@ -612,3 +612,19 @@ def test_spike_from_lambda_rejects_bad_input() -> None:
         spike_from_lambda(0.0, 1.0)
     with pytest.raises(ValueError):
         spike_from_lambda(0.5, -1.0)
+
+
+@pytest.mark.parametrize(
+    ("tubes", "expected"),
+    [
+        ([1, 5, 9, 13], "1、5、9、13"),
+        ([1, 2], "1、2"),
+        ([1, 2, 3], "1–3"),
+        ([12, 10, 1, 2, 3, 4, 13, 14], "1–4、10、12–14"),
+        (list(range(1, 97)), "1–96"),
+    ],
+)
+def test_tube_list_merges_runs_of_three_or_more(tubes: list[int], expected: str) -> None:
+    from gelinspect.domain.conclusions import _tube_list
+
+    assert _tube_list(tubes) == expected

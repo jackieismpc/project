@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 
 from gelinspect.domain.enums import BatchKind, ReagentKind
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.plate import row_label
+from gelinspect.domain.plate import ROW_COUNT, row_label
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
@@ -75,7 +75,7 @@ from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.marks import WellState
-from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend
+from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend, plate_title
 from gelinspect.ui.widgets.replay_player import ReplayPlayer
 from gelinspect.ui.widgets.tabs import Tabs
 from gelinspect.ui.widgets.toast import Toast, ToastKind
@@ -626,7 +626,7 @@ class MonitorPage(QWidget):
             t.tube_no: well_state(self._status.get(t.tube_no)) for t in view.tubes
         }
         self.plate.set_states(states)
-        for index in range(1, 11):
+        for index in range(1, ROW_COUNT + 1):
             if index not in self._rows:
                 self.plate.set_countdown(index, "")
                 continue
@@ -1017,7 +1017,7 @@ class MonitorPage(QWidget):
             ("started", self.tr("开始时间")),
         ):
             self._fact_labels[key].setText(text)
-        self.plate_card.set_title(self.tr("孔板 8 × 10"))
+        self.plate_card.set_title(plate_title())
         self.video_card.set_title(self.tr("实时视频"))
         self.replay_card.set_title(self.tr("按排回放"))
         self.replay_empty.setText(self.tr("这个试验没有录像"))

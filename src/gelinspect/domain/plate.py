@@ -1,8 +1,9 @@
-"""8×10 孔板的管位模型。
+"""12 排×8 支孔板的管位模型。
 
-管号 1–80 竖向编号：第 1 列是 1–8，对应 Row01；第 2 列是 9–16，对应 Row02；依此类推。
-这里的「排」（Row）沿用参考软件的叫法，是一次同时翻转和拍照的 8 支试管，
-在孔板上表现为竖直的一列。「孔」是一排内的位置，从 1 开始。
+管号 1–96 按排编号：第 1 排是 1–8，对应 Row01；第 2 排是 9–16，对应 Row02；依此类推，
+第 12 排是 89–96；每排内从左到右。
+这里的“排”（Row）是机械臂一次抓取、同时翻转和拍照的 8 支试管，
+在孔板上表现为竖直的一列。“孔”是一排内的位置，从 1 开始。
 
 所有编号都从 1 开始，与界面和报告一致。
 """
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 
 from gelinspect.domain.errors import InvalidPlatePositionError
 
-ROW_COUNT = 10
+ROW_COUNT = 12
 """孔板的排数。"""
 HOLES_PER_ROW = 8
 """每排的孔数。"""
@@ -26,7 +27,7 @@ class PlatePosition:
     """孔板上的一个位置。
 
     Attributes:
-        row_index: 排号，1–10。
+        row_index: 排号，1–12。
         hole_index: 孔号，即排内位置，1–8。
     """
 
@@ -66,7 +67,7 @@ def tube_to_position(tube_no: int) -> PlatePosition:
     """把管号换算成排和孔。
 
     Args:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
 
     Returns:
         对应的孔板位置。
@@ -84,11 +85,11 @@ def position_to_tube(row_index: int, hole_index: int) -> int:
     """把排和孔换算成管号。
 
     Args:
-        row_index: 排号，1–10。
+        row_index: 排号，1–12。
         hole_index: 孔号，1–8。
 
     Returns:
-        管号，1–80。
+        管号，1–96。
 
     Raises:
         InvalidPlatePositionError: 排号或孔号超出范围。
@@ -100,7 +101,7 @@ def tubes_in_row(row_index: int) -> tuple[int, ...]:
     """列出一排的全部管号。
 
     Args:
-        row_index: 排号，1–10。
+        row_index: 排号，1–12。
 
     Returns:
         按孔号升序排列的 8 个管号。
@@ -117,7 +118,7 @@ def row_label(row_index: int) -> str:
     """生成排的显示标签。
 
     Args:
-        row_index: 排号，1–10。
+        row_index: 排号，1–12。
 
     Returns:
         形如 ``Row01`` 的标签。

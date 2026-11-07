@@ -2,6 +2,7 @@
 
 import pytest
 
+from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.interfaces.device import (
     DeviceConnectionError,
     DeviceController,
@@ -88,7 +89,7 @@ def test_invalid_row_and_preconditions() -> None:
     with pytest.raises(ValueError, match="排号"):
         device.flip_row(0)
     with pytest.raises(ValueError, match="排号"):
-        device.restore_row(11)
+        device.restore_row(ROW_COUNT + 1)
     device.set_door(False)
     assert device.read_status().door_closed is False
     with pytest.raises(DeviceFaultError, match="舱门"):

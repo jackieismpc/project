@@ -45,7 +45,7 @@ class TemplateTubeItem:
     """模板中的一个管位项。
 
     Attributes:
-        tube_no: 默认管号，1–80。
+        tube_no: 默认管号，1–96。
         sample_name: 默认样品名称。
         role: 试管用途。
         dilution_factor: 稀释倍数，未知时为 None。

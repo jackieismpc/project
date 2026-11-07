@@ -113,7 +113,7 @@ def test_create_and_edit_a_custom_template(stack: Stack) -> None:
         (TemplateDraft("x" * 61, ExperimentType.LIMIT, [TemplateItemInput("a")]),
          ServiceErrorCode.TEMPLATE_NAME_TOO_LONG),
         (TemplateDraft("空", ExperimentType.LIMIT, []), ServiceErrorCode.TEMPLATE_TUBE_COUNT),
-        (TemplateDraft("太多", ExperimentType.LIMIT, [TemplateItemInput("a")] * 81),
+        (TemplateDraft("太多", ExperimentType.LIMIT, [TemplateItemInput("a")] * 97),
          ServiceErrorCode.TEMPLATE_TUBE_COUNT),
         (TemplateDraft(
             "缺名", ExperimentType.LIMIT, [TemplateItemInput("a"), TemplateItemInput(" ")]

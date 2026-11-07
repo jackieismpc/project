@@ -284,7 +284,7 @@ class MediaFile:
         path: 文件路径。
         sha256: 文件内容的 SHA-256（64 位小写十六进制）。
         created_at: 记录时间。
-        row_index: 排号 1–10，与排无关的文件为 None。
+        row_index: 排号 1–12，与排无关的文件为 None。
         size_bytes: 文件大小。
         captured_at: 原图的帧采集时间，其他文件为 None。软件重启后重试分析要用。
         flip_angle_deg: 原图所属那次翻转的实际角度，其他文件为 None。

@@ -66,7 +66,7 @@ def test_template_rejects_duplicates_and_empty() -> None:
 
 def test_item_rejects_bad_values() -> None:
     with pytest.raises(InvalidPlatePositionError):
-        TemplateTubeItem(tube_no=81, sample_name="s", role=TubeRole.TEST)
+        TemplateTubeItem(tube_no=97, sample_name="s", role=TubeRole.TEST)
     with pytest.raises(ValueError):
         TemplateTubeItem(tube_no=1, sample_name="s", role=TubeRole.TEST, dilution_factor=-1.0)
 

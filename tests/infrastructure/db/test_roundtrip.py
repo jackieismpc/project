@@ -17,6 +17,7 @@ from gelinspect.domain.enums import (
     TubeAnalysisStatus,
 )
 from gelinspect.domain.interpretation import GelStateMapping
+from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.infrastructure.db import Database
@@ -191,7 +192,7 @@ def test_media_and_report_roundtrip(database: Database) -> None:
     with pytest.raises(ValueError, match="sha256"):
         database.media.add(MediaFile("f8", "E1", MediaKind.IMAGE, "p", "XYZ", T0))
     with pytest.raises(ValueError, match="排号"):
-        database.media.add(MediaFile("f7", "E1", MediaKind.IMAGE, "p", SHA, T0, 11))
+        database.media.add(MediaFile("f7", "E1", MediaKind.IMAGE, "p", SHA, T0, ROW_COUNT + 1))
 
     report = ReportRecord("r1", "E1", "reports/E1.pdf", SHA, "bob", T0, signed=True)
     database.reports.add(report)

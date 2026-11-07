@@ -1942,10 +1942,6 @@
         <translation>Start time</translation>
     </message>
     <message>
-        <source>孔板 8 × 10</source>
-        <translation>Plate 8 × 10</translation>
-    </message>
-    <message>
         <source>实时视频</source>
         <translation>Live video</translation>
     </message>
@@ -2077,8 +2073,8 @@
         <translation>Tubes</translation>
     </message>
     <message>
-        <source>8 乘 10 管位</source>
-        <translation>8 by 10 tubes</translation>
+        <source>{rows} 排 × {holes} 支管位</source>
+        <translation>{rows} rows × {holes} tubes</translation>
     </message>
     <message>
         <source>自动选择</source>
@@ -2404,16 +2400,16 @@
 <context>
     <name>PlateGrid</name>
     <message>
+        <source>孔板 {rows} 排 × {holes} 支</source>
+        <translation>Plate {rows} × {holes}</translation>
+    </message>
+    <message>
         <source>{no} 号管，{state}</source>
         <translation>Tube {no}, {state}</translation>
     </message>
     <message>
         <source>，已选中</source>
         <translation>, selected</translation>
-    </message>
-    <message>
-        <source>孔板 8 乘 10</source>
-        <translation>8 by 10 well plate</translation>
     </message>
     <message>
         <source>已读数</source>

@@ -378,7 +378,7 @@ class VideoPipeline:
 
         Args:
             experiment_id: 试验标识。
-            row_index: 排号 1–10。
+            row_index: 排号 1–12。
 
         Returns:
             录制完成后的最终文件路径。

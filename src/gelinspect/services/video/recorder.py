@@ -259,7 +259,7 @@ class SegmentRecorder:
 
         Args:
             experiment_id: 试验标识，会校验后才用于拼接路径。
-            row_index: 排号 1–10。
+            row_index: 排号 1–12。
             fps: 写入容器的帧率，None 时用配置的 ``default_fps``。
 
         Returns:

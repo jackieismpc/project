@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from gelinspect.domain.enums import BatchKind, ReportScope
+from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.infrastructure.db.models import MediaFileRow, ReportRow
 from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
@@ -72,11 +73,11 @@ class SqlMediaRepository(MediaRepository):
         Raises:
             DuplicateError: 文件标识已存在。
             NotFoundError: 试验不存在。
-            ValueError: ``sha256`` 格式不符，或排号超出 1–10。
+            ValueError: ``sha256`` 格式不符，或排号超出 1–12。
         """
         _require_sha256(media.sha256)
-        if media.row_index is not None and not 1 <= media.row_index <= 10:
-            raise ValueError(f"排号应在 1–10 内：{media.row_index}")
+        if media.row_index is not None and not 1 <= media.row_index <= ROW_COUNT:
+            raise ValueError(f"排号应在 1–{ROW_COUNT} 内：{media.row_index}")
         try:
             with translate_lock_errors(), self._sessions() as session:
                 session.add(

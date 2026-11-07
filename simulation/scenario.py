@@ -166,7 +166,7 @@ class Scenario:
         """一排 8 个管位的绘制参数。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             长度为 8 的列表。

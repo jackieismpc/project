@@ -153,7 +153,7 @@ hash = SHA-256( prev_hash + "\n" + canonical_json(seq, occurred_at, actor, actor
 - **审计查询**：`AuditQuery` 增加 `max_seq`（序号上限，含）。翻页时用第一页看到的最大序号固定范围，翻页期间新写入的记录（登录、别人的操作、查看审计自己）不会把后面的页往后顶，造成同一条记录出现两次。导出也用它：每页从上一页最后一条之前开始，不用越来越大的 OFFSET，10 万条是线性的。
 - **校验进度**：`AuditRepository.verify_chain(progress=None)` 每校验完一批（5000 条）调用一次 `progress(已校验到的序号)`，在调用线程上执行；`verify_audit_chain(db, progress)` 同样。
 - **工作单元带用户仓储**：`UnitOfWork.users`。用户的改动和它的审计事件在同一个事务里提交，审计写不进去就不会生效。
-- **试验仓储**：`update_limits(experiment_id, mvd=, endotoxin_limit=)` 只改这两个字段，**已签署的试验抛 `StateConflictError`**（服务层先判断，数据层再挡一次）；`latest_analyzer_versions()` 取最近一个有算法结果的试验所用的模型版本和配置版本（设置页的「算法后端」显示）。
+- **试验仓储**：`update_limits(experiment_id, mvd=, endotoxin_limit=)` 只改这两个字段，**已签署的试验抛 `StateConflictError`**（服务层先判断，数据层再挡一次）；`latest_analyzer_versions()` 取最近一个有算法结果的试验所用的模型版本和配置版本（设置页的“算法后端”显示）。
 - **新的审计事件类型**：`audit_viewed`（查看审计，新开一次查询时写）、`audit_verified`（校验完整性，记结果和第一处异常的序号）、`limits_changed`（修改 MVD 和限值，记旧值和新值）。`settings_changed` 和 `user_changed` 早就有，现在由设置和用户页写。
 - **用户配置文件**：仪器设置不进数据库，保存在数据目录的 `user_settings.json`（只含与默认配置不同的项），见 admin-pages.md。
 

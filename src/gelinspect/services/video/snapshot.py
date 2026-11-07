@@ -219,7 +219,7 @@ class SnapshotGrabber:
         """取翻转前后各 n 帧并落盘，阻塞直到完成。
 
         Args:
-            row_index: 排号 1–10。
+            row_index: 排号 1–12。
             n: 翻转前后各取多少帧。
             settle_s: 稳定时间，None 时用配置值。
             experiment_id: 试验标识，会校验后才用于拼接路径。

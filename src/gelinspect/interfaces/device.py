@@ -48,7 +48,7 @@ class FlipResult(ContractModel):
     """一次翻转或复位的结果。
 
     Attributes:
-        row_index: 排号，1–10。
+        row_index: 排号，1–12。
         actual_angle_deg: 编码器读到的实际角度，没有编码器时为 None。
         started_at: 动作开始时间，必须带时区。
         completed_at: 动作完成且到位静止的时间，必须带时区，用于定位翻转前后的视频帧。
@@ -124,7 +124,7 @@ class DeviceController(Protocol):
         相机固定、一次能看到整板的设备可以实现为空操作。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Raises:
             ValueError: 排号超出范围。
@@ -138,7 +138,7 @@ class DeviceController(Protocol):
         """翻转一排并保持翻转状态，到位静止后返回，软件随后抓取翻转后的帧。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             翻转结果，含实际角度。
@@ -157,7 +157,7 @@ class DeviceController(Protocol):
         必须幂等：翻转失败时引擎不知道动作走到哪一步，会尝试复位，已在原位时应直接成功。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             复位结果。

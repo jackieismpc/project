@@ -4,7 +4,7 @@
 本模块只判断「状态和事件」是否合法；需要读取试验数据的前置条件（例如有待复核的试管时
 不能签署）由 :class:`gelinspect.domain.entities.Experiment` 检查。
 
-一个试验有 10 排独立倒计时，因此 ``INCUBATING``、``READING``、``ANALYZING`` 描述的是
+一个试验的每一排各有独立倒计时，因此 ``INCUBATING``、``READING``、``ANALYZING`` 描述的是
 试验当前的活动：某排读数和分析期间，其他排仍在孵育，分析结束后回到 ``INCUBATING``。
 """
 

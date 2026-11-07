@@ -15,7 +15,7 @@ from gelinspect.domain.enums import (
     ReviewStatus,
     TubeAnalysisStatus,
 )
-from gelinspect.domain.plate import TUBE_COUNT
+from gelinspect.domain.plate import ROW_COUNT, TUBE_COUNT
 from gelinspect.domain.state_machine import ExperimentState as S
 from gelinspect.infrastructure.db import verify_audit_chain
 from gelinspect.interfaces.device import TrayPosition
@@ -128,7 +128,7 @@ def test_sensitivity_17_tubes_runs_to_pending_review(harness: HarnessFactory) ->
     assert h.database.telemetry.query_temperatures(experiment_id=EXP_ID, page=PageRequest()).total
 
 
-def test_full_plate_80_tubes_runs_to_completed(harness: HarnessFactory) -> None:
+def test_full_plate_96_tubes_runs_to_completed(harness: HarnessFactory) -> None:
     states: dict[int, GelState | None] = {
         no: GelState.FULLY_GELLED if no % 2 else GelState.NOT_GELLED
         for no in range(1, TUBE_COUNT + 1)
@@ -147,8 +147,8 @@ def test_full_plate_80_tubes_runs_to_completed(harness: HarnessFactory) -> None:
         r.auto_interpretation is (Interpretation.POSITIVE if no % 2 else Interpretation.NEGATIVE)
         for no, r in stored.results.items()
     )
-    assert h.device.flipped_rows() == list(range(1, 11))
-    assert h.media_counts() == (10, 60)
+    assert h.device.flipped_rows() == list(range(1, ROW_COUNT + 1))
+    assert h.media_counts() == (ROW_COUNT, ROW_COUNT * 6)
     h.assert_media_intact()
     h.assert_clean()
     verification = verify_audit_chain(h.database)

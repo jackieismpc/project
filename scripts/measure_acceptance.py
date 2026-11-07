@@ -7,7 +7,7 @@
 测量内容（依赖算法和样机的指标——8 支 10 秒、准确率、错判率——测不了，不在其中）：
 
 1. 环境：系统、机型、Python、Qt。
-2. 全流程：真实向导启动 17 管灵敏度复核，跑完后复核、签署、验签；再跑一次 8×10 整板（80 管）。
+2. 全流程：真实向导启动 17 管灵敏度复核，跑完后复核、签署、验签；再跑一次 12 排×8 支整板（96 管）。
    运行期间用 5 ms 的心跳定时器统计界面线程被阻塞的最长时间，作为「无卡顿」的依据。
 3. 界面响应：10 万条审计加 1 万管结果的数据量下，逐页切换和切换语言的耗时。
 4. 报告：预览（版面计算）、签署（渲染加签名加入库）、验签、批量导出的耗时。
@@ -46,6 +46,7 @@ from PySide6.QtGui import QPageSize, QPdfWriter
 from gelinspect import __version__
 from gelinspect.domain.enums import AuditAction, ExperimentType, Interpretation, Role, TubeRole
 from gelinspect.domain.permissions import PERMISSION_ROLES, Permission, has_permission
+from gelinspect.domain.plate import ROW_COUNT, TUBE_COUNT
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import ExperimentQuery, PageRequest
 from gelinspect.services.audit_service import AuditFilter
@@ -149,6 +150,10 @@ def hardware_model() -> str:
     return f"{platform.machine()} {platform.processor()}".strip()
 
 
+PLATE_TEMPLATE = f"整板 {TUBE_COUNT} 管"
+"""整板测量用的模板名：按领域层的管位总数生成。"""
+
+
 def measure_environment() -> None:
     """记录环境。"""
     RESULTS["environment"] = {
@@ -244,21 +249,21 @@ def measure_flow(root: Path) -> support.Rig:
     rig.context.templates.create_template(
         admin,
         TemplateDraft(
-            "整板 80 管",
+            PLATE_TEMPLATE,
             ExperimentType.INTERFERENCE,
-            [TemplateItemInput(f"整板样品 {n}", TubeRole.TEST) for n in range(1, 81)],
+            [TemplateItemInput(f"整板样品 {n}", TubeRole.TEST) for n in range(1, TUBE_COUNT + 1)],
         ),
     )
     began = time.perf_counter()
-    page = prepare_wizard(rig, "整板 80 管", range(1, 81))
+    page = prepare_wizard(rig, PLATE_TEMPLATE, range(1, TUBE_COUNT + 1))
     plate: dict[str, object] = {
-        "tubes": 80,
-        "rows": 10,
+        "tubes": TUBE_COUNT,
+        "rows": ROW_COUNT,
         "wizard_s": round(time.perf_counter() - began, 2),
     }
     plate.update(start_and_wait(rig, page))
-    RESULTS["flow_80_tubes"] = plate
-    log(f"整板（80 管）：{plate}")
+    RESULTS["flow_96_tubes"] = plate
+    log(f"整板（{TUBE_COUNT} 管）：{plate}")
     return rig
 
 
@@ -389,12 +394,12 @@ def measure_reports(rig: support.Rig, tmp: Path) -> None:
     analyst = rig.context.auth.login("analyst", support.DEMO_PASSWORDS["analyst"])
     reports = rig.context.reports
     flow17 = RESULTS["flow_17_tubes"]
-    flow80 = RESULTS["flow_80_tubes"]
-    assert isinstance(flow17, dict) and isinstance(flow80, dict)
+    flow_full = RESULTS["flow_96_tubes"]
+    assert isinstance(flow17, dict) and isinstance(flow_full, dict)
     out: dict[str, object] = {}
     for label, experiment_id in (
         ("17 管", flow17["experiment_id"]),
-        ("80 管", flow80["experiment_id"]),
+        (f"{TUBE_COUNT} 管", flow_full["experiment_id"]),
     ):
         for language in (ReportLanguage.ZH_CN, ReportLanguage.EN):
             _, seconds = timed(
@@ -403,7 +408,7 @@ def measure_reports(rig: support.Rig, tmp: Path) -> None:
             out[f"预览 {label} {language.value} (ms)"] = round(seconds * 1000, 1)
     for label, experiment_id in (
         ("17 管", flow17["experiment_id"]),
-        ("80 管", flow80["experiment_id"]),
+        (f"{TUBE_COUNT} 管", flow_full["experiment_id"]),
     ):
         preview = reports.preview(analyst, str(experiment_id), ReportLanguage.ZH_CN)
         writer = QPdfWriter(str(tmp / f"paint-{label[:2]}.pdf"))

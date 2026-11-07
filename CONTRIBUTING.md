@@ -3,7 +3,7 @@
 ## 开发流程
 
 1. 安装依赖：`uv sync`。
-2. 按阶段完成功能，每个阶段结束前执行全部检查（见下文「阶段完成标准」）。
+2. 按阶段完成功能，每个阶段结束前执行全部检查（见下文“阶段完成标准”）。
 3. 提交前确认 `git status` 中没有参考素材、运行数据或证书文件。
 
 ## 注释与文档规范
@@ -42,7 +42,7 @@ def analyze_row(self, request: RowAnalysisRequest) -> RowAnalysisResult:
 
 - `type`：`feat`、`fix`、`docs`、`refactor`、`test`、`build`、`chore`、`perf`。
 - `scope` 建议使用模块名，例如 `plate`、`video`、`report`、`deps`。
-- 示例：`feat(plate): 增加 8×10 孔板状态展示`。
+- 示例：`feat(plate): 增加 12 排×8 支孔板状态展示`。
 - 仅在本地提交，不推送。提交由负责人审查后执行。
 
 ## 阶段完成标准
@@ -53,7 +53,7 @@ def analyze_row(self, request: RowAnalysisRequest) -> RowAnalysisResult:
 2. `uv run mypy` 通过。
 3. `uv run pytest` 通过，并覆盖本阶段新增逻辑。
 4. 更新 `docs/PLAN.md` 的进度表、`docs/CHANGELOG.md`，以及对应的功能文档或架构文档。
-5. 完成一次本地提交，并在 `docs/PLAN.md` 的「提交」列记录提交哈希。
+5. 完成一次本地提交，并在 `docs/PLAN.md` 的“提交”列记录提交哈希。
 
 ## 目录约定
 

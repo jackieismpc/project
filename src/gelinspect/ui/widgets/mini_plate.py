@@ -1,4 +1,4 @@
-"""孔板缩略图：80 个 16px 小孔，竖向编号，工作台的「进行中的试验」使用。"""
+"""孔板缩略图：96 个 16px 小孔，每排一竖列，工作台的“进行中的试验”使用。"""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ class MiniPlate(QWidget):
         return self._states.get(tube_no, WellState.EMPTY)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """绘制 80 个小孔。
+        """绘制全部小孔。
 
         Args:
             event: 绘制事件。

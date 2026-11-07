@@ -3,7 +3,7 @@ from PySide6.QtCore import QPointF, Qt
 from PySide6.QtTest import QTest
 from pytestqt.qtbot import QtBot
 
-from gelinspect.domain.plate import position_to_tube, tube_to_position
+from gelinspect.domain.plate import TUBE_COUNT, position_to_tube, tube_to_position
 from gelinspect.ui.widgets.marks import WellState
 from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateLegend, PlateMode, TubeStrip
 
@@ -12,7 +12,7 @@ def test_numbering_matches_domain(qtbot: QtBot) -> None:
     grid = PlateGrid()
     qtbot.addWidget(grid)
     grid.resize(600, 420)
-    for tube in range(1, 81):
+    for tube in range(1, TUBE_COUNT + 1):
         pos = tube_to_position(tube)
         assert grid.tube_at(grid.well_rect(tube).center()) == position_to_tube(
             pos.row_index, pos.hole_index
@@ -69,8 +69,8 @@ def test_keyboard_navigation(qtbot: QtBot) -> None:
         QTest.keyClick(grid, Qt.Key.Key_Space)
     assert blocker.args == [10]
     QTest.keyClick(grid, Qt.Key.Key_End)
-    assert grid.current_tube() == 80
-    assert "80" in grid.accessibleDescription()
+    assert grid.current_tube() == TUBE_COUNT
+    assert str(TUBE_COUNT) in grid.accessibleDescription()
     assert grid.accessibleName()
 
 
@@ -79,7 +79,7 @@ def test_all_states_paint(qtbot: QtBot) -> None:
     qtbot.addWidget(grid)
     grid.resize(600, 420)
     states = list(WellState)
-    grid.set_states({n: states[n % len(states)] for n in range(1, 81)})
+    grid.set_states({n: states[n % len(states)] for n in range(1, TUBE_COUNT + 1)})
     grid.set_countdown(2, "读数中", active=True)
     pixmap = grid.grab()
     assert not pixmap.isNull()
@@ -92,7 +92,7 @@ def test_invalid_tube_rejected(qtbot: QtBot) -> None:
     grid = PlateGrid()
     qtbot.addWidget(grid)
     with pytest.raises(Exception, match="管号"):
-        grid.set_state(81, WellState.POSITIVE)
+        grid.set_state(TUBE_COUNT + 1, WellState.POSITIVE)
 
 
 def test_hit_test_outside(qtbot: QtBot) -> None:

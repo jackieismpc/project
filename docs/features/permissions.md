@@ -54,7 +54,7 @@
 
 | 文件 | 覆盖内容 |
 |---|---|
-| `tests/domain/test_permissions.py` | 矩阵覆盖全部权限；矩阵与规格完全一致；逐一检查「角色 × 权限」；反查函数；矩阵只读；实验员不能复核和签署 |
+| `tests/domain/test_permissions.py` | 矩阵覆盖全部权限；矩阵与规格完全一致；逐一检查“角色 × 权限”；反查函数；矩阵只读；实验员不能复核和签署 |
 
 P7 已落地：`tests/ui/test_main_window.py` 逐角色检查侧栏和快捷栏与矩阵一致，`tests/services/test_auth.py` 检查服务层的再校验（见 [auth-and-i18n.md](auth-and-i18n.md)）。
 

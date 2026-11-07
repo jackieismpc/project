@@ -29,7 +29,7 @@ from gelinspect.domain.enums import (
     Role,
     TubeRole,
 )
-from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
+from gelinspect.domain.plate import ROW_COUNT, TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.infrastructure.db import Database, open_database, verify_audit_chain
 from gelinspect.interfaces.analysis import AnalyzerInfo, RowAnalysisRequest, RowAnalysisResult
@@ -413,7 +413,7 @@ class Harness:
         stats = self.pipeline.buffer.stats()
         assert stats.pins == 0
         assert not self.pipeline.recorder.active
-        flipped = [row for row in range(1, 11) if self.device.is_flipped(row)]
+        flipped = [row for row in range(1, ROW_COUNT + 1) if self.device.is_flipped(row)]
         assert flipped == []
         verification = verify_audit_chain(self.database)
         assert verification.ok, verification.message

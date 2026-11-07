@@ -42,7 +42,7 @@ class DeviceControllerAdapter:
         """让相机对准一排。相机固定时实现为空操作。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Raises:
             NotImplementedError: 模板尚未实现。
@@ -54,7 +54,7 @@ class DeviceControllerAdapter:
         """翻转一排并保持翻转状态。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             翻转结果。
@@ -69,7 +69,7 @@ class DeviceControllerAdapter:
         """把一排复位到翻转前的姿态。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
 
         Returns:
             复位结果。

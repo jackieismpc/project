@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gelinspect.domain.plate import HOLES_PER_ROW, TUBE_COUNT
 from gelinspect.ui.monitor_sample import (
     MonitorPage,
     MonitorSample,
@@ -277,7 +278,7 @@ class GalleryPage(QWidget):
         Returns:
             卡片。
         """
-        card = Card("孔板 PlateGrid（8 × 10，竖向编号）")
+        card = Card("孔板 PlateGrid（12 排 × 8 支，每排一竖列）")
         assert card.header is not None
         card.header.addWidget(PlateLegend())
 
@@ -317,12 +318,12 @@ class GalleryPage(QWidget):
         legend_rows.addWidget(Label("六种状态单独放大（形状可区分，不依赖颜色）", "lab"))
         big = PlateGrid()
         big.set_countdowns_visible(False)
-        big.setMinimumHeight(8 * 48 + 24)
+        big.setMinimumHeight(HOLES_PER_ROW * 48 + 24)
         big.set_states(
             {
                 n: s
                 for n, s in zip(
-                    range(1, 81),
+                    range(1, TUBE_COUNT + 1),
                     [
                         WellState.POSITIVE,
                         WellState.NEGATIVE,

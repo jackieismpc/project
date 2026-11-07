@@ -19,7 +19,7 @@ uv run gelinspect
 不带任何参数即打开主窗口：
 
 - 首次启动自动创建 `data/`（数据库、日志），运行数据库迁移并初始化，默认加载 `simulation/` 下的模拟设备、模拟视频和模拟算法（时间加速 60 倍）。
-- 第一次启动会创建三个**演示账号**（密码公开，不要求改密），也显示在登录页的「演示账号」提示里，点一下就会填入：
+- 第一次启动会创建三个**演示账号**（密码公开，不要求改密），也显示在登录页的“演示账号”提示里，点一下就会填入：
 
   | 用户名 | 密码 | 角色 |
   |---|---|---|
@@ -41,18 +41,18 @@ uv run gelinspect --version          # 只打印版本号
 
 启动失败（配置有误、`simulation/` 缺失、数据库被占用等）会弹出说明原因的对话框，并写入 `data/logs/gelinspect.log`（滚动，单个 1 MB，保留 5 份）。部署和配置细节见 [部署说明](docs/deployment.md)。
 
-> 开发计划见 [docs/PLAN.md](docs/PLAN.md)；日常使用见 [用户手册](docs/user-manual.md)；Windows 和 macOS 发布包见下文「发布包」。
+> 开发计划见 [docs/PLAN.md](docs/PLAN.md)；日常使用见 [用户手册](docs/user-manual.md)；Windows 和 macOS 发布包见下文“发布包”。
 
 ## 发布包（Windows、macOS）
 
 不想装 uv 的使用者用发布包：Nuitka 编译、目录模式，不依赖仓库。
 
 ```bash
-uv run python scripts/build.py                    # 正式包：不含 simulation/，首次启动「创建管理员」
+uv run python scripts/build.py                    # 正式包：不含 simulation/，首次启动“创建管理员”
 uv run python scripts/build.py --with-simulation  # 演示包：模拟后端 + 演示账号
 ```
 
-- macOS 生成 `dist/GelInspect.app` 和 `.dmg`（没有 Apple 签名，首次打开要右键「打开」放行）；Windows 生成 `dist\GelInspect\GelInspect.exe` 和 `.zip`，可选 Inno Setup 安装程序。Windows 包也可以用 GitHub Actions（`.github/workflows/build.yml`）构建。
+- macOS 生成 `dist/GelInspect.app` 和 `.dmg`（没有 Apple 签名，首次打开要右键“打开”放行）；Windows 生成 `dist\GelInspect\GelInspect.exe` 和 `.zip`，可选 Inno Setup 安装程序。Windows 包也可以用 GitHub Actions（`.github/workflows/build.yml`）构建。
 - 发布包的数据放在平台标准位置：Windows `%LOCALAPPDATA%\GelInspect`，macOS `~/Library/Application Support/GelInspect`（可用 `--data-dir` 或 `GELINSPECT_DATA_DIR` 改）。仓库里 `uv run gelinspect` 仍用 `./data`。
 - 基础防护：签名私钥和审计链密钥由系统凭据（DPAPI / 钥匙串）加密保护，审计链改用 HMAC-SHA256，敏感导出可选 AES-256 加密 ZIP，启动时按签名清单校验程序文件。能防什么、不能防什么见 [安全与基础防护](docs/features/security.md)。
 

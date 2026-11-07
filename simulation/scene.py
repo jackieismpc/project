@@ -15,7 +15,7 @@ class SceneSnapshot:
     """某一时刻相机看到的场景。
 
     Attributes:
-        row_index: 相机对着的排号，1–10。
+        row_index: 相机对着的排号，1–12。
         flip_phase: 翻转进度，0 为翻转前，1 为翻转后，中间为翻转过程。
         settle: 样品团的流动进度，0 为刚翻转，1 为已稳定。
         at: 场景被采样的时刻。相机的「曝光时刻」，帧的 ``captured_at`` 必须用它：渲染要花时间，
@@ -56,7 +56,7 @@ class StaticScene:
         """设置场景为稳定的翻转前或翻转后。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
             flipped: 是否已翻转。
             settled: 样品团是否已稳定，默认与 ``flipped`` 一致。
         """
@@ -67,7 +67,7 @@ class StaticScene:
         """设置任意进度，用于定位翻转过程中的画面。
 
         Args:
-            row_index: 排号，1–10。
+            row_index: 排号，1–12。
             flip_phase: 翻转进度，0–1。
             settle: 流动进度，0–1。
         """

@@ -1,6 +1,6 @@
 """新试验向导：选模板 → 校验试剂 → 录入样品和管位 → 确认启动。
 
-对照 ``docs/design/Wizard.dc.html``：四步胶囊步骤条；第 3 步左边是样品表、右边是 8×10 管位
+对照 ``docs/design/Wizard.dc.html``：四步胶囊步骤条；第 3 步左边是样品表、右边是 12 排×8 支管位
 （选择模式）。页面只负责显示和收集输入；数量是否对得上、选中的管号如何对应样品行在
 ``services.experiment_draft``，试剂校验、创建和启动在 ``services`` 里，服务层会把权限、
 试剂和数量**再校验一遍**，所以界面被绕过也不会放行。
@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 
 from gelinspect.domain.enums import ReagentKind
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.plate import row_label, tube_to_position
+from gelinspect.domain.plate import HOLES_PER_ROW, ROW_COUNT, row_label, tube_to_position
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
@@ -410,7 +410,9 @@ class NewExperimentPage(QWidget):
         self.limit_hint.setText(self.tr("录入后写入试验记录并显示在报告里；试验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
         self.plate_card.set_title(self.tr("管位"))
-        self.plate.setAccessibleName(self.tr("8 乘 10 管位"))
+        self.plate.setAccessibleName(
+            self.tr("{rows} 排 × {holes} 支管位").format(rows=ROW_COUNT, holes=HOLES_PER_ROW)
+        )
         self.auto_button.setText(self.tr("自动选择"))
         self.clear_button.setText(self.tr("全部清除"))
         self.sample_back.setText(self.tr("上一步"))

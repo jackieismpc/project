@@ -53,7 +53,7 @@ class SampleAssignmentInput:
     """创建试验时一支试管的输入。
 
     Attributes:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
         name: 样品名称。
         batch_no: 样品批号。
         spiked_endotoxin: 外加内毒素。
@@ -207,7 +207,7 @@ class ExperimentDraft:
             tubes: 管号。
 
         Raises:
-            InvalidPlatePositionError: 管号超出 1–80。
+            InvalidPlatePositionError: 管号超出 1–96。
         """
         unique = sorted(set(tubes))
         for tube_no in unique:

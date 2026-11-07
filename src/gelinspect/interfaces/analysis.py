@@ -56,7 +56,7 @@ class TubeSlot(ContractModel):
     """一个有样品的管位。
 
     Attributes:
-        tube_no: 管号，1–80。
+        tube_no: 管号，1–96。
         position_in_row: 排内位置（孔号），1–8，与管号必须一致。图像中的位置约定见
             ``docs/algorithm-interface.md``。
     """
@@ -84,7 +84,7 @@ class TubeSlot(ContractModel):
         """由管号构造管位。
 
         Args:
-            tube_no: 管号，1–80。
+            tube_no: 管号，1–96。
 
         Returns:
             孔号已换算好的管位。
@@ -114,7 +114,7 @@ class RowAnalysisRequest(ContractModel):
 
     Attributes:
         experiment_id: 试验标识，仅用于追溯，算法无需理解。
-        row_index: 排号，1–10，仅用于追溯，算法无需理解。
+        row_index: 排号，1–12，仅用于追溯，算法无需理解。
         tubes: 本排有样品的管位，1–8 个，都属于 ``row_index``，管号不重复。
         frames_before: 翻转前的帧，至少 3 帧，按时间升序。
         frames_after: 翻转后的帧，至少 3 帧，按时间升序。

@@ -6,6 +6,7 @@ import pytest
 
 from gelinspect.domain.enums import ExperimentType, ReagentKind
 from gelinspect.domain.errors import InvalidPlatePositionError
+from gelinspect.domain.plate import TUBE_COUNT
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
 from gelinspect.services.experiment_draft import ExperimentDraft
 
@@ -63,7 +64,7 @@ def test_selected_tubes_map_to_rows_in_ascending_order() -> None:
 def test_invalid_tube_numbers_are_rejected_and_selection_unchanged() -> None:
     draft = draft_with(LIMIT)
     draft.set_selected([1, 2])
-    for bad in (0, 81, -3):
+    for bad in (0, TUBE_COUNT + 1, -3):
         with pytest.raises(InvalidPlatePositionError):
             draft.set_selected([1, bad])
     assert draft.selected == [1, 2]

@@ -1942,10 +1942,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>孔板 8 × 10</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>实时视频</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2077,7 +2073,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>8 乘 10 管位</source>
+        <source>{rows} 排 × {holes} 支管位</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2404,15 +2400,15 @@
 <context>
     <name>PlateGrid</name>
     <message>
+        <source>孔板 {rows} 排 × {holes} 支</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{no} 号管，{state}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>，已选中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>孔板 8 乘 10</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
