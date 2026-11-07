@@ -104,7 +104,7 @@ def main() -> int:
             experiment_id = support.run_experiment(rig)
             support.finish_and_review(rig, experiment_id)
             support.sign_experiment(rig, experiment_id)
-            # 再跑一个未签署的，让工作台和历史有「已完成」的条目
+            # 再跑一个未签署的，让工作台和历史有“已完成”的条目
             rig.window.logout(confirm=False)
             support.settle(rig.app)
             rig.language.set_language(Language.EN, persist=False)

@@ -72,13 +72,20 @@ def make_config(tmp_path: Path, **overrides: object) -> dict[str, object]:
 
 
 FIXED_NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
-"""测试里的「当前时间」：模拟白名单里的 LAL2606A 在此刻有效，LAL2501B 已过期，不随真实日期变化。"""
+"""测试里的“当前时间”：模拟白名单里的 LAL2606A 在此刻有效，LAL2501B 已过期，不随真实日期变化。"""
 
 
 @pytest.fixture
-def app_context(tmp_path: Path) -> Iterator[AppContext]:
+def conclusions_enabled() -> bool:
+    """试验结论功能是否打开，默认与产品一致（关闭）；需要结论的测试模块覆盖这个夹具返回 True。"""
+    return False
+
+
+@pytest.fixture
+def app_context(tmp_path: Path, conclusions_enabled: bool) -> Iterator[AppContext]:
     """用模拟后端装配好的应用，退出时有序关闭并确认没有线程残留。"""
-    context = build_app_context(parse_config(make_config(tmp_path)), clock=lambda: FIXED_NOW)
+    config = make_config(tmp_path, conclusions={"enabled": conclusions_enabled})
+    context = build_app_context(parse_config(config), clock=lambda: FIXED_NOW)
     yield context
     context.close()
     deadline = time.monotonic() + 8.0

@@ -136,6 +136,7 @@ class MonitorPage(QWidget):
         self._bridge = bridge
         self._session: Session | None = None
         self._view: ExperimentView | None = None
+        self._conclusions_enabled = False
         self._status: dict[int, WellStatus | None] = {}
         self._rows: dict[int, tuple[RowPhase | None, float | None]] = {}
         self._recordings: list[int] = []
@@ -257,6 +258,8 @@ class MonitorPage(QWidget):
         row.setSpacing(20)
         self._fact_labels: dict[str, Label] = {}
         self._fact_values: dict[str, Label] = {}
+        self._fact_cells: dict[str, QVBoxLayout] = {}
+        self._fact_row = row
         for key, mono in (
             ("lal", True),
             ("endotoxin", True),
@@ -275,6 +278,7 @@ class MonitorPage(QWidget):
             row.addLayout(cell, 1)
             self._fact_labels[key] = label
             self._fact_values[key] = value
+            self._fact_cells[key] = cell
         self.facts_card.body.addLayout(row)
         self._column.addWidget(self.facts_card)
 
@@ -337,7 +341,7 @@ class MonitorPage(QWidget):
         self.stack.addWidget(data)
 
     def _build_report_tab(self) -> Card:
-        """「报告打印预览」标签：说明现状，一键到报告中心预览、打印和签署。"""
+        """“报告打印预览”标签：说明现状，一键到报告中心预览、打印和签署。"""
         card = Card()
         icon = Label()
         icon.setPixmap(IconLoader.pixmap("file-text", 36, "ink_muted"))
@@ -352,7 +356,7 @@ class MonitorPage(QWidget):
         return card
 
     def _build_batch_tab(self) -> Card:
-        """「单批次报告」标签：列出本试验的批号，点一下到报告中心看汇总。"""
+        """“单批次报告”标签：列出本试验的批号，点一下到报告中心看汇总。"""
         card = Card()
         icon = Label()
         icon.setPixmap(IconLoader.pixmap("file-text", 36, "ink_muted"))
@@ -510,8 +514,9 @@ class MonitorPage(QWidget):
 
     def _show_empty(self, empty: bool) -> None:
         self.empty_card.setVisible(empty)
-        for widget in (self.header, self.facts_card, self.conclusion_card, self.tabs, self.stack):
+        for widget in (self.header, self.facts_card, self.tabs, self.stack):
             widget.setVisible(not empty)
+        self.conclusion_card.setVisible(not empty and self._conclusions_enabled)
         if empty:
             self.recovery_hint.setVisible(False)
         self.alerts.setVisible(not empty and bool(self.alerts.active_keys()))
@@ -763,9 +768,25 @@ class MonitorPage(QWidget):
             "operator": view.operator_name,
             "started": _clock(view.started_at),
         }
+        enabled = view.conclusions_enabled and view.conclusion is not None
+        self._set_conclusions_enabled(enabled)
+        if not enabled:
+            values["lambda_c"] = ""
         for key, value in values.items():
             self._fact_values[key].setText(value)
-        self.conclusion_card.set_conclusion(view.conclusion, recorded=view.conclusion_recorded)
+        if enabled and view.conclusion is not None:
+            self.conclusion_card.set_conclusion(view.conclusion, recorded=view.conclusion_recorded)
+
+    def _set_conclusions_enabled(self, enabled: bool) -> None:
+        """结论功能关闭时不显示结论卡和实测灵敏度一栏（文字也清空）。"""
+        changed = enabled != self._conclusions_enabled
+        self._conclusions_enabled = enabled
+        self.conclusion_card.setVisible(enabled)
+        self._fact_labels["lambda_c"].setVisible(enabled)
+        self._fact_values["lambda_c"].setVisible(enabled)
+        self._fact_row.setStretchFactor(self._fact_cells["lambda_c"], 1 if enabled else 0)
+        if changed:
+            self._fact_labels["lambda_c"].setText(self.tr("实测灵敏度 λc") if enabled else "")
 
     def _render_video(self) -> None:
         view = self._view
@@ -997,7 +1018,7 @@ class MonitorPage(QWidget):
         self.empty_title.setText(self.tr("当前没有进行中的试验"))
         self.empty_hint.setText(
             self.tr(
-                "在「新试验」里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。"
+                "在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。"
             )
         )
         self.empty_history.setText(self.tr("打开历史记录"))
@@ -1012,7 +1033,7 @@ class MonitorPage(QWidget):
             ),
             ("water", self.tr("{kind}批号").format(kind=reagent_kind_label(ReagentKind.WATER))),
             ("lambda", self.tr("标示灵敏度 λ")),
-            ("lambda_c", self.tr("实测灵敏度 λc")),
+            ("lambda_c", self.tr("实测灵敏度 λc") if self._conclusions_enabled else ""),
             ("operator", self.tr("操作人")),
             ("started", self.tr("开始时间")),
         ):

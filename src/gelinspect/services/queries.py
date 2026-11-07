@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from gelinspect.domain.permissions import Permission
@@ -39,7 +40,7 @@ class QueryStorage(Protocol):
 
     @property
     def users(self) -> UserRepository:
-        """用户仓储（历史页的「操作人」下拉）。"""
+        """用户仓储（历史页的“操作人”下拉）。"""
         ...
 
 
@@ -129,8 +130,27 @@ class QueryService:
         self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
         return self._storage.experiments.query(query, page)
 
+    def latest_experiment_time(self, session: Session | None) -> datetime | None:
+        """最新试验的创建时间，用来固定一次历史查询的范围。
+
+        历史页开始一次新查询时先取它，之后这次查询的翻页都带上它做
+        ``ExperimentQuery.max_created_at``，期间新建的试验不会让后面的页错位；
+        点“查询”或“刷新”才看到新试验。
+
+        Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+
+        Returns:
+            创建时间；没有试验时为 None。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        return self._storage.experiments.latest_created_at()
+
     def operators(self, session: Session | None) -> list[str]:
-        """历史记录页「操作人」下拉里的登录名。
+        """历史记录页“操作人”下拉里的登录名。
 
         Args:
             session: 调用者的会话，需要 ``experiment_view`` 权限。

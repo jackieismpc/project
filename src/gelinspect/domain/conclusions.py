@@ -4,7 +4,7 @@
 
 **灵敏度复核**的规则由任务书给出（见 :data:`SENSITIVITY_RULE`）。**干扰、复试、半定量、限度**的布局
 未确认（PLAN 第 7 节第 4、14 项），这里只写好规则结构（需要哪些用途的管、条文和来源），
-凭记忆的条文一律标「待 QA 核对」。这四类**没有任何产生合格或不合格的代码路径**：QA 核对条文和布局后
+凭记忆的条文一律标“待 QA 核对”。这四类**没有任何产生合格或不合格的代码路径**：QA 核对条文和布局后
 再实现判定，并升级规则版本。
 
 依据和未满足的前提用 :class:`ConclusionNote` 表达：稳定的代码加参数，中文原文存库，界面按当前语言
@@ -199,7 +199,7 @@ class ConclusionRule:
         source: 来源。
         verdict_enabled: 规则能否产生合格或不合格。凭记忆、未经 QA 核对的规则为 False。
         tracked_roles: 规则读取的用途，只读取明确标记了用途的管。
-        clauses: 规则条文。凭记忆的条文都带「待 QA 核对」。
+        clauses: 规则条文。凭记忆的条文都带“待 QA 核对”。
     """
 
     experiment_type: ExperimentType
@@ -230,7 +230,7 @@ SENSITIVITY_RULE = ConclusionRule(
         "有效性：最大浓度全部阳性、最低浓度全部阴性、阴性对照为阴性，否则无效。",
         "系列终点：从高浓度到低浓度，最后一个阳性对应的浓度。",
         "λc = antilg(mean(lg 终点))；λc 在 0.5λ–2λ（含）内为合格。",
-        "不连续（阴性之后又阳性）：本软件给「待定」，由 QA 判定，这一条不是药典条文，待 QA 确认。",
+        "不连续（阴性之后又阳性）：本软件给“待定”，由 QA 判定，这一条不是药典条文，待 QA 确认。",
     ),
 )
 
@@ -484,7 +484,7 @@ def _sensitivity_layout(
 ) -> tuple[_SensitivityLayout | None, list[ConclusionNote]]:
     """把管位归入浓度档，布局与规则不符时返回原因。
 
-    系列由「同一浓度档内按管号升序的第 k 支」定义，所以向导里换了管位也能对应上。
+    系列由“同一浓度档内按管号升序的第 k 支”定义，所以向导里换了管位也能对应上。
     """
     notes: list[ConclusionNote] = []
     controls = tuple(a for a in assignments if a.role is TubeRole.NEGATIVE_CONTROL)
@@ -829,7 +829,7 @@ def provisional_conclusion(experiment: Experiment) -> ExperimentConclusion:
 def finalize_conclusion(experiment: Experiment, at: datetime) -> ExperimentConclusion:
     """试验转为已完成时调用：计算结论并固化到试验聚合。
 
-    只改内存，由调用方与「已完成」状态在同一事务写库。只有合格或不合格才写实测灵敏度：
+    只改内存，由调用方与“已完成”状态在同一事务写库。只有合格或不合格才写实测灵敏度：
     无效和待定不能被当作实测值。
 
     Args:
@@ -865,6 +865,36 @@ def finalize_conclusion(experiment: Experiment, at: datetime) -> ExperimentConcl
     final = computed.verdict in (ConclusionVerdict.PASS, ConclusionVerdict.FAIL)
     experiment.measured_sensitivity = computed.value if final else None
     return conclusion
+
+
+def finalize_completion(
+    experiment: Experiment, at: datetime, *, conclusions_enabled: bool
+) -> ExperimentConclusion | None:
+    """试验转为已完成时调用：结论功能打开时计算并固化结论，关闭时只记完成时间。
+
+    关闭时不计算、不留下任何结论或实测灵敏度（判定规则尚未确认，不能留下未确认的判定）。
+
+    Args:
+        experiment: 已转为已完成的试验。
+        at: 完成时间，必须带时区。
+        conclusions_enabled: 结论功能是否打开。
+
+    Returns:
+        固化的结论；功能关闭时为 None。
+
+    Raises:
+        ValueError: 试验不是已完成状态，或时间不带时区。
+    """
+    if conclusions_enabled:
+        return finalize_conclusion(experiment, at)
+    if experiment.state is not ExperimentState.COMPLETED:
+        raise ValueError(f"试验状态是 {experiment.state.value}，不是已完成")
+    if at.tzinfo is None or at.utcoffset() is None:
+        raise ValueError("完成时间必须带时区")
+    experiment.conclusion = None
+    experiment.measured_sensitivity = None
+    experiment.completed_at = at
+    return None
 
 
 def conclusion_payload(conclusion: ExperimentConclusion) -> dict[str, Any]:

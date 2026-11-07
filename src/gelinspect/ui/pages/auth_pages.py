@@ -172,7 +172,7 @@ class _AuthFrame(QWidget):
         self.languages.set_options(options, current)
 
     def labelled(self, label: Label, edit: QWidget) -> None:
-        """向表单区添加「标签 + 输入框」。
+        """向表单区添加“标签 + 输入框”。
 
         Args:
             label: 标签。
@@ -249,7 +249,7 @@ class LoginPage(_AuthFrame):
 
     Signals:
         submitted: 点了登录（或解锁），参数为用户名和密码。
-        logoutRequested: 锁屏模式下点了「退出登录」。
+        logoutRequested: 锁屏模式下点了“退出登录”。
     """
 
     submitted = Signal(str, str)
@@ -340,7 +340,7 @@ class LoginPage(_AuthFrame):
             self.username.setFocus()
 
     def set_demo_accounts(self, accounts: Sequence[DemoAccount]) -> None:
-        """显示「演示账号」提示；空序列表示不显示（真实配置）。
+        """显示“演示账号”提示；空序列表示不显示（真实配置）。
 
         Args:
             accounts: 演示账号。
@@ -505,7 +505,7 @@ class LoginPage(_AuthFrame):
 
 
 class SetupPage(_AuthFrame):
-    """首次启动（真实配置）的「创建管理员」页。
+    """首次启动（真实配置）的“创建管理员”页。
 
     Signals:
         submitted: 点了创建，参数为登录名、显示名称、密码。

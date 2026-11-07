@@ -22,7 +22,7 @@ from .conftest import make_event, make_experiment
 
 @pytest.fixture
 def busy_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Database]:
-    """等写锁只等 20 毫秒的数据库，让「被占用」的情形立刻出现。"""
+    """等写锁只等 20 毫秒的数据库，让“被占用”的情形立刻出现。"""
     monkeypatch.setattr("gelinspect.infrastructure.db.database.BUSY_TIMEOUT_MS", 20)
     database = open_database(tmp_path / "gel.db")
     yield database
@@ -102,7 +102,7 @@ def test_reads_are_not_blocked_by_a_writer(busy_database: Database, tmp_path: Pa
 
 
 def test_non_lock_errors_are_not_swallowed(busy_database: Database) -> None:
-    """只转换「拿不到锁」；重复主键等其他错误仍按原来的类型抛出。"""
+    """只转换“拿不到锁”；重复主键等其他错误仍按原来的类型抛出。"""
     from gelinspect.interfaces.storage import DuplicateError
 
     user = User("u1", "alice", "Alice", Role.ADMIN)

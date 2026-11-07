@@ -252,7 +252,7 @@ def test_wizard_steps_fit(
     click(qapp, page.reagent_next)
     click(qapp, page.auto_button)
     assert overflow_report(window) == [], "步骤 3"
-    page.sample_table.cell_item(2, 1).setText(" ")  # 出现「名称为空」提示
+    page.sample_table.cell_item(2, 1).setText(" ")  # 出现“名称为空”提示
     assert overflow_report(window) == [], "步骤 3（提示）"
     page.sample_table.cell_item(2, 1).setText("样品")
     click(qapp, page.sample_next)

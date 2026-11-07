@@ -4,7 +4,7 @@ ORM 类只在 ``infrastructure.db`` 内部使用，对外通过仓储与 domain 
 不会泄漏到 domain、services 或 ui。枚举以其字符串值存储，不使用数据库枚举类型，
 这样新增枚举值不需要迁移。
 
-表中没有任何「是否模拟」字段：模拟与真实数据不做区分（``docs/PLAN.md`` 第 3 节）。
+表中没有任何“是否模拟”字段：模拟与真实数据不做区分（``docs/PLAN.md`` 第 3 节）。
 """
 
 from __future__ import annotations

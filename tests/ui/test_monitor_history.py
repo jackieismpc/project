@@ -76,7 +76,7 @@ def test_replay_plays_a_real_mp4_row_by_row(
     assert player.clip is not None and "row_03" in player.clip.path.name
     player.pause()
 
-    # 对话框版（实时页的「回放第 N 排」）：同样能播
+    # 对话框版（实时页的“回放第 N 排”）：同样能播
     page.open_replay()
     dialog = page.replay_dialog()
     assert isinstance(dialog, ReplayDialog) and dialog.current_row() == 3
@@ -111,7 +111,7 @@ def test_history_opens_a_finished_experiment_read_only(
     experiment_id = finished_experiment(qapp, fast_window, fast_context)
     assert fast_window.logout()
     sign_in(qapp, fast_window, "analyst")
-    # 「打开文件」快捷操作进入历史记录
+    # “打开文件”快捷操作进入历史记录
     fast_window.shell.toolbar.actionTriggered.emit("open_file")
     assert fast_window.current_route == "history"
     history = fast_window.page("history")
@@ -174,7 +174,7 @@ def test_a_finished_experiment_can_be_reviewed_again_after_a_restart(
     second = open_context(tmp_path)
     window = open_window(qapp, second, language)
     try:
-        assert second.recovered == []  # 已完成的试验不会被当成「上次没有正常结束」
+        assert second.recovered == []  # 已完成的试验不会被当成“上次没有正常结束”
         sign_in(qapp, window, "analyst")
         assert window.open_experiment(experiment_id)
         page = window.page("monitor")
@@ -237,7 +237,7 @@ def test_dashboard_shows_the_running_experiment_results_and_things_to_handle(
         for i in range(dashboard.attention_box.count())
     ]
     assert any("LAL-NEAR" in t and "还有 12 天过期" in t for t in texts)
-    # 孔板事件很密，工作台卡片自己合并刷新；点「打开监控」回到监控页
+    # 孔板事件很密，工作台卡片自己合并刷新；点“打开监控”回到监控页
     dashboard.running_open.click()
     assert window.current_route == "monitor"
 

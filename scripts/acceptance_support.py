@@ -84,7 +84,7 @@ def open_rig(
         incubation_minutes: 每排孵育的设备分钟数，时间加速 60 倍，0.05 约等于 0.05 秒。
         video: 视频参数，默认 :data:`VIDEO_FAST`。
         analyzer_config: 模拟算法的配置文件，默认用内置参数。
-        demo_accounts: False 时去掉初始化钩子，首次启动显示「创建管理员」。
+        demo_accounts: False 时去掉初始化钩子，首次启动显示“创建管理员”。
         extra: 追加或覆盖的顶层配置项。
 
     Returns:

@@ -61,6 +61,7 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
     },
     "device": {"backend": "simulation.sim_device:SimDevice"},
     "engine": {"incubation_minutes": 60, "time_scale": 60},
+    "conclusions": {"enabled": False},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
     "traceability": {
         "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},
@@ -68,7 +69,8 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
         "government": {"backend": "simulation.reagents:SimTraceabilityClient"},
     },
 }
-"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号，试剂码和备案清单用模拟白名单。"""
+"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号，试剂码和备案清单用模拟白名单，
+试验结论默认关闭。"""
 
 
 class ConfigError(Exception):
@@ -170,7 +172,7 @@ class ExportSection(_Section):
 
     Attributes:
         encrypt: 敏感导出（Excel、批量导出报告）是否打成带密码的 ZIP（AES-256）。
-            默认不加密；也可以在「仪器设置」里打开。
+            默认不加密；也可以在“仪器设置”里打开。
     """
 
     encrypt: bool = False
@@ -217,7 +219,7 @@ class TraceabilitySection(_Section):
     """试剂溯源：试剂码解析、备案清单和政府溯源平台，三者都可替换。
 
     试剂码格式和备案清单尚未提供（``docs/PLAN.md`` 第 7 节第 6 项），所以没有内置实现；
-    不配置解析器或备案清单时，试剂无法校验，向导停在「校验试剂」并说明原因，**不会放行**。
+    不配置解析器或备案清单时，试剂无法校验，向导停在“校验试剂”并说明原因，**不会放行**。
 
     Attributes:
         parser: 实现 ``ReagentCodeParser`` 的后端。
@@ -239,7 +241,7 @@ class ReportSection(_Section):
         certificate_common_name: 本地自签证书的通用名（CN）。
         certificate_organization: 本地自签证书的组织名（O）。
         certificate_valid_days: 证书有效天数。已签署的报告在证书过期后仍可验签的前提是
-            验签时刻取签署时刻，目前按「当前时刻」验证，所以请设得足够长。
+            验签时刻取签署时刻，目前按“当前时刻”验证，所以请设得足够长。
         key_algorithm: 自签证书的密钥算法：``ecdsa``（P-256）或 ``rsa``（3072 位）。
         include_images: 报告是否附每排 8 连图缩略页。图是读盘解码的，12 MP 下较慢，默认关闭。
     """
@@ -252,6 +254,18 @@ class ReportSection(_Section):
     certificate_valid_days: int = Field(default=3650, ge=30, le=36500)
     key_algorithm: Literal["ecdsa", "rsa"] = "ecdsa"
     include_images: bool = False
+
+
+class ConclusionsSection(_Section):
+    """试验结论（灵敏度 λc、合格、无效、待定）的开关。
+
+    Attributes:
+        enabled: 是否计算、入库和显示试验结论。判定规则甲方尚未确认，商用软件不能显示
+            未确认的结论，所以默认关闭：关闭时只显示每支管的凝固状态、阴阳性和复核标注，
+            签署不要求有结论，也不计算、不入库结论。规则确认后设为 ``true`` 打开。
+    """
+
+    enabled: bool = False
 
 
 class AppConfig(_Section):
@@ -271,6 +285,7 @@ class AppConfig(_Section):
         traceability: 试剂码解析、备案清单和政府溯源平台。
         instrument_no: 仪器编号，写入每个新试验。
         reports: 报告与数字签名。
+        conclusions: 试验结论开关，默认关闭。
         retention_days: 视频和图像的保留天数，None 表示不自动删除（默认）。
         exports: 导出（是否加密）。
         license: 设备绑定授权（默认不启用）。
@@ -288,6 +303,7 @@ class AppConfig(_Section):
     traceability: TraceabilitySection = TraceabilitySection()
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
     reports: ReportSection = ReportSection()
+    conclusions: ConclusionsSection = ConclusionsSection()
     retention_days: int | None = Field(default=None, ge=1, le=36500)
     exports: ExportSection = ExportSection()
     license: LicenseSection = LicenseSection()

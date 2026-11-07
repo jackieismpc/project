@@ -41,9 +41,16 @@ LIVE_ENGINE: dict[str, object] = {"incubation_minutes": 60, "time_scale": 60}
 """默认孵育：每排 60 设备分钟 = 真实 60 秒，测试期间一直处于孵育中。"""
 
 
-def open_context(tmp_path: Path, engine: dict[str, object] = FAST_ENGINE) -> AppContext:
-    """画面小的完整装配（真实 SQLite、模拟后端），数据放在 ``tmp_path/data``。"""
-    config = make_config(tmp_path, video=FAST_VIDEO, engine=engine)
+def open_context(
+    tmp_path: Path, engine: dict[str, object] = FAST_ENGINE, *, conclusions: bool = False
+) -> AppContext:
+    """画面小的完整装配（真实 SQLite、模拟后端），数据放在 ``tmp_path/data``。
+
+    ``conclusions`` 是试验结论功能的开关，默认与产品一致（关闭）。
+    """
+    config = make_config(
+        tmp_path, video=FAST_VIDEO, engine=engine, conclusions={"enabled": conclusions}
+    )
     return build_app_context(parse_config(config), clock=lambda: FIXED_NOW)
 
 
@@ -86,9 +93,9 @@ def close_window(app: QApplication, win: MainWindow) -> None:
 
 
 @pytest.fixture
-def fast_context(tmp_path: Path) -> Iterator[AppContext]:
+def fast_context(tmp_path: Path, conclusions_enabled: bool) -> Iterator[AppContext]:
     """孵育极短、画面小的完整装配，试验几秒内跑完。"""
-    context = open_context(tmp_path)
+    context = open_context(tmp_path, conclusions=conclusions_enabled)
     yield context
     close_context(context)
 
@@ -104,9 +111,9 @@ def fast_window(
 
 
 @pytest.fixture
-def live_context(tmp_path: Path) -> Iterator[AppContext]:
+def live_context(tmp_path: Path, conclusions_enabled: bool) -> Iterator[AppContext]:
     """默认孵育时长的完整装配：试验在测试期间一直处于孵育中。"""
-    context = open_context(tmp_path, LIVE_ENGINE)
+    context = open_context(tmp_path, LIVE_ENGINE, conclusions=conclusions_enabled)
     yield context
     close_context(context)
 

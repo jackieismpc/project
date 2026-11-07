@@ -273,7 +273,7 @@ class DataTable(QWidget):
 
         Args:
             columns: 列定义。
-            empty_title: 空状态标题，``None`` 使用「暂无数据」（随语言切换）。
+            empty_title: 空状态标题，``None`` 使用“暂无数据”（随语言切换）。
             empty_hint: 空状态提示。
             fit_content: 为 True 时表格高度随行数增长，不出现内部滚动条。
             parent: 父控件。

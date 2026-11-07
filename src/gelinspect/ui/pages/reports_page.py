@@ -203,7 +203,7 @@ class ReportsPage(QWidget):
         self.preview_widget.setMinimumHeight(640)
         self.preview_widget.setMinimumWidth(420)
         self.preview_widget.setZoomMode(QPrintPreviewWidget.ZoomMode.FitToWidth)
-        # 「适应宽度」时滚动条一出现可用宽度就变小，重新适应后又不需要滚动条：来回震荡。
+        # “适应宽度”时滚动条一出现可用宽度就变小，重新适应后又不需要滚动条：来回震荡。
         # 让预览里的滚动条常驻，宽度就固定了。
         for view in self.preview_widget.findChildren(QGraphicsView):
             view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
@@ -338,7 +338,7 @@ class ReportsPage(QWidget):
 
         for wrapped in panel.findChildren(Label):
             if wrapped.wordWrap():
-                # 自动换行的文字要按宽度算高度，不能被「只取需要的高度」截断。
+                # 自动换行的文字要按宽度算高度，不能被“只取需要的高度”截断。
                 wrapped.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.language_box.currentIndexChanged.connect(self._on_language_changed)
         self.sign_button.clicked.connect(self.request_sign)
@@ -640,12 +640,13 @@ class ReportsPage(QWidget):
         if signed:
             self._tone("success", self.tr("已签署"))
         elif preview.can_sign:
-            self._tone(
-                "info",
-                self.tr("可以签署：试验结论为「{verdict}」").format(verdict=verdict_text)
-                if not batch
-                else self.tr("可以签署：批次里的试验都已签署"),
-            )
+            if batch:
+                text = self.tr("可以签署：批次里的试验都已签署")
+            elif preview.conclusions_enabled:
+                text = self.tr("可以签署：试验结论为“{verdict}”").format(verdict=verdict_text)
+            else:
+                text = self.tr("可以签署：全部待复核已处理，试验已完成")
+            self._tone("info", text)
         else:
             reasons = describe_signing_blocks(preview.blocks, preview.conclusion, batch=batch)
             danger = any(

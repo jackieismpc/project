@@ -1,14 +1,14 @@
 """签名证书与私钥：本地自签，存放在 ``data/keys/``。
 
 * 第一次需要签名时生成自签证书（默认 ECDSA P-256，可配置 RSA 3072）和私钥。主题（CN、O）、
-  有效期来自配置。证书在软件里是「本机信任的那张」，也是验签时唯一的信任根。
+  有效期来自配置。证书在软件里是“本机信任的那张”，也是验签时唯一的信任根。
 * 文件被 ``.gitignore``（``*.pem``、``*.key``）忽略。私钥文件权限收紧为 600（目录 700）；
   Windows 没有等价的 POSIX 权限，只能依赖用户目录的访问控制，部署文档里说明。
 * 私钥落盘前由 :class:`KeyProtector` 加密（Windows DPAPI、macOS 钥匙串，都不可用时
   用安装密钥派生的口令，见 ``infrastructure/security/protectors.py``）。早期版本留下的明文私钥
   在 :meth:`LocalKeyStore.migrate` 时加密，原明文文件先用随机数据覆盖再替换。
 * 私钥永远不进日志、审计和异常信息；日志里只出现证书指纹。
-* 这是自签证书：它只能证明「文件自签署后没有被改动，且由本机的这把密钥签署」，
+* 这是自签证书：它只能证明“文件自签署后没有被改动，且由本机的这把密钥签署”，
   **不具有第三方 CA 的法律效力**。
 """
 
@@ -307,7 +307,7 @@ class LocalKeyStore:
             serialization.PrivateFormat.PKCS8,
             serialization.NoEncryption(),
         )
-        # 先写私钥再写证书：中途失败只会留下「只有私钥」，下次自动补发证书。
+        # 先写私钥再写证书：中途失败只会留下“只有私钥”，下次自动补发证书。
         try:
             protected = self._protector.protect(key_pem)
         except KeyProtectionError as exc:
@@ -422,7 +422,7 @@ class LocalKeyStore:
 
 
 def _overwrite(path: Path) -> None:
-    """用随机数据覆盖文件内容并落盘（「安全删除」的尽力版本）。
+    """用随机数据覆盖文件内容并落盘（“安全删除”的尽力版本）。
 
     SSD 的磨损均衡、APFS/NTFS 的写时复制和快照都可能保留旧数据块，所以只能挡住简单的恢复工具。
     """

@@ -1,7 +1,7 @@
 """用 pyHanko 对 PDF 做标准 PAdES 签名（PAdES-B-B，SHA-256，增量更新）。
 
-签名是离线的：没有时间戳服务，签名时间是签署人电脑的时钟，所以它证明「内容自签署后没有被
-改动」，不证明「签署的绝对时间」。证书是本地自签的，没有第三方 CA 的法律效力。
+签名是离线的：没有时间戳服务，签名时间是签署人电脑的时钟，所以它证明“内容自签署后没有被
+改动”，不证明“签署的绝对时间”。证书是本地自签的，没有第三方 CA 的法律效力。
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ def sign_pdf_bytes(
         已签名的 PDF（原文件后面追加签名，原内容不变）。
 
     Raises:
-        Exception: pyHanko 的任何失败（PDF 不合法等）；调用方按「签署失败」处理。
+        Exception: pyHanko 的任何失败（PDF 不合法等）；调用方按“签署失败”处理。
     """
     certificate = to_asn1(identity.certificate.public_bytes(serialization.Encoding.DER))
     key = asn1_keys.PrivateKeyInfo.load(

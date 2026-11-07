@@ -40,7 +40,7 @@ class Sparkline(QWidget):
             y_range: Y 轴显示范围（下限，上限）。
             band: 允许范围带，``None`` 不画。
             ticks: Y 轴刻度，同时画中间刻度的虚线基准。
-            x_labels: 左右两端的时间说明，``None`` 使用「60 分钟前」「现在」（随语言切换）。
+            x_labels: 左右两端的时间说明，``None`` 使用“60 分钟前”“现在”（随语言切换）。
             compact: 紧凑模式，不画坐标文字。
             parent: 父控件。
         """

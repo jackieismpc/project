@@ -390,7 +390,7 @@ class SegmentRecorder:
             self._finish_bookkeeping(segment)
 
     def _finish_bookkeeping(self, segment: _Segment) -> None:
-        """把被异常终止的段从「进行中」移到「待取走」列表。"""
+        """把被异常终止的段从“进行中”移到“待取走”列表。"""
         with self._lock:
             if self._segment is segment:
                 self._segment = None
@@ -456,7 +456,7 @@ class SegmentRecorder:
         finally:
             if segment.scratch_dir is not None:
                 shutil.rmtree(segment.scratch_dir, ignore_errors=True)
-            # 先记录事件再发布「段已结束」：看到段结束的观察者都能读到中断原因。
+            # 先记录事件再发布“段已结束”：看到段结束的观察者都能读到中断原因。
             if segment.interrupt_reason is not None and self._emit is not None:
                 self._emit(
                     make_event(

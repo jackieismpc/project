@@ -342,8 +342,8 @@ def build_app_context(
         clock: 试剂校验和试验创建使用的当前时间（带时区），默认系统时间；测试注入固定日期，
             这样模拟白名单的有效期不会随真实日期过期。它只用于服务（试剂校验、试验创建和签署、
             审计、报告）：试验引擎、设备和视频始终用真实的系统时钟（它们的时间要和设备、画面帧同一
-            基准）。所以注入固定时钟再跑真实试验，报告上「检测日期」（引擎写的开始事件）会晚于
-            「签署日期」（服务时钟）；不注入则时间轴一致，见 test_real_clock_flow.py。
+            基准）。所以注入固定时钟再跑真实试验，报告上“检测日期”（引擎写的开始事件）会晚于
+            “签署日期”（服务时钟）；不注入则时间轴一致，见 test_real_clock_flow.py。
 
     Returns:
         应用依赖。
@@ -353,7 +353,7 @@ def build_app_context(
         DatabaseVersionError: 数据库版本比程序新。
     """
     base_config = config if config is not None else load_config(config_path)
-    # 用户在「仪器设置」里改过的项保存在数据目录里，叠加到默认配置上；文件有错在这里报错，
+    # 用户在“仪器设置”里改过的项保存在数据目录里，叠加到默认配置上；文件有错在这里报错，
     # 此时还没有创建任何后端和文件。
     settings = apply_overrides(base_config, load_overrides(settings_file(base_config.data_dir)))
     device = load_backend(
@@ -403,6 +403,7 @@ def build_app_context(
             mapping=settings.mapping(),
             analyzer_config_path=settings.analysis.config_path,
             on_event=on_event,
+            conclusions_enabled=settings.conclusions.enabled,
         )
         recovered = engine.recover_interrupted()
         reagents = ReagentService(
@@ -416,7 +417,9 @@ def build_app_context(
     except BaseException:
         database.close()
         raise
-    monitor = MonitorService(auth, database, engine, pipeline)
+    monitor = MonitorService(
+        auth, database, engine, pipeline, conclusions_enabled=settings.conclusions.enabled
+    )
     media = MediaService(auth, database)
     reports = settings.reports
     keystore = LocalKeyStore(
@@ -439,6 +442,7 @@ def build_app_context(
         copyright_holder=reports.copyright_holder,
         include_images=reports.include_images,
         clock=clock,
+        conclusions_enabled=settings.conclusions.enabled,
     )
     experiments = ExperimentService(
         auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
@@ -463,12 +467,20 @@ def build_app_context(
         experiments=experiments,
         monitor=monitor,
         media=media,
-        reviews=ReviewService(auth, database, clock=clock),
+        reviews=ReviewService(
+            auth, database, clock=clock, conclusions_enabled=settings.conclusions.enabled
+        ),
         dashboard=DashboardService(auth, database, monitor, reagents),
         reports=report_service,
         users=UserService(auth, database, clock=clock),
         audit=AuditService(auth, database, clock=clock),
-        exports=ExportService(auth, database, clock=clock, policy=export_policy),
+        exports=ExportService(
+            auth,
+            database,
+            clock=clock,
+            policy=export_policy,
+            conclusions_enabled=settings.conclusions.enabled,
+        ),
         settings=InstrumentSettingsService(
             auth,
             database,

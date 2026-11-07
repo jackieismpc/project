@@ -211,6 +211,7 @@ def test_audit_repository_is_append_only() -> None:
         "append_many",
         "begin_segment",
         "get",
+        "latest_seq",
         "query",
         "segments",
         "verify_chain",

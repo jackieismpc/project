@@ -34,7 +34,7 @@ PAYLOADS = ["=1+1", "+1+1", "-2+3", "@SUM(A1)", '=HYPERLINK("http://x","点击")
 
 @pytest.fixture
 def exports(stack: Stack) -> ExportService:
-    return ExportService(stack.auth, stack.database, clock=lambda: NOW)
+    return ExportService(stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=True)
 
 
 def test_formula_like_text_is_escaped_and_other_values_are_untouched() -> None:

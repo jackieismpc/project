@@ -255,7 +255,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>调整查询条件，或点「重置」清除条件后再查</source>
+        <source>调整查询条件，或点“重置”清除条件后再查</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1542,7 +1542,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>调整筛选条件，或点「重置」清除条件后再查</source>
+        <source>调整筛选条件，或点“重置”清除条件后再查</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1910,7 +1910,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>在「新试验」里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
+        <source>在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2017,7 +2017,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>模板决定试管数量和每管的样品、外加内毒素。标「布局待确认」的模板仍可使用。</source>
+        <source>模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2197,7 +2197,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>「{names}」必须是大于 0 的数字，或者留空</source>
+        <source>“{names}”必须是大于 0 的数字，或者留空</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3044,7 +3044,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>标注“已复核”的结果经分析员人工复核，以复核结论为准。</source>
+        <source>标注“已复核”的结果经分析员人工复核，以复核结果为准。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3135,11 +3135,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>可以签署：试验结论为「{verdict}」</source>
+        <source>可以签署：试验结论为“{verdict}”</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>可以签署：批次里的试验都已签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可以签署：全部待复核已处理，试验已完成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3595,7 +3599,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>不能在这里重置自己的密码，请用用户菜单里的「修改密码」</source>
+        <source>不能在这里重置自己的密码，请用用户菜单里的“修改密码”</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3619,7 +3623,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>「{field}」必须是大于 0 的数字</source>
+        <source>“{field}”必须是大于 0 的数字</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4044,11 +4048,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验结论为「待定」，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <source>试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验结论为「无效」，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
+        <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4315,7 +4319,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>模板已复制，可以点「编辑」修改</source>
+        <source>模板已复制，可以点“编辑”修改</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4663,7 +4667,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>自己的密码请用用户菜单里的「修改密码」</source>
+        <source>自己的密码请用用户菜单里的“修改密码”</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

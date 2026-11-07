@@ -421,7 +421,7 @@ def adhoc_sign(app: Path, added: Sequence[Path]) -> None:
 
     Nuitka 把数据文件放在 ``Contents/MacOS`` 里，并逐个签名（非 Mach-O 文件的签名存在扩展属性里，
     不改文件内容，所以不影响清单里的哈希）。我们后加的迁移脚本、翻译、配置、许可声明和清单
-    也要这样签，否则外层签名会报「code object is not signed at all」。
+    也要这样签，否则外层签名会报“code object is not signed at all”。
     """
     for start in range(0, len(added), 200):
         run(["codesign", "--force", "--sign", "-", *map(str, added[start : start + 200])])

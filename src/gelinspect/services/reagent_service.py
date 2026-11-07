@@ -53,7 +53,7 @@ KIND_NAMES: Mapping[ReagentKind, str] = {
 """试剂种类的简体中文名，写审计用；界面按当前语言另行翻译。"""
 
 EXPIRING_SOON_DAYS = 30
-"""剩余天数不超过它时，试剂溯源页提示「即将到期」。"""
+"""剩余天数不超过它时，试剂溯源页提示“即将到期”。"""
 
 
 class ScanOutcome(StrEnum):

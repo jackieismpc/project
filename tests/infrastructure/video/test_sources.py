@@ -80,7 +80,7 @@ def test_file_source_loop_and_pacing(tmp_path: Path) -> None:
     frames = [source.read() for _ in range(12)]
     assert all(f is not None for f in frames)
     assert [f.sequence for f in frames if f] == list(range(12))  # 循环时序号继续递增
-    # 注入的 sleep 不真实等待，所以相邻两次的「应等待时间」差一个帧间隔（1/20 秒）
+    # 注入的 sleep 不真实等待，所以相邻两次的“应等待时间”差一个帧间隔（1/20 秒）
     steps = [b - a for a, b in zip(waits, waits[1:], strict=False)]
     assert steps and all(s == pytest.approx(0.05, abs=0.01) for s in steps)
     source.close()

@@ -389,7 +389,7 @@ class NewExperimentPage(QWidget):
         )
         self.template_card.set_title(self.tr("选择检测模板"))
         self.template_hint.setText(
-            self.tr("模板决定试管数量和每管的样品、外加内毒素。标「布局待确认」的模板仍可使用。")
+            self.tr("模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。")
         )
         self.template_empty.setText(self.tr("还没有可用的模板"))
         self.template_next.setText(self.tr("下一步：校验试剂"))
@@ -803,7 +803,7 @@ class NewExperimentPage(QWidget):
         bad_limits = draft.limit_problems()
         names = {"mvd": self.tr("MVD"), "endotoxin_limit": self.tr("内毒素限值")}
         self.limit_problem.setText(
-            self.tr("「{names}」必须是大于 0 的数字，或者留空").format(
+            self.tr("“{names}”必须是大于 0 的数字，或者留空").format(
                 names=self.tr("、").join(names[f] for f in bad_limits)
             )
             if bad_limits
@@ -985,7 +985,7 @@ class NewExperimentPage(QWidget):
         self._render()
 
     def _on_locked_at_service(self, error: ReagentLockedError) -> None:
-        """服务层复核发现试剂不合格（例如隔夜过期）：回到「校验试剂」并锁定。"""
+        """服务层复核发现试剂不合格（例如隔夜过期）：回到“校验试剂”并锁定。"""
         self._discard_created()
         for kind, scan in error.scans.items():
             if scan.valid:

@@ -93,6 +93,7 @@ class ExperimentEngine:
         schedule_clock: Clock | None = None,
         analyzer_config_path: Path | None = None,
         on_event: EngineEventListener | None = None,
+        conclusions_enabled: bool = False,
     ) -> None:
         """创建引擎，不启动线程，也不连接硬件。
 
@@ -107,6 +108,7 @@ class ExperimentEngine:
             schedule_clock: 调度时钟，默认按 ``config.time_scale`` 加速 ``clock``。
             analyzer_config_path: 传给 ``GelAnalyzer.load`` 的配置。
             on_event: 事件监听者，在事件分发线程上调用。
+            conclusions_enabled: 试验完成时是否计算并入库结论，默认关闭。
         """
         self._config = config or EngineConfig()
         real_clock: Clock = clock or SystemClock()
@@ -125,6 +127,7 @@ class ExperimentEngine:
             schedule_clock=schedule_clock or ScaledClock(real_clock, self._config.time_scale),
             analyzer_config_path=analyzer_config_path,
             events=self._events,
+            conclusions_enabled=conclusions_enabled,
         )
         self._clock = real_clock
         self._lock = threading.Lock()

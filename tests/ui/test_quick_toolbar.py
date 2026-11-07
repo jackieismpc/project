@@ -90,7 +90,7 @@ def test_permissions_follow_role(qtbot: QtBot) -> None:
     toolbar = make_toolbar(qtbot, allow_all=False)
     toolbar.set_user_permissions(permissions_of(Role.EXPERIMENTER))
     enabled = {i for i in toolbar.action_ids() if toolbar.button(i).isEnabled()}
-    # 「仪器设置」所有角色都能打开（只读），修改由服务层拒绝；审计追踪实验员没有权限
+    # “仪器设置”所有角色都能打开（只读），修改由服务层拒绝；审计追踪实验员没有权限
     assert enabled == {
         "new_experiment",
         "open_file",

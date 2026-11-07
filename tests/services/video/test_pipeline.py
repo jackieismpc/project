@@ -429,7 +429,7 @@ class _ObservedWorker:
     """采集线程加一个事件接收函数：每个事件到达时记下线程当时对外发布的状态和计数。
 
     事件在这一刻还没有进入历史，所以记下的状态不能已经是事件所说的结果，否则就有
-    「看到状态、读不到原因」的窗口。靠这一点确定性地检查顺序，不靠线程时序。
+    “看到状态、读不到原因”的窗口。靠这一点确定性地检查顺序，不靠线程时序。
     """
 
     def __init__(self, source: FakeSource, reconnect: ReconnectConfig, buffer: object) -> None:

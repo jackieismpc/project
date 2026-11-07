@@ -125,7 +125,7 @@ SOURCES: dict[S, str] = {
     S.RULE_VERSION: str(QT_TRANSLATE_NOOP("Report", "规则版本")),
     S.RULE_SOURCE: str(QT_TRANSLATE_NOOP("Report", "规则来源")),
     S.REVIEWED_NOTE: str(
-        QT_TRANSLATE_NOOP("Report", "标注“已复核”的结果经分析员人工复核，以复核结论为准。")
+        QT_TRANSLATE_NOOP("Report", "标注“已复核”的结果经分析员人工复核，以复核结果为准。")
     ),
     S.IMAGES_TITLE: str(QT_TRANSLATE_NOOP("Report", "8 连图（每排翻转前、翻转后代表帧）")),
     S.ROW_N: str(QT_TRANSLATE_NOOP("Report", "第 {row} 排")),

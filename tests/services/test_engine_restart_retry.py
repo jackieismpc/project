@@ -30,7 +30,7 @@ from tests.services.engine_helpers import (
 
 @pytest.fixture
 def faulted(tmp_path: Path, thread_baseline: None) -> Iterator[Harness]:
-    """两排都已抓帧，第 1 排分析失败，试验转异常，然后「进程退出」。"""
+    """两排都已抓帧，第 1 排分析失败，试验转异常，然后“进程退出”。"""
     h = make_harness(tmp_path, tubes_of_rows(1, 2))
     h.analyzer.errors[1] = [AnalyzerError("模型未加载")]
     h.save_and_start()
@@ -51,6 +51,7 @@ def restart(h: Harness, log: EventLog | None = None) -> ExperimentEngine:
         config=fast_config(),
         schedule_clock=h.schedule,
         on_event=log,
+        conclusions_enabled=True,  # 这里验证完成时结论入库，所以打开结论功能
     )
 
 

@@ -55,6 +55,32 @@ def test_lists_newest_first_and_pages(
     assert page.page_index == 1
 
 
+def test_pagination_does_not_shift_when_an_experiment_is_created_while_paging(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import timedelta
+
+    from tests.infrastructure.db.conftest import make_experiment
+    from tests.ui.admin_helpers import BASE
+
+    monkeypatch.setattr("gelinspect.ui.pages.history_page.PAGE_SIZE", 5)
+    page = open_history(qapp, window, app_context)
+    first = ids(page)
+    app_context.database.experiments.save(
+        make_experiment("EXP-NEW-001", created_at=BASE + timedelta(days=100), tube_count=4)
+    )  # 翻页期间别人新建了一个试验
+    page.pager.next_button.click()
+    assert ids(page) == [f"EXP-H-{n:03d}" for n in (6, 5, 4, 3, 2)]  # 没有被顶歪、没有重复
+    assert page.total == 12
+    page.pager.prev_button.click()
+    assert ids(page) == first and page.total == 12
+    page.search()  # 点“查询”才看到新试验
+    assert page.total == 13 and ids(page)[0] == "EXP-NEW-001"
+
+
 def test_each_filter_narrows_the_list(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:

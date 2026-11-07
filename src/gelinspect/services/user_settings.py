@@ -154,7 +154,7 @@ class SettingsProblem:
         """简体中文说明，写日志和异常信息用。
 
         Returns:
-            例如「incubation_minutes：超出范围 0.1–1440」。
+            例如“incubation_minutes：超出范围 0.1–1440”。
         """
         extra = "、".join(f"{k}={v}" for k, v in self.params.items())
         return f"{self.name}：{self.code.value}" + (f"（{extra}）" if extra else "")
@@ -363,7 +363,7 @@ def settings_of(config: AppConfig) -> InstrumentSettings:
         config: 应用配置。
 
     Returns:
-        仪器设置；视频源是 ``file`` 或 ``images`` 别名时带上路径，否则是「沿用配置文件」。
+        仪器设置；视频源是 ``file`` 或 ``images`` 别名时带上路径，否则是“沿用配置文件”。
     """
     video = config.video
     kind = VideoInput(video.source) if video.source in ("file", "images") else VideoInput.CONFIG

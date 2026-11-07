@@ -499,7 +499,7 @@ class GalleryPage(QWidget):
 
 
 class GalleryWindow(QWidget):
-    """展示窗口：AppShell 内容区顶部用标签切换「组件」与「试验监控小样」。"""
+    """展示窗口：AppShell 内容区顶部用标签切换“组件”与“试验监控小样”。"""
 
     def __init__(
         self,

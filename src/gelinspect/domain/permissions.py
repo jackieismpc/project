@@ -1,6 +1,6 @@
 """权限矩阵。
 
-:data:`PERMISSION_ROLES` 以「权限 → 角色集合」表达，是权限判断的唯一事实来源。
+:data:`PERMISSION_ROLES` 以“权限 → 角色集合”表达，是权限判断的唯一事实来源。
 """
 
 from __future__ import annotations

@@ -118,7 +118,7 @@ class DatabaseProvisioner:
 class DatabaseFirstAdminSeeder:
     """``FirstAdminSeeder`` 的数据库实现：调用 ``seed_defaults``。
 
-    密码是管理员在「创建管理员」页自己设的，直接生效，首次登录不强制改密。
+    密码是管理员在“创建管理员”页自己设的，直接生效，首次登录不强制改密。
     """
 
     def __init__(self, database: Database) -> None:

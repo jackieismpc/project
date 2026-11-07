@@ -1,4 +1,4 @@
-"""页面路由表：设计稿里的 12 个页面加「关于」，每页的标题和进入所需的权限。"""
+"""页面路由表：设计稿里的 12 个页面加“关于”，每页的标题和进入所需的权限。"""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ PAGE_ROUTES: tuple[Route, ...] = (
     Route("settings", str(QT_TRANSLATE_NOOP("Routes", "仪器设置"))),
     Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
 )
-"""外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，「关于」属于仪器设置和关于页。"""
+"""外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，“关于”属于仪器设置和关于页。"""
 
 ROUTES: tuple[Route, ...] = (LOGIN_ROUTE, *PAGE_ROUTES)
 """全部路由。"""

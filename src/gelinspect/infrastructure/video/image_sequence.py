@@ -184,7 +184,7 @@ def load_row_capture(directory: Path, *, min_frames: int = MIN_FRAMES_PER_SIDE) 
     """读取 ``<directory>/before`` 与 ``<directory>/after`` 下的一排图片。
 
     每组至少 ``min_frames`` 张（算法接口要求 n≥3），所有图片分辨率必须一致。照片没有可靠的采集
-    时间，``captured_at`` 按「最早的文件修改时间 + 序号 × 0.1 秒」合成，翻转后的第一张比翻转前的
+    时间，``captured_at`` 按“最早的文件修改时间 + 序号 × 0.1 秒”合成，翻转后的第一张比翻转前的
     最后一张晚 10 秒，保证满足 ``RowAnalysisRequest`` 的时间顺序要求；``source_path`` 指向原文件。
 
     也接受抓帧器落盘的平铺格式（``<directory>/before_01.png``、``after_01.png``）。

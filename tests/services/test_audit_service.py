@@ -76,13 +76,33 @@ def test_filters_by_actor_keyword_and_time_and_paginates(stack: Stack, audit: Au
     )
     assert all(r.event.actor == "alice" and "LAL-1" in r.event.detail for r in combined.items)
     first = audit.query(session, AuditFilter(), PageRequest(offset=0, limit=50))
-    # 第一页之后写了一条「查看审计追踪」：用第一页看到的最大序号固定范围，第二页不被它顶歪
+    # 第一页之后写了一条“查看审计追踪”：用第一页看到的最大序号固定范围，第二页不被它顶歪
     bound = AuditFilter(max_seq=first.items[0].seq)
     second = audit.query(session, bound, PageRequest(offset=50, limit=50))
     assert not {r.seq for r in first.items} & {r.seq for r in second.items}
     drifted = audit.query(session, AuditFilter(), PageRequest(offset=50, limit=50))
     assert {r.seq for r in first.items} & {r.seq for r in drifted.items}  # 不固定范围就会重复
     assert min(r.seq for r in first.items) > max(r.seq for r in second.items)
+
+
+def test_latest_seq_fixes_the_range_of_a_query(stack: Stack, audit: AuditService) -> None:
+    session = stack.login("analyst")
+    assert audit.latest_seq(session) == stack.database.audit.latest_seq() >= 0
+    seed(stack, 30)
+    bound = audit.latest_seq(session)
+    assert bound == stack.database.audit.query(AuditQuery(), PageRequest(limit=1)).items[0].seq
+    before = audit.query(session, AuditFilter(max_seq=bound), PageRequest(limit=1000))
+    seed(stack, 5)  # 之后写入的记录
+    after = audit.query(session, AuditFilter(max_seq=bound), PageRequest(limit=1000))
+    assert after.total == before.total and [r.seq for r in after.items] == [
+        r.seq for r in before.items
+    ]
+    assert audit.latest_seq(session) > bound
+
+
+def test_latest_seq_needs_the_audit_permission(stack: Stack, audit: AuditService) -> None:
+    with pytest.raises(PermissionDeniedError):
+        audit.latest_seq(stack.login("experimenter"))
 
 
 def test_blank_conditions_are_ignored_and_bad_ranges_are_rejected(

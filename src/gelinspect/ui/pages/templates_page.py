@@ -1,7 +1,7 @@
 """模板管理页：模板列表和管位详情；管理员可以新建、复制、编辑自定义模板。
 
 所有角色可以查看（``template_view``）；新建、复制、编辑需要 ``template_manage``，其他角色看到
-禁用的按钮和「只读」标记。内置模板只读，只能复制。权限在服务层再校验一次。
+禁用的按钮和“只读”标记。内置模板只读，只能复制。权限在服务层再校验一次。
 """
 
 from __future__ import annotations
@@ -210,7 +210,7 @@ class TemplatesPage(QWidget):
             self._toast(describe_storage_busy(), ToastKind.DANGER)
         else:
             self.refresh(select=copy.template_id)
-            self._toast(self.tr("模板已复制，可以点「编辑」修改"), ToastKind.SUCCESS)
+            self._toast(self.tr("模板已复制，可以点“编辑”修改"), ToastKind.SUCCESS)
 
     def edit_selected(self) -> None:
         """编辑选中的自定义模板。"""

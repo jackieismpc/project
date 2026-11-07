@@ -80,7 +80,7 @@ def interpretation_label(value: Interpretation) -> str:
         value: 判读。
 
     Returns:
-        例如「阳性」。
+        例如“阳性”。
     """
     return QCoreApplication.translate("Interpretation", _INTERPRETATION_NAMES[value])
 
@@ -92,7 +92,7 @@ def gel_state_label(value: GelState | None) -> str:
         value: 三态，无法判定为 None。
 
     Returns:
-        例如「部分凝固」。
+        例如“部分凝固”。
     """
     if value is None:
         return QCoreApplication.translate("GelState", "无法判定")
@@ -106,7 +106,7 @@ def analysis_status_label(value: TubeAnalysisStatus) -> str:
         value: 处理状态。
 
     Returns:
-        例如「图像质量不足」。
+        例如“图像质量不足”。
     """
     return QCoreApplication.translate("AnalysisStatus", _STATUS_NAMES[value])
 
@@ -206,7 +206,7 @@ def experiment_title(view: ExperimentView) -> str:
         view: 试验视图。
 
     Returns:
-        例如「灵敏度复核」。
+        例如“灵敏度复核”。
     """
     if view.template_name and not view.template_builtin:
         return view.template_name

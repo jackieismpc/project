@@ -1,4 +1,4 @@
-"""分页条：上一页、下一页和「共 N 条 · 第 x/y 页」。"""
+"""分页条：上一页、下一页和“共 N 条 · 第 x/y 页”。"""
 
 from __future__ import annotations
 

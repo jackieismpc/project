@@ -71,7 +71,7 @@ def test_pending_review_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -
 
 def test_pending_conclusion_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -> None:
     stack = signing_stack
-    # 模板布局未确认：规则读不了，结论是「待定」
+    # 模板布局未确认：规则读不了，结论是“待定”
     make_completed(stack, layout_confirmed=False)
     stored = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert stored is not None and stored.state is ExperimentState.COMPLETED
@@ -333,7 +333,7 @@ def test_state_changed_elsewhere_is_a_conflict_not_a_half_signature(
     @contextmanager
     def competing_writer() -> Any:
         with real() as uow:
-            # 另一个操作抢在签署之前改了状态：签署带着「预期状态」写入时发现冲突
+            # 另一个操作抢在签署之前改了状态：签署带着“预期状态”写入时发现冲突
             uow.experiments.update_state("EXP-SAMPLE-0001", ExperimentState.STOPPED)
             yield uow
 

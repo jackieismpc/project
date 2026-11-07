@@ -1,4 +1,4 @@
-"""报告中心的「导出 Excel 数据」：真实试验、真实向导，按钮接到导出服务。"""
+"""报告中心的“导出 Excel 数据”：真实试验、真实向导，按钮接到导出服务。"""
 
 from __future__ import annotations
 
@@ -14,6 +14,12 @@ from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.ui.main_window import MainWindow
 from tests.ui.conftest import sign_in
 from tests.ui.test_report_center import finish_experiment, reports_of
+
+
+@pytest.fixture
+def conclusions_enabled() -> bool:
+    """这个模块验证结论功能打开时的导出（关闭时的见 test_conclusions_off_ui.py）。"""
+    return True
 
 
 def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(

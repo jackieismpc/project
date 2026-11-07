@@ -2,7 +2,7 @@
 
 翻转前后的裁剪图（后台线程读盘）、可开关的算法掩码叠加、3 帧序列、ΔA / Δs / σ_A / σ_s / Score、
 三态、判读来源，以及人工复核。复核由 :class:`~gelinspect.services.review_service.ReviewService`
-校验权限和状态并写审计；算法的原始结果不被覆盖，界面同时显示「算法：部分凝固 → 人工：阳性」。
+校验权限和状态并写审计；算法的原始结果不被覆盖，界面同时显示“算法：部分凝固 → 人工：阳性”。
 """
 
 from __future__ import annotations
@@ -186,7 +186,7 @@ class TubeDetailPage(QWidget):
     """单管详情页。
 
     Signals:
-        backRequested: 点击「返回孔板」。
+        backRequested: 点击“返回孔板”。
         reviewed: 复核已提交，参数为试验标识。
     """
 

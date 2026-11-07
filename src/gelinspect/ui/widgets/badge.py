@@ -22,7 +22,7 @@ class BadgeTone(StrEnum):
 
 
 class StatusBadge(QLabel):
-    """状态徽标，例如「第 2 排读数中」。"""
+    """状态徽标，例如“第 2 排读数中”。"""
 
     def __init__(
         self,

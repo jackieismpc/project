@@ -290,7 +290,7 @@ class AuthService:
             hasher: 密码哈希。
             policy: 登录策略，默认 5 次失败锁定 5 分钟。
             clock: 返回带时区当前时间的函数，测试注入。
-            seeder: 创建首个管理员的实现；没有时「创建管理员」不可用。
+            seeder: 创建首个管理员的实现；没有时“创建管理员”不可用。
         """
         self._storage = storage
         self._hasher = hasher
@@ -386,7 +386,7 @@ class AuthService:
             session.locked = False
 
     def change_password(self, session: Session, old_password: str, new_password: str) -> None:
-        """修改自己的密码，成功后清除「必须改密」标记。
+        """修改自己的密码，成功后清除“必须改密”标记。
 
         Args:
             session: 会话（不能处于锁屏状态）。
@@ -426,7 +426,7 @@ class AuthService:
         Args:
             session: 调用者的会话（不能处于锁屏状态）。
             password: 明文密码。
-            purpose: 用途，写入审计，例如「签署」。
+            purpose: 用途，写入审计，例如“签署”。
 
         Returns:
             数据库里最新的用户。
@@ -529,7 +529,7 @@ class AuthService:
     # ------------------------------------------------------------------ 首个管理员
 
     def needs_first_admin(self) -> bool:
-        """系统里还没有任何账号时为 True，界面应显示「创建管理员」页。
+        """系统里还没有任何账号时为 True，界面应显示“创建管理员”页。
 
         Returns:
             没有账号时为 True。

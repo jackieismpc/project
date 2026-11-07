@@ -1,6 +1,6 @@
 """审计链 HMAC：启用、兼容旧链、切换事件、改库重算被发现、密钥丢失、两步之间被打断。
 
-篡改都直接用 SQL 改库文件，并模拟「懂算法的人」重算整条链和链头。
+篡改都直接用 SQL 改库文件，并模拟“懂算法的人”重算整条链和链头。
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ def canonical(row: sqlite3.Row) -> bytes:
 
 
 def rewrite_chain(database: Database, *, secret: bytes | None = None) -> None:
-    """模拟能写库的人：重算整条链（SHA-256，或用给定的「密钥」算 HMAC）和链头。"""
+    """模拟能写库的人：重算整条链（SHA-256，或用给定的“密钥”算 HMAC）和链头。"""
     with connect(database) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute("SELECT * FROM audit_events ORDER BY seq").fetchall()

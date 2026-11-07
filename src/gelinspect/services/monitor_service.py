@@ -61,7 +61,7 @@ LIVE_STATES = STOPPABLE_STATES | {ExperimentState.READY}
 """显示实时画面的试验状态（就绪的试验启动前检查期间也算）。"""
 
 _STARTED_MARK = f"{ExperimentState.READY.value} → {ExperimentState.INCUBATING.value}"
-"""引擎写审计时「就绪 → 孵育中」的文字前缀，用来找开始时间。"""
+"""引擎写审计时“就绪 → 孵育中”的文字前缀，用来找开始时间。"""
 
 
 class MonitorStorage(Protocol):
@@ -243,7 +243,7 @@ class ExperimentView:
         started_at: 开始孵育的时间，从未开始时为 None。
         reagent_batches: 三种试剂的批号。
         labeled_sensitivity: 标示灵敏度 λ（EU/ml）。
-        measured_sensitivity: 实测灵敏度 λc，没有结论的旧试验为 None。
+        measured_sensitivity: 实测灵敏度 λc，没有结论的旧试验为 None；结论功能关闭时恒为 None。
         tubes: 全部试管，按管号升序。
         rows: 有样品的排，按排号升序。
         pending_review: 待复核的管号。
@@ -253,8 +253,10 @@ class ExperimentView:
         last_elapsed_ms: 最近一次算法分析的耗时。
         last_flip_angle_deg: 最近一次翻转角度。
         signed_by: 签署人。
-        conclusion: 试验结论；已完成的是入库的结论，其余是临时结论（待定）。
+        conclusion: 试验结论；已完成的是入库的结论，其余是临时结论（待定）；
+            结论功能关闭时为 None。
         conclusion_recorded: 结论是否已入库。
+        conclusions_enabled: 结论功能是否打开，关闭时界面不显示结论卡和实测灵敏度。
         completed_at: 完成时间。
         can_resume: 可以恢复（异常且调度还在内存里）。
         interrupted: 异常且引擎没有在运行：软件重启过，调度已丢失，只能重试分析或停止。
@@ -285,8 +287,9 @@ class ExperimentView:
     last_elapsed_ms: float | None
     last_flip_angle_deg: float | None
     signed_by: str | None
-    conclusion: ExperimentConclusion
+    conclusion: ExperimentConclusion | None
     conclusion_recorded: bool = False
+    conclusions_enabled: bool = False
     completed_at: datetime | None = None
     can_resume: bool = False
     interrupted: bool = False
@@ -346,6 +349,8 @@ class MonitorService:
         storage: MonitorStorage,
         engine: MonitorEngine,
         pipeline: MonitorPipeline | None = None,
+        *,
+        conclusions_enabled: bool = False,
     ) -> None:
         """创建服务。
 
@@ -354,7 +359,9 @@ class MonitorService:
             storage: 存储。
             engine: 试验引擎。
             pipeline: 视频管线；为 None 时没有实时视频。
+            conclusions_enabled: 是否显示试验结论，默认关闭；关闭时视图里没有结论和实测灵敏度。
         """
+        self._conclusions_enabled = conclusions_enabled
         self._auth = auth
         self._storage = storage
         self._engine = engine
@@ -375,7 +382,7 @@ class MonitorService:
         return self._engine.active_experiment_id
 
     def default_experiment_id(self, session: Session | None) -> str | None:
-        """「试验监控」页默认显示的试验：正在运行的，否则最近创建的。
+        """“试验监控”页默认显示的试验：正在运行的，否则最近创建的。
 
         Args:
             session: 调用者的会话，需要 ``experiment_view`` 权限。
@@ -521,7 +528,9 @@ class MonitorService:
             started_at=self._started_at(experiment),
             reagent_batches={r.kind: r.batch_no for r in experiment.reagents},
             labeled_sensitivity=labeled,
-            measured_sensitivity=experiment.measured_sensitivity,
+            measured_sensitivity=(
+                experiment.measured_sensitivity if self._conclusions_enabled else None
+            ),
             tubes=tuple(tubes),
             rows=rows,
             pending_review=experiment.pending_review_tubes,
@@ -531,13 +540,18 @@ class MonitorService:
             last_elapsed_ms=newest.elapsed_ms if newest is not None else None,
             last_flip_angle_deg=float(angle) if isinstance(angle, float) else None,
             signed_by=experiment.signed_by,
-            conclusion=experiment.conclusion or provisional_conclusion(experiment),
-            conclusion_recorded=experiment.conclusion is not None,
+            conclusion=(
+                (experiment.conclusion or provisional_conclusion(experiment))
+                if self._conclusions_enabled
+                else None
+            ),
+            conclusion_recorded=self._conclusions_enabled and experiment.conclusion is not None,
+            conclusions_enabled=self._conclusions_enabled,
             completed_at=experiment.completed_at,
         )
 
     def _started_at(self, experiment: Experiment) -> datetime | None:
-        """开始孵育的时间：审计里第一条「就绪 → 孵育中」。"""
+        """开始孵育的时间：审计里第一条“就绪 → 孵育中”。"""
         query = AuditQuery(
             experiment_id=experiment.experiment_id,
             action=AuditAction.EXPERIMENT_STATE_CHANGED,

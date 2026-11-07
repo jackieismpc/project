@@ -52,6 +52,12 @@ from tests.ui.wizard_helpers import (
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.fixture
+def conclusions_enabled() -> bool:
+    """这个模块验证结论功能打开时的行为（默认配置是关闭的，见 test_conclusions_off_ui.py）。"""
+    return True
+
+
 def monitor_of(window: MainWindow) -> MonitorPage:
     page = window.page("monitor")
     assert isinstance(page, MonitorPage)
@@ -77,7 +83,7 @@ def test_simulated_sensitivity_run_gets_a_reasonable_lambda_c(
     assert experiment_id is not None
     # 还在跑的时候只有待定，不产生数值
     view = monitor.view_model
-    assert view is not None
+    assert view is not None and view.conclusions_enabled and view.conclusion is not None
     assert view.conclusion.verdict is ConclusionVerdict.PENDING and view.conclusion.value is None
     assert not view.conclusion_recorded
 
@@ -126,7 +132,7 @@ def test_conclusion_is_shown_again_after_a_restart(
 ) -> None:
     from tests.services.test_new_experiment_engine import request_for_tubes
 
-    first = open_context(tmp_path)
+    first = open_context(tmp_path, conclusions=True)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
         session, request_for_tubes(list(range(1, 18)))
@@ -139,7 +145,7 @@ def test_conclusion_is_shown_again_after_a_restart(
     assert before is not None and before.conclusion is not None
     close_context(first)
 
-    second = open_context(tmp_path)
+    second = open_context(tmp_path, conclusions=True)
     window = open_window(qapp, second, language)
     try:
         sign_in(qapp, window, "analyst")
@@ -330,7 +336,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
 ) -> None:
     from tests.services.test_new_experiment_engine import request_for_tubes
 
-    first = open_context(tmp_path)
+    first = open_context(tmp_path, conclusions=True)
     break_analyzer(first)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
@@ -344,7 +350,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
     )
     close_context(first)
 
-    second = open_context(tmp_path)
+    second = open_context(tmp_path, conclusions=True)
     window = open_window(qapp, second, language)
     try:
         sign_in(qapp, window, "experimenter")
@@ -466,3 +472,35 @@ def test_no_development_phase_in_visible_texts() -> None:
         source = (ROOT / "translations" / name).read_text(encoding="utf-8")
         for text in re.findall(r"<source>(.*?)</source>", source, flags=re.S):
             assert not re.search(r"\bP\d+\b", text), text
+
+
+def test_report_center_mentions_the_verdict_and_needs_a_conclusion_when_on(
+    qapp: QApplication,
+    fast_window: MainWindow,
+    fast_context: AppContext,
+) -> None:
+    """开关打开：报告中心的提示写出结论；没有入库结论的试验不能签署（行为与关闭前一致）。"""
+    from tests.ui.test_report_center import finish_experiment, reports_of
+
+    experiment_id = finish_experiment(qapp, fast_window, fast_context)
+    sign_in(qapp, fast_window, "analyst")
+    assert fast_window.navigate("reports")
+    page = reports_of(fast_window)
+    preview = page.current_preview
+    assert preview is not None and preview.can_sign and preview.conclusions_enabled
+    assert preview.conclusion is not None
+    assert page.status_text.text() == "可以签署：试验结论为“合格”"
+    # 抹掉入库的结论（模拟关闭期间完成的旧试验）：打开时不能签署
+    assert fast_context.database.experiments.get(experiment_id) is not None
+    with fast_context.database._sessions.begin() as session:  # noqa: SLF001
+        from sqlalchemy import delete
+
+        from gelinspect.infrastructure.db.models import ExperimentConclusionRow
+
+        session.execute(delete(ExperimentConclusionRow))
+    page.refresh()
+    settle(qapp)
+    blocked = page.current_preview
+    assert blocked is not None and not blocked.can_sign
+    assert not page.sign_button.isEnabled()
+    assert "没有入库的结论" in page.reasons_label.text()

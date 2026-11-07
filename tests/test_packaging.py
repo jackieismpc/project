@@ -160,7 +160,7 @@ def test_release_config_has_no_simulation_and_no_demo_accounts(tmp_path: Path) -
 
 def test_release_config_starts_into_create_admin(qapp: QApplication, tmp_path: Path) -> None:
     code = startup.run_gui(config_path=release_config(tmp_path), smoke_test=True, app=qapp)
-    assert code == EXIT_OK  # 冒烟检查要求显示「创建管理员」页
+    assert code == EXIT_OK  # 冒烟检查要求显示“创建管理员”页
 
 
 def test_unconfigured_backends_fail_clearly_instead_of_faking_results() -> None:

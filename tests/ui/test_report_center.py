@@ -33,7 +33,7 @@ def reports_of(window: MainWindow) -> ReportsPage:
 
 
 def finish_experiment(app: QApplication, window: MainWindow, context: AppContext) -> str:
-    """走真实向导跑完模拟灵敏度试验，并由分析员复核到「已完成」。返回试验标识。"""
+    """走真实向导跑完模拟灵敏度试验，并由分析员复核到“已完成”。返回试验标识。"""
     monitor = start_sensitivity(app, window)
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
@@ -56,7 +56,7 @@ def click(app: QApplication, widget: object) -> None:
 
 
 def auto_sign(monkeypatch: pytest.MonkeyPatch, password: str) -> list[str]:
-    """把签署对话框的 exec 换成：填密码、点「签署」，返回对话框里显示过的错误。"""
+    """把签署对话框的 exec 换成：填密码、点“签署”，返回对话框里显示过的错误。"""
     errors: list[str] = []
 
     def fake_exec(self: SignDialog) -> int:
@@ -201,7 +201,7 @@ def test_batch_report_from_the_ui_and_monitor_tabs(
     assert monitor.report_open.isEnabled()
     click(qapp, monitor.report_open)
     assert window.current_route == "reports" and reports_of(window).experiment_id == experiment_id
-    # 快捷栏「打印报告」
+    # 快捷栏“打印报告”
     assert window.open_experiment(experiment_id)
     window._on_quick_action("print_report")
     assert window.current_route == "reports" and reports_of(window).experiment_id == experiment_id
@@ -294,7 +294,7 @@ def test_report_center_fits_in_both_languages_and_sizes(
 def test_preview_layout_settles_instead_of_oscillating(
     qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
 ) -> None:
-    """「适应宽度」的预览曾因滚动条时有时无而无限重排（界面卡死）：布局必须稳定下来。"""
+    """“适应宽度”的预览曾因滚动条时有时无而无限重排（界面卡死）：布局必须稳定下来。"""
     from PySide6.QtCore import QEvent, QObject
 
     window, context = fast_window, fast_context

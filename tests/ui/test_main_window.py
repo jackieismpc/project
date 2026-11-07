@@ -196,7 +196,7 @@ def test_quick_actions_navigate_to_their_pages(qapp: QApplication, window: MainW
 def test_every_designed_page_has_a_route_and_a_working_page(
     qapp: QApplication, window: MainWindow
 ) -> None:
-    # 设计稿的 12 个页面：登录 + 11 个外壳页面（含单管详情），再加「关于」
+    # 设计稿的 12 个页面：登录 + 11 个外壳页面（含单管详情），再加“关于”
     keys = {r.key for r in ROUTES}
     assert {
         "login", "dashboard", "new", "monitor", "tube", "history",
@@ -216,7 +216,7 @@ def test_every_designed_page_has_a_route_and_a_working_page(
 
 
 def test_no_page_is_a_placeholder_any_more(qapp: QApplication, window: MainWindow) -> None:
-    """每条路由都对应真正的页面；路由表里也不再有「建设中」的记录。"""
+    """每条路由都对应真正的页面；路由表里也不再有“建设中”的记录。"""
     assert not hasattr(route_for("audit"), "phase")
     for username in ("admin", "experimenter", "analyst"):
         sign_in(qapp, window, username)

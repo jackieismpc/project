@@ -8,7 +8,7 @@
 
 1. 环境：系统、机型、Python、Qt。
 2. 全流程：真实向导启动 17 管灵敏度复核，跑完后复核、签署、验签；再跑一次 12 排×8 支整板（96 管）。
-   运行期间用 5 ms 的心跳定时器统计界面线程被阻塞的最长时间，作为「无卡顿」的依据。
+   运行期间用 5 ms 的心跳定时器统计界面线程被阻塞的最长时间，作为“无卡顿”的依据。
 3. 界面响应：10 万条审计加 1 万管结果的数据量下，逐页切换和切换语言的耗时。
 4. 报告：预览（版面计算）、签署（渲染加签名加入库）、验签、批量导出的耗时。
 5. 权限：全部角色乘全部权限，核对界面路由和服务层拒绝是否与权限矩阵一致。
@@ -168,7 +168,7 @@ def measure_environment() -> None:
 
 
 def prepare_wizard(rig: support.Rig, template: str, tubes: range) -> NewExperimentPage:
-    """实验员走完向导的前三步（选模板、扫码、选管位），停在「确认启动」。
+    """实验员走完向导的前三步（选模板、扫码、选管位），停在“确认启动”。
 
     向导由脚本用真实控件逐步点击，脚本自己的循环会占用线程，所以卡顿统计不含这一段。
     """
@@ -187,7 +187,7 @@ def prepare_wizard(rig: support.Rig, template: str, tubes: range) -> NewExperime
 
 
 def start_and_wait(rig: support.Rig, page: NewExperimentPage) -> dict[str, object]:
-    """点「确认并启动」，一直等到试验跑完；期间统计界面线程的阻塞，并切换监控页的标签。"""
+    """点“确认并启动”，一直等到试验跑完；期间统计界面线程的阻塞，并切换监控页的标签。"""
     app, window = rig.app, rig.window
     beat = Heartbeat()
     started = time.perf_counter()

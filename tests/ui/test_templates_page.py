@@ -57,7 +57,7 @@ def fake_dialog(
     *,
     record: list[TemplateEditorDialog] | None = None,
 ) -> None:
-    """替换对话框的 exec：先让 ``edit`` 改控件，再点「保存」。"""
+    """替换对话框的 exec：先让 ``edit`` 改控件，再点“保存”。"""
 
     def run(self: TemplateEditorDialog) -> int:
         if record is not None:

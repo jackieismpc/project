@@ -1,4 +1,4 @@
-"""结论入库：与「已完成」同事务、复核后计算、规则变更不改写历史、低置信度、λ 计算。"""
+"""结论入库：与“已完成”同事务、复核后计算、规则变更不改写历史、低置信度、λ 计算。"""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def stored(stack: Stack, experiment_id: str = "EXP-SAMPLE-0001") -> Experiment:
 
 
 def review(stack: Stack, tube_no: int, value: Interpretation, note: str = "复核") -> None:
-    service = ReviewService(stack.auth, stack.database, clock=lambda: NOW)
+    service = ReviewService(stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=True)
     service.review_tube(stack.login("analyst"), "EXP-SAMPLE-0001", tube_no, value, note)
 
 
@@ -206,7 +206,7 @@ def test_unconfirmed_template_finishes_with_a_pending_conclusion(stack: Stack) -
         )
     experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
     stack.database.experiments.save(experiment)
-    service = ReviewService(stack.auth, stack.database, clock=lambda: NOW)
+    service = ReviewService(stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=True)
     service.review_tube(
         stack.login("analyst"), experiment_id, 1, Interpretation.NEGATIVE, "人工判阴性"
     )

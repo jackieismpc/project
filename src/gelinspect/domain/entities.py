@@ -351,7 +351,7 @@ class Experiment:
         signed_at: 签署时间。
         layout_confirmed: 创建时模板布局是否已确认（快照，之后修改模板不影响本试验）。
             默认 False：没有明确确认的布局不能得出合格或不合格。
-        completed_at: 试验转为「已完成」的时间。
+        completed_at: 试验转为“已完成”的时间。
         conclusion: 入库的试验结论，试验完成时固化，之后修改规则或阈值不会改写它。
     """
 

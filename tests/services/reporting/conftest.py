@@ -57,8 +57,12 @@ def make_completed(
     layout_confirmed: bool = True,
     operator: str = "operator01",
     sample_batch: str = "SB2606",
+    conclusions_enabled: bool = True,
 ) -> Experiment:
-    """造一个已完成的灵敏度复核试验：先写入分析结果，再由分析员复核全部待复核的管。"""
+    """造一个已完成的灵敏度复核试验：先写入分析结果，再由分析员复核全部待复核的管。
+
+    ``conclusions_enabled`` 为 False 时模拟结论功能关闭：完成时不计算、不入库结论。
+    """
     experiment = sensitivity_experiment()
     experiment.experiment_id = experiment_id
     experiment.layout_confirmed = layout_confirmed
@@ -95,15 +99,17 @@ def make_completed(
     if experiment.pending_review_tubes:
         experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
         stack.database.experiments.save(experiment)
-        service = ReviewService(stack.auth, stack.database, clock=lambda: NOW)
+        service = ReviewService(
+            stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=conclusions_enabled
+        )
         for tube in experiment.pending_review_tubes:
             service.review_tube(stack.login("analyst"), experiment_id, tube, review_to, "复核")
     else:
         # 没有待复核的管：引擎直接完成并固化结论（与引擎的做法一致）。
-        from gelinspect.domain.conclusions import finalize_conclusion
+        from gelinspect.domain.conclusions import finalize_completion
 
         experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
-        finalize_conclusion(experiment, NOW)
+        finalize_completion(experiment, NOW, conclusions_enabled=conclusions_enabled)
         stack.database.experiments.save(experiment)
     stored = stack.database.experiments.get(experiment_id)
     assert stored is not None
@@ -122,6 +128,7 @@ def make_service(
         "keystore": keystore,
         "clock": lambda: SIGN_TIME,
         "zone": UTC,
+        "conclusions_enabled": True,  # 这里的测试都在结论功能打开的条件下做；关闭的用例显式传 False
     }
     options.update(overrides)
     service = ReportService(stack.auth, stack.database, **options)  # type: ignore[arg-type]
@@ -130,7 +137,7 @@ def make_service(
 
 @pytest.fixture
 def signing_stack(tmp_path: Path) -> Iterator[Stack]:
-    """真实 SQLite；分析员显示名改成中文「李工」，另有中文操作人「张工」。"""
+    """真实 SQLite；分析员显示名改成中文“李工”，另有中文操作人“张工”。"""
     stack = build_stack(tmp_path)
     analyst = stack.database.users.get_by_username("analyst")
     assert analyst is not None

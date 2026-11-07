@@ -87,7 +87,11 @@ def big_experiment(
 
 
 def document_of(
-    experiment: Experiment, *, holder: str = "[版权方名称]", operator: str = "张工"
+    experiment: Experiment,
+    *,
+    holder: str = "[版权方名称]",
+    operator: str = "张工",
+    conclusions_enabled: bool = True,
 ) -> ReportDocument:
     section = build_section(
         experiment,
@@ -95,6 +99,7 @@ def document_of(
         signer_name=None,
         started_at=None,
         temperature_range=(36.9, 37.2),
+        conclusions_enabled=conclusions_enabled,
     )
     return ReportDocument(
         scope=ReportScope.EXPERIMENT, sections=(section,), copyright_holder=holder
@@ -164,7 +169,7 @@ def test_english_report_has_no_chinese_and_no_missing_translation() -> None:
     ):
         assert has_text(data, expected), expected
     chinese = [ch for ch in text if "一" <= ch <= "鿿"]
-    # 只允许用户自己录入的中文（样品名「供试品」），固定文字不能有中文
+    # 只允许用户自己录入的中文（样品名“供试品”），固定文字不能有中文
     assert set(chinese) <= set("供试品"), "".join(sorted(set(chinese)))
     assert texts.missing == frozenset()
 
@@ -237,7 +242,7 @@ def test_content_digest_ignores_language_and_changes_with_content() -> None:
 
 
 def test_eight_tube_thumbnail_pages_are_optional(signing_stack: Stack, tmp_path: Path) -> None:
-    """附 8 连图时多出缩略页；没有图的排说明「没有图像」。"""
+    """附 8 连图时多出缩略页；没有图的排说明“没有图像”。"""
     import numpy as np
 
     from gelinspect.services.reporting.document import RowImagePair

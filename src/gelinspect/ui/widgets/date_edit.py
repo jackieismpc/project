@@ -1,4 +1,4 @@
-"""可以留空的日期输入：留空表示「不限」，点开日历从当前月份选。"""
+"""可以留空的日期输入：留空表示“不限”，点开日历从当前月份选。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QDateEdit, QWidget
 
 _EMPTY = QDate(2000, 1, 1)
-"""代表「没有填」的日期：显示为空白。"""
+"""代表“没有填”的日期：显示为空白。"""
 
 
 class OptionalDateEdit(QDateEdit):

@@ -6,6 +6,7 @@
 
 做法与组件展示页 ``gelinspect.ui.gallery`` 一致：真实窗口、真实数据，``QWidget.grab()`` 离屏截图。
 所有数据都由真实流程产生：实验员走向导启动试验，引擎、模拟视频和算法跑完，分析员复核并签署。
+试验结论功能（``conclusions.enabled``）默认关闭，配图都是默认配置下的样子，没有结论卡和 λc。
 登录页隐藏演示账号提示（真实部署没有它）。全部图片约 1280×800，以最高压缩比存成 PNG。
 """
 
@@ -60,7 +61,7 @@ def shot(
     support.settle(rig.app, 6)
     for toast in rig.window.findChildren(Toast):  # 引擎告警的提示条会盖住右上角
         toast.hide()
-    for stack in rig.window.findChildren(AlertStack):  # 加速模拟下后几排总是「晚于到时」，截图不要
+    for stack in rig.window.findChildren(AlertStack):  # 加速模拟下后几排总是“晚于到时”，截图不要
         stack.clear()
         stack.setVisible(False)
     support.settle(rig.app, 6)
@@ -92,27 +93,11 @@ def capture_setup(root: Path) -> None:
         support.close_rig(rig)
 
 
-def capture_invalid(root: Path) -> None:
-    """阴性对照出现阳性：结论「无效」。用脚本化的算法配置造出这个场景。"""
-    config = root / "analyzer.yaml"
-    states = "\n".join(f"  {n}: fully_gelled" for n in range(1, 18))
-    config.write_text(f"scripted: true\ntube_states:\n{states}\n", encoding="utf-8")
-    rig = support.open_rig(root / "invalid", analyzer_config=config)
-    try:
-        experiment_id = support.run_experiment(rig)
-        support.sign_in(rig.app, rig.window, "analyst")
-        rig.window.open_experiment(experiment_id)
-        shot(rig, "monitor-invalid")
-    finally:
-        support.close_rig(rig)
-
-
 def main() -> int:
     """逐页截图。"""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         capture_setup(root / "setup")
-        capture_invalid(root)
         rig = support.open_rig(root / "main", incubation_minutes=10)
         app, window = rig.app, rig.window
         try:
@@ -165,7 +150,7 @@ def main() -> int:
             click_well(monitor.plate, 11)  # type: ignore[attr-defined]
             support.settle(app, 10)
 
-            # 分析员：单管详情、复核、结论、签署
+            # 分析员：单管详情、复核、签署（试验结论功能默认关闭，不截结论卡）
             window.logout(confirm=False)
             support.sign_in(app, window, "analyst")
             window.open_tube(experiment_id, 11)
@@ -173,7 +158,7 @@ def main() -> int:
             shot(rig, "tube-detail-review")
             support.finish_and_review(rig, experiment_id)
             window.open_experiment(experiment_id)
-            shot(rig, "monitor-conclusion")
+            shot(rig, "monitor-completed")
             window.open_experiment(experiment_id)
             monitor = window.page("monitor")
             monitor.tabs.set_current(TAB_REPORT)  # type: ignore[attr-defined]
@@ -236,7 +221,7 @@ def main() -> int:
                 assert window.navigate(route)
                 shot(rig, name)
             assert window.navigate("settings")
-            # 右侧「视频输入」卡片下方会显示后端的类路径，只截到预览区为止
+            # 右侧“视频输入”卡片下方会显示后端的类路径，只截到预览区为止
             shot(rig, "settings-instrument", region=(20, 120, 610, 680))
             shot(rig, "settings-video", region=(640, 120, 600, 440))
             assert window.navigate("users")

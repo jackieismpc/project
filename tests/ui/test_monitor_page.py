@@ -192,7 +192,7 @@ def test_banners_can_be_dismissed_and_are_capped(
     monitor = start_sensitivity(qapp, live_window)
     for index in range(7):
         monitor.alerts.post(f"k{index}", "warning", f"告警 {index}")
-    assert monitor.alerts.visible_count() == 4  # 其余合并为「另有 N 条告警」
+    assert monitor.alerts.visible_count() == 4  # 其余合并为“另有 N 条告警”
     monitor.alerts.clear_key("k6")
     assert monitor.alerts.visible_count() == 4 and "k6" not in monitor.alerts.active_keys()
     monitor.alerts.clear()

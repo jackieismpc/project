@@ -169,7 +169,7 @@ def test_save_persists_audits_and_applies_to_the_runtime(
     )
     (detail,) = [r.event.detail for r in events.items]
     assert "仪器编号 GI-001 → GI-042" in detail and "孵育时间（分钟） 60 → 45" in detail
-    # 切页再回来，显示的是保存后的值；保存没有改动时提示「没有改动」
+    # 切页再回来，显示的是保存后的值；保存没有改动时提示“没有改动”
     window.navigate("dashboard")
     window.navigate("settings")
     assert page.fields["instrument_no"].edit.text() == "GI-042"
@@ -200,7 +200,7 @@ def test_while_an_experiment_runs_only_the_non_impacting_fields_can_be_edited(
     assert page.save() is True  # 不影响运行的项仍可保存
     set_text(page, "incubation_minutes", "10")  # 绕过置灰也会被服务层拒绝
     assert page.save() is False and "正在运行" in page.save_message.text()
-    monkeypatch.undo()  # 关闭窗口时不能还「有试验在运行」，否则会弹出退出确认
+    monkeypatch.undo()  # 关闭窗口时不能还“有试验在运行”，否则会弹出退出确认
 
 
 def test_preview_a_chosen_image_folder_shows_resolution_and_frame_count_and_save_switches_source(

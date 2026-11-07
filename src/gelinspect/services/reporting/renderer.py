@@ -4,7 +4,7 @@
 * 中文字体用随软件内置的 Noto Sans SC，Qt 在 PDF 里只嵌入用到的字形（子集），所以在没有这个
   字体的电脑上也能正确显示。内置字体缺失时回退到系统字体并记警告。
 * 页脚（不可更改声明、版权声明、内容摘要、页码）逐页自绘，因为 ``QTextDocument`` 没有页眉页脚。
-* 排版只依赖「设备」（``QPagedPaintDevice``）：``QPdfWriter`` 出文件，``QPrinter`` 供预览、打印。
+* 排版只依赖“设备”（``QPagedPaintDevice``）：``QPdfWriter`` 出文件，``QPrinter`` 供预览、打印。
 * 服务层可以在没有窗口的环境里运行：没有 ``QGuiApplication`` 时用 ``offscreen`` 平台创建一个。
   ``QTextDocument`` 和字体库只能在创建它的线程里用，所以调用方要在主线程渲染。
 """

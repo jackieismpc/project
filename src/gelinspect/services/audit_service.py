@@ -50,7 +50,7 @@ class AuditStorage(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class AuditFilter:
-    """审计查询条件，条件之间为「且」，为 None 或空的条件不生效。
+    """审计查询条件，条件之间为“且”，为 None 或空的条件不生效。
 
     Attributes:
         start: 起始时间（含）。
@@ -90,7 +90,7 @@ class AuditFilter:
         """条件的简体中文说明，写入审计。
 
         Returns:
-            例如「操作者=admin，关键字=登录」；没有条件时为「无条件」。
+            例如“操作者=admin，关键字=登录”；没有条件时为“无条件”。
         """
         parts: list[str] = []
         if self.start is not None:
@@ -160,6 +160,25 @@ class AuditService:
                 )
             )
         return result
+
+    def latest_seq(self, session: Session | None) -> int:
+        """当前最大的审计序号，用来固定一次查询的范围。
+
+        界面开始一次新查询时先取它，之后这次查询的每一页、总数和导出都带上它做
+        ``AuditFilter.max_seq``：期间别人写入的审计（例如有人登录）不会让后面的页错位，
+        点“查询”或“刷新”重新开始查询时才看到新记录。
+
+        Args:
+            session: 调用者的会话，需要 ``audit_view`` 权限。
+
+        Returns:
+            最大序号；一条记录也没有时为 0。
+
+        Raises:
+            PermissionDeniedError: 没有权限。
+        """
+        self._auth.authorize(session, Permission.AUDIT_VIEW)
+        return self._storage.audit.latest_seq()
 
     def actors(self, session: Session | None) -> list[str]:
         """可选的操作者：全部账号的登录名，加上系统自己。

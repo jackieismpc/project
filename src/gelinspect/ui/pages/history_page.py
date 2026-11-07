@@ -2,13 +2,14 @@
 
 查询走 ``QueryService``（服务层校验 ``experiment_view``），导出走 ``ExportService``
 （``data_export``，实验员没有，按钮置灰）。导出放到后台线程，界面不冻结。
-没有结果时显示空状态，并区分「还没有试验」和「没有符合条件的试验」。
+没有结果时显示空状态，并区分“还没有试验”和“没有符合条件的试验”。
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, time, timedelta
 from pathlib import Path
 
@@ -76,6 +77,9 @@ class HistoryPage(QWidget):
         self._items: list[ExperimentSummary] = []
         self._page = 0
         self._total = 0
+        self._bound: datetime | None = None
+        """这次查询的范围：开始时最新试验的创建时间，翻页期间新建的试验看不到。"""
+        self._bounded = False
         self._export_busy = False
         self._runner = BackgroundRunner(self)
 
@@ -229,13 +233,13 @@ class HistoryPage(QWidget):
         return self.current_query() != ExperimentQuery()
 
     def refresh(self) -> None:
-        """重新读取操作人列表和当前页。"""
+        """重新读取操作人列表和当前页，并开始一次新查询（看到此刻之前的全部试验）。"""
         self._load_operators()
-        self.load_page(self._page)
+        self._load(self._page, fresh=True)
 
     def search(self) -> None:
-        """按当前筛选条件从第一页开始查询。"""
-        self.load_page(0)
+        """按当前筛选条件开始一次新查询，从第一页开始。"""
+        self._load(0, fresh=True)
 
     def reset_filters(self) -> None:
         """清空全部筛选条件并重新查询。"""
@@ -245,18 +249,34 @@ class HistoryPage(QWidget):
         self.start_edit.set_value(None)
         self.end_edit.set_value(None)
         self.batch_edit.clear()
-        self.load_page(0)
+        self._load(0, fresh=True)
 
     def load_page(self, page: int) -> None:
-        """加载某一页；超出末页时落到末页。
+        """翻到某一页，沿用当前这次查询的范围；超出末页时落到末页。
+
+        还没有做过查询时当作新查询。
 
         Args:
             page: 页号（从 0 起）。
         """
+        self._load(page, fresh=not self._bounded)
+
+    def _load(self, page: int, *, fresh: bool) -> None:
+        """加载某一页。
+
+        新查询先记下此刻最新试验的创建时间，之后这次查询的翻页都限定在它及以前。
+
+        Args:
+            page: 页号（从 0 起）。
+            fresh: 是否新查询。
+        """
         self._items, self._total = [], 0
         if self._session is not None:
             try:
-                query = self.current_query()
+                if fresh:
+                    self._bound = self._services.queries.latest_experiment_time(self._session)
+                    self._bounded = True
+                query = replace(self.current_query(), max_created_at=self._bound)
                 result = self._services.queries.search_experiments(
                     self._session,
                     query,
@@ -309,7 +329,7 @@ class HistoryPage(QWidget):
         )
         if self.filters_active():
             self.table.set_empty_text(
-                self.tr("没有符合条件的试验"), self.tr("调整筛选条件，或点「重置」清除条件后再查")
+                self.tr("没有符合条件的试验"), self.tr("调整筛选条件，或点“重置”清除条件后再查")
             )
         else:
             self.table.set_empty_text(
@@ -401,7 +421,7 @@ class HistoryPage(QWidget):
         session = self._session
         if session is None:
             return
-        query = self.current_query()
+        query = replace(self.current_query(), max_created_at=self._bound)
         labels = export_labels()
         password, ok = self._export_password()
         if not ok:

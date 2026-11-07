@@ -115,7 +115,7 @@ def pdf_page_count(data: bytes) -> int:
 
 
 def flat_text(data: bytes) -> str:
-    """全部文字连成一段（不分页、不分块），方便断言跨字体的短语，例如「0.5 EU/mL」。"""
+    """全部文字连成一段（不分页、不分块），方便断言跨字体的短语，例如“0.5 EU/mL”。"""
     return "".join(line for page in pdf_pages_text(data) for line in page.split("\n"))
 
 

@@ -22,6 +22,7 @@ from gelinspect.interfaces.storage import (
     ChainFailure,
     ChainType,
     ChainVerification,
+    Page,
     PageRequest,
 )
 from gelinspect.services.app_services import AppServices
@@ -246,13 +247,13 @@ class AuditPage(QWidget):
         )
 
     def refresh(self) -> None:
-        """进入页面时：刷新操作者列表，从第一页重新查询。"""
+        """进入页面时：刷新操作者列表，开始一次新查询（看到此刻之前的全部记录）。"""
         self._load_actors()
-        self.load_page(0)
+        self.start_query()
 
     def search(self) -> None:
-        """按当前条件从第一页开始查询。"""
-        self.load_page(0)
+        """按当前条件开始一次新查询：记下此刻的最大序号，从第一页开始。"""
+        self.start_query()
 
     def reset_filters(self) -> None:
         """清空全部条件并重新查询。"""
@@ -261,41 +262,68 @@ class AuditPage(QWidget):
         self.actor_box.setCurrentIndex(0)
         self.actor_box.setEditText("")
         self.keyword_edit.clear()
-        self.load_page(0)
+        self.start_query()
+
+    def start_query(self) -> None:
+        """开始一次新查询：在后台先记下当时的最大序号，再查第一页。
+
+        这次查询的翻页、总数和导出都限定在该序号及以前，所以翻页期间别人写入的审计
+        不会让后面的页错位；再点“查询”或“刷新”才会看到新记录。
+        """
+        self._submit(0, fresh=True)
 
     def load_page(self, page: int) -> None:
-        """在后台加载某一页；新的请求让还没返回的旧请求作废。
+        """翻到某一页，沿用当前这次查询的范围（序号上限）。
+
+        还没有做过查询时当作新查询。
 
         Args:
             page: 页号（从 0 起）。
+        """
+        self._submit(page, fresh=self._snapshot_seq is None)
+
+    def _submit(self, page: int, *, fresh: bool) -> None:
+        """在后台查询某一页；新的请求让还没返回的旧请求作废。
+
+        Args:
+            page: 页号（从 0 起）。
+            fresh: 是否新查询：是则先取当前最大序号作为这次查询的范围。
         """
         session = self._session
         if session is None:
             return
         audit_filter = self.current_filter()
-        if page > 0:  # 翻页：沿用第一页看到的范围，期间新写入的记录不把后面的页顶歪
-            audit_filter = replace(audit_filter, max_seq=self._snapshot_seq)
+        known = self._snapshot_seq
         request = PageRequest(offset=max(page, 0) * PAGE_SIZE, limit=PAGE_SIZE)
         if self._query_token is not None:
             self._runner.cancel(self._query_token)
         self._loading = True
         self._error_text = ""
         self._sync_state()
+
+        def work() -> tuple[int, Page[AuditRecord]]:
+            # 范围先于查询确定，总数和记录都在同一个上限内，两条语句之间的新写入看不到。
+            audit = self._services.audit
+            bound = audit.latest_seq(session) if fresh or known is None else known
+            bounded = replace(audit_filter, max_seq=bound)
+            return bound, audit.query(session, bounded, request)
+
         self._query_token = self._runner.submit(
-            lambda: self._services.audit.query(session, audit_filter, request),
-            lambda result: self._on_loaded(max(page, 0), result.items, result.total),
+            work,
+            lambda outcome: self._on_loaded(
+                max(page, 0), outcome[1].items, outcome[1].total, outcome[0]
+            ),
             self._on_query_failed,
         )
 
-    def _on_loaded(self, page: int, items: tuple[AuditRecord, ...], total: int) -> None:
+    def _on_loaded(self, page: int, items: tuple[AuditRecord, ...], total: int, bound: int) -> None:
         self._loading = False
         self._query_token = None
+        self._snapshot_seq = bound
         if not items and total > 0 and page > 0:
             self.load_page((total - 1) // PAGE_SIZE)  # 记录变少后落到末页
             return
         self._records, self._total, self._page = list(items), total, page
-        if page == 0:
-            self._snapshot_seq = items[0].seq if items else None
         self._render()
         self.loaded.emit()
 
@@ -343,7 +371,7 @@ class AuditPage(QWidget):
         elif active:
             self.table.set_empty_text(
                 self.tr("没有符合条件的审计记录"),
-                self.tr("调整查询条件，或点「重置」清除条件后再查"),
+                self.tr("调整查询条件，或点“重置”清除条件后再查"),
             )
         else:
             self.table.set_empty_text(self.tr("还没有审计记录"), "")
@@ -490,6 +518,8 @@ class AuditPage(QWidget):
         if session is None or self._exporting:
             return
         audit_filter = self.current_filter()
+        if self._snapshot_seq is not None:  # 导出的就是这次查询看到的范围
+            audit_filter = replace(audit_filter, max_seq=self._snapshot_seq)
         labels = export_labels()
         password: str | None = None
         if self._services.exports.encryption_required:

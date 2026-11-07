@@ -221,7 +221,7 @@ def test_start_hands_the_ready_experiment_to_the_engine(stack: Stack) -> None:
 
 
 def save_ready(stack: Stack, reagents: tuple[ReagentBatch, ...], experiment_id: str = "E-X") -> str:
-    """绕过创建服务，直接把一个「就绪」的试验写进库（模拟被篡改或隔夜过期）。"""
+    """绕过创建服务，直接把一个“就绪”的试验写进库（模拟被篡改或隔夜过期）。"""
     from tests.services.engine_helpers import ready_experiment
 
     experiment = ready_experiment(range(1, 9), experiment_id)

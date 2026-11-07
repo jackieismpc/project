@@ -9,7 +9,7 @@
   数据用 AES-256-GCM 加密。主密钥通过 ``security -i`` 的标准输入写入，不出现在进程参数里。
 * ``file``（都不可用时）：主密钥由数据目录里的安装密钥（``keys/install.secret``，32 字节随机数）
   经 scrypt 派生，AES-256-GCM 加密。**安装密钥和密文在同一台机器的同一个目录里**：
-  它只能防止「只拿到某一个密钥文件」和误把密钥文件当明文传播，挡不住能读整个数据目录的人。
+  它只能防止“只拿到某一个密钥文件”和误把密钥文件当明文传播，挡不住能读整个数据目录的人。
 """
 
 from __future__ import annotations
@@ -259,7 +259,7 @@ class KeychainKeyProtector:
     def ready(self) -> bool:
         """钥匙串真的能用：能访问默认钥匙串，并且能取得（必要时创建）本数据目录的主密钥。
 
-        沙盒或无图形会话里常见「能读默认钥匙串、却不能写条目」，只看 :meth:`available` 不够。
+        沙盒或无图形会话里常见“能读默认钥匙串、却不能写条目”，只看 :meth:`available` 不够。
 
         Returns:
             可以用来加密时为 True。
@@ -586,7 +586,7 @@ def write_private_file(path: Path, data: bytes) -> None:
 
 
 def overwrite_file(path: Path) -> None:
-    """删除前用随机数据覆盖文件内容并落盘（「安全删除」的尽力版本）。
+    """删除前用随机数据覆盖文件内容并落盘（“安全删除”的尽力版本）。
 
     SSD 的磨损均衡和 APFS、NTFS 的写时复制、快照都可能保留旧数据块，所以这只能防止
     简单的恢复工具，不能保证物理上不可恢复。

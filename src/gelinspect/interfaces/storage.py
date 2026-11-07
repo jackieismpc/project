@@ -137,7 +137,7 @@ class AuditRecord:
 
 @dataclass(frozen=True, slots=True)
 class AuditQuery:
-    """审计查询条件，条件之间为「且」，为 None 的条件不生效。
+    """审计查询条件，条件之间为“且”，为 None 的条件不生效。
 
     Attributes:
         start: 起始时间（含）。
@@ -214,7 +214,7 @@ class ChainVerification:
 
 @dataclass(frozen=True, slots=True)
 class ExperimentQuery:
-    """历史试验查询条件，条件之间为「且」。
+    """历史试验查询条件，条件之间为“且”。
 
     Attributes:
         experiment_type: 试验类型。
@@ -223,6 +223,8 @@ class ExperimentQuery:
         batch_no: 批号，匹配试剂批号或样品批号，精确匹配。
         state: 试验状态。
         operator: 操作人用户名。
+        max_created_at: 创建时间上限（含）。翻页时用这次查询开始时最新试验的创建时间，
+            让期间新建的试验不把后面的页顶歪。
     """
 
     experiment_type: ExperimentType | None = None
@@ -231,6 +233,7 @@ class ExperimentQuery:
     batch_no: str | None = None
     state: ExperimentState | None = None
     operator: str | None = None
+    max_created_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,7 +324,7 @@ class ReportRecord:
         signed_by: 签署人用户名。
         signed_at: 签署时间。
         certificate_sha256: 签名证书的 SHA-256 指纹（DER）。
-        content_sha256: 页脚显示的「内容摘要」：报告数据的 SHA-256，不是文件哈希。
+        content_sha256: 页脚显示的“内容摘要”：报告数据的 SHA-256，不是文件哈希。
         experiment_ids: 报告包含的试验。
     """
 
@@ -381,7 +384,7 @@ class DeviceLogEntry:
 
 @dataclass(frozen=True, slots=True)
 class ReagentCheckRecord:
-    """一次试剂扫码校验的记录（试剂溯源页的「校验记录」）。
+    """一次试剂扫码校验的记录（试剂溯源页的“校验记录”）。
 
     Attributes:
         checked_at: 校验时间，带时区。
@@ -558,9 +561,11 @@ class ExperimentRepository(Protocol):
         *,
         completed_at: datetime,
         measured_sensitivity: float | None,
-        conclusion: ExperimentConclusion,
+        conclusion: ExperimentConclusion | None,
     ) -> None:
-        """写入完成时间、实测灵敏度和结论，与「已完成」状态在同一事务调用。
+        """写入完成时间、实测灵敏度和结论，与“已完成”状态在同一事务调用。
+
+        结论功能关闭时 ``conclusion`` 为 None，只写完成时间。
 
         Raises:
             NotFoundError: 试验不存在。
@@ -589,7 +594,7 @@ class ExperimentRepository(Protocol):
         ...
 
     def record_signature(self, experiment_id: str, *, signed_by: str, signed_at: datetime) -> None:
-        """写入签署人和签署时间，与「已签署」状态在同一事务调用。
+        """写入签署人和签署时间，与“已签署”状态在同一事务调用。
 
         Raises:
             NotFoundError: 试验不存在。
@@ -618,6 +623,10 @@ class ExperimentRepository(Protocol):
         """分页查询历史试验，按创建时间倒序。"""
         ...
 
+    def latest_created_at(self) -> datetime | None:
+        """最新试验的创建时间，没有试验时为 None，用来固定一次历史查询的范围。"""
+        ...
+
     def batch_numbers(self, kind: BatchKind, states: Sequence[ExperimentState]) -> list[str]:
         """处于给定状态的试验用到的批号（去重，升序），用于单批次报告选批次。"""
         ...
@@ -642,6 +651,14 @@ class AuditRepository(Protocol):
 
     def get(self, seq: int) -> AuditRecord | None:
         """按序号查询一条记录。"""
+        ...
+
+    def latest_seq(self) -> int:
+        """当前已提交的最大序号，一条记录也没有时为 0。
+
+        界面开始一次新查询时记下它，之后这次查询的翻页、总数和导出都用它做
+        ``AuditQuery.max_seq``，期间新写入的记录不会让后面的页错位。
+        """
         ...
 
     def query(self, query: AuditQuery, page: PageRequest) -> Page[AuditRecord]:

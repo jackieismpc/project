@@ -2,7 +2,7 @@
 
 快捷操作由 :data:`DEFAULT_ACTIONS` 声明式定义（标识、文字、图标、快捷键、所需权限）。
 每个操作对应一个 ``QAction`` 和一个 ``QShortcut``；没有权限时按钮禁用，快捷键也不生效。
-宽度不足时，右端的操作收进「更多」弹出菜单，文字不截断、控件不越界。
+宽度不足时，右端的操作收进“更多”弹出菜单，文字不截断、控件不越界。
 """
 
 from __future__ import annotations
@@ -100,7 +100,7 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         Permission.EXPERIMENT_VIEW,  # 所有角色可以查看设置；修改需要 instrument_configure
     ),
 )
-"""设计评审确定的 6 个快捷操作，从左到右排列；宽度不足时从右端开始收进「更多」。"""
+"""设计评审确定的 6 个快捷操作，从左到右排列；宽度不足时从右端开始收进“更多”。"""
 
 
 def native_shortcut_text(shortcut: QKeySequence.StandardKey | str) -> str:
@@ -209,7 +209,7 @@ class _MenuChip(QToolButton):
 class QuickToolbar(QFrame):
     """全局常驻的顶部快捷栏，高度 56px。
 
-    从左到右：菜单按钮、竖线、快捷操作、（宽度不足时的）「更多」、弹性空白、
+    从左到右：菜单按钮、竖线、快捷操作、（宽度不足时的）“更多”、弹性空白、
     状态区（仪器连接、语言、当前用户）。
 
     Signals:
@@ -405,7 +405,7 @@ class QuickToolbar(QFrame):
         return tuple(spec.id for spec in self._specs)
 
     def overflow_ids(self) -> tuple[str, ...]:
-        """当前收进「更多」菜单的操作 id。
+        """当前收进“更多”菜单的操作 id。
 
         Returns:
             被隐藏按钮对应的 id，保持显示顺序。
@@ -425,7 +425,7 @@ class QuickToolbar(QFrame):
         """设置菜单按钮的提示文字，附加平台格式的 ``Ctrl+B``。
 
         Args:
-            text: 说明文字，例如「展开侧栏」。
+            text: 说明文字，例如“展开侧栏”。
         """
         full = annotate(text, native_shortcut_text("Ctrl+B"))
         self.menu_button.setToolTip(full)
@@ -454,7 +454,7 @@ class QuickToolbar(QFrame):
         """更新当前界面语言的显示名。
 
         Args:
-            text: 语言名，例如「简体中文」。
+            text: 语言名，例如“简体中文”。
         """
         self._language_name = text
         self._language.set_content("languages", text)
@@ -549,7 +549,7 @@ class QuickToolbar(QFrame):
         self._layout.activate()
 
     def _rebuild_more_menu(self) -> None:
-        """打开「更多」前，用当前被收纳的操作重建菜单。"""
+        """打开“更多”前，用当前被收纳的操作重建菜单。"""
         self.more_menu.clear()
         for action_id in self.overflow_ids():
             spec = next(s for s in self._specs if s.id == action_id)
@@ -564,7 +564,7 @@ class QuickToolbar(QFrame):
         """左侧固定部分加状态区所需的宽度。
 
         Args:
-            with_more: 是否计入「更多」按钮。
+            with_more: 是否计入“更多”按钮。
 
         Returns:
             宽度（px）。
@@ -579,7 +579,7 @@ class QuickToolbar(QFrame):
         return width
 
     def _update_overflow(self) -> None:
-        """根据当前宽度决定哪些操作直接显示，其余收进「更多」。"""
+        """根据当前宽度决定哪些操作直接显示，其余收进“更多”。"""
         sp = self._layout.spacing()
         widths = [self._buttons[i].sizeHint().width() for i in self.action_ids()]
         count = len(widths)
@@ -594,7 +594,7 @@ class QuickToolbar(QFrame):
         self.more_button.setVisible(shown < count)
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
-        """最小尺寸：菜单按钮、「更多」与状态区仍完整可见。
+        """最小尺寸：菜单按钮、“更多”与状态区仍完整可见。
 
         Returns:
             最小尺寸。

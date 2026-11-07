@@ -104,7 +104,7 @@ class QualityConfig(_Model):
         black_mean_max: 平均灰度低于此值判为黑屏。
         overexposed_level: 灰度不低于此值的像素算饱和。
         overexposed_fraction: 饱和像素占比超过此值判为过曝。
-        frozen_diff_max: 相邻两次采样的平均绝对差低于此值算「无变化」。
+        frozen_diff_max: 相邻两次采样的平均绝对差低于此值算“无变化”。
         frozen_samples: 连续多少次无变化判为卡帧。
         expected_fps: 期望帧率，None 时用视频源报告的帧率；都没有则不检查低帧率。
         low_fps_ratio: 实测帧率低于期望的这个比例时告警。

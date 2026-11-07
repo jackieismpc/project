@@ -237,7 +237,7 @@ def describe_scan(scan: ReagentScan, expected: ReagentKind | None = None) -> str
         expected: 期望的试剂种类（种类放错时用于说明）。
 
     Returns:
-        例如「已备案 · 效期至 2027-06-30」「已于 2026-01-31 过期」。
+        例如“已备案 · 效期至 2027-06-30”“已于 2026-01-31 过期”。
     """
     template = QCoreApplication.translate("ReagentScan", _SCAN_MESSAGES[scan.outcome])
     if scan.outcome is ScanOutcome.VALID:
@@ -263,7 +263,7 @@ def describe_days_remaining(days: int | None) -> str:
         days: 天数（有效期当天为 0，过期为负）；未知时为 None。
 
     Returns:
-        例如「剩余 237 天」「今天到期」「已过期 279 天」；未知时为空串。
+        例如“剩余 237 天”“今天到期”“已过期 279 天”；未知时为空串。
     """
     if days is None:
         return ""
@@ -281,7 +281,7 @@ def describe_lock_reasons(error: ReagentLockedError) -> list[str]:
         error: 锁定异常。
 
     Returns:
-        形如「鲎试剂 LAL2501B：已于 2026-01-31 过期」的行。
+        形如“鲎试剂 LAL2501B：已于 2026-01-31 过期”的行。
     """
     lines: list[str] = []
     for kind, scan in error.scans.items():
@@ -411,7 +411,7 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
         QT_TRANSLATE_NOOP("ServiceError", "不能停用自己的账号")
     ),
     ServiceErrorCode.USER_SELF_RESET: str(
-        QT_TRANSLATE_NOOP("ServiceError", "不能在这里重置自己的密码，请用用户菜单里的「修改密码」")
+        QT_TRANSLATE_NOOP("ServiceError", "不能在这里重置自己的密码，请用用户菜单里的“修改密码”")
     ),
     ServiceErrorCode.USER_NAME_REQUIRED: str(
         QT_TRANSLATE_NOOP("ServiceError", "显示名称不能超过 {max} 个字符")
@@ -429,7 +429,7 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
         QT_TRANSLATE_NOOP("ServiceError", "无法读取视频输入：{reason}")
     ),
     ServiceErrorCode.LIMITS_INVALID: str(
-        QT_TRANSLATE_NOOP("ServiceError", "「{field}」必须是大于 0 的数字")
+        QT_TRANSLATE_NOOP("ServiceError", "“{field}”必须是大于 0 的数字")
     ),
     ServiceErrorCode.AUDIT_QUERY_INVALID: str(
         QT_TRANSLATE_NOOP("ServiceError", "起始时间必须早于结束时间")
@@ -561,7 +561,7 @@ def conclusion_verdict_label(verdict: ConclusionVerdict) -> str:
         verdict: 结论。
 
     Returns:
-        例如「合格」。
+        例如“合格”。
     """
     return QCoreApplication.translate("Conclusion", _VERDICTS[verdict])
 
@@ -634,7 +634,7 @@ def permission_label(permission: Permission) -> str:
         permission: 权限。
 
     Returns:
-        例如「查看审计追踪」。
+        例如“查看审计追踪”。
     """
     return QCoreApplication.translate("Permission", _PERMISSIONS[permission])
 
@@ -694,7 +694,7 @@ def setting_label(name: str) -> str:
         name: 设置项名称。
 
     Returns:
-        带单位的名称，例如「孵育时间（分钟）」。
+        带单位的名称，例如“孵育时间（分钟）”。
     """
     return QCoreApplication.translate("Settings", SETTING_LABELS[name])
 
@@ -706,7 +706,7 @@ def describe_settings_problem(problem: SettingsProblem) -> str:
         problem: 校验发现的问题。
 
     Returns:
-        例如「孵育时间（分钟）应在 0.1–1440 之间」。
+        例如“孵育时间（分钟）应在 0.1–1440 之间”。
     """
     template = QCoreApplication.translate("SettingsProblem", _PROBLEM_TEXTS[problem.code])
     params: dict[str, object] = {**problem.params, "name": setting_label(problem.name)}

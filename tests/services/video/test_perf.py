@@ -139,7 +139,7 @@ def test_4000x3000_10fps_preview_record_and_snapshots(tmp_path: Path) -> None:
                 row = len(snapshots) + 1
                 start = datetime.now(UTC)
                 pipeline.mark_flip_start(start, row)
-                time.sleep(1.0)  # 「翻转」期间视频继续出帧
+                time.sleep(1.0)  # “翻转”期间视频继续出帧
                 snap = pipeline.grab(
                     row, 3, experiment_id="EXP-PERF", flip_completed_at=datetime.now(UTC)
                 )

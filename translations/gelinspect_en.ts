@@ -255,7 +255,7 @@
         <translation>No audit records match</translation>
     </message>
     <message>
-        <source>调整查询条件，或点「重置」清除条件后再查</source>
+        <source>调整查询条件，或点“重置”清除条件后再查</source>
         <translation>Adjust the filters, or click Reset to clear them and search again</translation>
     </message>
     <message>
@@ -1542,7 +1542,7 @@
         <translation>No experiments match</translation>
     </message>
     <message>
-        <source>调整筛选条件，或点「重置」清除条件后再查</source>
+        <source>调整筛选条件，或点“重置”清除条件后再查</source>
         <translation>Adjust the filters, or click Reset to clear them and search again</translation>
     </message>
     <message>
@@ -1910,7 +1910,7 @@
         <translation>No experiment is running</translation>
     </message>
     <message>
-        <source>在「新试验」里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
+        <source>在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
         <translation>Start one from New experiment to see live video, the plate and results here, or open History to review finished experiments.</translation>
     </message>
     <message>
@@ -2017,7 +2017,7 @@
         <translation>Choose a test template</translation>
     </message>
     <message>
-        <source>模板决定试管数量和每管的样品、外加内毒素。标「布局待确认」的模板仍可使用。</source>
+        <source>模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。</source>
         <translation>The template sets the number of tubes and each tube&apos;s sample and spiked endotoxin. Templates marked &quot;Layout to be confirmed&quot; can still be used.</translation>
     </message>
     <message>
@@ -2197,7 +2197,7 @@
         <translation>Endotoxin limit</translation>
     </message>
     <message>
-        <source>「{names}」必须是大于 0 的数字，或者留空</source>
+        <source>“{names}”必须是大于 0 的数字，或者留空</source>
         <translation>&quot;{names}&quot; must be a number greater than 0, or empty</translation>
     </message>
     <message>
@@ -3044,8 +3044,8 @@
         <translation>Rule source</translation>
     </message>
     <message>
-        <source>标注“已复核”的结果经分析员人工复核，以复核结论为准。</source>
-        <translation>Results marked “reviewed” were reviewed manually by the analyst; the review conclusion prevails.</translation>
+        <source>标注“已复核”的结果经分析员人工复核，以复核结果为准。</source>
+        <translation>Results marked “reviewed” were reviewed manually by the analyst; the review result prevails.</translation>
     </message>
     <message>
         <source>8 连图（每排翻转前、翻转后代表帧）</source>
@@ -3135,12 +3135,16 @@
         <translation>Signed</translation>
     </message>
     <message>
-        <source>可以签署：试验结论为「{verdict}」</source>
+        <source>可以签署：试验结论为“{verdict}”</source>
         <translation>Ready to sign: the experiment conclusion is “{verdict}”</translation>
     </message>
     <message>
         <source>可以签署：批次里的试验都已签署</source>
         <translation>Ready to sign: every experiment in the batch is signed</translation>
+    </message>
+    <message>
+        <source>可以签署：全部待复核已处理，试验已完成</source>
+        <translation>Ready to sign: all tubes pending review have been handled and the experiment is complete</translation>
     </message>
     <message>
         <source>现在不能签署</source>
@@ -3595,7 +3599,7 @@
         <translation>You cannot disable your own account</translation>
     </message>
     <message>
-        <source>不能在这里重置自己的密码，请用用户菜单里的「修改密码」</source>
+        <source>不能在这里重置自己的密码，请用用户菜单里的“修改密码”</source>
         <translation>You cannot reset your own password here; use Change password in the user menu</translation>
     </message>
     <message>
@@ -3619,7 +3623,7 @@
         <translation>Cannot read the video input: {reason}</translation>
     </message>
     <message>
-        <source>「{field}」必须是大于 0 的数字</source>
+        <source>“{field}”必须是大于 0 的数字</source>
         <translation>&quot;{field}&quot; must be a number greater than 0</translation>
     </message>
     <message>
@@ -4044,11 +4048,11 @@
         <translation>This experiment has no recorded conclusion and cannot be signed.</translation>
     </message>
     <message>
-        <source>试验结论为「待定」，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <source>试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
         <translation>The conclusion is “Pending”, not final, so it cannot be signed: an undecided result must not become a release basis.</translation>
     </message>
     <message>
-        <source>试验结论为「无效」，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
+        <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
         <translation>The conclusion is “Invalid”, so it cannot be signed and must not be used for release. Address the reasons below and repeat the test.</translation>
     </message>
     <message>
@@ -4317,7 +4321,7 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Template created</translation>
     </message>
     <message>
-        <source>模板已复制，可以点「编辑」修改</source>
+        <source>模板已复制，可以点“编辑”修改</source>
         <translation>Template copied. Click Edit to change it.</translation>
     </message>
     <message>
@@ -4665,7 +4669,7 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation> (you)</translation>
     </message>
     <message>
-        <source>自己的密码请用用户菜单里的「修改密码」</source>
+        <source>自己的密码请用用户菜单里的“修改密码”</source>
         <translation>Use Change password in the user menu for your own password</translation>
     </message>
     <message>

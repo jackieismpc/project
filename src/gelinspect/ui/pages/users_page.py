@@ -203,7 +203,7 @@ class UsersPage(QWidget):
         self.role_button.setEnabled(has)
         self.reset_button.setEnabled(has and not is_self)
         self.reset_button.setToolTip(
-            self.tr("自己的密码请用用户菜单里的「修改密码」") if is_self else ""
+            self.tr("自己的密码请用用户菜单里的“修改密码”") if is_self else ""
         )
         self.toggle_button.setEnabled(has and not is_self)
         self.toggle_button.setToolTip(self.tr("不能停用自己的账号") if is_self else "")

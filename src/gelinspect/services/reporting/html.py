@@ -105,7 +105,7 @@ def verdict_text(texts: ReportTexts, verdict: ConclusionVerdict) -> str:
         verdict: 结论。
 
     Returns:
-        例如「合格」。
+        例如“合格”。
     """
     return texts.tr(_VERDICT_SOURCES[verdict], "Conclusion")
 
@@ -117,14 +117,14 @@ def _stamp(value: datetime | None, zone: tzinfo | None, fmt: str = "%Y-%m-%d %H:
 
 
 def result_text(texts: ReportTexts, row: ReportRowData) -> str:
-    """结果表「阴阳性」一列的文字，复核过的标注「已复核」。
+    """结果表“阴阳性”一列的文字，复核过的标注“已复核”。
 
     Args:
         texts: 报告文字。
         row: 结果表的一行。
 
     Returns:
-        例如「阳性（已复核）」；没有结果时为「无结果」。
+        例如“阳性（已复核）”；没有结果时为“无结果”。
     """
     if row.interpretation is Interpretation.POSITIVE:
         text = texts.s(S.POSITIVE)
@@ -181,7 +181,7 @@ class _Builder:
     # ------------------------------------------------------------------ 试验头部
 
     def _field_row(self, cells: list[tuple[str, str]]) -> str:
-        """一行：每个字段是「标签 + 值」两格，最后一格没有下划线间隔。"""
+        """一行：每个字段是“标签 + 值”两格，最后一格没有下划线间隔。"""
         out = ["<tr>"]
         edge = f"border-bottom:{self.px(1)}px solid {HAIRLINE};"
         pad = f"padding-top:{self.px(4)}px;padding-bottom:{self.px(4)}px;"
@@ -302,7 +302,10 @@ class _Builder:
         conclusion: ExperimentConclusion | None = section.conclusion
         parts: list[str] = []
         label = _e(self.s(S.CONCLUSION))
-        if conclusion is None:
+        if not section.conclusions_enabled:
+            # 结论功能关闭：不出现结论、λc、依据、规则版本，只保留复核说明。
+            pass
+        elif conclusion is None:
             parts.append(
                 f'<span style="font-size:10.5pt;font-weight:700">{label}：'
                 f"{_e(self.s(S.NONE))}</span>"
@@ -351,7 +354,7 @@ class _Builder:
             parts.append(
                 f'<span style="font-size:7.5pt;color:{MUTED}">{_e(self.s(S.REVIEWED_NOTE))}</span>'
             )
-        return self._box(parts)
+        return self._box(parts) if parts else ""
 
     def _box(self, lines: list[str]) -> str:
         """把若干行放进带边框的表格：每行一个表格行，分页时在行之间断开。"""
@@ -411,12 +414,12 @@ class _Builder:
     # ------------------------------------------------------------------ 整份报告
 
     def section_body(self, section: ExperimentSection, width_px: int) -> str:
+        conclusion = self.conclusion(section)
         return (
             self.header(section)
             + self.gap(10)
             + self.results(section)
-            + self.gap(10)
-            + self.conclusion(section)
+            + (self.gap(10) + conclusion if conclusion else "")
             + self.images(section, width_px)
         )
 
@@ -425,14 +428,16 @@ class _Builder:
         t = self.t
         top = f"border-top:{self.px(2)}px solid {INK};border-bottom:{self.px(1)}px solid {INK};"
         cell = f"border-bottom:{self.px(1)}px solid {HAIRLINE};"
+        with_verdict = any(section.conclusions_enabled for section in self.doc.sections)
         heads = [
-            (self.s(S.COL_EXPERIMENT), "26%"),
-            (self.s(S.EXPERIMENT_TYPE), "16%"),
-            (self.s(S.TEST_DATE), "20%"),
-            (self.s(S.COL_COUNT), "10%"),
-            (self.s(S.CONCLUSION), "14%"),
-            (self.s(S.COL_STATE), "14%"),
+            (self.s(S.COL_EXPERIMENT), "26%" if with_verdict else "30%"),
+            (self.s(S.EXPERIMENT_TYPE), "16%" if with_verdict else "20%"),
+            (self.s(S.TEST_DATE), "20%" if with_verdict else "24%"),
+            (self.s(S.COL_COUNT), "10%" if with_verdict else "12%"),
         ]
+        if with_verdict:
+            heads.append((self.s(S.CONCLUSION), "14%"))
+        heads.append((self.s(S.COL_STATE), "14%"))
         head = "".join(
             f'<th width="{w}" align="left" style="{top}font-weight:500">{_e(h)}</th>'
             for h, w in heads
@@ -447,13 +452,14 @@ class _Builder:
                 if state_source is None
                 else t.tr(state_source, "ExperimentState")
             )
+            verdict_cell = f'<td style="{cell}">{_e(verdict)}</td>' if with_verdict else ""
             body.append(
                 "<tr>"
                 f'<td style="{cell}">{_mono(section.experiment_id)}</td>'
                 f'<td style="{cell}">{_e(self.type_name(section.experiment_type))}</td>'
                 f'<td style="{cell}">{_mono(_stamp(section.started_at, self.zone))}</td>'
                 f'<td style="{cell}">{_mono(str(len(section.rows)))}</td>'
-                f'<td style="{cell}">{_e(verdict)}</td>'
+                f"{verdict_cell}"
                 f'<td style="{cell}">{_e(state)}</td>'
                 "</tr>"
             )

@@ -58,7 +58,7 @@ DEFAULT_NAV: tuple[NavEntry, ...] = (
     _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "仪器设置")), "settings"),
     _nav("about", str(QT_TRANSLATE_NOOP("SideNav", "关于")), "info"),
 )
-"""设计稿中的 10 个主导航项，加上「关于」。label 是简体中文源文本，显示时经翻译。"""
+"""设计稿中的 10 个主导航项，加上“关于”。label 是简体中文源文本，显示时经翻译。"""
 
 
 class NavItem(QAbstractButton):
@@ -301,7 +301,7 @@ class SideNav(QFrame):
 
         Args:
             entries: 导航项，按显示顺序。
-            brand: 顶部品牌名，``None`` 使用「凝胶智检系统」（随语言切换）。
+            brand: 顶部品牌名，``None`` 使用“凝胶智检系统”（随语言切换）。
             pinnable: 品牌行右侧是否显示固定按钮（由 AppShell 使用）。
             parent: 父控件。
         """

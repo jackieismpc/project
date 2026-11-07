@@ -30,13 +30,13 @@ _BLOCKS: dict[SigningBlocker, str] = {
     SigningBlocker.VERDICT_PENDING: str(
         QT_TRANSLATE_NOOP(
             "Signing",
-            "试验结论为「待定」，不是最终结论，不能签署：未判定的结果不能被当成放行依据。",
+            "试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。",
         )
     ),
     SigningBlocker.VERDICT_INVALID: str(
         QT_TRANSLATE_NOOP(
             "Signing",
-            "试验结论为「无效」，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。",
+            "试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。",
         )
     ),
 }
@@ -54,7 +54,7 @@ def describe_signing_blocks(
 ) -> list[str]:
     """不能签署的原因，每条一行，当前语言。
 
-    结论为「无效」或「待定」时，把结论里的原因逐条列在后面，让操作人知道为什么。
+    结论为“无效”或“待定”时，把结论里的原因逐条列在后面，让操作人知道为什么。
 
     Args:
         blocks: 不能签署的原因。
@@ -147,7 +147,7 @@ def describe_verification(result: SignatureVerification, *, stored: bool = True)
         stored: 是否已入库的报告（还核对了库里的文件哈希）；外部文件为 False。
 
     Returns:
-        文字行：通过时一行；未通过时第一行是「验签未通过」，其后每个原因一行。
+        文字行：通过时一行；未通过时第一行是“验签未通过”，其后每个原因一行。
     """
     if result.ok:
         return [QCoreApplication.translate("Verify", _VERIFY_OK if stored else _VERIFY_OK_EXTERNAL)]

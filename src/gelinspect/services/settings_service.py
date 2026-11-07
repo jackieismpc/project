@@ -10,7 +10,7 @@
   版权方名称随时可改。运行中提交这类改动会被拒绝，什么都不改。
 * 保存分三步：运行时生效 → 写用户配置文件（``data/`` 下，不改仓库里的默认配置）→ 写审计
   （``settings_changed``，逐项记录旧值和新值）。任何一步失败，前面的步骤都撤销，不会留下
-  「界面显示一套、文件里另一套」的状态。
+  “界面显示一套、文件里另一套”的状态。
 * 改动对**之后启动的试验**生效；视频输入换成新的视频文件或图片文件夹后，下一个试验用的就是它。
 """
 
@@ -459,7 +459,7 @@ class InstrumentSettingsService:
         else:
             self._auth.authorize(session, Permission.INSTRUMENT_CONFIGURE)
             if kind is VideoInput.CONFIG:
-                video = self._base.video  # 「沿用配置文件」预览的是默认配置的视频源
+                video = self._base.video  # “沿用配置文件”预览的是默认配置的视频源
                 config = VideoConfig(
                     device=video.device, width=video.width, height=video.height, fps=video.fps
                 )

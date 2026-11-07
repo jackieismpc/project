@@ -1,10 +1,10 @@
-"""「尚未接入」的占位后端：发布包（不含 ``simulation/``）的默认配置使用它们。
+"""“尚未接入”的占位后端：发布包（不含 ``simulation/``）的默认配置使用它们。
 
 真实的设备通信协议、工业相机和算法交付之前，发布包仍要能启动、创建管理员、管理用户和模板、
 查看历史和审计。这些后端让软件正常启动，但**任何需要硬件或算法的操作都会明确失败**，
 说明要在配置里接入哪一项：
 
-* 设备：``read_status`` 报告未连接（仪器状态显示「未连接」），其余操作抛 ``DeviceConnectionError``。
+* 设备：``read_status`` 报告未连接（仪器状态显示“未连接”），其余操作抛 ``DeviceConnectionError``。
 * 视频：``open`` 抛 ``VideoOpenError``。
 * 算法：``load`` 抛 ``AnalyzerError``。
 
@@ -38,7 +38,7 @@ from gelinspect.interfaces.video import (
 
 _DEVICE_HINT = "设备通信尚未接入：请在配置文件的 device.backend 里指定真实的设备适配器"
 _VIDEO_HINT = (
-    "相机尚未接入：请在「仪器设置」里选择视频文件或图片文件夹，"
+    "相机尚未接入：请在“仪器设置”里选择视频文件或图片文件夹，"
     "或在配置文件的 video.source 里指定真实相机"
 )
 _ANALYZER_HINT = "算法尚未接入：请在配置文件的 analysis.backend 里指定真实的算法模块"

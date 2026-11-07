@@ -36,7 +36,7 @@ def test_valid_code_passes_and_is_recorded(stack: Stack) -> None:
 
 
 def test_water_code_without_an_expiry_uses_the_registry_expiry(stack: Stack) -> None:
-    """试剂码里没有有效期时，用备案清单确认的有效期；不会因此变成「有效期未知」。"""
+    """试剂码里没有有效期时，用备案清单确认的有效期；不会因此变成“有效期未知”。"""
     scan = stack.reagents.evaluate(SAMPLE_CODES["water_valid"], ReagentKind.WATER)
     assert scan.valid and scan.expiry_date is not None
     assert scan.expiry_date.isoformat() == "2028-07-31"

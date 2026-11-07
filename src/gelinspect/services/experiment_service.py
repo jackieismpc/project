@@ -5,7 +5,7 @@
 * 创建试验时，用扫码原文重新解析并校验三种试剂；有任何一种过期、未备案、读不出或没录入，
   就写审计并抛 :class:`~gelinspect.services.reagent_service.ReagentLockedError`，不保存试验。
 * 启动试验时，对已保存的试剂批次按今天的日期复核；过期了（隔夜才启动）就把试验转为
-  「试剂锁定」并拒绝启动。
+  “试剂锁定”并拒绝启动。
 * 启动由 ``ExperimentEngine.start`` 完成，它立即返回；启动前检查（连接设备、温度、视频）
   在引擎线程上，失败时试验仍为就绪，并通过 ``EngineAlert(START_FAILED)`` 报告，界面据此显示原因。
 """
@@ -359,7 +359,7 @@ class ExperimentService:
     def start_experiment(self, session: Session | None, experiment_id: str) -> None:
         """启动已就绪的试验。立即返回；启动前检查在引擎线程上，失败由引擎告警报告。
 
-        启动前对保存的试剂批次按今天的日期复核；过期了就转为「试剂锁定」并拒绝。
+        启动前对保存的试剂批次按今天的日期复核；过期了就转为“试剂锁定”并拒绝。
 
         Args:
             session: 调用者的会话，需要 ``experiment_run`` 权限。

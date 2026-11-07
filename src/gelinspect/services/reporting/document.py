@@ -1,4 +1,4 @@
-"""报告的内容模型：和语言、排版无关的数据，加上页脚的「内容摘要」。
+"""报告的内容模型：和语言、排版无关的数据，加上页脚的“内容摘要”。
 
 报告由若干 :class:`ExperimentSection` 组成：单个试验的报告只有一节，单批次报告每个试验一节。
 内容摘要是这份数据的 SHA-256（规范化 JSON，时间一律用 UTC），**不是文件的哈希**：文件哈希写在
@@ -76,7 +76,9 @@ class ExperimentSection:
         mvd: 最大有效稀释倍数（录入项，未录入为 None）。
         endotoxin_limit: 内毒素限值（录入项，未录入为 None）。
         rows: 结果表，按管号升序。
-        conclusion: 入库的结论；没有（旧试验）为 None。
+        conclusion: 入库的结论；没有（旧试验）为 None；结论功能关闭时恒为 None。
+        conclusions_enabled: 结论功能是否打开。关闭时报告不含结论区、λc、规则版本，
+            内容摘要也不含结论。
     """
 
     experiment_id: str
@@ -96,6 +98,7 @@ class ExperimentSection:
     endotoxin_limit: float | None
     rows: tuple[ReportRowData, ...]
     conclusion: ExperimentConclusion | None
+    conclusions_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +168,7 @@ def _utc(value: datetime | None) -> str | None:
 
 
 def _section_payload(section: ExperimentSection) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "experiment_id": section.experiment_id,
         "experiment_type": section.experiment_type.value,
         "state": section.state.value,
@@ -192,7 +195,9 @@ def _section_payload(section: ExperimentSection) -> dict[str, Any]:
             ]
             for row in section.rows
         ],
-        "conclusion": (
+    }
+    if section.conclusions_enabled:
+        payload["conclusion"] = (
             None
             if section.conclusion is None
             else {
@@ -201,8 +206,8 @@ def _section_payload(section: ExperimentSection) -> dict[str, Any]:
                 "rule_version": section.conclusion.rule_version,
                 "payload": conclusion_payload(section.conclusion),
             }
-        ),
-    }
+        )
+    return payload
 
 
 def build_section(
@@ -212,6 +217,7 @@ def build_section(
     signer_name: str | None,
     started_at: datetime | None,
     temperature_range: tuple[float, float] | None,
+    conclusions_enabled: bool = False,
 ) -> ExperimentSection:
     """由试验聚合生成报告里的一节。
 
@@ -221,6 +227,7 @@ def build_section(
         signer_name: 签署人显示名。
         started_at: 开始检测的时间。
         temperature_range: 温度日志的最低和最高温度。
+        conclusions_enabled: 结论功能是否打开；关闭时这一节不带结论。
 
     Returns:
         报告内容的一节。
@@ -264,5 +271,6 @@ def build_section(
         mvd=experiment.mvd,
         endotoxin_limit=experiment.endotoxin_limit,
         rows=tuple(rows),
-        conclusion=experiment.conclusion,
+        conclusion=experiment.conclusion if conclusions_enabled else None,
+        conclusions_enabled=conclusions_enabled,
     )

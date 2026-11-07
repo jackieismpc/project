@@ -11,7 +11,7 @@ from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.util import repolish
 
 MAX_BANNERS = 4
-"""同时显示的横幅数，更多的合并为「另有 N 条告警」。"""
+"""同时显示的横幅数，更多的合并为“另有 N 条告警”。"""
 
 
 class _Banner(QFrame):

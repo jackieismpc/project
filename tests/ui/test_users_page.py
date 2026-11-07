@@ -37,7 +37,7 @@ def audit_lines(context: AppContext) -> list[str]:
 
 @pytest.fixture
 def seen_credentials(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
-    """记录「临时密码」对话框里显示的内容，而不真的弹出模态对话框。"""
+    """记录“临时密码”对话框里显示的内容，而不真的弹出模态对话框。"""
     shown: list[tuple[str, str]] = []
 
     def fake_exec(self: CredentialDialog) -> int:
@@ -139,7 +139,7 @@ def test_disable_and_enable(
     assert asked == ["停用账号？"]
     row = next(r for r in page.users_table.model.rows if r["username"] == "analyst")
     assert row["state"] == "已停用" and row["_tone"] == "warning"
-    assert page.toggle_button.text() == "启用"  # 选中的是已停用账号，按钮变成「启用」
+    assert page.toggle_button.text() == "启用"  # 选中的是已停用账号，按钮变成“启用”
     assert not app_context.database.users.get_by_username("analyst").active  # type: ignore[union-attr]
     assert page.request_toggle_active()  # 启用不需要确认
     assert asked == ["停用账号？"]

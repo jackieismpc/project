@@ -20,7 +20,7 @@ from gelinspect.interfaces.analysis import MIN_FRAMES_PER_SIDE
 class EngineConfig(BaseModel):
     """试验引擎配置。
 
-    时长分两种：标注「设备时间」的按 ``time_scale`` 加速，标注「真实时间」的不加速。
+    时长分两种：标注“设备时间”的按 ``time_scale`` 加速，标注“真实时间”的不加速。
     算法超时、视频重连这些衡量真实软硬件的时长不能加速。
 
     Attributes:

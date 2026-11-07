@@ -198,12 +198,12 @@ class TemplateService:
     ) -> ExperimentTemplate:
         """复制模板（内置或自定义）为新的自定义模板。
 
-        复制品是用户自己的模板，不再带「布局待确认」标记。
+        复制品是用户自己的模板，不再带“布局待确认”标记。
 
         Args:
             session: 调用者的会话，需要 ``template_manage`` 权限。
             source_id: 源模板标识。
-            name: 新名称，默认「原名称 副本」，重名时自动加序号。
+            name: 新名称，默认“原名称 副本”，重名时自动加序号。
 
         Returns:
             新模板。

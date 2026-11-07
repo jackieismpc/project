@@ -1,7 +1,7 @@
 """带密码的 ZIP（WinZip AES-256，AE-2），用于加密敏感导出。
 
 只依赖已有的 ``cryptography`` 和 ``numpy``，没有引入 GPL 依赖。格式按 WinZip 公开的
-「AES Encryption Information」规范：
+“AES Encryption Information”规范：
 
 * 每个文件：deflate 压缩 → AES-256-CTR（计数器为小端、从 1 开始）加密 →
   HMAC-SHA1 认证码（前 10 字节）。
@@ -11,7 +11,7 @@
   AE-2 不存 CRC（由认证码保证完整性）。
 
 7-Zip、WinRAR、Keka、The Unarchiver、bsdtar（libarchive）都能打开；**Windows 资源管理器和
-macOS「归档实用工具」自带的解压不支持 AES**，文档里说明。
+macOS“归档实用工具”自带的解压不支持 AES**，文档里说明。
 """
 
 from __future__ import annotations

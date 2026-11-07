@@ -4,8 +4,8 @@
 
 1. 翻转开始时调用 :meth:`SnapshotGrabber.mark_flip_start`，缓冲保护翻转前最近 n 帧（只保护这 n 帧，
    不保护翻转过程中的帧，否则 12MP 下会固定占用数 GB 内存）。
-2. 翻转结束后调用 :meth:`SnapshotGrabber.grab`：翻转前取「时间早于翻转开始」的最近 n 帧；
-   翻转后等到「翻转结束时间 + 稳定时间」之后，取最早的 n 帧。不足 n 帧时一直等到超时，
+2. 翻转结束后调用 :meth:`SnapshotGrabber.grab`：翻转前取“时间早于翻转开始”的最近 n 帧；
+   翻转后等到“翻转结束时间 + 稳定时间”之后，取最早的 n 帧。不足 n 帧时一直等到超时，
    然后抛 :class:`InsufficientFramesError`，**不会静默少帧**。
 3. 原图无损 PNG（或 JPG）编码后写盘，在工作线程池中并行完成，不占用采集线程。
    先写 ``.part`` 再 fsync、改名，同时算 SHA-256。

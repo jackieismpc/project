@@ -23,13 +23,13 @@ engine:
   time_scale: 60          # 60 分钟孵育约 1 分钟跑完，与 SimDevice 的默认加速倍数一致
 
 # 首次启动（数据库里还没有账号）时运行的初始化钩子：创建演示账号 admin / experimenter / analyst，
-# 密码见 simulation/demo_accounts.py，也显示在登录页的「演示账号」提示里。
+# 密码见 simulation/demo_accounts.py，也显示在登录页的“演示账号”提示里。
 # 真实配置删掉整个 bootstrap 段：首次启动时界面会要求创建管理员，数据库里不会有任何默认密码。
 bootstrap:
   hook: "simulation.demo_accounts:DemoAccounts"
 
 # 试剂溯源：试剂码解析、备案清单、政府溯源平台（接入预留）。三项都可以换成真实实现。
-# 不写这一段时，试剂无法校验，新试验向导会停在「校验试剂」并说明原因，不会放行。
+# 不写这一段时，试剂无法校验，新试验向导会停在“校验试剂”并说明原因，不会放行。
 traceability:
   parser:
     backend: "simulation.reagents:SimReagentCodeParser"
@@ -37,6 +37,12 @@ traceability:
     backend: "simulation.reagents:SimReagentRegistry"
   government:
     backend: "simulation.reagents:SimTraceabilityClient"
+
+# 试验结论（灵敏度 λc、合格、无效、待定）。判定规则甲方尚未确认，默认关闭：
+# 关闭时只显示每支管的凝固状态、阴阳性和复核标注，签署不要求有结论，也不计算、不入库结论。
+# 规则确认后改为 true 打开，详见 docs/features/conclusions.md。
+conclusions:
+  enabled: false
 
 # 判读（可选）：三态到阴阳性的映射，以及低置信度阈值。默认部分凝固待复核、阈值不启用，
 # 启用后低于阈值的结果转待复核，等 QA 确认（PLAN 第 7 节第 17 项）。

@@ -27,8 +27,8 @@ class ConfirmDialog(QDialog):
         Args:
             title: 标题。
             message: 说明文字。
-            confirm_text: 确认按钮文字，``None`` 使用「确认」。
-            cancel_text: 取消按钮文字，``None`` 使用「取消」。
+            confirm_text: 确认按钮文字，``None`` 使用“确认”。
+            cancel_text: 取消按钮文字，``None`` 使用“取消”。
             danger: 是否为危险操作。
             parent: 父窗口。
         """
@@ -99,7 +99,7 @@ class ConfirmDialog(QDialog):
 
 
 class ErrorDialog(QDialog):
-    """错误对话框：标题、说明、可展开的技术细节、日志位置和一个「关闭」按钮。
+    """错误对话框：标题、说明、可展开的技术细节、日志位置和一个“关闭”按钮。
 
     用于启动失败和未捕获异常。技术细节不翻译（来自异常和日志），说明文字由调用方翻译。
     """

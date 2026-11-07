@@ -50,7 +50,7 @@ class AppServices:
         audit: 审计追踪（查询、校验哈希链）。
         exports: Excel 导出（试验结果、历史列表、审计）。
         settings: 仪器设置。
-        demo_accounts: 登录页「演示账号」提示的内容，真实配置下为空。
+        demo_accounts: 登录页“演示账号”提示的内容，真实配置下为空。
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不锁。
         recovered: 启动恢复时被标记为异常的试验。
         data_dir: 数据目录。

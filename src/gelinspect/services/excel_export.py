@@ -131,7 +131,7 @@ class ExportLabels:
         gel_state: 算法三态。
         review_status: 复核状态。
         analysis_status: 算法处理状态。
-        user_role: 用户角色（审计的「权限」列）。
+        user_role: 用户角色（审计的“权限”列）。
         note: 结论依据里的一条。
         reagent: 试剂种类。
     """
@@ -289,13 +289,17 @@ def write_results(
     experiments: Iterable[Experiment],
     destination: Path,
     labels: ExportLabels | None = None,
+    *,
+    conclusions_enabled: bool = False,
 ) -> tuple[Path, int]:
-    """导出试验结果：试验汇总、单管结果（含特征和复核）、结论依据三张表。
+    """导出试验结果：试验汇总、单管结果（含特征和复核），结论功能打开时再加结论依据表。
 
     Args:
         experiments: 试验。
         destination: 目标文件，扩展名不是 ``.xlsx`` 时补上。
         labels: 文字翻译，默认简体中文。
+        conclusions_enabled: 结论功能是否打开。关闭时没有实测灵敏度、结论、结论数值、
+            规则版本四列，也没有结论依据表。
 
     Returns:
         ``(写出的文件, 单管结果行数)``。
@@ -304,36 +308,31 @@ def write_results(
     lab = labels or ExportLabels()
     target = _prepare(destination)
     workbook = _new_workbook()
-    summary = _SheetWriter(
-        workbook,
-        t("试验"),
-        [
-            t(h)
-            for h in (
-                "试验编号",
-                "类型",
-                "状态",
-                "仪器编号",
-                "操作人",
-                "创建时间",
-                "完成时间",
-                "签署人",
-                "签署时间",
-                "鲎试剂批号",
-                "内毒素批号",
-                "检测用水批号",
-                "标示灵敏度 λ（EU/mL）",
-                "MVD",
-                "内毒素限值",
-                "实测灵敏度 λc（EU/mL）",
-                "结论",
-                "结论数值",
-                "规则版本",
-                "管数",
-                "待复核管数",
-            )
-        ],
+    summary_heads = (
+        "试验编号",
+        "类型",
+        "状态",
+        "仪器编号",
+        "操作人",
+        "创建时间",
+        "完成时间",
+        "签署人",
+        "签署时间",
+        "鲎试剂批号",
+        "内毒素批号",
+        "检测用水批号",
+        "标示灵敏度 λ（EU/mL）",
+        "MVD",
+        "内毒素限值",
+        *(
+            ("实测灵敏度 λc（EU/mL）", "结论", "结论数值", "规则版本")
+            if conclusions_enabled
+            else ()
+        ),
+        "管数",
+        "待复核管数",
     )
+    summary = _SheetWriter(workbook, t("试验"), [t(h) for h in summary_heads])
     tubes = _SheetWriter(
         workbook,
         t("单管结果"),
@@ -372,10 +371,10 @@ def write_results(
             )
         ],
     )
-    basis = _SheetWriter(
-        workbook,
-        t("结论依据"),
-        [t(h) for h in ("试验编号", "类别", "内容")],
+    basis = (
+        _SheetWriter(workbook, t("结论依据"), [t(h) for h in ("试验编号", "类别", "内容")])
+        if conclusions_enabled
+        else None
     )
     for experiment in experiments:
         batches = {b.kind: b for b in experiment.reagents}
@@ -402,10 +401,16 @@ def write_results(
                 labeled,
                 experiment.mvd,
                 experiment.endotoxin_limit,
-                experiment.measured_sensitivity,
-                "" if conclusion is None else lab.verdict(conclusion.verdict),
-                None if conclusion is None else conclusion.value,
-                "" if conclusion is None else conclusion.rule_version,
+                *(
+                    (
+                        experiment.measured_sensitivity,
+                        "" if conclusion is None else lab.verdict(conclusion.verdict),
+                        None if conclusion is None else conclusion.value,
+                        "" if conclusion is None else conclusion.rule_version,
+                    )
+                    if conclusions_enabled
+                    else ()
+                ),
                 len(experiment.assignments),
                 len(experiment.pending_review_tubes),
             ]
@@ -452,7 +457,7 @@ def write_results(
                     result.message or "",
                 ]
             )
-        if conclusion is not None:
+        if basis is not None and conclusion is not None:
             for note in conclusion.basis:
                 basis.add([experiment.experiment_id, t("依据"), lab.note(note)])
             for note in conclusion.unmet:

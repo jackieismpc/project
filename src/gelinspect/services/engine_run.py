@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypeVar
 
-from gelinspect.domain.conclusions import finalize_conclusion, labeled_sensitivity_of
+from gelinspect.domain.conclusions import finalize_completion, labeled_sensitivity_of
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -150,6 +150,7 @@ class EngineDeps:
         schedule_clock: 调度时钟，读数是设备时间，只用 ``monotonic``。
         analyzer_config_path: 传给 ``GelAnalyzer.load`` 的配置。
         events: 事件分发器。
+        conclusions_enabled: 是否计算并入库试验结论（配置 ``conclusions.enabled``，默认关闭）。
     """
 
     device: DeviceController
@@ -162,6 +163,7 @@ class EngineDeps:
     schedule_clock: Clock
     analyzer_config_path: Path | None
     events: EventDispatcher
+    conclusions_enabled: bool = False
 
 
 @dataclass(slots=True)
@@ -1296,7 +1298,7 @@ class EngineRun:
                 return
 
         retry = [r for r in self._rows.values() if r.phase is RowPhase.ANALYSIS_FAILED]
-        # 离线重试不翻转：没有读数的排留在「读数失败」，全部分析完后试验回到异常。
+        # 离线重试不翻转：没有读数的排留在“读数失败”，全部分析完后试验回到异常。
         reread = (
             []
             if self._offline
@@ -1536,14 +1538,19 @@ class EngineRun:
                 and state_before is not ExperimentState.COMPLETED
             )
             if completed:
-                # 结论和「已完成」状态同一事务：看到已完成的人一定也能读到结论。
-                records.append(
-                    self._audit_event(
-                        AuditAction.CONCLUSION_RECORDED,
-                        finalize_conclusion(exp, self._clock.now()).summary_text(),
-                        user=user,
-                    )
+                # 结论和“已完成”状态同一事务：看到已完成的人一定也能读到结论。
+                # 结论功能关闭时只记完成时间，不计算、不入库结论，也不写结论审计。
+                concluded = finalize_completion(
+                    exp, self._clock.now(), conclusions_enabled=self._deps.conclusions_enabled
                 )
+                if concluded is not None:
+                    records.append(
+                        self._audit_event(
+                            AuditAction.CONCLUSION_RECORDED,
+                            concluded.summary_text(),
+                            user=user,
+                        )
+                    )
 
             def write(uow: UnitOfWork) -> None:
                 if exp.state is not state_before:
@@ -1553,7 +1560,7 @@ class EngineRun:
                 if results:
                     uow.experiments.save_results(exp.experiment_id, results)
                 if completed:
-                    assert exp.conclusion is not None and exp.completed_at is not None
+                    assert exp.completed_at is not None
                     uow.experiments.record_completion(
                         exp.experiment_id,
                         completed_at=exp.completed_at,

@@ -60,11 +60,11 @@ def test_a_bad_value_blocks_the_next_step_and_says_which_field(
     page.limit_edit.setText("-1")
     settle(qapp)
     assert not page.sample_next.isEnabled() and page.limit_problem.isVisibleTo(page)
-    assert "「MVD、内毒素限值」必须是大于 0 的数字" in page.limit_problem.text()
+    assert "“MVD、内毒素限值”必须是大于 0 的数字" in page.limit_problem.text()
     click(qapp, page.sample_next)
     assert page.current_step() == STEP_SAMPLES  # 直接点也过不去
     page.mvd_edit.setText("1280")
-    assert "「内毒素限值」必须是大于 0 的数字" in page.limit_problem.text()
+    assert "“内毒素限值”必须是大于 0 的数字" in page.limit_problem.text()
     page.limit_edit.setText("")  # 清空 = 不填，允许
     settle(qapp)
     assert page.sample_next.isEnabled() and not page.limit_problem.isVisibleTo(page)

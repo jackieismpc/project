@@ -63,7 +63,7 @@ class BootstrapHook(Protocol):
     """首次启动初始化钩子。"""
 
     def accounts(self) -> Sequence[DemoAccount]:
-        """列出演示账号，用于登录页的「演示账号」提示。
+        """列出演示账号，用于登录页的“演示账号”提示。
 
         Returns:
             演示账号，创建与否不影响返回内容。

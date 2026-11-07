@@ -50,7 +50,7 @@ from simulation.demo_accounts import DEMO_ACCOUNTS, DemoAccounts  # noqa: E402
 from simulation.reagents import SAMPLE_CODES, SimReagentCodeParser, SimReagentRegistry  # noqa: E402
 
 NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
-"""测试里的「当前时间」：模拟白名单里的 LAL2606A 在此刻有效，LAL2501B 已过期。"""
+"""测试里的“当前时间”：模拟白名单里的 LAL2606A 在此刻有效，LAL2501B 已过期。"""
 
 GOOD_CODES: dict[ReagentKind, str] = {
     ReagentKind.LAL_REAGENT: SAMPLE_CODES["lal_valid"],

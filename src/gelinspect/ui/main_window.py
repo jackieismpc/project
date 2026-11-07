@@ -5,7 +5,7 @@
 
 状态：
 
-* ``setup``：系统里没有账号（真实配置首次启动），显示「创建管理员」。
+* ``setup``：系统里没有账号（真实配置首次启动），显示“创建管理员”。
 * ``login``：未登录。
 * ``shell``：已登录，显示外壳。
 * ``lock``：空闲或手动锁屏，试验在后台继续，输入密码解锁。
@@ -572,7 +572,7 @@ class MainWindow(QMainWindow):
     def _on_quick_action(self, action_id: str) -> None:
         key = QUICK_ACTION_ROUTES.get(action_id)
         if action_id == "print_report":
-            # 「打印报告」：带上监控页正在看的试验，到报告中心预览和打印。
+            # “打印报告”：带上监控页正在看的试验，到报告中心预览和打印。
             monitor = self._pages.get("monitor")
             if isinstance(monitor, MonitorPage) and monitor.experiment_id is not None:
                 self._pending_report_experiment = monitor.experiment_id

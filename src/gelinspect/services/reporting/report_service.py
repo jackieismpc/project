@@ -3,9 +3,9 @@
 * 每个入口先校验权限：预览、验签、打印需要 ``report_view``；签署需要 ``experiment_sign``；
   导出需要 ``data_export``。UI 不碰数据库，只通过这里取数据。
 * **签署**是一个原子操作：任一步失败都不留下半成品，试验状态不变（见 :meth:`ReportService.sign`）。
-* 已签署的试验锁定：状态是「已签署」，状态机不再接受任何事件，复核服务拒绝修改
+* 已签署的试验锁定：状态是“已签署”，状态机不再接受任何事件，复核服务拒绝修改
   （``review_service``）；同一份签名文件可以反复导出。
-* 签名是本地自签证书的，只能「防篡改」，没有第三方 CA 的法律效力。
+* 签名是本地自签证书的，只能“防篡改”，没有第三方 CA 的法律效力。
 """
 
 from __future__ import annotations
@@ -84,7 +84,7 @@ from gelinspect.services.video.paths import experiment_dir
 _log = logging.getLogger(__name__)
 
 _STARTED_MARK = f"{ExperimentState.READY.value} → {ExperimentState.INCUBATING.value}"
-"""审计里「开始孵育」那条状态变化的开头，与监控页取开始时间的方式一致。"""
+"""审计里“开始孵育”那条状态变化的开头，与监控页取开始时间的方式一致。"""
 _BATCH_DIR = "_batch"
 """单批次报告放在 ``reports/_batch/``；以下划线开头，不会与试验标识的目录重名。"""
 THUMBNAIL_LONG_SIDE = 900
@@ -168,9 +168,10 @@ class ReportPreview:
         scope: 单个试验或单批次。
         experiment_id: 试验标识；单批次报告为 None。
         blocks: 不能签署的原因，空表示可以签署。
-        conclusion: 单个试验的结论；单批次报告为 None。
+        conclusion: 单个试验的结论；单批次报告和结论功能关闭时为 None。
         record: 已签署的报告记录（最新一份），没有为 None。
         digest: 页脚的内容摘要。
+        conclusions_enabled: 结论功能是否打开；关闭时界面不提试验结论。
     """
 
     document: ReportDocument
@@ -181,6 +182,7 @@ class ReportPreview:
     conclusion: ExperimentConclusion | None
     record: ReportRecord | None
     digest: str
+    conclusions_enabled: bool = False
 
     @property
     def can_sign(self) -> bool:
@@ -281,6 +283,7 @@ class ReportService:
         clock: Callable[[], datetime] | None = None,
         zone: tzinfo | None = None,
         export_policy: ExportPolicy | None = None,
+        conclusions_enabled: bool = False,
     ) -> None:
         """创建服务。
 
@@ -297,7 +300,9 @@ class ReportService:
             clock: 返回带时区当前时间的函数，测试注入。
             zone: 报告里显示时间用的时区，默认本机时区。
             export_policy: 批量导出的加密策略（与 Excel 导出共用），默认不要求加密。
+            conclusions_enabled: 是否在报告里显示试验结论、签署时要求有结论，默认关闭。
         """
+        self._conclusions_enabled = conclusions_enabled
         self._auth = auth
         self._export_policy = export_policy or ExportPolicy()
         self._storage = storage
@@ -478,10 +483,11 @@ class ReportService:
             texts=ReportTexts(language),
             scope=ReportScope.EXPERIMENT,
             experiment_id=experiment_id,
-            blocks=signing_blocks(experiment),
-            conclusion=experiment.conclusion,
+            blocks=signing_blocks(experiment, conclusions_enabled=self._conclusions_enabled),
+            conclusion=experiment.conclusion if self._conclusions_enabled else None,
             record=record,
             digest=document.content_digest(),
+            conclusions_enabled=self._conclusions_enabled,
         )
 
     def batch_preview(
@@ -533,6 +539,7 @@ class ReportService:
             conclusion=None,
             record=None,
             digest=document.content_digest(),
+            conclusions_enabled=self._conclusions_enabled,
         )
 
     def paint(self, preview: ReportPreview, device: QPagedPaintDevice) -> int:
@@ -548,7 +555,7 @@ class ReportService:
         return self._renderer.paint(preview.document, preview.texts, device)
 
     def record_print(self, session: Session | None, preview: ReportPreview) -> None:
-        """写一条「打印」审计。
+        """写一条“打印”审计。
 
         Args:
             session: 调用者的会话，需要 ``report_view`` 权限。
@@ -587,9 +594,9 @@ class ReportService:
         """签署试验并生成带数字签名的 PDF。
 
         步骤：校验权限 → 检查签署前提 → 再次验证密码 → 写入签署人和时间 → 生成 PDF →
-        PAdES 签名并自检 → 落盘 → 同一个工作单元里更新状态为「已签署」、写签署人和时间、
+        PAdES 签名并自检 → 落盘 → 同一个工作单元里更新状态为“已签署”、写签署人和时间、
         报告记录（含文件 SHA-256）和审计。**任一步失败都不留半成品**：文件被删除，数据库不变，
-        试验仍是「已完成」。
+        试验仍是“已完成”。
 
         Args:
             session: 调用者的会话，需要 ``experiment_sign`` 权限。
@@ -612,9 +619,11 @@ class ReportService:
         user = self._auth.authorize(session, Permission.EXPERIMENT_SIGN)
         assert session is not None
         experiment = self._load(experiment_id)
-        blocks = signing_blocks(experiment)
+        blocks = signing_blocks(experiment, conclusions_enabled=self._conclusions_enabled)
         if blocks:
-            raise SigningNotAllowedError(blocks, experiment.conclusion)
+            raise SigningNotAllowedError(
+                blocks, experiment.conclusion if self._conclusions_enabled else None
+            )
         self._auth.confirm_password(session, password, purpose="签署")
         before = experiment.state
         now = self._clock()
@@ -668,7 +677,11 @@ class ReportService:
             content_sha256=document.content_digest(),
             experiment_ids=(experiment_id,),
         )
-        verdict = experiment.conclusion.verdict.value if experiment.conclusion else "-"
+        # 结论功能关闭时审计里不写任何结论内容。
+        verdict_text = ""
+        if self._conclusions_enabled:
+            verdict = experiment.conclusion.verdict.value if experiment.conclusion else "-"
+            verdict_text = f"：结论 {verdict}"
         events = [
             audit_event(
                 user,
@@ -680,7 +693,7 @@ class ReportService:
             audit_event(
                 user,
                 AuditAction.EXPERIMENT_SIGNED,
-                f"签署试验并生成报告 {name}：结论 {verdict}；语言 {language.value}；"
+                f"签署试验并生成报告 {name}{verdict_text}；语言 {language.value}；"
                 f"文件 SHA-256 {record.sha256}；内容摘要 {record.content_sha256}；"
                 f"证书指纹 {record.certificate_sha256}",
                 experiment_id,
@@ -1100,6 +1113,7 @@ class ReportService:
             signer_name=signer_name,
             started_at=self._started_at(experiment.experiment_id),
             temperature_range=self._storage.telemetry.temperature_range(experiment.experiment_id),
+            conclusions_enabled=self._conclusions_enabled,
         )
 
     def _wants_images(self, flag: bool | None) -> bool:

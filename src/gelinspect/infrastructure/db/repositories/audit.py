@@ -1,7 +1,7 @@
 """审计仓储：只追加的哈希链。
 
-每条记录保存 ``prev_hash`` 和 ``hash``。``hash`` 是对「上一条 hash + 规范化序列化的
-本条内容」做 SHA-256 或 HMAC-SHA256；序号参与哈希，所以删除、重排和改动都会被发现。
+每条记录保存 ``prev_hash`` 和 ``hash``。``hash`` 是对“上一条 hash + 规范化序列化的
+本条内容”做 SHA-256 或 HMAC-SHA256；序号参与哈希，所以删除、重排和改动都会被发现。
 链头表 ``audit_chain_head`` 记录最后一条的序号和哈希，用来发现尾部被删除。
 
 **分段**：只用 SHA-256 时，能改库的人重算整条链和链头，校验就发现不了。所以链可以从
@@ -424,6 +424,18 @@ class SqlAuditRepository(AuditRepository):
         with self._sessions() as session:
             row = session.get(AuditEventRow, seq)
             return None if row is None else _to_record(row)
+
+    def latest_seq(self) -> int:
+        """当前已提交的最大序号（链头记录的序号）。
+
+        Returns:
+            最大序号；还没有任何记录时为 0。
+        """
+        with self._sessions() as session:
+            last = session.scalar(
+                select(AuditChainHeadRow.last_seq).where(AuditChainHeadRow.id == 1)
+            )
+        return int(last or 0)
 
     def query(self, query: AuditQuery, page: PageRequest) -> Page[AuditRecord]:
         """分页查询，按序号倒序（最新在前）。

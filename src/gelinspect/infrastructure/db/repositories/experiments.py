@@ -214,6 +214,8 @@ def _filters(query: ExperimentQuery) -> list[ColumnElement[bool]]:
         filters.append(ExperimentRow.created_at >= query.start)
     if query.end is not None:
         filters.append(ExperimentRow.created_at < query.end)
+    if query.max_created_at is not None:
+        filters.append(ExperimentRow.created_at <= query.max_created_at)
     if query.state is not None:
         filters.append(ExperimentRow.state == query.state.value)
     if query.operator is not None:
@@ -328,15 +330,15 @@ class SqlExperimentRepository(ExperimentRepository):
         *,
         completed_at: datetime,
         measured_sensitivity: float | None,
-        conclusion: ExperimentConclusion,
+        conclusion: ExperimentConclusion | None,
     ) -> None:
-        """写入完成时间、实测灵敏度和结论，与「已完成」状态在同一事务调用。
+        """写入完成时间、实测灵敏度和结论，与“已完成”状态在同一事务调用。
 
         Args:
             experiment_id: 试验标识。
             completed_at: 完成时间。
             measured_sensitivity: 实测灵敏度，结论不是合格或不合格时为 None。
-            conclusion: 已固化的结论。
+            conclusion: 已固化的结论；结论功能关闭时为 None，只写完成时间。
 
         Raises:
             NotFoundError: 试验不存在。
@@ -348,7 +350,8 @@ class SqlExperimentRepository(ExperimentRepository):
                 raise NotFoundError(f"试验不存在：{experiment_id}")
             row.completed_at = completed_at
             row.measured_sensitivity = measured_sensitivity
-            _write_conclusion(session, experiment_id, conclusion)
+            if conclusion is not None:
+                _write_conclusion(session, experiment_id, conclusion)
 
     def update_state(
         self,
@@ -381,7 +384,7 @@ class SqlExperimentRepository(ExperimentRepository):
                 )
 
     def record_signature(self, experiment_id: str, *, signed_by: str, signed_at: datetime) -> None:
-        """写入签署人和签署时间，与「已签署」状态在同一事务调用。
+        """写入签署人和签署时间，与“已签署”状态在同一事务调用。
 
         Args:
             experiment_id: 试验标识。
@@ -489,6 +492,15 @@ class SqlExperimentRepository(ExperimentRepository):
                     None if conclusion is None else _to_conclusion(experiment_type, conclusion)
                 ),
             )
+
+    def latest_created_at(self) -> datetime | None:
+        """最新试验的创建时间。
+
+        Returns:
+            创建时间；没有试验时为 None。
+        """
+        with self._sessions() as session:
+            return session.scalar(select(func.max(ExperimentRow.created_at)))
 
     def query(self, query: ExperimentQuery, page: PageRequest) -> Page[ExperimentSummary]:
         """分页查询历史试验，按创建时间倒序。
