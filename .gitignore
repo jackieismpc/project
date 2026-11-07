@@ -35,3 +35,6 @@ __pycache__/
 # 构建脚本临时生成的构建信息（构建结束即删除）
 /src/gelinspect/_build_info.py
 nuitka-crash-report.xml
+
+# 算法仓库（独立 git 仓库，本地 clone，不纳入本仓库）
+/yolov8seg_tubegel/
