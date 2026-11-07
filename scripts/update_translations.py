@@ -6,8 +6,9 @@
     uv run python scripts/update_translations.py --check  # 只检查，.ts 过期或有未翻译项时返回 1
 
 源语言是简体中文（``zh_CN``），所以 ``gelinspect_zh_CN.ts`` 的译文留空，界面直接显示源文本；
-``gelinspect_en.ts`` 的每一项都必须有译文。``.qm`` 由 ``lrelease`` 在软件启动时自动生成，
-也可以手动运行 ``uv run pyside6-lrelease translations/gelinspect_en.ts``。
+``gelinspect_zh_TW.ts``（繁体中文，台湾用语）和 ``gelinspect_en.ts`` 的每一项都必须有译文。
+``.qm`` 由 ``lrelease`` 在软件启动时自动生成，也可以手动运行
+``uv run pyside6-lrelease translations/gelinspect_en.ts``。
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ import PySide6
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "src" / "gelinspect"
 TRANSLATIONS = ROOT / "translations"
-LANGUAGES = ("zh_CN", "en")
+LANGUAGES = ("zh_CN", "zh_TW", "en")
 SOURCE_LANGUAGE = "zh_CN"
 
 

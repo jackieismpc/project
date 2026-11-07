@@ -53,10 +53,14 @@ def test_switching_translates_immediately_and_back(
     assert language.current is Language.ZH_CN
 
 
-def test_only_simplified_chinese_and_english_exist() -> None:
-    assert {lang.value for lang in Language} == {"zh_CN", "en"}
-    assert LANGUAGE_NAMES == {Language.ZH_CN: "简体中文", Language.EN: "English"}
-    assert not any("zh_TW" in p.name for p in translations_dir().iterdir())
+def test_three_languages_exist() -> None:
+    assert {lang.value for lang in Language} == {"zh_CN", "zh_TW", "en"}
+    assert LANGUAGE_NAMES == {
+        Language.ZH_CN: "简体中文",
+        Language.ZH_TW: "繁體中文",
+        Language.EN: "English",
+    }
+    assert (translations_dir() / "gelinspect_zh_TW.ts").is_file()
 
 
 def test_choice_is_persisted_across_restarts(qapp: QApplication, tmp_path: Path) -> None:
@@ -167,23 +171,31 @@ def test_language_menu_in_the_toolbar_switches_the_language(
     sign_in(qapp, window, "analyst")
     menu = window.shell.toolbar._language_menu
     labels = [a.text() for a in menu.actions()]
-    assert labels == ["简体中文", "English"]
-    assert [a.isChecked() for a in menu.actions()] == [True, False]
-    menu.actions()[1].trigger()
+    assert labels == ["简体中文", "繁體中文", "English"]
+    assert [a.isChecked() for a in menu.actions()] == [True, False, False]
+    menu.actions()[2].trigger()
     settle(qapp)
     assert language.current is Language.EN
-    assert [a.isChecked() for a in menu.actions()] == [False, True]
+    assert [a.isChecked() for a in menu.actions()] == [False, False, True]
+    menu.actions()[1].trigger()
+    settle(qapp)
+    assert language.current.value == "zh_TW"
+    assert [a.isChecked() for a in menu.actions()] == [False, True, False]
+    assert window.shell.toolbar._language.text() == "繁體中文"
 
 
 def test_language_buttons_on_the_login_page(
     qapp: QApplication, window: MainWindow, language: LanguageManager
 ) -> None:
     buttons = window.login_page.languages._buttons
-    assert set(buttons) == {"zh_CN", "en"}
+    assert set(buttons) == {"zh_CN", "zh_TW", "en"}
     buttons["en"].click()
     settle(qapp)
     assert language.current is Language.EN
-    assert buttons["en"] is not None
+    buttons["zh_TW"].click()
+    settle(qapp)
+    assert language.current.value == "zh_TW"
+    assert window.login_page.submit_button.text() == "登入"
 
 
 def test_lock_screen_keeps_working_after_a_language_change(
@@ -243,7 +255,7 @@ def test_translation_script_is_importable_as_a_module() -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.LANGUAGES == ("zh_CN", "en")
+    assert module.LANGUAGES == ("zh_CN", "zh_TW", "en")
 
 
 def test_qm_files_are_ignored_by_git() -> None:
@@ -257,9 +269,9 @@ def test_missing_qm_is_compiled_on_demand(tmp_path: Path) -> None:
         shutil.copy(ts_path(language), tmp_path / ts_path(language).name)
     assert not list(tmp_path.glob("*.qm"))
     built = compile_translations(tmp_path)
-    assert set(built) == {Language.EN}
-    qm = built[Language.EN]
-    assert qm.parent == tmp_path and qm.stat().st_size > 1000
+    assert set(built) == {Language.EN, Language.ZH_TW}
+    for qm in built.values():
+        assert qm.parent == tmp_path and qm.stat().st_size > 1000
 
 
 def test_stale_qm_is_rebuilt_and_fresh_qm_is_kept(tmp_path: Path) -> None:
@@ -278,9 +290,11 @@ def test_a_clean_checkout_can_switch_language(qapp: QApplication, tmp_path: Path
         shutil.copy(ts_path(language), tmp_path / ts_path(language).name)
     manager = LanguageManager(qapp, settings=MemoryLanguageSettings(), directory=tmp_path)
     try:
-        assert manager.available() == (Language.ZH_CN, Language.EN)
+        assert manager.available() == (Language.ZH_CN, Language.ZH_TW, Language.EN)
         assert manager.set_language(Language.EN, persist=False)
         assert QCoreApplication.translate("SideNav", "审计追踪") == "Audit trail"
+        assert manager.set_language(Language.ZH_TW, persist=False)
+        assert QCoreApplication.translate("SideNav", "审计追踪") == "稽核軌跡"
     finally:
         manager.set_language(Language.ZH_CN, persist=False)
 

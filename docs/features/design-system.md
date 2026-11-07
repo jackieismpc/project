@@ -14,7 +14,7 @@
 1. 启动时调用 `theme.stylesheet.apply_theme(app)`：加载内置字体，设置应用字体，按 token 生成并套用 QSS。
 2. 组件通过 `ui/theme/tokens.py` 取色，不在组件里写十六进制色值（测试会检查）。文字样式用 `Label(role=...)`，按钮、徽标等通过动态属性由 QSS 控制。
 3. 深色主题：补一份 `Tokens`，`register_theme` 后 `set_theme`，再调用 `apply_theme`。目前只有浅色。
-4. 字体缺失时回退到系统字体（PingFang SC、Microsoft YaHei、Menlo、Consolas），`FontReport` 记录是否内置。内置字体只含 GB2312 汉字，生僻字由系统回退链补全。
+4. 字体缺失时回退到系统字体（PingFang SC、Microsoft YaHei、Menlo、Consolas），`FontReport` 记录是否内置。内置字体含 GB2312 汉字和台湾常用繁体字（Big5 一级字），更生僻的字由系统回退链补全。
 
 PlateGrid 要点：
 
@@ -67,13 +67,13 @@ QT_QPA_PLATFORM=offscreen uv run python -m gelinspect.ui.gallery \
 
 | 资源 | 位置 | 许可 |
 |---|---|---|
-| Noto Sans SC（400/500/700 静态实例，裁剪为 GB2312 汉字与常用符号） | `ui/assets/fonts/` | OFL 1.1 |
+| Noto Sans SC（400/500/700 静态实例，裁剪为 GB2312 汉字、Big5 一级字、界面和报告用到的字符与常用符号，9895 个码位） | `ui/assets/fonts/` | OFL 1.1 |
 | IBM Plex Mono（Regular、Medium） | `ui/assets/fonts/` | OFL 1.1 |
 | Lucide 图标（取用到的 SVG） | `ui/assets/icons/` | ISC |
 
-字体与图标的许可文本在同目录（`OFL-*.txt`、`LICENSE.lucide.txt`）。`pyproject.toml` 的 `[tool.hatch.build.targets.wheel] artifacts` 把 ttf、svg、txt 打进包，约 7.5 MB。其中 `triangle-alert.svg` 按 Lucide 路径手写；`history` 是 `clock` 的别名。
+字体与图标的许可文本在同目录（`OFL-*.txt`、`LICENSE.lucide.txt`）。`pyproject.toml` 的 `[tool.hatch.build.targets.wheel] artifacts` 把 ttf、svg、txt 打进包，约 10 MB（繁体补字前约 7.5 MB）。其中 `triangle-alert.svg` 按 Lucide 路径手写；`history` 是 `clock` 的别名。
 
-Noto Sans SC 的裁剪方法：从 google/fonts 仓库的可变字体 `NotoSansSC[wght].ttf` 用 fontTools 固定字重为 400、500、700 并裁剪，重写名称表使三个字重可同时注册。
+Noto Sans SC 的裁剪方法：`scripts/build_fonts.py` 从 google/fonts 仓库的可变字体 `NotoSansSC[wght].ttf` 用 fontTools 先裁剪再固定字重为 400、500、700，沿用现有名称表使三个字重可同时注册。字符集、与教育部字表的关系和字形取舍见 [auth-and-i18n.md](auth-and-i18n.md#字体)。
 
 ## 测试
 

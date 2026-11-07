@@ -292,12 +292,16 @@ def run_gui(
     qapp.setApplicationName("GelInspect")
     qapp.setOrganizationName("GelInspect")
 
-    from gelinspect.ui.i18n import LanguageManager, MemoryLanguageSettings
+    from gelinspect.ui.i18n import LanguageManager, MemoryLanguageSettings, detect_system_language
     from gelinspect.ui.theme.stylesheet import apply_theme
     from gelinspect.ui.widgets.app_shell import MemoryShellSettings
 
     apply_theme(qapp)
-    language = LanguageManager(qapp, settings=MemoryLanguageSettings() if smoke_test else None)
+    language = LanguageManager(
+        qapp,
+        settings=MemoryLanguageSettings() if smoke_test else None,
+        default_language=None if smoke_test else detect_system_language(),
+    )
     relay = _CrashRelay(qapp)
     install_exception_hooks(None if smoke_test else relay.report)
 
@@ -527,8 +531,8 @@ def run_smoke_checks(app: QApplication, window: QWidget, language: object) -> No
     accounts = window.services.demo_accounts
     if not accounts:
         check(window.current_screen is Screen.SETUP, "真实配置首次启动应显示创建管理员页")
-        check(language.set_language(Language.EN, persist=False), "切换到英文失败")
-        check(language.set_language(Language.ZH_CN, persist=False), "切换回简体中文失败")
+        for target in (Language.ZH_TW, Language.EN, Language.ZH_CN):
+            check(language.set_language(target, persist=False), f"切换到 {target.value} 失败")
         return
     account = next((a for a in accounts if a.username == "admin"), accounts[0])
     login = window.login_page
@@ -547,6 +551,10 @@ def run_smoke_checks(app: QApplication, window: QWidget, language: object) -> No
     app.processEvents()
     en = window.shell.nav.items()[0].text()
     check(en != zh and bool(en), f"切换语言后文字没有变化：{zh!r} → {en!r}")
+    check(language.set_language(Language.ZH_TW, persist=False), "切换到繁体中文失败")
+    app.processEvents()
+    tw = window.shell.nav.items()[0].text()
+    check(bool(tw) and tw != en, f"切换到繁体中文后文字没有变化：{en!r} → {tw!r}")
     check(language.set_language(Language.ZH_CN, persist=False), "切换回简体中文失败")
     app.processEvents()
     check(window.shell.nav.items()[0].text() == zh, "切回简体中文后文字没有恢复")

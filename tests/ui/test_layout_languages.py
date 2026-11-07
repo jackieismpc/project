@@ -1,4 +1,4 @@
-"""两种语言、两种窗口尺寸下，页面里没有控件超界、被挤压或截断。"""
+"""三种语言、两种窗口尺寸下，页面里没有控件超界、被挤压或截断。"""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from gelinspect.ui.widgets.dialog import ConfirmDialog, ErrorDialog
 from tests.ui.conftest import screen_of, settle, sign_in
 
 SIZES = [(1280, 800), (1024, 700)]
-LANGUAGES = [Language.ZH_CN, Language.EN]
+LANGUAGES = [Language.ZH_CN, Language.ZH_TW, Language.EN]
 TAG = re.compile(r"<[^>]+>")
 
 
@@ -199,6 +199,7 @@ def test_dialogs_fit(qapp: QApplication, language: LanguageManager, lang: Langua
 
 
 def language_text(en: str, zh: str, lang: Language) -> str:
+    """按语言取对话框标题的源文本：英文用译文，中文用源文本（繁体下由译文表翻译）。"""
     return en if lang is Language.EN else zh
 
 

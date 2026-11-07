@@ -1,8 +1,12 @@
-"""英文界面检查：切到 English，逐页浏览，列出仍含中文字符的界面文字。
+"""非源语言界面检查：切到英文或繁体中文，逐页浏览，列出没有翻译的界面文字。
 
 用法::
 
-    QT_QPA_PLATFORM=offscreen uv run python scripts/check_english_ui.py
+    QT_QPA_PLATFORM=offscreen uv run python scripts/check_english_ui.py              # 英文
+    QT_QPA_PLATFORM=offscreen uv run python scripts/check_english_ui.py --language zh_TW
+
+英文：列出仍含中文字符的文字。繁体中文：列出含“简体独有字”的文字（能用 GB2312 编码、
+却不能用 Big5 编码的汉字，例如“软”“视”“据”），它们说明某处文字漏翻或没走 ``tr()``。
 
 先用真实向导跑完并复核、签署一次试验，让监控、单管、报告、历史、审计各页都有数据，
 再以三种角色逐页扫描所有控件（标签、按钮、提示、下拉项、标签页、表头和单元格、对话框）。
@@ -12,6 +16,7 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 import tempfile
@@ -39,6 +44,28 @@ from gelinspect.ui.widgets.toast import Toast
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")
 ALLOWED = {"简体中文"}
 """语言菜单里各语言用自己的名字显示，这是应该保留的中文。"""
+
+
+def has_simplified_only(text: str) -> bool:
+    """文字里是否有简体独有的汉字（GB2312 有而 Big5 没有）。"""
+    for char in text:
+        if "一" <= char <= "鿿":
+            try:
+                char.encode("gb2312")
+            except UnicodeEncodeError:
+                continue
+            try:
+                char.encode("big5")
+            except UnicodeEncodeError:
+                return True
+    return False
+
+
+def is_untranslated(text: str, language: Language) -> bool:
+    """文字在目标语言下是否算“没翻译”。"""
+    if language is Language.ZH_TW:
+        return has_simplified_only(text)
+    return bool(CJK.search(text))
 
 
 def _model_strings(model: QAbstractItemModel) -> list[str]:
@@ -82,7 +109,7 @@ def widget_strings(widget: QWidget) -> list[tuple[str, str]]:
 
 
 def scan(root_widgets: list[QWidget], where: str, hits: dict[str, set[str]]) -> None:
-    """扫描一组顶层控件及其全部子孙，把含中文的文字记到 ``hits``。"""
+    """扫描一组顶层控件及其全部子孙，把没有翻译的文字记到 ``hits``。"""
     for top in root_widgets:
         for widget in [top, *top.findChildren(QWidget)]:
             if isinstance(widget, Toast):
@@ -91,12 +118,22 @@ def scan(root_widgets: list[QWidget], where: str, hits: dict[str, set[str]]) -> 
                 continue  # 没有显示出来的页面和控件用户看不到
             for source, text in widget_strings(widget):
                 plain = re.sub(r"<[^>]+>", "", text)
-                if CJK.search(plain) and plain.strip() not in ALLOWED:
+                if is_untranslated(plain, TARGET) and plain.strip() not in ALLOWED:
                     hits[f"{where} / {type(widget).__name__}.{source}"].add(plain.strip()[:100])
+
+
+TARGET = Language.EN
+"""要检查的语言，由命令行参数 ``--language`` 设置。"""
 
 
 def main() -> int:
     """跑一遍并打印结果。"""
+    global TARGET
+    parser = argparse.ArgumentParser(description="检查非源语言界面里没翻译的文字")
+    parser.add_argument(
+        "--language", choices=[Language.EN.value, Language.ZH_TW.value], default="en"
+    )
+    TARGET = Language(parser.parse_args().language)
     hits: dict[str, set[str]] = defaultdict(set)
     with tempfile.TemporaryDirectory() as tmp:
         rig = support.open_rig(Path(tmp))
@@ -107,7 +144,7 @@ def main() -> int:
             # 再跑一个未签署的，让工作台和历史有“已完成”的条目
             rig.window.logout(confirm=False)
             support.settle(rig.app)
-            rig.language.set_language(Language.EN, persist=False)
+            rig.language.set_language(TARGET, persist=False)
             support.settle(rig.app)
             scan([rig.window], "login", hits)
             for username in ("experimenter", "analyst", "admin"):
@@ -140,9 +177,9 @@ def main() -> int:
         finally:
             support.close_rig(rig)
     if not hits:
-        print("英文界面没有发现中文残留。")
+        print(f"{TARGET.value} 界面没有发现未翻译的文字。")
         return 0
-    print(f"发现 {sum(len(v) for v in hits.values())} 处含中文的界面文字：")
+    print(f"发现 {sum(len(v) for v in hits.values())} 处未翻译的界面文字：")
     for key in sorted(hits):
         for text in sorted(hits[key]):
             print(f"  {key}: {text}")

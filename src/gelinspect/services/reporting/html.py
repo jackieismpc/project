@@ -274,7 +274,7 @@ class _Builder:
             body.append(
                 "<tr>"
                 f'<td style="{cell}{pad}">{_mono(str(row.tube_no))}</td>'
-                f'<td style="{cell}{pad}">{_e(row.sample_name)}</td>'
+                f'<td style="{cell}{pad}">{_e(t.builtin_name(row.sample_name))}</td>'
                 f'<td style="{cell}{pad}">{_e(row.serial_no or _BLANK)}</td>'
                 f'<td style="{cell}{pad}">{_e(row.batch_no or _BLANK)}</td>'
                 f'<td align="right" style="{cell}{pad}">'

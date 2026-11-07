@@ -42,7 +42,7 @@ def test_monitor_tube_and_history_pages_fit_in_both_languages(
     assert window.logout()
     sign_in(qapp, window, "analyst")
     pending = fast_context.database.experiments.get(experiment_id).pending_review_tubes  # type: ignore[union-attr]
-    for lang in (Language.ZH_CN, Language.EN):
+    for lang in (Language.ZH_CN, Language.ZH_TW, Language.EN):
         for size in SIZES:
             use(window, language, lang, size)
             assert window.open_experiment(experiment_id)

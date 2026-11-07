@@ -28,6 +28,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QFont,
     QFontDatabase,
+    QFontMetricsF,
     QGuiApplication,
     QPagedPaintDevice,
     QPageLayout,
@@ -275,14 +276,21 @@ class ReportRenderer:
             int(wrap),
             f"{statement} {copyright_text}",
         )
+        # 摘要标签含汉字，必须用内置的中文字体画：等宽字体没有汉字，会回退到系统字体，
+        # 繁体报告里就会混进系统字形。标签和摘要值分两段画，值用等宽字体。
         mono = QFont(MONO)
         mono.setPointSizeF(6.5)
-        painter.setFont(mono)
         base = top + pad * 1.6 + line_height * 2
+        label = f"{texts.s(S.FOOT_DIGEST)} "
+        painter.setFont(notes)
+        label_width = QFontMetricsF(notes, painter.device()).horizontalAdvance(label)
+        flags = int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        painter.drawText(QRectF(0, base, width * 0.78, line_height), flags, label)
+        painter.setFont(mono)
         painter.drawText(
-            QRectF(0, base, width * 0.78, line_height),
-            int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
-            f"{texts.s(S.FOOT_DIGEST)} {digest}",
+            QRectF(label_width, base, max(0.0, width * 0.78 - label_width), line_height),
+            flags,
+            digest,
         )
         painter.setFont(notes)
         painter.drawText(

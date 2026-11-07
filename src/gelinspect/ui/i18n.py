@@ -1,6 +1,7 @@
-"""界面语言：简体中文（源语言）和英文。
+"""界面语言：简体中文（源语言）、繁体中文（台湾用语）和英文。
 
-* 源文本全部是简体中文，英文翻译在 ``translations/gelinspect_en.ts``。
+* 源文本全部是简体中文，繁体中文翻译在 ``translations/gelinspect_zh_TW.ts``，英文翻译在
+  ``translations/gelinspect_en.ts``。
 * ``.qm`` 由 ``.ts`` 编译而来，不纳入版本库。:func:`compile_translations` 在启动时检查，
   缺失或比 ``.ts`` 旧就调用 ``lrelease`` 重新生成，所以干净克隆后直接运行就能切换语言。
 * :class:`LanguageManager` 安装或移除 ``QTranslator``，Qt 随即向所有控件发出
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Protocol
 
 import PySide6
-from PySide6.QtCore import QLibraryInfo, QObject, QSettings, QTranslator, Signal
+from PySide6.QtCore import QLibraryInfo, QLocale, QObject, QSettings, QTranslator, Signal
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.services.runtime_paths import RunMode, run_mode
@@ -38,6 +39,8 @@ class Language(StrEnum):
 
     ZH_CN = "zh_CN"
     """简体中文，源语言。"""
+    ZH_TW = "zh_TW"
+    """繁体中文（台湾用语）。"""
     EN = "en"
     """英文。"""
 
@@ -47,9 +50,35 @@ SOURCE_LANGUAGE = Language.ZH_CN
 
 LANGUAGE_NAMES: dict[Language, str] = {
     Language.ZH_CN: "简体中文",
+    Language.ZH_TW: "繁體中文",
     Language.EN: "English",
 }
 """语言自己的名字，在语言菜单里原样显示，不翻译。"""
+
+_TRADITIONAL_REGIONS = frozenset({"TW", "HK", "MO"})
+
+
+def detect_system_language(locale: QLocale | None = None) -> Language | None:
+    """根据系统语言挑选默认界面语言：系统是繁体中文时用繁体中文。
+
+    其余情况返回 None，由调用方沿用源语言（简体中文）。
+
+    Args:
+        locale: 要判断的区域设置，默认 ``QLocale.system()``。
+
+    Returns:
+        :attr:`Language.ZH_TW` 或 None。
+    """
+    locale = locale or QLocale.system()
+    if locale.language() != QLocale.Language.Chinese:
+        return None
+    if locale.script() == QLocale.Script.TraditionalHanScript:
+        return Language.ZH_TW
+    if locale.script() == QLocale.Script.SimplifiedHanScript:
+        return None
+    # 没写文字（如 zh_TW）时按地区判断：台湾、香港、澳门用繁体。
+    region = locale.name().rsplit("_", 1)[-1].upper()
+    return Language.ZH_TW if region in _TRADITIONAL_REGIONS else None
 
 
 def translations_dir() -> Path:
@@ -250,15 +279,18 @@ class LanguageManager(QObject):
         settings: LanguageSettings | None = None,
         directory: Path | None = None,
         compile_missing: bool = True,
+        default_language: Language | None = None,
         parent: QObject | None = None,
     ) -> None:
-        """创建管理器，并应用已保存的语言（没有保存过则为简体中文）。
+        """创建管理器，并应用已保存的语言（没有保存过则用默认语言，再没有则为简体中文）。
 
         Args:
             app: 应用对象。
             settings: 持久化接口，默认 ``QSettings``。
             directory: 翻译目录，默认仓库根目录下的 ``translations/``。
             compile_missing: 是否在启动时编译缺失或过期的 ``.qm``。
+            default_language: 没有保存过选择时采用的语言，例如 :func:`detect_system_language`
+                的结果；为 None 时用源语言。
             parent: 父对象。
         """
         super().__init__(parent)
@@ -273,7 +305,9 @@ class LanguageManager(QObject):
         self._translator: QTranslator | None = None
         self._qt_translator: QTranslator | None = None
         self._current = SOURCE_LANGUAGE
-        self.set_language(self._settings.load_language() or SOURCE_LANGUAGE, persist=False)
+        initial = self._settings.load_language() or default_language or SOURCE_LANGUAGE
+        if not self.set_language(initial, persist=False):
+            self.set_language(SOURCE_LANGUAGE, persist=False)
 
     @property
     def current(self) -> Language:
@@ -332,7 +366,7 @@ class LanguageManager(QObject):
             else:
                 _log.warning("无法加载翻译文件 %s", self._compiled[target])
                 return False
-        else:
+        if target is not Language.EN:
             self._install_qt_translations(target)
         self._current = target
         if persist:

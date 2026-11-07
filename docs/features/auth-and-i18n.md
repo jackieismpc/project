@@ -1,6 +1,6 @@
 # 一键启动、登录权限与多语言
 
-对应阶段：P7（外壳与权限）。代码：`src/gelinspect/startup.py`、`bootstrap.py`、`logging_setup.py`、`services/auth.py`、`services/queries.py`、`ui/main_window.py`、`ui/pages/`、`ui/bridge.py`、`ui/i18n.py`。
+对应阶段：P7（外壳与权限），繁体中文于 2026-11-07 补充。代码：`src/gelinspect/startup.py`、`bootstrap.py`、`logging_setup.py`、`services/auth.py`、`services/queries.py`、`ui/main_window.py`、`ui/pages/`、`ui/bridge.py`、`ui/i18n.py`。
 
 ## 目的
 
@@ -9,7 +9,7 @@
 - `uv run gelinspect` 不带参数即打开主窗口，首次启动自动初始化，启动失败有清楚的说明。
 - 登录、失败锁定、空闲锁屏、改密，所有账号动作写审计。
 - 权限在界面禁用入口，并在服务层再校验一次。
-- 简体中文（源语言）和英文，运行中切换立即生效。
+- 简体中文（源语言）、繁体中文（台湾用语）和英文，运行中切换立即生效；系统语言是繁体中文时默认用繁体中文。
 
 面向全部用户；创建管理员页面向首次部署的管理员。
 
@@ -22,7 +22,7 @@ uv run gelinspect
  ├─ 读配置（默认 DEFAULT_CONFIG，指向 simulation/；--config 指定文件）
  ├─ （P13）判断运行模式：仓库模式用 ./data；发布包用平台标准数据目录，见 deployment.md
  ├─ 配置日志 data/logs/gelinspect.log（滚动 1 MB × 5）+ 未捕获异常兜底
- ├─ 创建 QApplication → 主题 → 语言（读取 QSettings，缺 .qm 时调用 lrelease 编译）
+ ├─ 创建 QApplication → 主题 → 语言（读取 QSettings；没有保存过时看系统语言，繁体中文地区用繁体；缺 .qm 时调用 lrelease 编译）
  ├─ build_app_context：加载后端 → 打开数据库（自动建 data/ 与迁移）→ 启用审计链 HMAC、
  │    加密迁移签名私钥（P13，见 security.md）→ 补全内置模板
  │    └─ 用户表为空：运行 bootstrap.hook（模拟配置创建三个演示账号）
@@ -83,7 +83,7 @@ uv run gelinspect
 快捷栏操作和侧栏菜单项导航到对应页面；无权限的入口置灰并提示“当前角色无此权限”。状态栏右侧的仪器连接状态、语言、当前用户都是真实数据：
 
 - 仪器：空闲时由 `InstrumentMonitor` 每 2 秒通过 `ExperimentEngine.probe_device()` 探测，试验运行期间改用引擎的温度事件。`probe_device` 与运行中的试验互斥，不会与引擎线程同时访问设备。
-- 语言：点击弹出语言菜单。
+- 语言：点击弹出语言菜单（简体中文、繁體中文、English）。
 - 用户：显示名加角色，点击弹出用户菜单。
 
 ### 线程与桥接
@@ -92,21 +92,113 @@ uv run gelinspect
 
 ### 多语言
 
+三种界面语言，语言代码就是 `translations/` 里的文件名后缀：
+
+| 语言 | 代码 | 显示名（不翻译） | 翻译文件 |
+|---|---|---|---|
+| 简体中文（源语言） | `zh_CN` | 简体中文 | `gelinspect_zh_CN.ts`，译文留空，界面直接显示源文本 |
+| 繁体中文（台湾用语） | `zh_TW` | 繁體中文 | `gelinspect_zh_TW.ts`，每一条都有译文 |
+| 英文 | `en` | English | `gelinspect_en.ts`，每一条都有译文 |
+
 - 源文本全部是简体中文，用 `tr()`（类内）或 `QCoreApplication.translate("上下文", "文字")` / `QT_TRANSLATE_NOOP`（类外）。带参数的文字用 `{name}` 占位，译文保持同样的占位符。
-- 英文在 `translations/gelinspect_en.ts`；`gelinspect_zh_CN.ts` 由工具生成，译文留空，界面直接显示源文本。不做繁体。
 - `.qm` 不入库。`LanguageManager` 启动时检查：缺失或比 `.ts` 旧，就调用 PySide6 自带的 `lrelease` 编译到 `translations/`（不可写时放到系统临时目录），所以干净克隆后直接运行就能切换语言。
-- 切换：`LanguageManager.set_language` 安装或移除 `QTranslator`，Qt 向所有控件发 `LanguageChange`；每个有文字的组件在 `changeEvent` 里调用自己的 `retranslate`。选择保存在 `QSettings`（键 `ui/language`），下次启动恢复。
-- 语言名“简体中文”“English”用各自的文字显示，不翻译。服务层的异常信息、审计记录、日志是简体中文（数据，不是界面）；界面按错误分类（`AuthErrorCode`）重新生成当前语言的提示。
+- 切换：`LanguageManager.set_language` 安装或移除 `QTranslator`（简体和繁体还会装上 Qt 自带的 `qtbase_zh_CN` / `qtbase_zh_TW`，让标准对话框和输入框右键菜单跟着变），Qt 向所有控件发 `LanguageChange`；每个有文字的组件在 `changeEvent` 里调用自己的 `retranslate`。选择保存在 `QSettings`（键 `ui/language`，值是语言代码），下次启动恢复。
+- 切换入口：状态栏的语言菜单（下拉，三种语言各一项，当前项打勾）；登录页、锁屏页、创建管理员页底部的语言行（三个文字按钮，当前语言加粗）。
+- 默认语言：没有保存过选择时，`startup.py` 用 `detect_system_language()` 看系统区域：中文且文字是繁体（`zh_Hant`），或地区是台湾、香港、澳门，就用繁体中文；其余（包括英文系统）仍用简体中文。已保存的选择优先于系统语言。该语言的翻译文件缺失时退回简体中文。
+- 语言名“简体中文”“繁體中文”“English”用各自的文字显示，不翻译。服务层的异常信息、审计记录、日志是简体中文（数据，不是界面）；界面按错误分类（`AuthErrorCode`）重新生成当前语言的提示。繁体界面里审计追踪的“操作记录”列也是保存时的简体原文。
+- 报告、Excel 导出的语言见下文；`ui/punctuation.py` 的 `annotate`、`colon`、`join_items` 的半角处理来自英文译文（`{text} ({note})`、`, `），繁体译文保持全角（`{text}（{note}）`、`、`），代码里没有按语言写死标点。
+
+#### 繁体中文的写法
+
+- **用词**用台湾习惯（见下面的术语表）；**标点**用全角：，。、；：？！（）。
+- **引号用弯引号“”**（用户明确要求，台湾习惯的直角引号不用）。全仓库一致，翻译文件、文档和注释里都不出现直角引号，测试强制。
+- 记录作名词写“紀錄”（审计纪录、操作紀錄），作动词才写“記錄”；记录条数的量词用“筆”，告警用“則”。
+- 数字、单位、型号、公式（λ、EU/mL、SHA-256）保持原样，中英文之间的空格沿用源文本。
+
+#### 术语表
+
+简体中文源文本、繁体中文译文、英文译文。全局统一，新增文字请按此表翻译；表里没有的词参考 Microsoft 台湾地区的惯用译法。
+
+| 简体中文 | 繁体中文 | 英文 | 说明 |
+|---|---|---|---|
+| 鲎试剂 | 鱟試劑 | LAL reagent | 鱟字生僻，内置字体已包含 |
+| 内毒素 | 內毒素 | endotoxin | |
+| 凝胶 | 凝膠 | gel | 凝胶法、凝胶缺失 |
+| 灵敏度 | 靈敏度 | sensitivity | 标示灵敏度 λ、实测灵敏度 λc |
+| 阳性 / 阴性 | 陽性 / 陰性 | positive / negative | 阴性对照 → 陰性對照 |
+| 复核 | 複核 | review | 待复核 → 待複核；复试 → 複試 |
+| 试管 / 孔板 / 管位 | 試管 / 孔板 / 管位 | tube / plate / position | 孔板 12 排 × 8 支 |
+| 试验 | 試驗 | experiment | |
+| 样品 / 批号 | 樣品 / 批號 | sample / batch number | |
+| **审计追踪** | **稽核軌跡** | audit trail | **选定“稽核軌跡”，不用“審計追蹤”**：台湾电子纪录和 GMP 文件里 audit trail 译作稽核軌跡；“审计”统一写“稽核”（稽核紀錄、稽核鏈）。Excel 工作表名、侧栏、权限、提示都用它 |
+| 签署 / 签名 / 验签 | 簽署 / 簽名 / 驗簽 | sign / signature / verify | 证书写“證書”（簽名證書） |
+| 报告 | 報告 | report | 报告中心 → 報告中心 |
+| 软件 / 程序 | 軟體 / 程式 | software / program | |
+| 数据 / 数据库 | 資料 / 資料庫 | data / database | 数据目录 → 資料目錄 |
+| 视频 | 影片 | video | 视频源 → 影片來源；视频断流 → 影片串流中斷 |
+| 帧 | 影格 | frame | 帧率 → 影格率；抓拍 → 擷取 |
+| 打印 | 列印 | print | |
+| 用户 / 用户名 / 登录 / 退出登录 | 使用者 / 使用者名稱 / 登入 / 登出 | user / username / sign in / sign out | 登录名 → 登入名稱 |
+| 账号 / 权限 / 角色 | 帳號 / 權限 / 角色 | account / permission / role | 管理员、实验员、分析员 → 管理員、實驗員、分析員 |
+| 配置 / 配置文件 | 設定 / 設定檔 | settings / configuration file | |
+| 模板 | 範本 | template | 检测模板 → 檢測範本；内置 → 內建；自定义 → 自訂 |
+| 向导 | 精靈 | wizard | 新试验向导 → 新試驗精靈 |
+| 校验 | 驗證 | verify / check | 试剂校验 → 試劑驗證；通过 → 通過 |
+| 告警 | 警示 | alert | |
+| 质量 / 图像 | 品質 / 影像 | quality / image | |
+| 掩码 | 遮罩 | mask | |
+| 置信度 | 信賴度 | confidence | |
+| 扫码 | 掃描 | scan | 扫码枪 → 掃描槍 |
+| 当前 / 实时 / 默认 | 目前 / 即時 / 預設 | current / live / default | |
+| 列表 / 重置 | 清單 / 重設 | list / reset | |
+| 工作台 | 工作台 | Dashboard | 不用“臺”；也不改成“儀表板” |
+| 会话 | 工作階段 | session | |
+| 接口 / 接入 | 介面 / 串接 | interface / integrate | |
+
+#### 字体
+
+繁体字不能靠系统字体回退：回退字体的字形和字重与内置的 Noto Sans SC 不一致，PDF 里还会混进系统字体。采用**方案（a）：重新裁剪 Noto Sans SC，补入繁体字**（不另加 Noto Sans TC）。
+
+| 项 | 做法 |
+|---|---|
+| 字符集 | 原有 7687 个码位（GB2312、拉丁、希腊、标点）∪ GB2312 全部汉字 ∪ **Big5 一级字 5401 个**（台湾常用字）∪ 三种语言的翻译文件和源码里实际出现的字符（含报告模板）∪ 全角符号区、注音符号、数学减号 U+2212 等，共 9895 个码位 |
+| 与教育部字表的关系 | 要求的是教育部常用国字标准字体表（约 4808 字）。仓库里没有可核对来源的电子版，所以用台湾标准的 Big5 一级字（5401 字，据公开资料包含该字表的绝大部分）近似；没有逐字比对。超出部分（人名地名生僻字）由系统字体回退链补全 |
+| 字形 | 三个字重（400/500/700）仍是同一族 Noto Sans SC，简繁界面字形统一。**取舍**：同一码位的字形是简体（SC）区域的写法，少数字（如“骨”“直”）与台湾标准字形有细微差别；若验收要求台湾标准字形，改用方案（b）另加 Noto Sans TC 子集（三个字重约 +5 MB，需按语言切换字体族，改动 `ui/theme/fonts.py`、样式表和报告渲染） |
+| 体积 | 每个字重 2.45 MB → 3.29 MB，三个字重合计增加约 2.5 MB（Noto 7.35 MB → 9.86 MB，字体目录总计约 10 MB），小于 8 MB 的上限 |
+| 许可 | 仍是 SIL OFL 1.1，`OFL-NotoSansSC.txt` 不变；名称表沿用原文件，保留保留字体名 “Source” 的声明 |
+| 重新裁剪 | `scripts/build_fonts.py`：用 fontTools（只在开发期用，`uv run --with fonttools`）从 google/fonts 的可变字体 `NotoSansSC[wght].ttf` 先裁剪再固定字重。下载地址见脚本文件头 |
+| 保证 | `tests/ui/test_traditional_chinese.py` 遍历繁体全部译文，断言每个字符都在内置字体的 cmap 里；还检查 GB2312 6763 字和 Big5 一级 5401 字全部在内 |
+
+注意：翻译文件里新用的生僻字如果不在字体里，该测试会失败，请重新运行 `scripts/build_fonts.py`（字符集会自动包含新字符）。
+
+PDF 里页脚的“内容摘要”标签以前用等宽字体（没有汉字）绘制，Qt 会回退到系统字体；现已改为标签用内置中文字体、摘要值用等宽字体，三种语言的 PDF 都只含内置字体（`NotoSansSC`、`IBMPlexMono`，测试检查）。
+
+#### 报告和导出的语言
+
+- 报告语言是 `ReportLanguage`（`zh_CN`、`zh_TW`、`en`），报告中心的“报告语言”下拉有三项，默认跟随界面语言；签署时按所选语言生成并写入 `reports.language`，**签署后固定**，已签署试验的预览、重新验签、导出都用签署时的语言。
+- 报告文字不经过 `QCoreApplication`，直接读 `translations/gelinspect_<语言>.ts`（`services/reporting/texts.py`），缺译文时回退到简体中文并写警告日志。内置模板名和默认样品名（如“阴性对照”）在表格里也按报告语言翻译，用户自己输入的样品名保持原样。
+- Excel 表头、枚举值、工作表名用界面当前语言（`ui/export_labels.py`），所以繁体界面导出的是繁体表头；用户填的样品名称、复核备注是保存的原文。
+- 引擎和视频告警的概要（`Alert` 上下文）、内置模板名（`TemplateName`）、错误对话框（`Startup`、`ErrorDialog`）、首次启动和锁屏页、演示账号提示都在 `translations/` 里，繁体已覆盖。繁体和英文一样只显示告警概要，具体数值和原因见审计追踪（简体原文）。
 
 #### 更新翻译的步骤
 
 1. 在代码里新增或修改界面文字（用 `tr()`）。
 2. `uv run python scripts/update_translations.py`：调用 `pyside6-lupdate` 重新提取，保留已有译文，删除已不存在的条目。
-3. 打开 `translations/gelinspect_en.ts`，给新增的条目（`type="unfinished"`）填写英文译文，删掉 `type` 属性；也可以用 `uv run pyside6-linguist translations/gelinspect_en.ts`。
-4. `uv run python scripts/update_translations.py --check` 确认没有缺失、多余或未翻译的条目（测试 `tests/ui/test_i18n.py` 也会检查）。
-5. `.qm` 不需要手动生成；想手动生成：`uv run pyside6-lrelease translations/gelinspect_en.ts`。
+3. 打开 `translations/gelinspect_zh_TW.ts` 和 `translations/gelinspect_en.ts`，给新增的条目（`type="unfinished"`）填写译文，删掉 `type` 属性；也可以用 `uv run pyside6-linguist translations/gelinspect_zh_TW.ts`。繁体按上面的术语表和写法翻译；大量新增时可以用 OpenCC 打草稿（见下）。
+4. `uv run python scripts/update_translations.py --check` 确认**三种语言**都没有缺失、多余或未翻译的条目（`zh_CN` 是源语言，只查缺失和多余；`zh_TW`、`en` 还查译文是否为空）。测试 `tests/ui/test_i18n.py` 和 `tests/ui/test_traditional_chinese.py` 也会检查。
+5. 如果新译文里用了字体没有的字，运行 `scripts/build_fonts.py` 重新裁剪字体（见上）。
+6. `QT_QPA_PLATFORM=offscreen uv run python scripts/check_english_ui.py --language zh_TW`（或 `en`）逐页扫描界面，列出没走 `tr()` 的文字：繁体下含简体独有字的、英文下含中文的。审计追踪的操作记录是保存的原文，会列出来，属于预期。
+7. `.qm` 不需要手动生成；想手动生成：`uv run pyside6-lrelease translations/gelinspect_zh_TW.ts`。
 
-英文文字要短：快捷栏在 1280 宽下要容纳全部 6 个操作，所以英文的“仪器设置”在快捷栏里写成 `Settings`，连接状态写成 `Connected` / `Disconnected`（完整说法在无障碍名称里）。
+**用 OpenCC 打繁体草稿（只在开发期，不是项目依赖）**：
+
+```bash
+uv run --no-sync --with opencc-python-reimplemented python scripts/draft_traditional.py
+```
+
+`scripts/draft_traditional.py` 只填还没翻译的条目（已有译文不覆盖），对每条源文本做 `OpenCC('s2twp').convert()`（简体转台湾繁体并换用语），再把 OpenCC 输出的直角引号改回弯引号“”，按术语表做替换（审計→稽核、模板→範本、校驗→驗證、幀→影格等 OpenCC 没覆盖或不统一的词），最后**逐条人工校对**。2026-11-07 首次翻译的 1166 条全部这样处理：机器草稿、术语替换、逐条通读并改写别扭的句子（如“上位機”改为“主機端”、“打成 ZIP”改为“壓縮成 ZIP”）。OpenCC 的已知误转要留意：“通过”会变成“透過”、“签的”会变成“籤”、“溯源码”会变成“溯原始碼”。
+
+英文文字要短（繁体中文通常比简体略长，但不超过英文，已通过 1280×800 和 1024×700 的布局测试）：快捷栏在 1280 宽下要容纳全部 6 个操作，所以英文的“仪器设置”在快捷栏里写成 `Settings`，连接状态写成 `Connected` / `Disconnected`（完整说法在无障碍名称里）。
 
 ## 权限
 
@@ -142,8 +234,11 @@ uv run gelinspect
 | `tests/ui/test_main_window.py` | 登录页与演示账号、登录成功与失败、锁定倒计时、各角色入口禁用、拒绝越权导航、快捷栏导航、全部路由（每条路由都是真正的页面）、工作台实时数据、用户菜单、改密、锁屏与解锁、空闲计时、创建管理员与强制改密 |
 | `tests/ui/test_bridge.py` | 事件来自工作线程、槽在主线程、顺序保持、`close` 后丢弃、真实引擎事件 |
 | `tests/ui/test_shutdown.py` | 退出确认、取消不打断、确认后有序关闭并标记异常、锁屏时拒绝、无线程残留 |
-| `tests/ui/test_i18n.py` | 切换后文字变化（登录页、外壳、屏幕上的错误提示）、持久化、`.ts` 完整且与源码同步、`.qm` 缺失或过期时自动编译、干净目录可切换、只有两种语言 |
-| `tests/ui/test_layout_languages.py` | 中英文 × 1280×800 与 1024×700 × 三种角色下，所有页面、登录、锁屏、对话框没有控件超界、被挤压或文字截断（检查器自检） |
+| `tests/ui/test_i18n.py` | 切换后文字变化（登录页、外壳、屏幕上的错误提示）、语言菜单和登录页按钮有三项、持久化、`.ts` 完整且与源码同步、`.qm` 缺失或过期时自动编译、干净目录可切换、恰好三种语言 |
+| `tests/ui/test_traditional_chinese.py` | 繁体 `.ts` 完整、占位符和首尾空格一致、没有简体独有字（GB2312 有而 Big5 没有）、引号只用“”、汉字旁没有半角标点、术语表和禁用词、**繁体全部译文的每个字符都在内置字体 cmap 里**、字体覆盖 GB2312 和 Big5 一级、字体体积和 OFL、三种语言循环切换和持久化、系统语言检测、默认语言只在没保存过选择时生效、窗口文字立即变繁体、标点辅助函数保持全角 |
+| `tests/services/reporting/test_traditional_report.py` | 繁体 PDF 能生成、签名、验签，文字含繁体关键字、没有简体字；PDF 里只有内置字体，所有字符都在内置字体里；签署后语言固定；报告文字都有繁体译文 |
+| `tests/services/test_excel_traditional.py` | 繁体界面导出的 Excel 表头、工作表名、枚举值是繁体，字符都在内置字体里 |
+| `tests/ui/test_layout_languages.py` | 简体、繁体、英文 × 1280×800 与 1024×700 × 三种角色下，所有页面、登录、锁屏、对话框没有控件超界、被挤压或文字截断（检查器自检）；监控页和报告中心另有同样的三语言布局测试 |
 | `tests/test_architecture.py` | `ui/` 只依赖 services、domain、interfaces；不碰数据库和线程；新服务不依赖 Qt 与 infrastructure |
 
 `--smoke-test`（隐藏参数）：完整启动、创建数据库、加载后端、登录演示账号、浏览全部页面、切换语言、退出登录并关窗，返回码 0。干净克隆验证用它：
@@ -157,5 +252,5 @@ QT_QPA_PLATFORM=offscreen uv run gelinspect --smoke-test
 - 真实窗口：登录页和工作台的实际观感、触摸屏、高 DPI、窗口缩放；自动锁屏的真实计时（测试用注入时钟）。
 - Windows：`uv run gelinspect` 启动、`QSettings` 写注册表、`lrelease.exe` 编译、中文路径。
 - macOS 真机上的快捷键提示和语言菜单。
-- 英文文案的措辞需要英文母语者或业务方审校。
+- 英文文案的措辞需要英文母语者或业务方审校；繁体中文的用词需要台湾用户审校（术语表是我方按台湾惯例确定，未经台湾业务方确认；字形见上文“字体”的取舍）。
 - 发布包（P13）：构建时用 `lrelease` 生成 `.qm`，与 `.ts` 一起放进程序目录的 `translations/`；发布包里不再调用 `lrelease`，直接用构建时的 `.qm`。macOS 发布包已实际验证切换英文（冒烟测试）。

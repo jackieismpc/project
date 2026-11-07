@@ -330,6 +330,10 @@ def test_error_messages_follow_the_ui_language(qapp: QApplication) -> None:
         failure = describe_startup_error(ConfigError("bad"))
         assert failure.title == "Invalid configuration"
         assert "Fix the configuration file" in failure.message
+        manager.set_language(Language.ZH_TW, persist=False)
+        failure = describe_startup_error(ConfigError("bad"))
+        assert failure.title == "設定有誤，無法啟動"
+        assert "設定檔" in failure.message
     finally:
         manager.set_language(Language.ZH_CN, persist=False)
 

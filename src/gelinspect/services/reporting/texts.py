@@ -1,4 +1,4 @@
-"""报告文字：简体中文和英文，与界面语言无关。
+"""报告文字：简体中文、繁体中文和英文，与界面语言无关。
 
 报告的语言由用户选择（默认跟随界面语言），而不是由“当前安装的翻译器”决定，所以这里直接读
 ``translations/gelinspect_<语言>.ts``，按（上下文，原文）查表，不经过 ``QCoreApplication``。
@@ -31,6 +31,8 @@ class ReportLanguage(StrEnum):
 
     ZH_CN = "zh_CN"
     """简体中文，源语言。"""
+    ZH_TW = "zh_TW"
+    """繁体中文（台湾用语）。"""
     EN = "en"
     """英文。"""
 
@@ -111,7 +113,7 @@ class ReportTexts:
             context: 翻译上下文，默认报告专用上下文。
 
         Returns:
-            当前语言的文字；简体中文返回原文，英文缺译文时回退原文。
+            当前语言的文字；简体中文返回原文，其他语言缺译文时回退原文。
         """
         if self.language is ReportLanguage.ZH_CN:
             return source
@@ -119,9 +121,24 @@ class ReportTexts:
         if text is None:
             if (context, source) not in self._missing:
                 self._missing.add((context, source))
-                _log.warning("报告文字缺少英文译文：[%s] %s", context, source)
+                _log.warning("报告文字缺少译文（%s）：[%s] %s：[%s] %s", context, source)
             return source
         return text
+
+    def builtin_name(self, name: str) -> str:
+        """内置模板名和默认样品名（如“阴性对照”）的译文，其他名称（用户输入）原样返回。
+
+        界面用同一张译文表（上下文 ``TemplateName``），所以报告和界面说的一致。
+
+        Args:
+            name: 入库的名称原文。
+
+        Returns:
+            有译文时返回译文，否则原样返回；不记缺译文警告（用户输入本来就没有译文）。
+        """
+        if self.language is ReportLanguage.ZH_CN:
+            return name
+        return self._catalog.get(("TemplateName", name), name)
 
     def s(self, key: S, **params: object) -> str:
         """取报告里的一条固定文字。

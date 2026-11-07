@@ -76,7 +76,11 @@ MAX_EXPERIMENTS = 200
 """下拉框里最多列出的试验数。"""
 PANEL_WIDTH = 330
 """右侧操作栏宽度。"""
-_LANGUAGE_NAMES = {ReportLanguage.ZH_CN: "简体中文", ReportLanguage.EN: "English"}
+_LANGUAGE_NAMES = {
+    ReportLanguage.ZH_CN: "简体中文",
+    ReportLanguage.ZH_TW: "繁體中文",
+    ReportLanguage.EN: "English",
+}
 """报告语言自己的名字，不翻译。"""
 
 
@@ -368,7 +372,7 @@ class ReportsPage(QWidget):
         """界面语言变了：用户没有手动选过报告语言时，报告跟随界面语言。
 
         Args:
-            code: 语言代码（``zh_CN`` 或 ``en``）。
+            code: 语言代码（``zh_CN``、``zh_TW`` 或 ``en``）。
         """
         self._ui_language = report_language_of(code)
         if not self._language_chosen:

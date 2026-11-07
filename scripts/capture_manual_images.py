@@ -3,6 +3,8 @@
 用法::
 
     QT_QPA_PLATFORM=offscreen uv run python scripts/capture_manual_images.py
+    # 只重新生成其中几张（其余照常运行但不覆盖文件）
+    QT_QPA_PLATFORM=offscreen uv run python scripts/capture_manual_images.py --only login,lock
 
 做法与组件展示页 ``gelinspect.ui.gallery`` 一致：真实窗口、真实数据，``QWidget.grab()`` 离屏截图。
 所有数据都由真实流程产生：实验员走向导启动试验，引擎、模拟视频和算法跑完，分析员复核并签署。
@@ -12,6 +14,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 import tempfile
 import time
@@ -42,6 +45,8 @@ from tests.ui.wizard_helpers import (
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "images"
 TEMPLATE = "灵敏度复核 (2λ:1)"
+ONLY: set[str] | None = None
+"""只保存这些名字的截图（命令行 ``--only``），其余照常运行但不写文件；None 表示全部保存。"""
 
 
 def shot(
@@ -58,6 +63,8 @@ def shot(
         widget: 截哪个控件，默认整个主窗口。
         region: 只保留 ``(x, y, 宽, 高)``，用于裁掉含开发配置的部分。
     """
+    if ONLY is not None and name not in ONLY:
+        return
     support.settle(rig.app, 6)
     for toast in rig.window.findChildren(Toast):  # 引擎告警的提示条会盖住右上角
         toast.hide()
@@ -95,6 +102,11 @@ def capture_setup(root: Path) -> None:
 
 def main() -> int:
     """逐页截图。"""
+    global ONLY
+    parser = argparse.ArgumentParser(description="重新生成手册配图")
+    parser.add_argument("--only", help="只保存这些截图（逗号分隔的文件名，不含扩展名）")
+    args = parser.parse_args()
+    ONLY = set(args.only.split(",")) if args.only else None
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         capture_setup(root / "setup")
@@ -234,6 +246,11 @@ def main() -> int:
             rig.language.set_language(Language.EN, persist=False)
             window.open_experiment(experiment_id)
             shot(rig, "monitor-english")
+
+            # 繁体中文界面
+            rig.language.set_language(Language.ZH_TW, persist=False)
+            window.open_experiment(experiment_id)
+            shot(rig, "monitor-traditional")
         finally:
             support.close_rig(rig)
     total = sum(p.stat().st_size for p in OUT.glob("*.png"))

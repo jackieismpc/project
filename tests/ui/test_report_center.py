@@ -266,7 +266,7 @@ def test_report_center_fits_in_both_languages_and_sizes(
     window, context = fast_window, fast_context
     experiment_id = finish_experiment(qapp, window, context)
     sign_in(qapp, window, "analyst")
-    for lang in (Language.ZH_CN, Language.EN):
+    for lang in (Language.ZH_CN, Language.ZH_TW, Language.EN):
         for size in SIZES:
             use(window, language, lang, size)
             assert window.open_report(experiment_id)
@@ -281,7 +281,7 @@ def test_report_center_fits_in_both_languages_and_sizes(
     auto_sign(monkeypatch, DEMO_PASSWORDS["analyst"])
     assert window.open_report(experiment_id)
     click(qapp, reports_of(window).sign_button)
-    for lang in (Language.ZH_CN, Language.EN):
+    for lang in (Language.ZH_CN, Language.ZH_TW, Language.EN):
         for size in SIZES:
             use(window, language, lang, size)
             assert window.open_report(experiment_id)

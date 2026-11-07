@@ -2,7 +2,9 @@
 
 优先加载 ``ui/assets/fonts`` 中随软件内置的字体（OFL 许可）：
 
-* Noto Sans SC：正文，常规、中等、粗体三个静态实例，已裁剪为 GB2312 汉字加常用符号。
+* Noto Sans SC：正文，常规、中等、粗体三个静态实例，已裁剪为 GB2312 汉字、Big5 一级字
+  （台湾常用繁体字）、界面和报告里实际用到的字符，以及常用符号，约 9900 个码位。
+  裁剪方法见 ``scripts/build_fonts.py``。
 * IBM Plex Mono：读数、管号、批号。
 
 内置字体缺失（例如开发时没有下载）时，回退到系统字体（PingFang SC、Microsoft YaHei、
@@ -169,7 +171,7 @@ def apply_app_font(app: QGuiApplication, tokens: Tokens | None = None) -> FontRe
     report = load_fonts(tokens)
     font = QFont(report.sans)
     font.setPixelSize(tokens.type.body)
-    # 内置字体只含 GB2312 汉字，生僻字交给系统字体回退链补全。
+    # 内置字体覆盖 GB2312 和台湾常用字，更生僻的字交给系统字体回退链补全。
     font.setFamilies([report.sans, *tokens.type.sans[1:-1]])
     app.setFont(font)
     return report
