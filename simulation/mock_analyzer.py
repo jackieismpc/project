@@ -9,6 +9,9 @@
    ΔA、Δs 取绝对值；σ_A 是帧间面积的变异系数（%），σ_s 是帧间轴向位置的标准差；
 4. ``Score = 0.5·f(ΔA) + 0.3·f(Δs) + 0.1·f(σ_A) + 0.1·f(σ_s)``，每项 ``f`` 把指标线性映射到
    0–1，越大越凝固；Score ≥ 0.85 为完全凝固，≤ 0.25 为未凝固，其余为部分凝固。
+   权重、阈值和归一化上限都可以在 YAML 配置里改（``weights``、``thresholds``、``limits``），
+   对应算法方案“阈值标定”和“支持 YAML 配置动态调整”。每支管返回评分分项 ``score_terms``，
+   ``AnalyzerInfo`` 带出当前阈值，供界面逐项展示判读过程。
 
 **脚本化模式**（``scripted``）按 :class:`~simulation.scenario.Scenario` 给出状态，并生成与状态相符的
 特征，掩码仍按图像计算，用于没有合成图可用时的演示。
@@ -40,6 +43,8 @@ from gelinspect.interfaces.analysis import (
     GelState,
     RowAnalysisRequest,
     RowAnalysisResult,
+    ScoreTerm,
+    StateThresholds,
     TubeAnalysis,
     TubeAnalysisStatus,
     TubeMasks,
@@ -60,8 +65,14 @@ from simulation.scenario import Scenario
 MIN_GEL_AREA = 50
 """算法方案第 5 节：面积低于 50 像素记为凝胶缺失。"""
 FULLY_GELLED_SCORE = 0.85
+"""默认的完全凝固阈值。"""
 NOT_GELLED_SCORE = 0.25
-_WEIGHTS = (0.5, 0.3, 0.1, 0.1)
+"""默认的未凝固阈值。"""
+DEFAULT_WEIGHTS: tuple[float, float, float, float] = (0.5, 0.3, 0.1, 0.1)
+"""算法方案第 5 节的初始权重 ω1–ω4，对应 ΔA、Δs、σ_A、σ_s。"""
+DEFAULT_LIMITS: tuple[float, float, float, float] = (30.0, 0.15, 10.0, 0.05)
+"""归一化上限：指标达到上限时 f = 0。ΔA 和 σ_A 单位 %，Δs 和 σ_s 按管长归一化。"""
+SCORE_KEYS = ("delta_area_pct", "delta_s", "sigma_area", "sigma_axial")
 _DARK_LEVEL = 90.0
 _BRIGHT_LEVEL = 250.0
 _MAX_NOISE_RATIO = 0.10
@@ -106,8 +117,43 @@ def _linear(value: float, limit: float) -> float:
     return min(max(1.0 - value / limit, 0.0), 1.0)
 
 
+def score_terms(
+    delta_area_pct: float,
+    delta_s: float,
+    sigma_area_pct: float,
+    sigma_axial: float,
+    *,
+    weights: tuple[float, float, float, float] = DEFAULT_WEIGHTS,
+    limits: tuple[float, float, float, float] = DEFAULT_LIMITS,
+) -> dict[str, tuple[float, float]]:
+    """融合评分的四个分项。
+
+    Args:
+        delta_area_pct: ΔA，单位 %。
+        delta_s: Δs，按管长归一化。
+        sigma_area_pct: σ_A，单位 %。
+        sigma_axial: σ_s，按管长归一化。
+        weights: 权重 ω1–ω4。
+        limits: 归一化上限。
+
+    Returns:
+        特征名到 ``(权重, 归一化得分)``。
+    """
+    values = (delta_area_pct, delta_s, sigma_area_pct, sigma_axial)
+    return {
+        key: (weight, _linear(value, limit))
+        for key, weight, value, limit in zip(SCORE_KEYS, weights, values, limits, strict=True)
+    }
+
+
 def compute_score(
-    delta_area_pct: float, delta_s: float, sigma_area_pct: float, sigma_axial: float
+    delta_area_pct: float,
+    delta_s: float,
+    sigma_area_pct: float,
+    sigma_axial: float,
+    *,
+    weights: tuple[float, float, float, float] = DEFAULT_WEIGHTS,
+    limits: tuple[float, float, float, float] = DEFAULT_LIMITS,
 ) -> float:
     """融合评分，越大越凝固。
 
@@ -116,39 +162,56 @@ def compute_score(
         delta_s: Δs，按管长归一化。
         sigma_area_pct: σ_A，单位 %。
         sigma_axial: σ_s，按管长归一化。
+        weights: 权重 ω1–ω4。
+        limits: 归一化上限。
 
     Returns:
         0–1 的评分。
     """
-    terms = (
-        _linear(delta_area_pct, 30.0),
-        _linear(delta_s, 0.15),
-        _linear(sigma_area_pct, 10.0),
-        _linear(sigma_axial, 0.05),
+    terms = score_terms(
+        delta_area_pct, delta_s, sigma_area_pct, sigma_axial, weights=weights, limits=limits
     )
-    return float(sum(w * t for w, t in zip(_WEIGHTS, terms, strict=True)))
+    return float(sum(w * f for w, f in terms.values()))
 
 
-def state_from_score(score: float) -> GelState:
+def state_from_score(
+    score: float,
+    fully_gelled_min: float = FULLY_GELLED_SCORE,
+    not_gelled_max: float = NOT_GELLED_SCORE,
+) -> GelState:
     """按评分判定三态。
 
     Args:
         score: 融合评分。
+        fully_gelled_min: 完全凝固阈值。
+        not_gelled_max: 未凝固阈值。
 
     Returns:
         凝固三态。
     """
-    if score >= FULLY_GELLED_SCORE:
+    if score >= fully_gelled_min:
         return GelState.FULLY_GELLED
-    if score <= NOT_GELLED_SCORE:
+    if score <= not_gelled_max:
         return GelState.NOT_GELLED
     return GelState.PARTIALLY_GELLED
 
 
-def _confidence(score: float) -> float:
+def _confidence(
+    score: float,
+    fully_gelled_min: float = FULLY_GELLED_SCORE,
+    not_gelled_max: float = NOT_GELLED_SCORE,
+) -> float:
     """离判定阈值越远越有把握。"""
-    margin = min(abs(score - FULLY_GELLED_SCORE), abs(score - NOT_GELLED_SCORE))
+    margin = min(abs(score - fully_gelled_min), abs(score - not_gelled_max))
     return float(min(0.99, 0.6 + 2.0 * margin))
+
+
+def _four(value: Any, name: str) -> tuple[float, float, float, float]:
+    """读取 4 个数的配置项。"""
+    numbers = tuple(float(x) for x in value)
+    if len(numbers) != 4:
+        raise ValueError(f"{name} 需要 4 个数")
+    return (numbers[0], numbers[1], numbers[2], numbers[3])
 
 
 def _gray(region: NDArray[np.uint8]) -> NDArray[np.float32]:
@@ -293,6 +356,11 @@ class MockAnalyzer:
         self.delay_ms = delay_ms
         self.fail_load = fail_load
         self.fail_all = fail_all
+        self.weights = DEFAULT_WEIGHTS
+        self.limits = DEFAULT_LIMITS
+        self.thresholds = StateThresholds(
+            not_gelled_max=NOT_GELLED_SCORE, fully_gelled_min=FULLY_GELLED_SCORE
+        )
         self._sleep = sleep
         self._info: AnalyzerInfo | None = None
         self._validate()
@@ -308,6 +376,12 @@ class MockAnalyzer:
             raise ValueError(f"管号 {bad} 的故障状态只能是 low_quality、failed 或 tube_not_found")
         if self.delay_ms < 0:
             raise ValueError("delay_ms 不能为负")
+        if len(self.weights) != 4 or any(w < 0 for w in self.weights):
+            raise ValueError("weights 需要 4 个非负数")
+        if abs(sum(self.weights) - 1.0) > 1e-6:
+            raise ValueError("weights 之和必须为 1")
+        if len(self.limits) != 4 or any(v <= 0 for v in self.limits):
+            raise ValueError("limits 需要 4 个正数")
 
     def load(self, config_path: Path | None) -> AnalyzerInfo:
         """读取可选的 YAML 配置并“加载模型”。
@@ -333,7 +407,9 @@ class MockAnalyzer:
             config_version = f"mock-{config_path.stem}"
         if self.fail_load:
             raise AnalyzerError("模拟的模型加载失败")
-        self._info = AnalyzerInfo(model_version="mock-1.0", config_version=config_version)
+        self._info = AnalyzerInfo(
+            model_version="mock-1.0", config_version=config_version, thresholds=self.thresholds
+        )
         return self._info
 
     def _apply_config(self, data: Mapping[str, Any]) -> None:
@@ -354,6 +430,16 @@ class MockAnalyzer:
         self.delay_ms = float(data.get("delay_ms", self.delay_ms))
         self.fail_load = bool(data.get("fail_load", self.fail_load))
         self.fail_all = bool(data.get("fail_all", self.fail_all))
+        if "weights" in data:
+            self.weights = _four(data["weights"], "weights")
+        if "limits" in data:
+            self.limits = _four(data["limits"], "limits")
+        if "thresholds" in data:
+            raw = data["thresholds"] or {}
+            self.thresholds = StateThresholds(
+                not_gelled_max=float(raw.get("not_gelled_max", NOT_GELLED_SCORE)),
+                fully_gelled_min=float(raw.get("fully_gelled_min", FULLY_GELLED_SCORE)),
+            )
         self._validate()
 
     def close(self) -> None:
@@ -457,16 +543,42 @@ class MockAnalyzer:
         assert before.axial is not None and after.axial is not None
         delta_area = abs(after.area - before.area) / before.area * 100
         delta_s = abs(after.axial - before.axial)
-        score = compute_score(delta_area, delta_s, sigma_area or 0.0, sigma_axial or 0.0)
         features = features.model_copy(update={"delta_area_pct": delta_area, "delta_s": delta_s})
+        values = (delta_area, delta_s, sigma_area or 0.0, sigma_axial or 0.0)
+        return self._scored(slot.tube_no, values, features, masks)
+
+    def _scored(
+        self,
+        tube_no: int,
+        values: tuple[float, float, float, float],
+        features: GelFeatures,
+        masks: TubeMasks,
+        state: GelState | None = None,
+    ) -> TubeAnalysis:
+        """按配置的权重和阈值算评分，给出三态、置信度和评分分项。
+
+        Args:
+            tube_no: 管号。
+            values: ΔA、Δs、σ_A、σ_s。
+            features: 特征。
+            masks: 掩码。
+            state: 脚本化模式指定的三态，None 时按阈值判定。
+
+        Returns:
+            分析结果。
+        """
+        terms = score_terms(*values, weights=self.weights, limits=self.limits)
+        score = float(sum(w * f for w, f in terms.values()))
+        high, low = self.thresholds.fully_gelled_min, self.thresholds.not_gelled_max
         return TubeAnalysis(
-            tube_no=slot.tube_no,
+            tube_no=tube_no,
             status=TubeAnalysisStatus.OK,
-            state=state_from_score(score),
+            state=state or state_from_score(score, high, low),
             score=score,
-            confidence=_confidence(score),
+            confidence=_confidence(score, high, low),
             features=features,
             masks=masks,
+            score_terms={k: ScoreTerm(weight=w, normalized=f) for k, (w, f) in terms.items()},
         )
 
     @staticmethod
@@ -535,18 +647,10 @@ class MockAnalyzer:
             sigma_area=sig_a,
             sigma_axial=sig_s,
         )
-        score = compute_score(d_area, d_s, sig_a, sig_s)
-        return TubeAnalysis(
-            tube_no=slot.tube_no,
-            status=TubeAnalysisStatus.OK,
-            state=state,
-            score=score,
-            confidence=_confidence(score),
-            features=features,
-            masks=TubeMasks(
-                tube_before=tube_before,
-                tube_after=tube_after,
-                gel_before=before.gel,
-                gel_after=after.gel,
-            ),
+        masks = TubeMasks(
+            tube_before=tube_before,
+            tube_after=tube_after,
+            gel_before=before.gel,
+            gel_after=after.gel,
         )
+        return self._scored(slot.tube_no, (d_area, d_s, sig_a, sig_s), features, masks, state)

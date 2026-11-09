@@ -15,6 +15,8 @@ from gelinspect.interfaces.analysis import (
     GelFeatures,
     RowAnalysisRequest,
     RowAnalysisResult,
+    ScoreTerm,
+    StateThresholds,
     TubeAnalysis,
     TubeMasks,
     TubeSlot,
@@ -302,3 +304,42 @@ def test_path_field_accepts_source_path() -> None:
 
 def test_device_controller_protocol_rejects_incomplete_object() -> None:
     assert not isinstance(object(), DeviceController)
+
+
+def ok_tube(**overrides: Any) -> dict[str, Any]:
+    fields: dict[str, Any] = {
+        "tube_no": 1,
+        "status": TubeAnalysisStatus.OK,
+        "state": GelState.PARTIALLY_GELLED,
+        "score": 0.5,
+        "masks": masks(),
+    }
+    fields.update(overrides)
+    return fields
+
+
+def test_score_terms_are_optional_and_must_add_up_to_score() -> None:
+    assert TubeAnalysis(**ok_tube()).score_terms is None
+    terms = {
+        "delta_area_pct": ScoreTerm(weight=0.5, normalized=0.6),
+        "delta_s": ScoreTerm(weight=0.5, normalized=0.4),
+    }
+    assert TubeAnalysis(**ok_tube(score_terms=terms)).score_terms == terms
+    with pytest.raises(ValidationError, match="不符"):
+        TubeAnalysis(**ok_tube(score=0.9, score_terms=terms))
+    with pytest.raises(ValidationError, match="未知的特征"):
+        TubeAnalysis(**ok_tube(score_terms={"area": ScoreTerm(weight=1, normalized=0.5)}))
+    with pytest.raises(ValidationError):
+        ScoreTerm(weight=0.5, normalized=1.5)
+
+
+def test_thresholds_are_optional_and_ordered() -> None:
+    assert AnalyzerInfo(model_version="m", config_version="c").thresholds is None
+    info = AnalyzerInfo(
+        model_version="m",
+        config_version="c",
+        thresholds=StateThresholds(not_gelled_max=0.25, fully_gelled_min=0.85),
+    )
+    assert info.thresholds is not None and info.thresholds.fully_gelled_min == 0.85
+    with pytest.raises(ValidationError, match="必须小于"):
+        StateThresholds(not_gelled_max=0.85, fully_gelled_min=0.25)

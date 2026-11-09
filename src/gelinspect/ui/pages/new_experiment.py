@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from PySide6.QtCore import QEvent, Qt, Signal, Slot
@@ -56,7 +56,7 @@ from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
-from gelinspect.ui.widgets.dialog import ConfirmDialog
+from gelinspect.ui.widgets.dialog import ConfirmDialog, NoticeDialog
 from gelinspect.ui.widgets.edit_table import EditColumn, EditTable
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.plate_grid import PlateGrid, PlateMode
@@ -110,6 +110,7 @@ class NewExperimentPage(QWidget):
         self._draft = ExperimentDraft()
         self._templates: list[TemplateInfo] = []
         self._scans: dict[ReagentKind, ReagentScan] = {}
+        self._lock_dialog: NoticeDialog | None = None
         self._step = STEP_TEMPLATE
         self._created_id: str | None = None
         self._starting = False
@@ -602,6 +603,37 @@ class NewExperimentPage(QWidget):
             self._focus_next_empty(kind)
         else:
             card.focus_input()
+        if scan.locks:
+            self._popup_lock({kind: scan})
+
+    def _popup_lock(self, locked: Mapping[ReagentKind, ReagentScan]) -> None:
+        """试剂锁定流程时弹窗提示（不阻塞），页面上的红色横幅同时保留。"""
+        lines = []
+        for kind, scan in locked.items():
+            batch = f" {scan.batch_no}" if scan.batch_no else ""
+            lines.append(f"{reagent_kind_label(kind)}{batch}：{describe_scan(scan, kind)}")
+        message = (
+            "\n".join(lines)
+            + "\n\n"
+            + self.tr(
+                "试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。"
+            )
+        )
+        if self._lock_dialog is not None:
+            self._lock_dialog.close()
+        dialog = NoticeDialog(self.tr("试剂未通过校验"), message, parent=self)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.destroyed.connect(self._forget_lock_dialog)
+        self._lock_dialog = dialog
+        dialog.open()
+
+    def _forget_lock_dialog(self) -> None:
+        self._lock_dialog = None
+
+    @property
+    def lock_dialog(self) -> NoticeDialog | None:
+        """当前打开的试剂锁定提示，没有时为 None。"""
+        return self._lock_dialog
 
     def _sync_lambda(self) -> None:
         """把鲎试剂的 λ 交给草稿，并刷新样品表里按 λ 算出的外加内毒素。"""
@@ -1000,6 +1032,7 @@ class NewExperimentPage(QWidget):
             self.tr("试剂未通过校验，流程已锁定，不能进入下一步"),
             "\n".join(describe_lock_reasons(error)),
         )
+        self._popup_lock({k: v for k, v in error.scans.items() if not v.valid})
 
     # ================================================================== 引擎事件
 

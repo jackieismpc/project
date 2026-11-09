@@ -7,7 +7,7 @@ import inspect
 import pytest
 
 from gelinspect.domain.enums import AuditAction, Role
-from gelinspect.domain.templates import BUILTIN_TEMPLATES
+from gelinspect.domain.templates import ALL_BUILTIN_TEMPLATES, BUILTIN_TEMPLATES
 from gelinspect.infrastructure.db import Database, seed_defaults, verify_audit_chain
 from gelinspect.infrastructure.db.passwords import needs_rehash, verify_password
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
@@ -18,8 +18,8 @@ PASSWORD = "caller-supplied-pw"
 def test_seed_creates_templates_and_admin(database: Database) -> None:
     result = seed_defaults(database, admin_password=PASSWORD)
     assert result.admin_created
-    assert set(result.templates_added) == {t.template_id for t in BUILTIN_TEMPLATES.values()}
-    for template in BUILTIN_TEMPLATES.values():
+    assert set(result.templates_added) == {t.template_id for t in ALL_BUILTIN_TEMPLATES}
+    for template in ALL_BUILTIN_TEMPLATES:
         assert database.templates.get(template.template_id) == template
         assert database.templates.is_builtin(template.template_id)
 

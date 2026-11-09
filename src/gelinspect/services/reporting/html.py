@@ -49,7 +49,6 @@ _BLANK = "–"
 _TYPE_SOURCES = {
     ExperimentType.SENSITIVITY_CONFIRMATION: str(QT_TRANSLATE_NOOP("ExperimentType", "灵敏度复核")),
     ExperimentType.INTERFERENCE: str(QT_TRANSLATE_NOOP("ExperimentType", "干扰试验")),
-    ExperimentType.RETEST: str(QT_TRANSLATE_NOOP("ExperimentType", "复试试验")),
     ExperimentType.SEMI_QUANTITATIVE: str(QT_TRANSLATE_NOOP("ExperimentType", "半定量试验")),
     ExperimentType.LIMIT: str(QT_TRANSLATE_NOOP("ExperimentType", "限度试验")),
 }

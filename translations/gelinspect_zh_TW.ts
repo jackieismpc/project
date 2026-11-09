@@ -256,7 +256,7 @@
     </message>
     <message>
         <source>调整查询条件，或点“重置”清除条件后再查</source>
-        <translation>調整查詢條件，或點“重置”清除條件後再查</translation>
+        <translation>調整查詢條件，或點“重設”清除條件後再查</translation>
     </message>
     <message>
         <source>还没有审计记录</source>
@@ -348,7 +348,7 @@
     </message>
     <message>
         <source>已导出 {rows} 条：{name}</source>
-        <translation>已匯出 {rows} 條：{name}</translation>
+        <translation>已匯出 {rows} 筆：{name}</translation>
     </message>
     <message>
         <source>操作失败：{reason}</source>
@@ -412,7 +412,7 @@
     </message>
     <message>
         <source>重置</source>
-        <translation>重置</translation>
+        <translation>重設</translation>
     </message>
 </context>
 <context>
@@ -506,7 +506,7 @@
     </message>
     <message>
         <source>没有签名</source>
-        <translation>沒有簽名</translation>
+        <translation>沒有簽章</translation>
     </message>
     <message>
         <source>没有这条记录</source>
@@ -828,7 +828,7 @@
     </message>
     <message>
         <source>新建试验</source>
-        <translation>新建試驗</translation>
+        <translation>新增試驗</translation>
     </message>
     <message>
         <source>检测室温度</source>
@@ -1009,10 +1009,6 @@
     <message>
         <source>干扰试验</source>
         <translation>干擾試驗</translation>
-    </message>
-    <message>
-        <source>复试试验</source>
-        <translation>複試試驗</translation>
     </message>
     <message>
         <source>半定量试验</source>
@@ -1419,7 +1415,7 @@
     </message>
     <message>
         <source>调整筛选条件，或点“重置”清除条件后再查</source>
-        <translation>調整篩選條件，或點“重置”清除條件後再查</translation>
+        <translation>調整篩選條件，或點“重設”清除條件後再查</translation>
     </message>
     <message>
         <source>还没有历史试验</source>
@@ -1451,7 +1447,7 @@
     </message>
     <message>
         <source>已导出 {rows} 行：{name}</source>
-        <translation>已匯出 {rows} 行：{name}</translation>
+        <translation>已匯出 {rows} 筆：{name}</translation>
     </message>
     <message>
         <source>导出失败：{reason}</source>
@@ -1547,7 +1543,7 @@
     </message>
     <message>
         <source>重置</source>
-        <translation>重置</translation>
+        <translation>重設</translation>
     </message>
 </context>
 <context>
@@ -1578,6 +1574,73 @@
     <message>
         <source>待复核</source>
         <translation>待複核</translation>
+    </message>
+</context>
+<context>
+    <name>JudgmentGuideDialog</name>
+    <message>
+        <source>判读依据</source>
+        <translation>判讀依據</translation>
+    </message>
+    <message>
+        <source>凝胶法判读标准</source>
+        <translation>凝膠法判讀標準</translation>
+    </message>
+    <message>
+        <source>按中国药典通则 1143 凝胶法：保温 60±2 分钟后，将试管轻轻取出，缓缓倒转 180°。管内形成凝胶，并且凝胶不变形、不从管壁滑脱的，为阳性；未形成凝胶，或形成的凝胶不能保持完整并从管壁滑脱的，为阴性。</source>
+        <translation>按中國藥典通則 1143 凝膠法：保溫 60±2 分鐘後，將試管輕輕取出，緩緩倒轉 180°。管內形成凝膠，並且凝膠不變形、不從管壁滑脫的，為陽性；未形成凝膠，或形成的凝膠不能保持完整並從管壁滑脫的，為陰性。</translation>
+    </message>
+    <message>
+        <source>示例：形成凝胶，倒置后不脱落（阳性）</source>
+        <translation>範例：形成凝膠，倒置後不脫落（陽性）</translation>
+    </message>
+    <message>
+        <source>示例：未形成凝胶（阴性）</source>
+        <translation>範例：未形成凝膠（陰性）</translation>
+    </message>
+    <message>
+        <source>示例照片只用于说明，不参与判读。</source>
+        <translation>範例照片僅供說明，不參與判讀。</translation>
+    </message>
+    <message>
+        <source>软件的判读步骤</source>
+        <translation>軟體的判讀步驟</translation>
+    </message>
+    <message>
+        <source>取图：每排翻转前、翻转后各取至少 3 帧图像。</source>
+        <translation>取圖：每排翻轉前、翻轉後各取至少 3 張影像。</translation>
+    </message>
+    <message>
+        <source>分割：在图像中识别每支试管的试管区域和凝胶区域。</source>
+        <translation>分割：在影像中辨識每支試管的試管區域和凝膠區域。</translation>
+    </message>
+    <message>
+        <source>特征：计算面积变化率 ΔA、试管坐标系下的质心偏移 Δs，以及多帧之间的面积波动 σ_A 和位置波动 σ_s。</source>
+        <translation>特徵：計算面積變化率 ΔA、試管座標系下的質心偏移 Δs，以及多張影像之間的面積波動 σ_A 和位置波動 σ_s。</translation>
+    </message>
+    <message>
+        <source>评分：每项特征归一化到 0–1（越大越像凝胶），按权重加权得到融合评分 Score。</source>
+        <translation>評分：每項特徵正規化到 0–1（越大越像凝膠），按權重加權得到融合評分 Score。</translation>
+    </message>
+    <message>
+        <source>三态：Score 不低于完全凝固阈值为完全凝固，不高于未凝固阈值为未凝固，其余为部分凝固。</source>
+        <translation>三態：Score 不低於完全凝固閾值為完全凝固，不高於未凝固閾值為未凝固，其餘為部分凝固。</translation>
+    </message>
+    <message>
+        <source>阴阳性：按下表换算；图像质量差、找不到试管、分析失败的试管一律待人工复核，不会默认判为阴性。</source>
+        <translation>陰陽性：按下表換算；影像品質差、找不到試管、分析失敗的試管一律待人工複核，不會預設判為陰性。</translation>
+    </message>
+    <message>
+        <source>凝固状态与阴阳性（当前配置）</source>
+        <translation>凝固狀態與陰陽性（目前設定）</translation>
+    </message>
+    <message>
+        <source>置信度低于 {t} 的结果也转人工复核。</source>
+        <translation>信賴度低於 {t} 的結果也轉人工複核。</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>關閉</translation>
     </message>
 </context>
 <context>
@@ -1719,7 +1782,7 @@
     </message>
     <message>
         <source>这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
-        <translation>這個試驗已簽署，可以預覽、列印、驗簽和匯出已簽名的 PDF。</translation>
+        <translation>這個試驗已簽署，可以預覽、列印、驗章和匯出已簽章的 PDF。</translation>
     </message>
     <message>
         <source>这个试验已完成，可以预览和打印报告；分析员核对后签署。</source>
@@ -2066,7 +2129,7 @@
     </message>
     <message>
         <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
-        <translation>輸入後寫入試驗紀錄並顯示在報告裡；試驗簽署後不能再修改。</translation>
+        <translation>輸入後寫入試驗紀錄並顯示在報告裡；試驗章署後不能再修改。</translation>
     </message>
     <message>
         <source>管位</source>
@@ -2135,6 +2198,14 @@
     <message>
         <source>保留当前模板</source>
         <translation>保留目前範本</translation>
+    </message>
+    <message>
+        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation>試驗流程已鎖定，不能進入下一步。請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
+    </message>
+    <message>
+        <source>试剂未通过校验</source>
+        <translation>試劑未通過驗證</translation>
     </message>
     <message>
         <source>缺少标示灵敏度 λ，不能进入下一步</source>
@@ -2277,7 +2348,7 @@
     <name>NewUserDialog</name>
     <message>
         <source>新建用户</source>
-        <translation>新建使用者</translation>
+        <translation>新增使用者</translation>
     </message>
     <message>
         <source>登录名</source>
@@ -2310,6 +2381,13 @@
     <message>
         <source>创建</source>
         <translation>建立</translation>
+    </message>
+</context>
+<context>
+    <name>NoticeDialog</name>
+    <message>
+        <source>知道了</source>
+        <translation>知道了</translation>
     </message>
 </context>
 <context>
@@ -2347,7 +2425,7 @@
     </message>
     <message>
         <source>新建和修改检测模板</source>
-        <translation>新建和修改檢測範本</translation>
+        <translation>新增和修改檢測範本</translation>
     </message>
     <message>
         <source>录入和校验试剂批次</source>
@@ -2359,7 +2437,7 @@
     </message>
     <message>
         <source>新建试验</source>
-        <translation>新建試驗</translation>
+        <translation>新增試驗</translation>
     </message>
     <message>
         <source>启动试验</source>
@@ -2462,7 +2540,7 @@
     <name>QuickToolbar</name>
     <message>
         <source>新建试验</source>
-        <translation>新建試驗</translation>
+        <translation>新增試驗</translation>
     </message>
     <message>
         <source>打开文件</source>
@@ -2784,7 +2862,7 @@
     </message>
     <message>
         <source>政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。</source>
-        <translation>政府溯源平台已啟用，但本軟體尚未實現上報，請等待介面規範。</translation>
+        <translation>政府溯源平台已啟用，但本軟體尚未實作上報，請等待介面規範。</translation>
     </message>
     <message>
         <source>政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
@@ -3089,7 +3167,7 @@
     </message>
     <message>
         <source>本报告已使用数字签名，任何修改都会导致验签失败。</source>
-        <translation>本報告已使用數字簽名，任何修改都會導致驗簽失敗。</translation>
+        <translation>本報告已使用數位簽章，任何修改都會導致驗章失敗。</translation>
     </message>
     <message>
         <source>本报告尚未签署，仅供预览和核对，不具备签署报告的效力。</source>
@@ -3156,7 +3234,7 @@
     </message>
     <message>
         <source>已经签署，可以重新验签或导出同一份文件。</source>
-        <translation>已經簽署，可以重新驗簽或匯出同一份檔案。</translation>
+        <translation>已經簽署，可以重新驗章或匯出同一份檔案。</translation>
     </message>
     <message>
         <source>签署需要再次输入密码；签署后结果和复核被锁定。</source>
@@ -3208,7 +3286,7 @@
     </message>
     <message>
         <source>导出已签名 PDF</source>
-        <translation>匯出已簽名 PDF</translation>
+        <translation>匯出已簽章 PDF</translation>
     </message>
     <message>
         <source>已导出：{name}</source>
@@ -3248,7 +3326,7 @@
     </message>
     <message>
         <source>签名状态</source>
-        <translation>簽名狀態</translation>
+        <translation>簽章狀態</translation>
     </message>
     <message>
         <source>签署人</source>
@@ -3260,7 +3338,7 @@
     </message>
     <message>
         <source>证书</source>
-        <translation>證書</translation>
+        <translation>憑證</translation>
     </message>
     <message>
         <source>文件</source>
@@ -3272,7 +3350,7 @@
     </message>
     <message>
         <source>重新验签</source>
-        <translation>重新驗簽</translation>
+        <translation>重新驗章</translation>
     </message>
     <message>
         <source>验证外部 PDF…</source>
@@ -3428,7 +3506,7 @@
     </message>
     <message>
         <source>内置模板 {name} 只读，请复制后再编辑</source>
-        <translation>內建範本 {name} 只讀，請複製後再編輯</translation>
+        <translation>內建範本 {name} 唯讀，請複製後再編輯</translation>
     </message>
     <message>
         <source>模板名称不能为空</source>
@@ -3600,7 +3678,7 @@
     </message>
     <message>
         <source>不能在这里重置自己的密码，请用用户菜单里的“修改密码”</source>
-        <translation>不能在這裡重置自己的密碼，請用使用者選單裡的“修改密碼”</translation>
+        <translation>不能在這裡重設自己的密碼，請用使用者選單裡的“修改密碼”</translation>
     </message>
     <message>
         <source>显示名称不能超过 {max} 个字符</source>
@@ -3694,7 +3772,7 @@
     </message>
     <message>
         <source>只读</source>
-        <translation>只讀</translation>
+        <translation>唯讀</translation>
     </message>
     <message>
         <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
@@ -3814,7 +3892,7 @@
     </message>
     <message>
         <source>写入之后新建的每个试验和报告。</source>
-        <translation>寫入之後新建的每個試驗和報告。</translation>
+        <translation>寫入之後新增的每個試驗和報告。</translation>
     </message>
     <message>
         <source>沿用配置文件</source>
@@ -3991,7 +4069,7 @@
     </message>
     <message>
         <source>主导航</source>
-        <translation>主導航</translation>
+        <translation>主導覽</translation>
     </message>
     <message>
         <source>凝胶智检系统</source>
@@ -4014,7 +4092,7 @@
     </message>
     <message>
         <source>签署后试验的结果和复核将被锁定，生成带数字签名的 PDF，不能撤销。</source>
-        <translation>簽署後試驗的結果和複核將被鎖定，產生帶數字簽名的 PDF，不能撤銷。</translation>
+        <translation>簽署後試驗的結果和複核將被鎖定，產生帶數位簽章的 PDF，不能撤銷。</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4189,7 +4267,7 @@
     </message>
     <message>
         <source>新建模板</source>
-        <translation>新建範本</translation>
+        <translation>新增範本</translation>
     </message>
     <message>
         <source>模板名称</source>
@@ -4231,8 +4309,8 @@
         <translation>干擾試驗</translation>
     </message>
     <message>
-        <source>复试试验</source>
-        <translation>複試試驗</translation>
+        <source>限度试验（复试）</source>
+        <translation>限度試驗（複試）</translation>
     </message>
     <message>
         <source>半定量试验</source>
@@ -4358,15 +4436,15 @@
     </message>
     <message>
         <source>内置模板只读，请先复制再编辑</source>
-        <translation>內建範本只讀，請先複製再編輯</translation>
+        <translation>內建範本唯讀，請先複製再編輯</translation>
     </message>
     <message>
         <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
-        <translation>內建範本只讀，可以複製後修改。自訂範本儲存後，新試驗精靈裡立即可選。</translation>
+        <translation>內建範本唯讀，可以複製後修改。自訂範本儲存後，新試驗精靈裡立即可選。</translation>
     </message>
     <message>
         <source>当前角色只能查看模板，新建、复制和编辑需要管理员。</source>
-        <translation>目前角色只能查看範本，新建、複製和編輯需要管理員。</translation>
+        <translation>目前角色只能查看範本，新增、複製和編輯需要管理員。</translation>
     </message>
     <message>
         <source>模板管理</source>
@@ -4374,11 +4452,11 @@
     </message>
     <message>
         <source>只读</source>
-        <translation>只讀</translation>
+        <translation>唯讀</translation>
     </message>
     <message>
         <source>新建模板</source>
-        <translation>新建範本</translation>
+        <translation>新增範本</translation>
     </message>
     <message>
         <source>复制</source>
@@ -4476,6 +4554,26 @@
         <translation>演算法結果 · {v}</translation>
     </message>
     <message>
+        <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
+        <translation>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</translation>
+    </message>
+    <message>
+        <source>还没有分析结果</source>
+        <translation>還沒有分析結果</translation>
+    </message>
+    <message>
+        <source>算法没有提供评分分项，只显示上面的特征值和评分。</source>
+        <translation>演算法沒有提供評分分項，只顯示上面的特徵值和評分。</translation>
+    </message>
+    <message>
+        <source>测量值 → 归一化得分 f（0–1，越大越像凝胶）× 权重 ω = 贡献，各项相加为 Score。</source>
+        <translation>測量值 → 正規化得分 f（0–1，越大越像凝膠）× 權重 ω = 貢獻，各項相加為 Score。</translation>
+    </message>
+    <message>
+        <source>凝固状态 → 阴阳性：{state} → {result}</source>
+        <translation>凝固狀態 → 陰陽性：{state} → {result}</translation>
+    </message>
+    <message>
         <source>{s} s（本排 {n} 支）</source>
         <translation>{s} s（本排 {n} 支）</translation>
     </message>
@@ -4562,6 +4660,34 @@
     <message>
         <source>融合评分 Score</source>
         <translation>融合評分 Score</translation>
+    </message>
+    <message>
+        <source>判读过程</source>
+        <translation>判讀過程</translation>
+    </message>
+    <message>
+        <source>特征</source>
+        <translation>特徵</translation>
+    </message>
+    <message>
+        <source>测量值</source>
+        <translation>測量值</translation>
+    </message>
+    <message>
+        <source>归一化 f</source>
+        <translation>正規化 f</translation>
+    </message>
+    <message>
+        <source>权重 ω</source>
+        <translation>權重 ω</translation>
+    </message>
+    <message>
+        <source>贡献</source>
+        <translation>貢獻</translation>
+    </message>
+    <message>
+        <source>判读依据</source>
+        <translation>判讀依據</translation>
     </message>
     <message>
         <source>人工复核</source>
@@ -4682,7 +4808,7 @@
     </message>
     <message>
         <source>重置密码？</source>
-        <translation>重置密碼？</translation>
+        <translation>重設密碼？</translation>
     </message>
     <message>
         <source>将为 {name} 生成一个临时密码。对方已登录的会话会立即失效，下次登录必须先修改密码。</source>
@@ -4690,7 +4816,7 @@
     </message>
     <message>
         <source>重置</source>
-        <translation>重置</translation>
+        <translation>重設</translation>
     </message>
     <message>
         <source>停用账号？</source>
@@ -4738,7 +4864,7 @@
     </message>
     <message>
         <source>新建用户</source>
-        <translation>新建使用者</translation>
+        <translation>新增使用者</translation>
     </message>
     <message>
         <source>账号</source>
@@ -4746,7 +4872,7 @@
     </message>
     <message>
         <source>重置密码</source>
-        <translation>重置密碼</translation>
+        <translation>重設密碼</translation>
     </message>
     <message>
         <source>修改角色…</source>
@@ -4754,7 +4880,7 @@
     </message>
     <message>
         <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
-        <translation>不能停用自己，也不能停用或降級最後一個管理員。重置密碼後，對方首次登入必須先改密碼。</translation>
+        <translation>不能停用自己，也不能停用或降級最後一個管理員。重設密碼後，對方首次登入必須先改密碼。</translation>
     </message>
     <message>
         <source>还没有账号</source>
@@ -4766,7 +4892,7 @@
     </message>
     <message>
         <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
-        <translation>只讀。權限矩陣是軟體的一部分，調整需要發行新版本；它也是介面入口和服務層檢查的依據。</translation>
+        <translation>唯讀。權限矩陣是軟體的一部分，調整需要發行新版本；它也是介面入口和服務層檢查的依據。</translation>
     </message>
 </context>
 <context>
@@ -4785,47 +4911,47 @@
     </message>
     <message>
         <source>文件没有数字签名。</source>
-        <translation>檔案沒有數字簽名。</translation>
+        <translation>檔案沒有數位簽章。</translation>
     </message>
     <message>
         <source>文件含有多个签名，本软件生成的报告只有一个签名。</source>
-        <translation>檔案含有多個簽名，本軟體產生的報告只有一個簽名。</translation>
+        <translation>檔案含有多個簽章，本軟體產生的報告只有一個簽章。</translation>
     </message>
     <message>
         <source>文件内容与签名不符：签署之后被修改过。</source>
-        <translation>檔案內容與簽名不符：簽署之後被修改過。</translation>
+        <translation>檔案內容與簽章不符：簽署之後被修改過。</translation>
     </message>
     <message>
         <source>签名本身无效。</source>
-        <translation>簽名本身無效。</translation>
+        <translation>簽章本身無效。</translation>
     </message>
     <message>
         <source>签名没有覆盖整个文件：签署之后被追加过内容。</source>
-        <translation>簽名沒有覆蓋整個檔案：簽署之後被追加過內容。</translation>
+        <translation>簽章沒有覆蓋整個檔案：簽署之後被追加過內容。</translation>
     </message>
     <message>
         <source>签名证书不是本机信任的那张（可能是别处签的文件）。</source>
-        <translation>簽名證書不是本機信任的那張（可能是別處簽署的檔案）。</translation>
+        <translation>簽章憑證不是本機信任的那張（可能是別處簽署的檔案）。</translation>
     </message>
     <message>
         <source>本机还没有签名证书，无法判断证书是否可信。</source>
-        <translation>本機還沒有簽名證書，無法判斷證書是否可信。</translation>
+        <translation>本機還沒有簽章憑證，無法判斷憑證是否可信。</translation>
     </message>
     <message>
         <source>验签通过：签名完整、覆盖整个文件，证书是本机信任的那张，文件与库内记录一致。</source>
-        <translation>驗簽通過：簽名完整、覆蓋整個檔案，證書是本機信任的那張，檔案與資料庫內紀錄一致。</translation>
+        <translation>驗章通過：簽章完整、覆蓋整個檔案，憑證是本機信任的那張，檔案與資料庫內紀錄一致。</translation>
     </message>
     <message>
         <source>验签通过：签名完整、覆盖整个文件，证书是本机信任的那张。</source>
-        <translation>驗簽通過：簽名完整、覆蓋整個檔案，證書是本機信任的那張。</translation>
+        <translation>驗章通過：簽章完整、覆蓋整個檔案，憑證是本機信任的那張。</translation>
     </message>
     <message>
         <source>验签未通过：</source>
-        <translation>驗簽未通過：</translation>
+        <translation>驗章未通過：</translation>
     </message>
     <message>
         <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
-        <translation>簽名用的是本機自簽證書：能證明檔案簽署後沒有被改動，但不具有第三方 CA 的法律效力。</translation>
+        <translation>簽章用的是本機自簽憑證：能證明檔案簽署後沒有被改動，但不具有第三方 CA 的法律效力。</translation>
     </message>
 </context>
 <context>

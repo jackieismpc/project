@@ -168,6 +168,11 @@ def main() -> int:
             window.open_tube(experiment_id, 11)
             support.wait_for(app, lambda: window.page("tube").images is not None, 10.0)  # type: ignore[attr-defined]
             shot(rig, "tube-detail-review")
+            guide = window.page("tube").open_guide()  # type: ignore[attr-defined]
+            support.settle(app, 6)
+            shot(rig, "judgment-guide", guide)
+            guide.close()
+            support.settle(app, 2)
             support.finish_and_review(rig, experiment_id)
             window.open_experiment(experiment_id)
             shot(rig, "monitor-completed")

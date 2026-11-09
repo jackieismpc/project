@@ -26,7 +26,7 @@ def seed_experiments(context: AppContext, count: int = 12) -> None:
     for n in range(count):
         experiment = make_experiment(
             f"EXP-H-{n:03d}",
-            experiment_type=TYPES[n % 5],
+            experiment_type=TYPES[n % len(TYPES)],
             created_at=BASE + timedelta(days=n),
             tube_count=4,
             batch_no=f"LAL-{n % 3}",

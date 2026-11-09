@@ -339,7 +339,7 @@ def test_window_texts_switch_to_traditional_chinese_immediately(
     assert window.windowTitle() == "凝膠智檢系統 GelInspect"
     sign_in(qapp, window, "experimenter")
     toolbar = window.shell.toolbar
-    assert toolbar.action("new_experiment").text() == "新建試驗"
+    assert toolbar.action("new_experiment").text() == "新增試驗"
     assert toolbar._user.text() == "Jordan Li · 實驗員"
     assert toolbar._language.text() == "繁體中文"
     assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "新試驗", "試驗監控"]
@@ -364,7 +364,7 @@ def test_punctuation_helpers_stay_full_width_in_traditional_chinese(
     qapp: QApplication, language: LanguageManager
 ) -> None:
     language.set_language(Language.ZH_TW)
-    assert annotate("新建試驗", "Ctrl+N") == "新建試驗（Ctrl+N）"
+    assert annotate("新增試驗", "Ctrl+N") == "新增試驗（Ctrl+N）"
     assert colon("類型", "限度試驗") == "類型：限度試驗"
     assert join_items([1, 2, 3]) == "1、2、3"
     language.set_language(Language.EN)

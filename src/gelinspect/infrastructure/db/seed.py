@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, Role
-from gelinspect.domain.templates import BUILTIN_TEMPLATES
+from gelinspect.domain.templates import ALL_BUILTIN_TEMPLATES
 from gelinspect.infrastructure.db.database import Database
 from gelinspect.infrastructure.db.passwords import hash_password
 
@@ -47,7 +47,7 @@ def seed_builtin_templates(database: Database) -> tuple[str, ...]:
         本次新增的内置模板标识。
     """
     added: list[str] = []
-    for template in BUILTIN_TEMPLATES.values():
+    for template in ALL_BUILTIN_TEMPLATES:
         if database.templates.get(template.template_id) is None:
             database.templates.save(template, builtin=True)
             added.append(template.template_id)

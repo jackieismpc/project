@@ -89,7 +89,7 @@ def test_each_filter_narrows_the_list(
 
     page.type_box.setCurrentIndex(page.type_box.findData(ExperimentType.LIMIT.value))
     page.search()
-    assert set(ids(page)) == {"EXP-H-004", "EXP-H-009"}  # 编号 n 的类型是 TYPES[n % 5]
+    assert set(ids(page)) == {"EXP-H-003", "EXP-H-007", "EXP-H-011"}  # 类型是 TYPES[n % 4]
     page.reset_filters()
 
     page.state_box.setCurrentIndex(page.state_box.findData(ExperimentState.STOPPED.value))
@@ -115,8 +115,8 @@ def test_each_filter_narrows_the_list(
     page.search()
     assert {i[-3:] for i in ids(page)} == {"003", "004", "005"}
 
-    page.type_box.setCurrentIndex(page.type_box.findData(ExperimentType.RETEST.value))
-    page.search()  # 组合：类型 + 日期，RETEST 是 n % 5 == 2，日期内只有 n=3,4,5 → 无
+    page.type_box.setCurrentIndex(page.type_box.findData(ExperimentType.SEMI_QUANTITATIVE.value))
+    page.search()  # 组合：类型 + 日期，半定量是 n % 4 == 2，日期内只有 n=3,4,5 → 无
     assert page.total == 0
     page.reset_filters()
     assert page.total == 12 and not page.filters_active()

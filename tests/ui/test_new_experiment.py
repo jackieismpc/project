@@ -139,9 +139,9 @@ def test_templates_are_listed_with_type_count_and_the_unconfirmed_badge(
     for name, count, unconfirmed in [
         ("灵敏度复核 (2λ:1)", 17, False),
         ("干扰试验", 28, True),
-        ("复试试验", 10, True),
         ("半定量试验", 16, True),
         ("限度试验", 8, True),
+        ("限度试验（复试）", 10, True),
     ]:
         option = options[name]
         assert f"{count} 管" in option.meta.text()
@@ -205,12 +205,20 @@ def test_expired_or_unregistered_reagent_locks_the_flow_with_the_reason_and_audi
     page._go(STEP_SAMPLES)  # 绕过按钮直接前进也不行
     assert page.current_step() == STEP_REAGENTS
     assert any("流程锁定" in d for d in audit_actions(app_context, AuditAction.REAGENT_CHECKED))
+    dialog = page.lock_dialog  # 同时弹窗提示（不阻塞），关闭后才能继续操作
+    assert dialog is not None and dialog.isVisible()
+    assert dialog.title_label.text() == "试剂未通过校验"
+    assert reason in dialog.message_label.text() and "流程已锁定" in dialog.message_label.text()
+    dialog.close_button.click()
+    settle(qapp)
+    assert page.lock_dialog is None
 
-    # 换上合格的批次后解除锁定
+    # 换上合格的批次后解除锁定，不再弹窗
     scan(qapp, page, ReagentKind.LAL_REAGENT, GOOD[ReagentKind.LAL_REAGENT])
     assert not page.is_locked() and page.reagents_ok()
     assert not page.lock_banner.isVisibleTo(page)
     assert page.reagent_next.isEnabled()
+    assert page.lock_dialog is None
 
 
 def test_the_service_refuses_even_when_the_wizard_is_bypassed(
@@ -228,6 +236,8 @@ def test_the_service_refuses_even_when_the_wizard_is_bypassed(
     assert app_context.engine.snapshot() is None  # 引擎没有被启动
     assert page.current_step() == STEP_REAGENTS and page.is_locked()
     assert "过期" in page.lock_banner.detail.text()
+    assert page.lock_dialog is not None and "过期" in page.lock_dialog.message_label.text()
+    page.lock_dialog.close()
     assert any(
         "创建试验被拒绝" in d for d in audit_actions(app_context, AuditAction.REAGENT_CHECKED)
     )
@@ -398,11 +408,11 @@ def test_changing_the_template_asks_before_discarding_entered_samples(
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(decline))
     click(qapp, page.change_template)
     assert page.current_step() == STEP_TEMPLATE
-    choose_template(qapp, page, "复试试验")
+    choose_template(qapp, page, "限度试验（复试）")
     assert asked == ["更换模板？"] and page.draft().template.name == "限度试验"  # type: ignore[union-attr]
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_a, **_k: True))
-    choose_template(qapp, page, "复试试验")
-    assert page.draft().template.name == "复试试验" and page.draft().selected == []  # type: ignore[union-attr]
+    choose_template(qapp, page, "限度试验（复试）")
+    assert page.draft().template.name == "限度试验（复试）" and page.draft().selected == []  # type: ignore[union-attr]
     assert page.reagents_ok()  # 试剂不受模板影响
 
 

@@ -138,6 +138,11 @@ class ExperimentEngine:
         """引擎配置。"""
         return self._config
 
+    @property
+    def mapping(self) -> GelStateMapping:
+        """当前配置的三态到阴阳性的映射，界面用来说明判读规则。"""
+        return self._deps.mapping
+
     def update_config(self, config: EngineConfig) -> None:
         """更换引擎配置（仪器设置保存后调用），下一次启动试验起生效。
 

@@ -15,8 +15,6 @@ class ExperimentType(StrEnum):
     """灵敏度复核。"""
     INTERFERENCE = "interference"
     """干扰试验。"""
-    RETEST = "retest"
-    """复试试验。"""
     SEMI_QUANTITATIVE = "semi_quantitative"
     """半定量试验。"""
     LIMIT = "limit"

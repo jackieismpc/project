@@ -2,14 +2,27 @@ import pytest
 
 from gelinspect.domain.enums import ExperimentType, TubeRole
 from gelinspect.domain.errors import InvalidPlatePositionError
-from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate, TemplateTubeItem
+from gelinspect.domain.templates import (
+    ALL_BUILTIN_TEMPLATES,
+    BUILTIN_TEMPLATES,
+    LIMIT_RETEST_TEMPLATE,
+    ExperimentTemplate,
+    TemplateTubeItem,
+)
 
 
-def test_all_five_types_have_a_template() -> None:
+def test_every_type_has_a_template() -> None:
     assert set(BUILTIN_TEMPLATES) == set(ExperimentType)
     for experiment_type, template in BUILTIN_TEMPLATES.items():
         assert template.experiment_type is experiment_type
-    assert len({t.template_id for t in BUILTIN_TEMPLATES.values()}) == 5
+    assert len({t.template_id for t in BUILTIN_TEMPLATES.values()}) == 4
+
+
+def test_limit_retest_template_belongs_to_limit_test() -> None:
+    assert LIMIT_RETEST_TEMPLATE.experiment_type is ExperimentType.LIMIT
+    assert LIMIT_RETEST_TEMPLATE.tube_count == 10 and LIMIT_RETEST_TEMPLATE.needs_confirmation
+    ids = [t.template_id for t in ALL_BUILTIN_TEMPLATES]
+    assert len(ids) == len(set(ids)) == 5 and LIMIT_RETEST_TEMPLATE in ALL_BUILTIN_TEMPLATES
 
 
 def test_sensitivity_template_matches_specification() -> None:
@@ -38,7 +51,6 @@ def test_sensitivity_template_matches_specification() -> None:
     ("experiment_type", "count"),
     [
         (ExperimentType.INTERFERENCE, 28),
-        (ExperimentType.RETEST, 10),
         (ExperimentType.SEMI_QUANTITATIVE, 16),
         (ExperimentType.LIMIT, 8),
     ],

@@ -1011,10 +1011,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>复试试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>半定量试验</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1581,6 +1577,73 @@
     </message>
 </context>
 <context>
+    <name>JudgmentGuideDialog</name>
+    <message>
+        <source>判读依据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝胶法判读标准</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>按中国药典通则 1143 凝胶法：保温 60±2 分钟后，将试管轻轻取出，缓缓倒转 180°。管内形成凝胶，并且凝胶不变形、不从管壁滑脱的，为阳性；未形成凝胶，或形成的凝胶不能保持完整并从管壁滑脱的，为阴性。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>示例：形成凝胶，倒置后不脱落（阳性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>示例：未形成凝胶（阴性）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>示例照片只用于说明，不参与判读。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件的判读步骤</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取图：每排翻转前、翻转后各取至少 3 帧图像。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>分割：在图像中识别每支试管的试管区域和凝胶区域。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>特征：计算面积变化率 ΔA、试管坐标系下的质心偏移 Δs，以及多帧之间的面积波动 σ_A 和位置波动 σ_s。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>评分：每项特征归一化到 0–1（越大越像凝胶），按权重加权得到融合评分 Score。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>三态：Score 不低于完全凝固阈值为完全凝固，不高于未凝固阈值为未凝固，其余为部分凝固。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>阴阳性：按下表换算；图像质量差、找不到试管、分析失败的试管一律待人工复核，不会默认判为阴性。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝固状态与阴阳性（当前配置）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>置信度低于 {t} 的结果也转人工复核。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>LimitField</name>
     <message>
         <source>MVD</source>
@@ -2137,6 +2200,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂未通过校验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>缺少标示灵敏度 λ，不能进入下一步</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2309,6 +2380,13 @@
     </message>
     <message>
         <source>创建</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NoticeDialog</name>
+    <message>
+        <source>知道了</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4229,7 +4307,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>复试试验</source>
+        <source>限度试验（复试）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4474,6 +4552,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有分析结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>算法没有提供评分分项，只显示上面的特征值和评分。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>测量值 → 归一化得分 f（0–1，越大越像凝胶）× 权重 ω = 贡献，各项相加为 Score。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>凝固状态 → 阴阳性：{state} → {result}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{s} s（本排 {n} 支）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4559,6 +4657,34 @@
     </message>
     <message>
         <source>融合评分 Score</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判读过程</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>特征</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>测量值</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>归一化 f</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权重 ω</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>贡献</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>判读依据</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

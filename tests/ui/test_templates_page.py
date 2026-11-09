@@ -75,9 +75,9 @@ def test_lists_builtin_templates_with_type_count_and_state(
     page = open_templates(qapp, window, "admin")
     rows = page.list_table.model.rows
     assert [r["name"] for r in rows] == [
-        "灵敏度复核 (2λ:1)", "干扰试验", "复试试验", "半定量试验", "限度试验",
+        "灵敏度复核 (2λ:1)", "干扰试验", "半定量试验", "限度试验", "限度试验（复试）",
     ]  # fmt: skip
-    assert [r["count"] for r in rows] == [17, 28, 10, 16, 8]
+    assert [r["count"] for r in rows] == [17, 28, 16, 8, 10]
     assert [r["source"] for r in rows] == ["内置"] * 5
     assert [r["state"] for r in rows] == [
         "",
@@ -121,7 +121,7 @@ def test_create_a_template_with_the_editor(
 
     def edit(dialog: TemplateEditorDialog) -> None:
         dialog.name.setText("我的灵敏度")
-        dialog.type_box.setCurrentIndex(dialog.type_box.findData(ExperimentType.RETEST.value))
+        dialog.type_box.setCurrentIndex(dialog.type_box.findData(ExperimentType.LIMIT.value))
         table = dialog.table
         table.cell_item(0, COL_SAMPLE).setText("样品甲")
         table.cell_item(0, COL_DILUTION).setText("10")
@@ -136,7 +136,7 @@ def test_create_a_template_with_the_editor(
     info = page.selected()
     assert info is not None and info.template.name == "我的灵敏度" and not info.builtin
     template = info.template
-    assert template.experiment_type is ExperimentType.RETEST and template.tube_count == 2
+    assert template.experiment_type is ExperimentType.LIMIT and template.tube_count == 2
     first, second = sorted(template.items, key=lambda i: i.tube_no)
     assert (first.sample_name, first.dilution_factor, first.spiked_endotoxin) == (
         "样品甲",

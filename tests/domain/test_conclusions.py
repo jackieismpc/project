@@ -402,7 +402,6 @@ def test_sensitivity_with_unmarked_roles_is_pending() -> None:
 
 UNCONFIRMED_TYPES = [
     ExperimentType.INTERFERENCE,
-    ExperimentType.RETEST,
     ExperimentType.SEMI_QUANTITATIVE,
     ExperimentType.LIMIT,
 ]

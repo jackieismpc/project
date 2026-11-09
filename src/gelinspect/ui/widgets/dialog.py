@@ -1,4 +1,4 @@
-"""确认对话框：标题、说明、取消与确认按钮。"""
+"""对话框：确认（取消与确认）、错误（可展开细节）和提示（只有“知道了”）。"""
 
 from __future__ import annotations
 
@@ -157,5 +157,51 @@ class ErrorDialog(QDialog):
         self.close_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.close_button.clicked.connect(self.accept)
         self.close_button.setDefault(True)
+        buttons.addWidget(self.close_button)
+        layout.addLayout(buttons)
+
+
+class NoticeDialog(QDialog):
+    """提示对话框：标题、说明和一个“知道了”按钮。
+
+    用 :meth:`QDialog.open` 弹出（窗口模态、不阻塞调用方），例如试剂未通过校验时的锁定提示。
+    """
+
+    def __init__(
+        self,
+        title: str,
+        message: str,
+        *,
+        parent: QWidget | None = None,
+    ) -> None:
+        """创建对话框。
+
+        Args:
+            title: 标题。
+            message: 说明文字。
+            parent: 父窗口。
+        """
+        super().__init__(parent)
+        self.setProperty("role", "dialog")
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.setMinimumWidth(420)
+        self.setAccessibleName(title)
+        self.setAccessibleDescription(message)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 22, 24, 20)
+        layout.setSpacing(10)
+        self.title_label = Label(title, "h2")
+        layout.addWidget(self.title_label)
+        self.message_label = Label(message, "body")
+        self.message_label.setWordWrap(True)
+        layout.addWidget(self.message_label)
+        layout.addSpacing(10)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        self.close_button = Button(self.tr("知道了"), ButtonVariant.PRIMARY)
+        self.close_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.close_button.setDefault(True)
+        self.close_button.clicked.connect(self.accept)
         buttons.addWidget(self.close_button)
         layout.addLayout(buttons)

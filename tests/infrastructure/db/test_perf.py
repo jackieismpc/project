@@ -53,7 +53,7 @@ def big(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Database]:
     for n in range(EXPERIMENT_COUNT):
         experiment = make_experiment(
             f"E{n:03d}",
-            experiment_type=list(ExperimentType)[n % 5],
+            experiment_type=list(ExperimentType)[n % len(ExperimentType)],
             created_at=T0 + timedelta(hours=n),
             tube_count=TUBES_PER_EXPERIMENT,
             batch_no=f"LAL-{n % 25:03d}",

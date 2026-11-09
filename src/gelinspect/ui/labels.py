@@ -40,7 +40,6 @@ _ROLES: dict[Role, str] = {
 _EXPERIMENT_TYPES: dict[ExperimentType, str] = {
     ExperimentType.SENSITIVITY_CONFIRMATION: str(QT_TRANSLATE_NOOP("ExperimentType", "灵敏度复核")),
     ExperimentType.INTERFERENCE: str(QT_TRANSLATE_NOOP("ExperimentType", "干扰试验")),
-    ExperimentType.RETEST: str(QT_TRANSLATE_NOOP("ExperimentType", "复试试验")),
     ExperimentType.SEMI_QUANTITATIVE: str(QT_TRANSLATE_NOOP("ExperimentType", "半定量试验")),
     ExperimentType.LIMIT: str(QT_TRANSLATE_NOOP("ExperimentType", "限度试验")),
 }
@@ -732,7 +731,7 @@ _BUILTIN_NAMES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("TemplateName", "灵敏度复核 (2λ:1)")),
     str(QT_TRANSLATE_NOOP("TemplateName", "灵敏度复核")),
     str(QT_TRANSLATE_NOOP("TemplateName", "干扰试验")),
-    str(QT_TRANSLATE_NOOP("TemplateName", "复试试验")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "限度试验（复试）")),
     str(QT_TRANSLATE_NOOP("TemplateName", "半定量试验")),
     str(QT_TRANSLATE_NOOP("TemplateName", "限度试验")),
     str(QT_TRANSLATE_NOOP("TemplateName", "阴性对照")),

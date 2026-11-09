@@ -19,7 +19,7 @@ from gelinspect.domain.enums import (
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.domain.state_machine import ExperimentState
-from gelinspect.domain.templates import BUILTIN_TEMPLATES
+from gelinspect.domain.templates import ALL_BUILTIN_TEMPLATES, BUILTIN_TEMPLATES
 from gelinspect.infrastructure.db import Database
 from gelinspect.infrastructure.db.passwords import hash_password, verify_password
 from gelinspect.interfaces.storage import (
@@ -71,14 +71,14 @@ def test_user_duplicate_update_and_password(database: Database) -> None:
 
 
 def test_all_builtin_templates_roundtrip(database: Database) -> None:
-    for template in BUILTIN_TEMPLATES.values():
+    for template in ALL_BUILTIN_TEMPLATES:
         database.templates.save(template, builtin=True)
-    for template in BUILTIN_TEMPLATES.values():
+    for template in ALL_BUILTIN_TEMPLATES:
         assert database.templates.get(template.template_id) == template
         assert database.templates.is_builtin(template.template_id)
     assert len(database.templates.list_all()) == 5
     limit = database.templates.list_all(ExperimentType.LIMIT)
-    assert [t.template_id for t in limit] == ["builtin.limit"]
+    assert {t.template_id for t in limit} == {"builtin.limit", "builtin.limit_retest"}
     assert database.templates.get("missing") is None
     assert not database.templates.is_builtin("missing")
 

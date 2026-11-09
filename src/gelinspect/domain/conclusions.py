@@ -2,9 +2,10 @@
 
 纯函数，不依赖 Qt 或数据库。公式、手算例和每条规则的来源见 ``docs/features/conclusions.md``。
 
-**灵敏度复核**的规则由任务书给出（见 :data:`SENSITIVITY_RULE`）。**干扰、复试、半定量、限度**的布局
-未确认（PLAN 第 7 节第 4、14 项），这里只写好规则结构（需要哪些用途的管、条文和来源），
-凭记忆的条文一律标“待 QA 核对”。这四类**没有任何产生合格或不合格的代码路径**：QA 核对条文和布局后
+**灵敏度复核**的规则由任务书给出（见 :data:`SENSITIVITY_RULE`）。
+**干扰、半定量、限度（含复试）**的布局未确认（PLAN 第 7 节第 4、14 项），
+这里只写好规则结构（需要哪些用途的管、条文和来源），
+凭记忆的条文一律标“待 QA 核对”。这三类**没有任何产生合格或不合格的代码路径**：QA 核对条文和布局后
 再实现判定，并升级规则版本。
 
 依据和未满足的前提用 :class:`ConclusionNote` 表达：稳定的代码加参数，中文原文存库，界面按当前语言
@@ -247,17 +248,6 @@ _PENDING_RULES = (
         ),
     ),
     ConclusionRule(
-        experiment_type=ExperimentType.RETEST,
-        version="retest-pending-qa-v1",
-        source=f"{_SOURCE_1143}，待 QA 核对",
-        verdict_enabled=False,
-        tracked_roles=_PLACEHOLDER_ROLES,
-        clauses=(
-            f"{_PENDING}限度试验一管阳性一管阴性时复试，供试品取 4 管。",
-            f"{_PENDING}复试的供试品全部阴性符合规定，否则不符合规定。",
-        ),
-    ),
-    ConclusionRule(
         experiment_type=ExperimentType.SEMI_QUANTITATIVE,
         version="semi-quantitative-pending-qa-v1",
         source=f"{_SOURCE_1143}，待 QA 核对",
@@ -278,6 +268,8 @@ _PENDING_RULES = (
             f"{_PENDING}供试品、供试品阳性对照、阳性对照、阴性对照各 2 管。",
             f"{_PENDING}阴性对照全阴、两种阳性对照全阳时有效；供试品全阴符合规定，全阳不符合规定，"
             "一阳一阴复试。",
+            f"{_PENDING}复试用“限度试验（复试）”模板，供试品取 4 管，"
+            "全部阴性符合规定，否则不符合规定。",
         ),
     ),
 )
@@ -288,7 +280,7 @@ RULES: Mapping[ExperimentType, ConclusionRule] = MappingProxyType(
         **{rule.experiment_type: rule for rule in _PENDING_RULES},
     }
 )
-"""五类试验的规则。"""
+"""四类试验的规则。限度试验的复试使用限度试验的规则。"""
 
 
 @dataclass(frozen=True, slots=True)

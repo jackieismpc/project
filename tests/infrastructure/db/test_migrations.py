@@ -14,6 +14,7 @@ from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
+from gelinspect.domain.enums import ExperimentType
 from gelinspect.infrastructure.db import Database, open_database
 from gelinspect.infrastructure.db.database import MIGRATIONS_DIR
 from gelinspect.infrastructure.db.models import Base
@@ -35,7 +36,7 @@ def test_open_creates_parent_dirs_and_latest_schema(tmp_path: Path) -> None:
                     text("SELECT name FROM sqlite_master WHERE type='table'")
                 )
             }
-        assert version == "0005"
+        assert version == "0006"
         assert set(Base.metadata.tables) <= tables
     finally:
         db.close()
@@ -220,3 +221,32 @@ def test_downgrade_restores_absolute_values(tmp_path: Path) -> None:
         assert "experiment_conclusions" not in tables
         columns = {r[1] for r in connection.execute("PRAGMA table_info(experiments)")}
         assert "completed_at" not in columns
+
+
+def test_upgrade_folds_retest_into_limit(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    _alembic(path, "upgrade", "0005")
+    with sqlite3.connect(path) as connection:
+        connection.executescript(
+            """
+            INSERT INTO templates (template_id, name, experiment_type, needs_confirmation, builtin)
+              VALUES ('builtin.retest', '复试试验', 'retest', 1, 1),
+                     ('custom.r', '我的复试', 'retest', 0, 0);
+            INSERT INTO template_items (template_id, tube_no, sample_name, role)
+              VALUES ('builtin.retest', 1, '复试试验', 'unconfirmed'),
+                     ('custom.r', 1, '样品', 'sample');
+            INSERT INTO experiments (experiment_id, experiment_type, template_id, instrument_no,
+                                     operator, created_at, state)
+              VALUES ('R1', 'retest', 'builtin.retest', 'G', 'op',
+                      '2026-01-01T00:00:00.000000Z', 'stopped');
+            """
+        )
+    db = open_database(path)
+    try:
+        assert db.templates.get("builtin.retest") is None
+        custom = db.templates.get("custom.r")
+        assert custom is not None and custom.experiment_type is ExperimentType.LIMIT
+        experiment = db.experiments.get("R1")
+        assert experiment is not None and experiment.experiment_type is ExperimentType.LIMIT
+    finally:
+        db.close()

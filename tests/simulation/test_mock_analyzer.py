@@ -218,3 +218,57 @@ def test_works_on_unusual_image_size_and_flip_angle() -> None:
     request = request_from(before, after, positions=[1]).model_copy(update={"flip_angle_deg": None})
     (tube,) = loaded().analyze_row(request).tubes
     assert tube.state is S.FULLY_GELLED
+
+
+def test_returns_score_terms_and_thresholds(mixed_request: Mixed) -> None:
+    request, _, _ = mixed_request
+    analyzer = loaded()
+    result = analyzer.analyze_row(request)
+    assert result.analyzer_info.thresholds is not None
+    assert result.analyzer_info.thresholds.fully_gelled_min == 0.85
+    for tube in result.tubes:
+        assert tube.score_terms is not None and tube.score is not None
+        assert list(tube.score_terms) == ["delta_area_pct", "delta_s", "sigma_area", "sigma_axial"]
+        assert [t.weight for t in tube.score_terms.values()] == [0.5, 0.3, 0.1, 0.1]
+        total = sum(t.weight * t.normalized for t in tube.score_terms.values())
+        assert total == pytest.approx(tube.score)
+
+
+def test_weights_and_thresholds_come_from_config(mixed_request: Mixed, tmp_path: Path) -> None:
+    config = tmp_path / "calibrated.yaml"
+    config.write_text(
+        "weights: [1, 0, 0, 0]\nthresholds: {not_gelled_max: 0.1, fully_gelled_min: 0.2}\n",
+        encoding="utf-8",
+    )
+    analyzer = MockAnalyzer()
+    info = analyzer.load(config)
+    assert info.config_version == "mock-calibrated"
+    assert info.thresholds is not None and info.thresholds.not_gelled_max == 0.1
+    request, _, _ = mixed_request
+    for tube in analyzer.analyze_row(request).tubes:
+        assert tube.score_terms is not None and tube.score is not None
+        assert tube.score == pytest.approx(tube.score_terms["delta_area_pct"].normalized)
+        expected = (
+            S.FULLY_GELLED
+            if tube.score >= 0.2
+            else S.NOT_GELLED
+            if tube.score <= 0.1
+            else S.PARTIALLY_GELLED
+        )
+        assert tube.state is expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "weights: [0.5, 0.5, 0.5, 0.5]\n",
+        "weights: [1, 0]\n",
+        "limits: [1, 1, 0, 1]\n",
+        "thresholds: {not_gelled_max: 0.9, fully_gelled_min: 0.1}\n",
+    ],
+)
+def test_rejects_bad_scoring_config(text: str, tmp_path: Path) -> None:
+    config = tmp_path / "bad.yaml"
+    config.write_text(text, encoding="utf-8")
+    with pytest.raises(AnalyzerError):
+        MockAnalyzer().load(config)

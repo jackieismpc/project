@@ -288,7 +288,7 @@ def seed_big_data(rig: support.Rig) -> None:
     for n in range(125):
         experiment = make_experiment(
             f"E{n:03d}",
-            experiment_type=list(ExperimentType)[n % 5],
+            experiment_type=list(ExperimentType)[n % len(ExperimentType)],
             created_at=T0 + timedelta(hours=n),
             tube_count=80,
             batch_no=f"LAL-{n % 25:03d}",

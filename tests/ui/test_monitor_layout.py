@@ -91,7 +91,7 @@ def test_new_pages_speak_english_when_switched(
         "Experiment data",
         "Images",
         "Report preview",
-        "Batch report",
+        "Lot report",
     ]
     assert monitor.badge.text().startswith("Pending review")
     assert monitor.table_card._title.text() == "Experiment data"  # type: ignore[union-attr]  # noqa: SLF001

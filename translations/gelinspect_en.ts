@@ -264,7 +264,7 @@
     </message>
     <message>
         <source>正在查询……</source>
-        <translation>Searching...</translation>
+        <translation>Searching…</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -272,7 +272,7 @@
     </message>
     <message>
         <source>正在校验完整性……</source>
-        <translation>Verifying integrity...</translation>
+        <translation>Verifying integrity…</translation>
     </message>
     <message>
         <source>正在校验完整性：{done} / {total}</source>
@@ -384,7 +384,7 @@
     </message>
     <message>
         <source>导出 Excel…</source>
-        <translation>Export Excel...</translation>
+        <translation>Export Excel…</translation>
     </message>
     <message>
         <source>开始日期</source>
@@ -747,7 +747,7 @@
     </message>
     <message>
         <source>试验完成后才会固化结论。</source>
-        <translation>The conclusion is fixed when the experiment completes. </translation>
+        <translation>The conclusion is fixed when the experiment completes.</translation>
     </message>
     <message>
         <source>试验结论</source>
@@ -1004,15 +1004,11 @@
     <name>ExperimentType</name>
     <message>
         <source>灵敏度复核</source>
-        <translation>Sensitivity check</translation>
+        <translation>Sensitivity confirmation</translation>
     </message>
     <message>
         <source>干扰试验</source>
         <translation>Interference test</translation>
-    </message>
-    <message>
-        <source>复试试验</source>
-        <translation>Retest</translation>
     </message>
     <message>
         <source>半定量试验</source>
@@ -1083,15 +1079,15 @@
     </message>
     <message>
         <source>鲎试剂批号</source>
-        <translation>LAL batch</translation>
+        <translation>LAL lot</translation>
     </message>
     <message>
         <source>内毒素批号</source>
-        <translation>Endotoxin batch</translation>
+        <translation>Endotoxin standard lot</translation>
     </message>
     <message>
         <source>检测用水批号</source>
-        <translation>Water batch</translation>
+        <translation>BET water lot</translation>
     </message>
     <message>
         <source>标示灵敏度 λ（EU/mL）</source>
@@ -1147,7 +1143,7 @@
     </message>
     <message>
         <source>样品批号</source>
-        <translation>Sample batch</translation>
+        <translation>Sample lot</translation>
     </message>
     <message>
         <source>稀释倍数</source>
@@ -1487,11 +1483,11 @@
     </message>
     <message>
         <source>导出所选结果…</source>
-        <translation>Export selected results...</translation>
+        <translation>Export selected results…</translation>
     </message>
     <message>
         <source>导出当前列表…</source>
-        <translation>Export current list...</translation>
+        <translation>Export current list…</translation>
     </message>
     <message>
         <source>试验类型</source>
@@ -1507,7 +1503,7 @@
     </message>
     <message>
         <source>批号</source>
-        <translation>Batch No.</translation>
+        <translation>Lot No.</translation>
     </message>
     <message>
         <source>鲎试剂或样品</source>
@@ -1578,6 +1574,73 @@
     <message>
         <source>待复核</source>
         <translation>Pending review</translation>
+    </message>
+</context>
+<context>
+    <name>JudgmentGuideDialog</name>
+    <message>
+        <source>判读依据</source>
+        <translation>Reading criteria</translation>
+    </message>
+    <message>
+        <source>凝胶法判读标准</source>
+        <translation>Gel-clot reading criterion</translation>
+    </message>
+    <message>
+        <source>按中国药典通则 1143 凝胶法：保温 60±2 分钟后，将试管轻轻取出，缓缓倒转 180°。管内形成凝胶，并且凝胶不变形、不从管壁滑脱的，为阳性；未形成凝胶，或形成的凝胶不能保持完整并从管壁滑脱的，为阴性。</source>
+        <translation>Per Chinese Pharmacopoeia General Chapter 1143 (gel-clot method): after incubating for 60 ± 2 minutes, take the tube out gently and invert it slowly through 180°. If a gel has formed that keeps its shape and does not slip down the tube wall, the result is positive; if no gel has formed, or the gel cannot stay intact and slips from the wall, the result is negative.</translation>
+    </message>
+    <message>
+        <source>示例：形成凝胶，倒置后不脱落（阳性）</source>
+        <translation>Example: gel formed and stays in place when inverted (positive)</translation>
+    </message>
+    <message>
+        <source>示例：未形成凝胶（阴性）</source>
+        <translation>Example: no gel formed (negative)</translation>
+    </message>
+    <message>
+        <source>示例照片只用于说明，不参与判读。</source>
+        <translation>The example photos are for illustration only and are not used for reading.</translation>
+    </message>
+    <message>
+        <source>软件的判读步骤</source>
+        <translation>How the software reads a tube</translation>
+    </message>
+    <message>
+        <source>取图：每排翻转前、翻转后各取至少 3 帧图像。</source>
+        <translation>Capture: take at least 3 frames of each row before and after inversion.</translation>
+    </message>
+    <message>
+        <source>分割：在图像中识别每支试管的试管区域和凝胶区域。</source>
+        <translation>Segmentation: find the tube region and the gel region of each tube in the images.</translation>
+    </message>
+    <message>
+        <source>特征：计算面积变化率 ΔA、试管坐标系下的质心偏移 Δs，以及多帧之间的面积波动 σ_A 和位置波动 σ_s。</source>
+        <translation>Features: compute the area change ΔA, the centroid shift Δs in tube coordinates, and the frame-to-frame area variation σ_A and position variation σ_s.</translation>
+    </message>
+    <message>
+        <source>评分：每项特征归一化到 0–1（越大越像凝胶），按权重加权得到融合评分 Score。</source>
+        <translation>Score: normalize each feature to 0–1 (higher means more gel-like) and combine them with weights into the fused score.</translation>
+    </message>
+    <message>
+        <source>三态：Score 不低于完全凝固阈值为完全凝固，不高于未凝固阈值为未凝固，其余为部分凝固。</source>
+        <translation>Gel state: a score at or above the fully-gelled threshold means fully gelled, at or below the not-gelled threshold means not gelled, and anything in between means partially gelled.</translation>
+    </message>
+    <message>
+        <source>阴阳性：按下表换算；图像质量差、找不到试管、分析失败的试管一律待人工复核，不会默认判为阴性。</source>
+        <translation>Result: converted with the table below. Tubes with poor images, no tube found or a failed analysis always go to manual review and are never assumed negative.</translation>
+    </message>
+    <message>
+        <source>凝固状态与阴阳性（当前配置）</source>
+        <translation>Gel state and result (current configuration)</translation>
+    </message>
+    <message>
+        <source>置信度低于 {t} 的结果也转人工复核。</source>
+        <translation>Results with confidence below {t} also go to manual review.</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>Close</translation>
     </message>
 </context>
 <context>
@@ -1731,19 +1794,19 @@
     </message>
     <message>
         <source>把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：</source>
-        <translation>Summarize all experiments of one batch in a single report. Choose a batch used by this experiment:</translation>
+        <translation>Summarize all experiments of one lot in a single report. Choose a lot used by this experiment:</translation>
     </message>
     <message>
         <source>这个试验没有批号可以汇总。</source>
-        <translation>This experiment has no batch number to summarize.</translation>
+        <translation>This experiment has no lot number to summarize.</translation>
     </message>
     <message>
         <source>鲎试剂批号</source>
-        <translation>LAL reagent batch</translation>
+        <translation>LAL reagent lot</translation>
     </message>
     <message>
         <source>样品批号</source>
-        <translation>Sample batch</translation>
+        <translation>Sample lot</translation>
     </message>
     <message>
         <source>试管编号</source>
@@ -1903,7 +1966,7 @@
     </message>
     <message>
         <source>单批次报告</source>
-        <translation>Batch report</translation>
+        <translation>Lot report</translation>
     </message>
     <message>
         <source>当前没有进行中的试验</source>
@@ -2137,12 +2200,20 @@
         <translation>Keep current</translation>
     </message>
     <message>
+        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation>The workflow is locked and cannot continue. Replace the reagent with a valid lot and scan again. This check was written to the audit trail.</translation>
+    </message>
+    <message>
+        <source>试剂未通过校验</source>
+        <translation>Reagent check failed</translation>
+    </message>
+    <message>
         <source>缺少标示灵敏度 λ，不能进入下一步</source>
         <translation>Labeled sensitivity λ is missing, so you cannot continue</translation>
     </message>
     <message>
         <source>这个模板按 λ 计算外加内毒素。请换一个有标示灵敏度的鲎试剂批次，或把灵敏度补录到备案信息后重新扫码。</source>
-        <translation>This template calculates spiked endotoxin from λ. Use an LAL reagent batch with a labeled sensitivity, or add it to the registration data and scan again.</translation>
+        <translation>This template calculates spiked endotoxin from λ. Use an LAL reagent lot with a labeled sensitivity, or add it to the registration data and scan again.</translation>
     </message>
     <message>
         <source>试剂未通过校验，流程已锁定，不能进入下一步</source>
@@ -2313,6 +2384,13 @@
     </message>
 </context>
 <context>
+    <name>NoticeDialog</name>
+    <message>
+        <source>知道了</source>
+        <translation>OK</translation>
+    </message>
+</context>
+<context>
     <name>Pager</name>
     <message>
         <source>共 {total} 条 · 第 {page}/{pages} 页</source>
@@ -2351,7 +2429,7 @@
     </message>
     <message>
         <source>录入和校验试剂批次</source>
-        <translation>Enter and verify reagent batches</translation>
+        <translation>Enter and verify reagent lots</translation>
     </message>
     <message>
         <source>查看试验和结果</source>
@@ -2604,11 +2682,11 @@
     </message>
     <message>
         <source>内毒素</source>
-        <translation>Endotoxin</translation>
+        <translation>Endotoxin standard</translation>
     </message>
     <message>
         <source>检查用水</source>
-        <translation>Test water</translation>
+        <translation>Water for BET</translation>
     </message>
 </context>
 <context>
@@ -2881,7 +2959,7 @@
     </message>
     <message>
         <source>单批次汇总报告</source>
-        <translation>Batch Summary Report</translation>
+        <translation>Lot Summary Report</translation>
     </message>
     <message>
         <source>文件名（试验编号）</source>
@@ -2921,19 +2999,19 @@
     </message>
     <message>
         <source>鲎试剂批号</source>
-        <translation>LAL batch</translation>
+        <translation>LAL lot</translation>
     </message>
     <message>
         <source>内毒素批号</source>
-        <translation>Endotoxin batch</translation>
+        <translation>Endotoxin standard lot</translation>
     </message>
     <message>
         <source>检测用水批号</source>
-        <translation>Water batch</translation>
+        <translation>BET water lot</translation>
     </message>
     <message>
         <source>样品批号</source>
-        <translation>Sample batch</translation>
+        <translation>Sample lot</translation>
     </message>
     <message>
         <source>MVD</source>
@@ -3140,7 +3218,7 @@
     </message>
     <message>
         <source>可以签署：批次里的试验都已签署</source>
-        <translation>Ready to sign: every experiment in the batch is signed</translation>
+        <translation>Ready to sign: every experiment of the lot is signed</translation>
     </message>
     <message>
         <source>可以签署：全部待复核已处理，试验已完成</source>
@@ -3164,7 +3242,7 @@
     </message>
     <message>
         <source>单批次报告汇总已签署的试验，不改变试验状态。</source>
-        <translation>A batch report summarizes signed experiments and does not change their status.</translation>
+        <translation>A lot report summarizes signed experiments and does not change their status.</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -3180,15 +3258,15 @@
     </message>
     <message>
         <source>鲎试剂批号</source>
-        <translation>LAL reagent batch</translation>
+        <translation>LAL reagent lot</translation>
     </message>
     <message>
         <source>样品批号</source>
-        <translation>Sample batch</translation>
+        <translation>Sample lot</translation>
     </message>
     <message>
         <source>还没有已完成的试验，没有可汇总的批次。</source>
-        <translation>No completed experiments yet, so there is no batch to summarize.</translation>
+        <translation>No completed experiments yet, so there is no lot to summarize.</translation>
     </message>
     <message>
         <source>已签署，报告已保存：{name}</source>
@@ -3296,7 +3374,7 @@
     </message>
     <message>
         <source>导出 Excel 数据…</source>
-        <translation>Export Excel data...</translation>
+        <translation>Export Excel data…</translation>
     </message>
     <message>
         <source>批量导出…</source>
@@ -3304,15 +3382,15 @@
     </message>
     <message>
         <source>单批次报告</source>
-        <translation>Batch report</translation>
+        <translation>Lot report</translation>
     </message>
     <message>
         <source>把同一批号的多次试验汇总到一份报告。</source>
-        <translation>Summarize all experiments of one batch in a single report.</translation>
+        <translation>Summarize all experiments of one lot in a single report.</translation>
     </message>
     <message>
         <source>预览单批次报告</source>
-        <translation>Preview batch report</translation>
+        <translation>Preview lot report</translation>
     </message>
     <message>
         <source>返回试验报告</source>
@@ -3397,7 +3475,7 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Report center</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -3560,11 +3638,11 @@
     </message>
     <message>
         <source>这个批号下没有已完成的试验</source>
-        <translation>No completed experiments use this batch.</translation>
+        <translation>No completed experiments use this lot.</translation>
     </message>
     <message>
         <source>单批次报告只能在其中全部试验都已签署后签署</source>
-        <translation>A batch report can only be signed after every experiment in it has been signed.</translation>
+        <translation>A lot report can only be signed after every experiment in it has been signed.</translation>
     </message>
     <message>
         <source>没有可导出的报告</source>
@@ -3746,7 +3824,7 @@
     </message>
     <message>
         <source>正在读取……</source>
-        <translation>Reading...</translation>
+        <translation>Reading…</translation>
     </message>
     <message>
         <source>{fps:g} 帧/秒</source>
@@ -3806,7 +3884,7 @@
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
-        <translation>Encrypt sensitive exports (Excel and batch report exports as password-protected ZIP)</translation>
+        <translation>Encrypt sensitive exports (Excel files and bulk report exports become password-protected ZIP files)</translation>
     </message>
     <message>
         <source>开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。</source>
@@ -3830,7 +3908,7 @@
     </message>
     <message>
         <source>浏览…</source>
-        <translation>Browse...</translation>
+        <translation>Browse…</translation>
     </message>
     <message>
         <source>预览</source>
@@ -3967,7 +4045,7 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -4057,7 +4135,7 @@
     </message>
     <message>
         <source>批次里还有试验没有签署，全部签署后才能签署单批次报告。</source>
-        <translation>Some experiments in the batch are not signed yet; sign them all before signing the batch report.</translation>
+        <translation>Some experiments of the lot are not signed yet; sign them all before signing the lot report.</translation>
     </message>
 </context>
 <context>
@@ -4220,19 +4298,19 @@ Fix the configuration file and start again. Starting without --config uses the d
     <name>TemplateName</name>
     <message>
         <source>灵敏度复核 (2λ:1)</source>
-        <translation>Sensitivity check (2λ:1)</translation>
+        <translation>Sensitivity confirmation (2λ:1)</translation>
     </message>
     <message>
         <source>灵敏度复核</source>
-        <translation>Sensitivity check</translation>
+        <translation>Sensitivity confirmation</translation>
     </message>
     <message>
         <source>干扰试验</source>
         <translation>Interference test</translation>
     </message>
     <message>
-        <source>复试试验</source>
-        <translation>Retest</translation>
+        <source>限度试验（复试）</source>
+        <translation>Limit test (retest)</translation>
     </message>
     <message>
         <source>半定量试验</source>
@@ -4476,6 +4554,26 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Algorithm result · {v}</translation>
     </message>
     <message>
+        <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
+        <translation>Not gelled ≤ {low} · Partially gelled · Fully gelled ≥ {high}</translation>
+    </message>
+    <message>
+        <source>还没有分析结果</source>
+        <translation>No analysis result yet</translation>
+    </message>
+    <message>
+        <source>算法没有提供评分分项，只显示上面的特征值和评分。</source>
+        <translation>The analyzer gave no score breakdown; only the features and score above are shown.</translation>
+    </message>
+    <message>
+        <source>测量值 → 归一化得分 f（0–1，越大越像凝胶）× 权重 ω = 贡献，各项相加为 Score。</source>
+        <translation>Value → normalized score f (0–1, higher means more gel-like) × weight ω = contribution; the contributions add up to the score.</translation>
+    </message>
+    <message>
+        <source>凝固状态 → 阴阳性：{state} → {result}</source>
+        <translation>Gel state → result: {state} → {result}</translation>
+    </message>
+    <message>
         <source>{s} s（本排 {n} 支）</source>
         <translation>{s} s ({n} tubes in this row)</translation>
     </message>
@@ -4564,6 +4662,34 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Fused score</translation>
     </message>
     <message>
+        <source>判读过程</source>
+        <translation>Reading breakdown</translation>
+    </message>
+    <message>
+        <source>特征</source>
+        <translation>Feature</translation>
+    </message>
+    <message>
+        <source>测量值</source>
+        <translation>Value</translation>
+    </message>
+    <message>
+        <source>归一化 f</source>
+        <translation>Normalized f</translation>
+    </message>
+    <message>
+        <source>权重 ω</source>
+        <translation>Weight ω</translation>
+    </message>
+    <message>
+        <source>贡献</source>
+        <translation>Contribution</translation>
+    </message>
+    <message>
+        <source>判读依据</source>
+        <translation>Reading criteria</translation>
+    </message>
+    <message>
         <source>人工复核</source>
         <translation>Manual review</translation>
     </message>
@@ -4632,7 +4758,7 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
     <message>
         <source>供试品阳性对照</source>
-        <translation>Sample positive control</translation>
+        <translation>Positive product control</translation>
     </message>
     <message>
         <source>用途待确认</source>
@@ -4750,7 +4876,7 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
     <message>
         <source>修改角色…</source>
-        <translation>Change role...</translation>
+        <translation>Change role…</translation>
     </message>
     <message>
         <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>

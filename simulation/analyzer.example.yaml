@@ -10,3 +10,9 @@ tube_faults: {}          # 例如 { 3: low_quality, 5: failed, 6: tube_not_found
 delay_ms: 0              # 模拟每排耗时
 fail_load: false
 fail_all: false          # true：analyze_row 抛 AnalyzerError
+# 判读参数（算法方案第 5 节），改动后 config_version 随文件名记录
+weights: [0.5, 0.3, 0.1, 0.1]   # ω1–ω4：ΔA、Δs、σ_A、σ_s，之和为 1
+limits: [30, 0.15, 10, 0.05]    # 归一化上限：ΔA(%)、Δs(管长)、σ_A(%)、σ_s(管长)，达到上限时 f = 0
+thresholds:
+  not_gelled_max: 0.25          # Score ≤ 此值：未凝固
+  fully_gelled_min: 0.85        # Score ≥ 此值：完全凝固

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import AppContext
+from gelinspect.domain.entities import Experiment
 from gelinspect.domain.enums import AuditAction, Interpretation
+from gelinspect.domain.judgment import SCORE_FEATURES, read_judgment
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, MediaKind, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
@@ -113,6 +116,8 @@ def test_full_review_flow_from_wizard_to_signable(
         detail = tube_page(window)
         assert wait_for(qapp, lambda: tube_page(window).images is not None, 30.0)
         assert detail.submit_button.isEnabled()
+        if number == 0:
+            check_judgment(qapp, detail, context.database.experiments.get(experiment_id), tube_no)  # type: ignore[arg-type]
         detail.positive_button.click()
         detail.submit_button.click()  # 没写意见
         assert detail.review_error.isVisibleTo(detail) and "必填" in detail.review_error.text()
@@ -141,3 +146,24 @@ def test_full_review_flow_from_wizard_to_signable(
     reopened = window.page("monitor")
     assert isinstance(reopened, MonitorPage)
     assert wait_for(qapp, lambda: "已完成" in reopened.badge.text())
+
+
+def check_judgment(
+    qapp: QApplication, detail: TubeDetailPage, experiment: Experiment, tube_no: int
+) -> None:
+    """判读过程卡：四个评分分项、加权和、阈值、三态到阴阳性；判读依据对话框列出映射。"""
+    result = experiment.results[tube_no]
+    basis = read_judgment(result.features)
+    assert [t.feature for t in basis.terms] == list(SCORE_FEATURES)
+    assert basis.total == pytest.approx(result.score, abs=1e-6)
+    assert basis.thresholds is not None
+    assert basis.thresholds.state_for(result.score or 0) is result.gel_state
+    assert detail.score_bar.thresholds == basis.thresholds
+    assert detail.judgment_cells[4][4].text() == f"{basis.total:.3f}"
+    assert "→ 待复核" in detail.mapping_label.text()
+    guide = detail.open_guide()
+    settle(qapp)
+    assert guide.isVisible()
+    assert [r[1] for r in guide.mapping_rows] == ["阳性", "待复核", "阴性"]
+    guide.close()
+    settle(qapp)

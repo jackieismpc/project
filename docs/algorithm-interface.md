@@ -61,7 +61,7 @@ class GelAnalyzer(Protocol):
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `analyzer_info` | `AnalyzerInfo` | 模型版本 `model_version`，阈值配置版本 `config_version`，都不能为空 |
+| `analyzer_info` | `AnalyzerInfo` | 模型版本 `model_version`，阈值配置版本 `config_version`，都不能为空；可选 `thresholds`（`StateThresholds`：`not_gelled_max`、`fully_gelled_min`，0–1，前者小于后者），给出时界面在评分条上标出阈值 |
 | `elapsed_ms` | `float` | 算法自测耗时，单位毫秒 |
 | `tubes` | `list[TubeAnalysis]` | 与输入 `tubes` **一一对应**：不缺、不多、不重复。顺序不限 |
 
@@ -77,6 +77,7 @@ class GelAnalyzer(Protocol):
 | `features` | `GelFeatures` | 特征，默认全空 |
 | `masks` | `TubeMasks \| None` | 掩码，用于界面叠加和存档 |
 | `message` | `str \| None` | 失败原因，会显示给复核人员 |
+| `score_terms` | `dict[str, ScoreTerm] \| None` | 可选。评分分项，键为 `delta_area_pct`、`delta_s`、`sigma_area`、`sigma_axial` 中的若干个，值为 `ScoreTerm(weight, normalized)`（都在 0–1，`normalized` 越大越凝固）。给出时必须给出 `score`，且各项 `weight × normalized` 之和与 `score` 相差不超过 0.001。单管详情页“判读过程”卡片逐项展示 |
 
 各状态的字段要求（构造对象时自动校验，不满足会抛 `pydantic.ValidationError`）：
 

@@ -15,6 +15,7 @@ import numpy as np
 from pydantic import AwareDatetime, Field, model_validator
 
 from gelinspect.domain.enums import GelState, TubeAnalysisStatus
+from gelinspect.domain.judgment import SCORE_FEATURES
 from gelinspect.domain.plate import HOLES_PER_ROW, ROW_COUNT, TUBE_COUNT, tube_to_position
 from gelinspect.interfaces._base import BgrImage, BinaryMask, ContractModel
 
@@ -28,6 +29,8 @@ __all__ = [
     "GelState",
     "RowAnalysisRequest",
     "RowAnalysisResult",
+    "ScoreTerm",
+    "StateThresholds",
     "TubeAnalysis",
     "TubeAnalysisStatus",
     "TubeMasks",
@@ -46,6 +49,8 @@ _MESSAGE_REQUIRED = frozenset(
     }
 )
 _NO_RESULT = frozenset({TubeAnalysisStatus.TUBE_NOT_FOUND, TubeAnalysisStatus.FAILED})
+_SCORE_TOLERANCE = 1e-3
+"""``score_terms`` 加权和与 ``score`` 允许的差。"""
 
 
 class AnalyzerError(Exception):
@@ -164,16 +169,56 @@ class RowAnalysisRequest(ContractModel):
         return height, width
 
 
+class StateThresholds(ContractModel):
+    """三态判定阈值（可选），软件只存储和展示。
+
+    Attributes:
+        not_gelled_max: Score 不大于它判未凝固。
+        fully_gelled_min: Score 不小于它判完全凝固。
+    """
+
+    not_gelled_max: float = Field(ge=0, le=1)
+    fully_gelled_min: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def _check_order(self) -> Self:
+        """校验未凝固阈值小于完全凝固阈值。
+
+        Returns:
+            校验后的模型。
+
+        Raises:
+            ValueError: 阈值顺序不对。
+        """
+        if self.not_gelled_max >= self.fully_gelled_min:
+            raise ValueError("not_gelled_max 必须小于 fully_gelled_min")
+        return self
+
+
 class AnalyzerInfo(ContractModel):
     """算法版本信息，写入数据库和审计日志。
 
     Attributes:
         model_version: 模型版本。
         config_version: 阈值和权重配置的版本。
+        thresholds: 当前配置的三态阈值，可选；给出时界面在评分条上标出阈值。
     """
 
     model_version: str = Field(min_length=1)
     config_version: str = Field(min_length=1)
+    thresholds: StateThresholds | None = None
+
+
+class ScoreTerm(ContractModel):
+    """融合评分中的一项（可选），软件只存储和展示。
+
+    Attributes:
+        weight: 权重 ω，0–1。
+        normalized: 特征归一化后的得分 f(x)，0–1，越大越凝固。
+    """
+
+    weight: float = Field(ge=0, le=1)
+    normalized: float = Field(ge=0, le=1)
 
 
 class GelFeatures(ContractModel):
@@ -278,6 +323,9 @@ class TubeAnalysis(ContractModel):
         features: 凝胶特征。
         masks: 掩码，用于界面叠加和存档。
         message: 失败原因。
+        score_terms: 融合评分的分项（可选），键为 ``delta_area_pct``、``delta_s``、``sigma_area``、
+            ``sigma_axial`` 中的若干个。给出时必须同时给出 ``score``，且各项 ω·f 之和与 ``score``
+            相差不超过 0.001。界面用它逐项展示判读过程。
     """
 
     tube_no: int = Field(ge=1, le=TUBE_COUNT)
@@ -288,6 +336,7 @@ class TubeAnalysis(ContractModel):
     features: GelFeatures = Field(default_factory=GelFeatures)
     masks: TubeMasks | None = None
     message: str | None = None
+    score_terms: dict[str, ScoreTerm] | None = None
 
     @model_validator(mode="after")
     def _check_status_fields(self) -> Self:
@@ -315,6 +364,15 @@ class TubeAnalysis(ContractModel):
             )
         if self.status in _MESSAGE_REQUIRED and not self.message:
             raise ValueError(f"{self.status.value} 状态必须给出 message")
+        if self.score_terms is not None:
+            unknown = sorted(set(self.score_terms) - set(SCORE_FEATURES))
+            if unknown:
+                raise ValueError(f"score_terms 有未知的特征：{unknown}")
+            if self.score is None:
+                raise ValueError("给出 score_terms 时必须给出 score")
+            total = sum(t.weight * t.normalized for t in self.score_terms.values())
+            if abs(total - self.score) > _SCORE_TOLERANCE:
+                raise ValueError(f"score_terms 的加权和 {total:.4f} 与 score {self.score:.4f} 不符")
         if self.masks is not None:
             if self.features.gel_missing_before and self.masks.gel_before is not None:
                 raise ValueError("翻转前凝胶缺失时 gel_before 必须为 None")

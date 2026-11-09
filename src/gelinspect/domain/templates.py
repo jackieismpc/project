@@ -1,6 +1,6 @@
-"""试验模板和五类内置模板。
+"""试验模板和内置模板（四类试验，限度试验另有复试模板）。
 
-灵敏度复核模板取自参考视频；其余四类只有管数可考，布局为推定，
+灵敏度复核模板取自参考视频；其余模板只有管数可考，布局为推定，
 以 ``needs_confirmation=True`` 显式标记，用途和数值留空，等待甲方 QA 核对。
 
 灵敏度模板存**标示灵敏度 λ 的倍数**（2、1、0.5、0.25，阴性对照 0），创建试验时才按鲎试剂的 λ
@@ -202,9 +202,6 @@ BUILTIN_TEMPLATES: Mapping[ExperimentType, ExperimentTemplate] = MappingProxyTyp
         ExperimentType.INTERFERENCE: _presumed_template(
             "builtin.interference", "干扰试验", ExperimentType.INTERFERENCE, 28
         ),
-        ExperimentType.RETEST: _presumed_template(
-            "builtin.retest", "复试试验", ExperimentType.RETEST, 10
-        ),
         ExperimentType.SEMI_QUANTITATIVE: _presumed_template(
             "builtin.semi_quantitative", "半定量试验", ExperimentType.SEMI_QUANTITATIVE, 16
         ),
@@ -213,4 +210,18 @@ BUILTIN_TEMPLATES: Mapping[ExperimentType, ExperimentTemplate] = MappingProxyTyp
         ),
     }
 )
-"""五类内置模板，按试验类型索引。"""
+"""每类试验的主模板，按试验类型索引。"""
+
+LIMIT_RETEST_TEMPLATE = _presumed_template(
+    "builtin.limit_retest", "限度试验（复试）", ExperimentType.LIMIT, 10
+)
+"""限度试验的复试模板：供试品两管一阳一阴时，按中国药典通则 1143 复试（供试品 4 管）。
+
+复试属于限度试验，不是单独的试验类型。管数按参考设备推定，布局待甲方确认。
+"""
+
+ALL_BUILTIN_TEMPLATES: tuple[ExperimentTemplate, ...] = (
+    *BUILTIN_TEMPLATES.values(),
+    LIMIT_RETEST_TEMPLATE,
+)
+"""全部内置模板，写入数据库时使用。"""

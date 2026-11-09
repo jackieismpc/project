@@ -38,7 +38,8 @@ def test_list_shows_builtin_first_in_type_order_then_custom(stack: Stack) -> Non
     stack.templates.create_template(stack.login("admin"), custom_draft("甲"))
     infos = stack.templates.list_templates(stack.login("analyst"))  # 所有角色可查看
     assert [i.builtin for i in infos] == [True] * 5 + [False] * 2
-    assert [i.template.experiment_type for i in infos[:5]] == list(ExperimentType)
+    types = [i.template.experiment_type for i in infos[:5]]
+    assert types == [*ExperimentType, ExperimentType.LIMIT]
     assert [i.template.name for i in infos[5:]] == sorted(["乙", "甲"])  # 自定义的按名称排
 
 
@@ -95,12 +96,12 @@ def test_create_and_edit_a_custom_template(stack: Stack) -> None:
         created.template_id,
         TemplateDraft(
             "改名了",
-            ExperimentType.RETEST,
+            ExperimentType.LIMIT,
             [TemplateItemInput("阴性对照", TubeRole.NEGATIVE_CONTROL)],
         ),
     )
     assert updated.template_id == created.template_id
-    assert updated.name == "改名了" and updated.experiment_type is ExperimentType.RETEST
+    assert updated.name == "改名了" and updated.experiment_type is ExperimentType.LIMIT
     assert updated.items[0].role is TubeRole.NEGATIVE_CONTROL
     assert updated.items[0].dilution_factor is None
 

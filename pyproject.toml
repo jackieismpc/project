@@ -50,6 +50,7 @@ artifacts = [
     "src/gelinspect/ui/assets/**/*.ttf",
     "src/gelinspect/ui/assets/**/*.svg",
     "src/gelinspect/ui/assets/**/*.txt",
+    "src/gelinspect/ui/assets/**/*.png",
 ]
 
 [tool.ruff]

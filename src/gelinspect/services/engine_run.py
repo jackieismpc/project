@@ -31,6 +31,7 @@ from gelinspect.domain.enums import (
     TubeAnalysisStatus,
 )
 from gelinspect.domain.interpretation import GelStateMapping
+from gelinspect.domain.judgment import Thresholds, flatten_judgment
 from gelinspect.domain.plate import row_label, tube_to_position
 from gelinspect.domain.state_machine import (
     ExperimentEvent,
@@ -965,8 +966,18 @@ class EngineRun:
     def _map_results(self, row: _Row, result: RowAnalysisResult) -> list[TubeResult]:
         """把算法结果映射成单管结果。缺的、重复的管号转待复核，绝不默认判阴性。"""
         info = result.analyzer_info
+        thresholds = (
+            None
+            if info.thresholds is None
+            else Thresholds(info.thresholds.not_gelled_max, info.thresholds.fully_gelled_min)
+        )
         analyses: dict[int, list[TubeResult]] = {}
         for tube in result.tubes:
+            terms = (
+                None
+                if tube.score_terms is None
+                else {k: (t.weight, t.normalized) for k, t in tube.score_terms.items()}
+            )
             analyses.setdefault(tube.tube_no, []).append(
                 TubeResult.from_analysis(
                     tube_no=tube.tube_no,
@@ -975,7 +986,11 @@ class EngineRun:
                     mapping=self._deps.mapping,
                     score=tube.score,
                     confidence=tube.confidence,
-                    features={**tube.features.model_dump(), FLIP_ANGLE_KEY: row.flip_angle_deg},
+                    features={
+                        **tube.features.model_dump(),
+                        FLIP_ANGLE_KEY: row.flip_angle_deg,
+                        **flatten_judgment(terms, thresholds if tube.score is not None else None),
+                    },
                     model_version=info.model_version,
                     config_version=info.config_version,
                     message=tube.message,
