@@ -53,7 +53,7 @@ def test_builtin_templates_are_read_only_but_can_be_copied(stack: Stack) -> None
 
     copy = stack.templates.copy_template(admin, SENSITIVITY.template_id)
     assert copy.name == "灵敏度复核 (2λ:1) 副本"
-    assert copy.template_id.startswith("custom.") and copy.tube_count == 17
+    assert copy.template_id.startswith("custom.") and copy.tube_count == 18
     assert [i.spiked_endotoxin for i in sorted(copy.items, key=lambda i: i.tube_no)] == [
         i.spiked_endotoxin for i in sorted(SENSITIVITY.items, key=lambda i: i.tube_no)
     ]
@@ -69,11 +69,12 @@ def test_builtin_templates_are_read_only_but_can_be_copied(stack: Stack) -> None
     assert stack.templates.get_template(admin, SENSITIVITY.template_id).template == SENSITIVITY
 
 
-def test_copy_of_an_unconfirmed_layout_is_the_users_own_template(stack: Stack) -> None:
-    unconfirmed = BUILTIN_TEMPLATES[ExperimentType.INTERFERENCE]
-    assert unconfirmed.needs_confirmation
-    copy = stack.templates.copy_template(stack.login("admin"), unconfirmed.template_id)
+def test_copy_of_a_builtin_layout_keeps_roles_and_values(stack: Stack) -> None:
+    source = BUILTIN_TEMPLATES[ExperimentType.INTERFERENCE]
+    copy = stack.templates.copy_template(stack.login("admin"), source.template_id)
     assert not copy.needs_confirmation and copy.tube_count == 28
+    assert [i.role for i in copy.items] == [i.role for i in source.items]
+    assert [i.lambda_multiple for i in copy.items] == [i.lambda_multiple for i in source.items]
 
 
 def test_copy_names_do_not_collide(stack: Stack) -> None:

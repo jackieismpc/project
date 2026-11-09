@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import QEvent, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
 from gelinspect.domain.permissions import Permission
@@ -195,6 +195,27 @@ class DashboardPage(QWidget):
         """孔和倒计时事件很密：合并成每 250 ms 最多一次的刷新。"""
         if not self._timer.isActive():
             self._timer.start()
+
+    @Slot(object)
+    def on_engine_activity(self, _event: object) -> None:
+        """引擎的孔更新和倒计时事件：合并刷新进行中的试验。
+
+        用页面自己的槽连接引擎信号（不用 lambda），页面销毁时 Qt 自动断开，
+        退出登录重建页面后旧页面不会再被调用。
+
+        Args:
+            _event: 事件，不使用。
+        """
+        self.request_running_refresh()
+
+    @Slot(object)
+    def on_state_changed(self, _event: object) -> None:
+        """试验状态变化：整页刷新。
+
+        Args:
+            _event: 事件，不使用。
+        """
+        self.refresh()
 
     def _refresh_running(self) -> None:
         if self._session is None:

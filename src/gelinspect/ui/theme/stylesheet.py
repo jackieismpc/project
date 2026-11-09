@@ -54,6 +54,13 @@ QPushButton:hover { background: $surface_alt; border-color: $ink_muted; }
 QPushButton:pressed { background: $track; }
 QPushButton:focus { border: 3px solid $focus; padding: 0 16px; }
 QPushButton:disabled { color: $ink_muted; background: $track; border-color: $border; }
+QPushButton:checked { background: $primary; border-color: $primary; color: $on_accent; font-weight: 700; }
+QPushButton:checked:hover { background: $primary_hover; border-color: $primary_hover; }
+QPushButton[tone="positive"]:checked { background: $positive; border-color: $positive; color: $on_accent; }
+QPushButton[tone="negative"]:checked { background: $negative; border-color: $negative; color: $on_accent; }
+QPushButton:checked:disabled { background: $primary_soft; border: 2px solid $primary; color: $primary_hover; }
+QPushButton[tone="positive"]:checked:disabled { background: $primary_soft; border: 2px solid $positive; color: $positive; }
+QPushButton[tone="negative"]:checked:disabled { background: $primary_soft; border: 2px solid $negative; color: $negative_ink; }
 QPushButton[variant="primary"] { background: $primary; border-color: $primary; color: $on_accent; }
 QPushButton[variant="primary"]:hover { background: $primary_hover; border-color: $primary_hover; }
 QPushButton[variant="primary"]:pressed { background: $primary_hover; }

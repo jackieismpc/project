@@ -38,29 +38,35 @@ class SeedResult:
 
 
 def seed_builtin_templates(database: Database) -> tuple[str, ...]:
-    """写入缺失的内置模板，可重复调用，已存在的不覆盖。
+    """写入缺失的内置模板，并把内容与程序定义不同的内置模板更新为程序定义。可重复调用。
+
+    内置模板只读，内容以程序为准；软件升级改了内置布局时，启动后自动更新。已创建的试验保存的是
+    当时的管位快照，不受影响。
 
     Args:
         database: 已打开的数据库。
 
     Returns:
-        本次新增的内置模板标识。
+        本次新增或更新的内置模板标识。
     """
-    added: list[str] = []
+    changed: list[str] = []
     for template in ALL_BUILTIN_TEMPLATES:
-        if database.templates.get(template.template_id) is None:
-            database.templates.save(template, builtin=True)
-            added.append(template.template_id)
-            database.audit.append(
-                AuditEvent(
-                    occurred_at=datetime.now(UTC),
-                    actor=SYSTEM_ACTOR,
-                    actor_role=None,
-                    action=AuditAction.TEMPLATE_CHANGED,
-                    detail=f"初始化内置模板 {template.template_id}",
-                )
+        existing = database.templates.get(template.template_id)
+        if existing == template:
+            continue
+        database.templates.save(template, builtin=True)
+        changed.append(template.template_id)
+        verb = "初始化" if existing is None else "更新"
+        database.audit.append(
+            AuditEvent(
+                occurred_at=datetime.now(UTC),
+                actor=SYSTEM_ACTOR,
+                actor_role=None,
+                action=AuditAction.TEMPLATE_CHANGED,
+                detail=f"{verb}内置模板 {template.template_id}",
             )
-    return tuple(added)
+        )
+    return tuple(changed)
 
 
 def seed_defaults(

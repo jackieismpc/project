@@ -242,6 +242,7 @@ def run_gui(
     config_path: Path | None = None,
     data_dir: Path | None = None,
     smoke_test: bool = False,
+    demo: bool = False,
     present_error: ErrorPresenter | None = None,
     app: QApplication | None = None,
 ) -> int:
@@ -253,6 +254,7 @@ def run_gui(
         data_dir: 覆盖配置里的数据目录（``--data-dir``）；None 时看环境变量
             ``GELINSPECT_DATA_DIR``。
         smoke_test: 冒烟测试：完整启动、登录、切换语言、关窗退出，不进入事件循环。
+        demo: 显示演示账号和示例码（``--demo``），正式使用时不显示。
         present_error: 显示启动失败的函数，默认弹出错误对话框；冒烟测试不弹窗，只打印到 stderr。
         app: 已有的 ``QApplication``（测试传入）；None 时自己创建。
 
@@ -342,6 +344,7 @@ def run_gui(
             language,
             shell_settings=MemoryShellSettings() if smoke_test else None,
             animations_enabled=not smoke_test,
+            demo_helpers=demo,
         )
         window.show()
         if smoke_test:

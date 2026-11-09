@@ -25,7 +25,7 @@ class TubeRole(StrEnum):
     """模板中一支试管的用途。"""
 
     TEST = "test"
-    """试验管。"""
+    """内毒素标准系列：检查用水中加入 2λ–λ/4 内毒素。"""
     NEGATIVE_CONTROL = "negative_control"
     """阴性对照。"""
     SAMPLE = "sample"
@@ -34,8 +34,10 @@ class TubeRole(StrEnum):
     """阳性对照。"""
     SAMPLE_POSITIVE_CONTROL = "sample_positive_control"
     """供试品阳性对照。"""
+    SAMPLE_SERIES = "sample_series"
+    """供试品内毒素系列：干扰试验中加入 2λ–λ/4 内毒素的供试品溶液。"""
     UNCONFIRMED = "unconfirmed"
-    """用途未确认，内置推定模板使用，等待甲方 QA 核对。"""
+    """未指定用途，只出现在旧数据里，不参与判定。"""
 
 
 class GelState(StrEnum):

@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import re
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import AppContext, build_app_context
 from gelinspect.domain.enums import AuditAction, Role
 from gelinspect.domain.permissions import Permission
+from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import LoginPolicy
 from gelinspect.services.config import parse_config
+from gelinspect.services.engine_types import StateChanged
 from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.main_window import MainWindow, Screen
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode
@@ -37,6 +43,33 @@ def test_starts_on_the_login_page_with_demo_accounts(window: MainWindow) -> None
         "analyst",
     ]
     assert window.shell.toolbar.button("new_experiment").isEnabled() is False
+
+
+def test_demo_helpers_are_hidden_without_the_demo_option(
+    qapp: QApplication, app_context: AppContext, language: LanguageManager
+) -> None:
+    """正式使用（不带 --demo）：登录页不显示演示账号，向导试剂卡不显示示例码。"""
+    from gelinspect.ui.pages.new_experiment import NewExperimentPage
+
+    win = MainWindow(
+        app_context.services(),
+        language,
+        shell_settings=MemoryShellSettings(),
+        animations_enabled=False,
+        idle_timeout_s=0,
+    )
+    win.show()
+    try:
+        assert app_context.services().demo_accounts  # 账号仍然存在，只是不显示
+        assert win.login_page._demo_rows == []
+        sign_in(qapp, win, "experimenter")
+        win.navigate("new")
+        settle(qapp)
+        wizard = win.page("new")
+        assert isinstance(wizard, NewExperimentPage)
+        assert all(not card._samples for card in wizard.reagent_cards.values())
+    finally:
+        win.close()
 
 
 def test_demo_row_fills_the_form(window: MainWindow) -> None:
@@ -88,6 +121,7 @@ def test_lockout_disables_the_form_with_a_countdown(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
+        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.show()
@@ -253,6 +287,42 @@ def test_user_menu_logout_returns_to_login_and_audits(
     assert not window.shell.toolbar.action("audit_trail").isEnabled()
 
 
+def test_engine_events_after_switching_accounts_do_not_reach_destroyed_pages(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """退出登录会销毁页面；切换账号后引擎事件不能再调用旧页面（曾报 C++ 对象已删除）。"""
+    errors: list[BaseException] = []
+    monkeypatch.setattr(sys, "excepthook", lambda _t, value, _tb: errors.append(value))
+    sign_in(qapp, window, "experimenter")
+    old = window.page("dashboard")
+    assert isinstance(old, DashboardPage)
+    window.shell.toolbar._user_actions["logout"].trigger()
+    settle(qapp)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)  # 执行 deleteLater
+    assert not shiboken6.isValid(old)
+    sign_in(qapp, window, "analyst")
+    settle(qapp)
+    new = window.page("dashboard")
+    assert isinstance(new, DashboardPage) and new is not old
+    calls: list[str] = []
+    new.request_running_refresh = lambda: calls.append("well")  # type: ignore[method-assign]
+    window.bridge.wellUpdated.emit(object())
+    window.bridge.rowCountdown.emit(object())
+    window.bridge.stateChanged.emit(
+        StateChanged(
+            "EXP-X",
+            datetime.now(UTC),
+            ExperimentState.ANALYZING,
+            ExperimentState.PENDING_REVIEW,
+            ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW,
+            "system",
+        )
+    )
+    settle(qapp)
+    assert calls == ["well", "well"]  # 新页面收到
+    assert errors == []  # 旧页面不再被调用
+
+
 def test_change_password_dialog_updates_credentials(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
@@ -353,6 +423,7 @@ def test_default_idle_timeout_is_fifteen_minutes(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
+        demo_helpers=True,
     )
     assert win.idle._timeout_s == 900
     win.bridge.close()
@@ -395,6 +466,7 @@ def test_setup_page_when_the_config_has_no_bootstrap_hook(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
+        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.show()

@@ -54,7 +54,7 @@ def experiments_in(stack: Stack) -> int:
 
 def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack) -> None:
     session = stack.login("experimenter")
-    request = request_for(tubes=range(10, 27))
+    request = request_for(tubes=range(10, 28))
     experiment_id = stack.experiments.create_experiment(session, request)
     experiment = stack.database.experiments.get(experiment_id)
     assert experiment is not None
@@ -65,7 +65,7 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert experiment.created_at == NOW
     # 第 i 个样品行对应第 i 小的管号，用途和外加内毒素来自同一个模板管位项
     items = sorted(SENSITIVITY.items, key=lambda i: i.tube_no)
-    assert [a.tube_no for a in experiment.assignments] == list(range(10, 27))
+    assert [a.tube_no for a in experiment.assignments] == list(range(10, 28))
     for assignment, item in zip(experiment.assignments, items, strict=True):
         assert assignment.role is item.role
         assert assignment.spiked_endotoxin == item.spike_for(0.25)  # 白名单的 λ
@@ -143,8 +143,8 @@ def test_the_ui_cannot_smuggle_a_passed_flag_only_raw_codes_count(stack: Stack) 
 @pytest.mark.parametrize(
     ("tubes", "code"),
     [
-        (range(1, 17), ServiceErrorCode.DRAFT_COUNT_MISMATCH),  # 少一个
-        (range(1, 19), ServiceErrorCode.DRAFT_COUNT_MISMATCH),  # 多一个
+        (range(1, 18), ServiceErrorCode.DRAFT_COUNT_MISMATCH),  # 少一个
+        (range(1, 20), ServiceErrorCode.DRAFT_COUNT_MISMATCH),  # 多一个
         ([], ServiceErrorCode.DRAFT_COUNT_MISMATCH),
     ],
 )

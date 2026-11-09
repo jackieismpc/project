@@ -94,10 +94,6 @@ class TemplatesPage(QWidget):
         self.list_card.body.addWidget(self.list_table)
         work.addWidget(self.list_card, 1)
         self.detail_card = Card(" ")
-        self.detail_badge = StatusBadge("", BadgeTone.WARNING)
-        self.detail_badge.setVisible(False)
-        assert self.detail_card.header is not None
-        self.detail_card.header.addWidget(self.detail_badge)
         self.detail_table = DataTable(self._detail_columns())
         self.detail_table.setMinimumHeight(260)
         self.detail_card.body.addWidget(self.detail_table)
@@ -118,7 +114,6 @@ class TemplatesPage(QWidget):
             Column("type", self.tr("类型")),
             Column("count", self.tr("管数"), mono=True, align_right=True),
             Column("source", self.tr("来源")),
-            Column("state", self.tr("状态")),
         ]
 
     def _detail_columns(self) -> list[Column]:
@@ -246,7 +241,6 @@ class TemplatesPage(QWidget):
                     "type": experiment_type_label(i.template.experiment_type),
                     "count": i.template.tube_count,
                     "source": self.tr("内置") if i.builtin else self.tr("自定义"),
-                    "state": self.tr("布局待确认") if i.template.needs_confirmation else "",
                 }
                 for i in self._infos
             ]
@@ -270,14 +264,11 @@ class TemplatesPage(QWidget):
         if info is None:
             self.detail_card.set_title(self.tr("管位详情"))
             self.detail_table.set_rows([])
-            self.detail_badge.setVisible(False)
             return
         template = info.template
         self.detail_card.set_title(
             self.tr("管位详情 · {name}").format(name=builtin_name_text(template.name))
         )
-        self.detail_badge.set_text(self.tr("布局待确认"))
-        self.detail_badge.setVisible(template.needs_confirmation)
         self.detail_table.set_rows(
             [
                 {

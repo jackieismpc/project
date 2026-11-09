@@ -22,7 +22,7 @@ def draft_with(template: ExperimentTemplate = SENSITIVITY) -> ExperimentDraft:
 
 def test_rows_come_from_the_template_in_tube_order() -> None:
     draft = draft_with()
-    assert draft.expected_count == 17
+    assert draft.expected_count == 18
     assert [r.spiked_endotoxin for r in draft.rows[:5]] == [None] * 5  # λ 还不知道
     draft.set_labeled_sensitivity(0.5)
     assert [r.spiked_endotoxin for r in draft.rows[:5]] == [1.0, 1.0, 1.0, 1.0, 0.5]
@@ -31,12 +31,12 @@ def test_rows_come_from_the_template_in_tube_order() -> None:
 
 def test_count_difference_and_match() -> None:
     draft = draft_with()
-    assert draft.difference == -17 and not draft.tubes_match
+    assert draft.difference == -18 and not draft.tubes_match
     draft.set_selected(range(1, 15))
-    assert draft.difference == -3 and not draft.tubes_match
-    draft.set_selected(range(1, 21))
+    assert draft.difference == -4 and not draft.tubes_match
+    draft.set_selected(range(1, 22))
     assert draft.difference == 3 and not draft.tubes_match
-    draft.set_selected(range(1, 18))
+    draft.set_selected(range(1, 19))
     assert draft.difference == 0 and draft.tubes_match
 
 
@@ -92,7 +92,7 @@ def test_change_tracking_for_the_leave_confirmation() -> None:
 
 def test_choosing_another_template_resets_rows_and_selection() -> None:
     draft = draft_with()
-    draft.set_selected(range(1, 18))
+    draft.set_selected(range(1, 19))
     draft.choose_template(LIMIT)
     assert draft.selected == [] and draft.expected_count == 8
 

@@ -75,8 +75,8 @@ def accelerated(**overrides: object) -> EngineConfig:
     return fast_config(time_scale=36000.0, **overrides)
 
 
-def test_sensitivity_17_tubes_runs_to_pending_review(harness: HarnessFactory) -> None:
-    tubes = tuple(range(1, 18))
+def test_sensitivity_18_tubes_runs_to_pending_review(harness: HarnessFactory) -> None:
+    tubes = tuple(range(1, 19))
     h = harness(
         tubes, scenario=sensitivity_scenario(), config=accelerated(), use_scaled_schedule=True
     )
@@ -93,10 +93,10 @@ def test_sensitivity_17_tubes_runs_to_pending_review(harness: HarnessFactory) ->
     assert first.model_version == "mock-1.0"
     assert first.elapsed_ms is not None and first.features["delta_s"] is not None
 
-    # 只处理有样品的排，第 3 排只有 17 号管。
+    # 只处理有样品的排，第 3 排只有 17、18 号管。
     assert h.device.flipped_rows() == [1, 2, 3]
     by_row = {r.row_index: [t.tube_no for t in r.tubes] for r in h.analyzer.requests}
-    assert by_row == {1: list(range(1, 9)), 2: list(range(9, 17)), 3: [17]}
+    assert by_row == {1: list(range(1, 9)), 2: list(range(9, 17)), 3: [17, 18]}
     assert {r.reagent_batch for r in h.analyzer.requests} == {"LAL1"}
     assert all(r.flip_angle_deg is not None for r in h.analyzer.requests)
 
@@ -118,12 +118,12 @@ def test_sensitivity_17_tubes_runs_to_pending_review(harness: HarnessFactory) ->
     h.assert_clean()
     assert h.device.read_status().tray_position is TrayPosition.OUT
 
-    # 孔状态：17 支管都走完了，7 号待复核。
+    # 孔状态：18 支管都走完了，7 号待复核。
     wells = [e for e in h.log.of(WellUpdated) if isinstance(e, WellUpdated)]
     final = {e.tube_no: e.status for e in wells}
     assert final[7] is WellStatus.PENDING_REVIEW
     assert final[1] is WellStatus.POSITIVE and final[17] is WellStatus.NEGATIVE
-    assert len(final) == 17
+    assert len(final) == 18
     assert h.log.of(RowCountdown) and h.log.of(TemperatureChanged)
     assert h.database.telemetry.query_temperatures(experiment_id=EXP_ID, page=PageRequest()).total
 

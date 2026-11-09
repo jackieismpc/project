@@ -39,16 +39,16 @@ def test_full_review_flow_from_wizard_to_signable(
     window, context = fast_window, fast_context
     monitor = start_sensitivity(qapp, window)
 
-    # 孵育一开始，监控页就显示 17 管和各排倒计时；孔板随引擎更新
+    # 孵育一开始，监控页就显示 18 管和各排倒计时；孔板随引擎更新
     assert wait_for(qapp, lambda: monitor.view_model is not None and monitor.view_model.live)
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
-    assert monitor.table.row_count() == 17
+    assert monitor.table.row_count() == 18
     assert wait_for(
         qapp,
         lambda: any(
             monitor.plate.state(t) in (WellState.POSITIVE, WellState.NEGATIVE, WellState.REVIEW)
-            for t in range(1, 18)
+            for t in range(1, 19)
         ),
         60.0,
     )
@@ -136,6 +136,8 @@ def test_full_review_flow_from_wizard_to_signable(
         assert (
             "算法：" in detail.verdict_title.text() and "人工：阳性" in detail.verdict_title.text()
         )
+        # 提交后按钮保持选中状态，显示复核结果
+        assert detail.positive_button.isChecked() and not detail.negative_button.isChecked()
     final = context.database.experiments.get(experiment_id)
     assert final is not None and final.state is ExperimentState.COMPLETED
     page = context.database.audit.query(

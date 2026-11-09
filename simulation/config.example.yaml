@@ -38,11 +38,10 @@ traceability:
   government:
     backend: "simulation.reagents:SimTraceabilityClient"
 
-# 试验结论（灵敏度 λc、合格、无效、待定）。判定规则甲方尚未确认，默认关闭：
-# 关闭时只显示每支管的凝固状态、阴阳性和复核标注，签署不要求有结论，也不计算、不入库结论。
-# 规则确认后改为 true 打开，详见 docs/features/conclusions.md。
+# 试验结论（合格、不合格、无效、待定），按中国药典通则 1143 判定，默认打开。
+# 关闭时只显示每支管的凝固状态、阴阳性和复核标注，签署不要求有结论，详见 docs/features/conclusions.md。
 conclusions:
-  enabled: false
+  enabled: true
 
 # 判读（可选）：三态到阴阳性的映射，以及低置信度阈值。默认部分凝固待复核、阈值不启用，
 # 启用后低于阈值的结果转待复核，等 QA 确认（PLAN 第 7 节第 17 项）。

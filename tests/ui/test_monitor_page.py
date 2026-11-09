@@ -104,7 +104,7 @@ def test_the_engine_finishes_while_the_main_thread_never_pumps_events(
 
     session = context.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = context.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 18)))
+        session, request_for_tubes(list(range(1, 19)))
     )
     context.experiments.start_experiment(session, experiment_id)
 
@@ -269,7 +269,7 @@ def test_event_floods_are_coalesced_into_few_redraws(
     def flood() -> None:
         nonlocal events
         for round_ in range(300):
-            for tube in range(1, 18):
+            for tube in range(1, 19):
                 bridge.handle_event(
                     WellUpdated(
                         experiment_id,
@@ -292,8 +292,8 @@ def test_event_floods_are_coalesced_into_few_redraws(
         qapp, lambda: monitor.plate.state(1) in (WellState.READING, WellState.INCUBATING)
     )
     settle(qapp, 20)
-    assert events == 300 * 20
+    assert events == 300 * 21  # 每轮 18 支管 + 3 排
     redraws = monitor.refresh_count - before
-    assert redraws < events / 20  # 6000 条事件只重绘很少几次
+    assert redraws < events / 20  # 6300 条事件只重绘很少几次
     assert time.monotonic() - started >= 0  # 仅用于说明：不断言时长上限
-    assert monitor.table.row_count() == 17
+    assert monitor.table.row_count() == 18

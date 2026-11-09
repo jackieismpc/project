@@ -67,15 +67,12 @@ class TemplateOption(QFrame):
         top.setSpacing(8)
         self.name = Label(template.name, "val")
         self.name.setWordWrap(True)
-        self.badge = StatusBadge("", BadgeTone.WARNING)
-        self.badge.setVisible(template.needs_confirmation)
         top.addWidget(self.name, 1)
-        top.addWidget(self.badge, 0, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(top)
         self.meta = Label("", "meta")
         self.meta.setWordWrap(True)
         layout.addWidget(self.meta)
-        for child in (self.name, self.meta, self.badge):
+        for child in (self.name, self.meta):
             child.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.retranslate()
 
@@ -91,13 +88,10 @@ class TemplateOption(QFrame):
                 source=source,
             )
         )
-        self.badge.set_text(self.tr("布局待确认"))
-        note = self.tr("，布局待确认") if template.needs_confirmation else ""
         self.setAccessibleName(
             self.tr("模板 {name}，{count} 管").format(
                 name=builtin_name_text(template.name), count=template.tube_count
             )
-            + note
         )
 
     def set_selected(self, selected: bool) -> None:

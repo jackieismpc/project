@@ -88,7 +88,7 @@ def test_last_review_records_lambda_c_with_the_completed_state(stack: Stack) -> 
     assert experiment.measured_sensitivity == pytest.approx(0.5946035575)
     assert conclusion.rule_version == conclusions.SENSITIVITY_RULE.version
     assert conclusion.labeled_sensitivity == 0.5
-    assert {t.tube_no for t in conclusion.tubes} == set(range(1, 18))
+    assert {t.tube_no for t in conclusion.tubes} == set(range(1, 19))
     assert next(t for t in conclusion.tubes if t.tube_no == 7).reviewed
     assert any(
         "sensitivity-v1" in d and "0.5946" in d
@@ -177,7 +177,8 @@ def test_changing_rules_does_not_rewrite_recorded_conclusions(
     assert after.rule_version == "sensitivity-v1"
 
 
-def test_unconfirmed_template_finishes_with_a_pending_conclusion(stack: Stack) -> None:
+def test_limit_test_finishes_with_a_pharmacopoeia_conclusion(stack: Stack) -> None:
+    """限度试验：对照成立、供试品复核为阴性后，完成时按药典给出“符合规定”（合格）。"""
     template = BUILTIN_TEMPLATES[ExperimentType.LIMIT]
     draft = ExperimentDraft()
     draft.choose_template(template)
@@ -186,21 +187,26 @@ def test_unconfirmed_template_finishes_with_a_pending_conclusion(stack: Stack) -
     session = stack.login("experimenter")
     experiment_id = stack.experiments.create_experiment(session, draft.to_request())
     experiment = stored(stack, experiment_id)
-    assert experiment.layout_confirmed is False
+    assert experiment.layout_confirmed is True
     for event in (
         ExperimentEvent.START,
         ExperimentEvent.ROW_DUE,
         ExperimentEvent.ROW_CAPTURED,
     ):
         experiment.apply(event)
+    positive_roles = {TubeRole.SAMPLE_POSITIVE_CONTROL, TubeRole.POSITIVE_CONTROL}
     for assignment in experiment.assignments:
+        if assignment.tube_no == 1:
+            state = GelState.PARTIALLY_GELLED
+        elif assignment.role in positive_roles:
+            state = GelState.FULLY_GELLED
+        else:
+            state = GelState.NOT_GELLED
         experiment.record_result(
             TubeResult.from_analysis(
                 tube_no=assignment.tube_no,
                 status=TubeAnalysisStatus.OK,
-                state=(
-                    GelState.PARTIALLY_GELLED if assignment.tube_no == 1 else GelState.NOT_GELLED
-                ),
+                state=state,
                 mapping=GelStateMapping(),
             )
         )
@@ -213,9 +219,9 @@ def test_unconfirmed_template_finishes_with_a_pending_conclusion(stack: Stack) -
     done = stored(stack, experiment_id)
     assert done.state is ExperimentState.COMPLETED
     assert done.conclusion is not None
-    assert done.conclusion.verdict is ConclusionVerdict.PENDING
-    assert done.conclusion.value is None
-    assert done.measured_sensitivity is None
+    assert done.conclusion.verdict is ConclusionVerdict.PASS
+    assert done.conclusion.rule_version == "limit-v1"
+    assert done.measured_sensitivity is None  # 只有灵敏度复核写实测灵敏度
     assert done.completed_at == NOW
 
 
@@ -249,7 +255,7 @@ def test_create_experiment_freezes_spikes_from_lambda(stack: Stack) -> None:
     assert spikes[5] == 0.25
     assert spikes[9] == 0.125
     assert spikes[13] == 0.0625
-    assert spikes[17] == 0.0
+    assert spikes[17] == 0.0 and spikes[18] == 0.0
     assert experiment.layout_confirmed is True
 
 

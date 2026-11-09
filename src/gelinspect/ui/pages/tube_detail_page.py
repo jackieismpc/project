@@ -426,6 +426,9 @@ class TubeDetailPage(QWidget):
         buttons.setSpacing(8)
         self.positive_button = Button("")
         self.negative_button = Button("")
+        # 选中后按阴阳性着色（样式表 tone），提交后也保持显示复核结果
+        self.positive_button.setProperty("tone", "positive")
+        self.negative_button.setProperty("tone", "negative")
         for button in (self.positive_button, self.negative_button):
             button.setCheckable(True)
             buttons.addWidget(button)
@@ -860,6 +863,11 @@ class TubeDetailPage(QWidget):
                 hint = self.tr("全部排读数分析完成、试验进入待复核后才能复核")
         self.review_hint.setText(hint)
         self.review_hint.setVisible(bool(hint))
+        shown = self._pick if editable else None
+        if shown is None and result is not None:
+            shown = result.reviewed_interpretation
+        self.positive_button.setChecked(shown is Interpretation.POSITIVE)
+        self.negative_button.setChecked(shown is Interpretation.NEGATIVE)
         if result is not None and result.reviewed_interpretation is not None:
             who = result.reviewed_by or "–"
             when = (

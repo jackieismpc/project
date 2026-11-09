@@ -30,4 +30,4 @@ exports:
 license:
   enabled: false
 conclusions:
-  enabled: false
+  enabled: true

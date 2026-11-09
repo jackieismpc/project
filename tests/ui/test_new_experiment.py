@@ -82,7 +82,7 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
     assert page.current_step() == STEP_TEMPLATE and not page.template_next.isEnabled()
     reach_samples(qapp, page)
 
-    # 第 3 步：编辑样品表（真实编辑器），在孔板上点 10–26 号管
+    # 第 3 步：编辑样品表（真实编辑器），在孔板上点 10–27 号管
     table = page.sample_table
     table.editItem(table.cell_item(0, COL_BATCH))
     editor = table.findChild(QLineEdit)
@@ -92,16 +92,16 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
     settle(qapp)
     assert page.draft().rows[0].batch_no == "S2611-01"
     assert page.plate.mode() is PlateMode.SELECT
-    tubes = list(range(10, 27))
+    tubes = list(range(10, 28))
     select_tubes(qapp, page, tubes)
     assert page.draft().selected == tubes
-    assert [table.cell_text(i, COL_TUBE) for i in range(17)] == [str(t) for t in tubes]
+    assert [table.cell_text(i, COL_TUBE) for i in range(18)] == [str(t) for t in tubes]
     assert page.match_label.text() == "管位已对应" and page.sample_next.isEnabled()
     click(qapp, page.sample_next)
 
     # 第 4 步：汇总，确认后启动
     assert page.current_step() == STEP_CONFIRM
-    assert page.summary_table.row_count() == 17
+    assert page.summary_table.row_count() == 18
     assert page.confirm_start.isEnabled() and page.confirm_start.text() == "确认并启动"
     click(qapp, page.confirm_start)
     assert wait_for(qapp, lambda: window.current_route == "monitor", 30.0)
@@ -130,24 +130,20 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
 # ---------------------------------------------------------------------------- 步骤 1
 
 
-def test_templates_are_listed_with_type_count_and_the_unconfirmed_badge(
-    qapp: QApplication, window: MainWindow
-) -> None:
+def test_templates_are_listed_with_type_and_count(qapp: QApplication, window: MainWindow) -> None:
     page = open_wizard(qapp, window)
     options = {o.template.name: o for o in page._options}
     assert len(options) == 5
-    for name, count, unconfirmed in [
-        ("灵敏度复核 (2λ:1)", 17, False),
-        ("干扰试验", 28, True),
-        ("半定量试验", 16, True),
-        ("限度试验", 8, True),
-        ("限度试验（复试）", 10, True),
+    for name, count in [
+        ("灵敏度复核 (2λ:1)", 18),
+        ("干扰试验", 28),
+        ("半定量试验", 20),
+        ("限度试验", 8),
+        ("限度试验（复试）", 10),
     ]:
         option = options[name]
         assert f"{count} 管" in option.meta.text()
-        assert option.badge.isVisibleTo(page) is unconfirmed
-        assert not unconfirmed or option.badge.text() == "布局待确认"
-    # 布局待确认的模板仍可使用
+        assert not hasattr(option, "badge")  # 没有“布局待确认”标记
     choose_template(qapp, page, "干扰试验")
     assert page.template_next.isEnabled()
     click(qapp, page.template_next)
@@ -169,7 +165,7 @@ def test_a_custom_template_made_by_the_admin_shows_up_in_the_wizard(
     names = [o.template.name for o in page._options]
     assert names[-1] == "我的限度"
     custom = page._options[-1]
-    assert "自定义" in custom.meta.text() and not custom.badge.isVisibleTo(page)
+    assert "自定义" in custom.meta.text()
 
 
 # ---------------------------------------------------------------------------- 步骤 2：试剂
@@ -301,17 +297,17 @@ def test_count_mismatch_blocks_the_next_step_and_shows_the_difference(
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
-    assert page.count_label.text() == "已选 0 / 17 ·"
+    assert page.count_label.text() == "已选 0 / 18 ·"
     assert page.match_label.text() == "请在孔板上选择管位" and not page.sample_next.isEnabled()
-    select_tubes(qapp, page, range(1, 17))  # 16 个
-    assert page.count_label.text() == "已选 16 / 17 ·" and page.match_label.text() == "还差 1 个"
+    select_tubes(qapp, page, range(1, 18))  # 17 个
+    assert page.count_label.text() == "已选 17 / 18 ·" and page.match_label.text() == "还差 1 个"
     assert not page.sample_next.isEnabled()
     click(qapp, page.sample_next)
     page._go(STEP_CONFIRM)  # 绕过按钮也不行
     assert page.current_step() == STEP_SAMPLES
-    select_tubes(qapp, page, [17, 18])  # 18 个
+    select_tubes(qapp, page, [18, 19])  # 19 个
     assert page.match_label.text() == "多选了 1 个" and not page.sample_next.isEnabled()
-    select_tubes(qapp, page, [18])  # 取消 18
+    select_tubes(qapp, page, [19])  # 取消 19
     assert page.match_label.text() == "管位已对应" and page.sample_next.isEnabled()
     assert page.match_label.property("role") == "ok"
 
@@ -354,14 +350,14 @@ def test_editing_samples_and_blank_names_block_the_next_step(
     click(qapp, page.auto_button)
     assert page.sample_next.isEnabled()
     table = page.sample_table
-    table.cell_item(2, COL_NAME).setText("  ")
-    assert "第 3 行的样品名称为空" in page.sample_problem.text()
+    table.cell_item(1, COL_NAME).setText("  ")
+    assert "第 2 行的样品名称为空" in page.sample_problem.text()
     assert not page.sample_next.isEnabled()
-    table.cell_item(2, COL_NAME).setText("样品三")
-    table.cell_item(2, COL_SPIKE).setText("0.25")
+    table.cell_item(1, COL_NAME).setText("样品二")
+    table.cell_item(1, COL_SPIKE).setText("0.25")
     assert not page.sample_problem.isVisibleTo(page) and page.sample_next.isEnabled()
-    assert page.draft().rows[2].name == "样品三" and page.draft().rows[2].spiked_endotoxin == 0.25
-    assert page._draft.rows[2].batch_no == ""
+    assert page.draft().rows[1].name == "样品二" and page.draft().rows[1].spiked_endotoxin == 0.25
+    assert page._draft.rows[1].batch_no == ""
 
 
 def test_going_back_keeps_everything_that_was_entered(
@@ -371,7 +367,7 @@ def test_going_back_keeps_everything_that_was_entered(
     reach_samples(qapp, page)
     page.sample_table.cell_item(1, COL_NAME).setText("样品乙")
     page.sample_table.cell_item(1, COL_BATCH).setText("B-7")
-    select_tubes(qapp, page, range(20, 37))
+    select_tubes(qapp, page, range(20, 38))
     click(qapp, page.sample_back)
     assert page.current_step() == STEP_REAGENTS and page.reagents_ok()
     lal = page.reagent_cards[ReagentKind.LAL_REAGENT]
@@ -384,13 +380,13 @@ def test_going_back_keeps_everything_that_was_entered(
     click(qapp, page.template_next)
     click(qapp, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
-    assert page.plate.selected_tubes() == list(range(20, 37))
+    assert page.plate.selected_tubes() == list(range(20, 38))
     assert page.sample_table.cell_text(1, COL_NAME) == "样品乙"
     assert page.sample_table.cell_text(1, COL_BATCH) == "B-7"
     assert page.sample_table.cell_text(0, COL_TUBE) == "20"
     click(qapp, page.sample_next)
     click(qapp, page.confirm_back)
-    assert page.current_step() == STEP_SAMPLES and page.draft().selected == list(range(20, 37))
+    assert page.current_step() == STEP_SAMPLES and page.draft().selected == list(range(20, 38))
 
 
 def test_changing_the_template_asks_before_discarding_entered_samples(

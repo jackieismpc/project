@@ -131,7 +131,7 @@ def main() -> int:
             assert page.current_step() == STEP_REAGENTS
             click(app, page.reagent_next)
             assert page.current_step() == STEP_SAMPLES
-            select_tubes(app, page, range(1, 18))
+            select_tubes(app, page, range(1, 19))
             shot(rig, "wizard-3-samples")
             click(app, page.sample_next)
             assert page.current_step() == STEP_CONFIRM

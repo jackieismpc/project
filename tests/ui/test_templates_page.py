@@ -77,19 +77,16 @@ def test_lists_builtin_templates_with_type_count_and_state(
     assert [r["name"] for r in rows] == [
         "灵敏度复核 (2λ:1)", "干扰试验", "半定量试验", "限度试验", "限度试验（复试）",
     ]  # fmt: skip
-    assert [r["count"] for r in rows] == [17, 28, 16, 8, 10]
+    assert [r["count"] for r in rows] == [18, 28, 20, 8, 10]
     assert [r["source"] for r in rows] == ["内置"] * 5
-    assert [r["state"] for r in rows] == [
-        "",
-        "布局待确认",
-        "布局待确认",
-        "布局待确认",
-        "布局待确认",
-    ]
-    assert page.detail_table.row_count() == 17  # 默认选中第一个，显示它的管位
+    assert all("state" not in r for r in rows)  # 没有“布局待确认”列
+    assert page.detail_table.row_count() == 18  # 默认选中第一个，显示它的管位
     select_row(qapp, page, "限度试验")
-    assert page.detail_table.row_count() == 8 and page.detail_badge.isVisibleTo(page)
-    assert page.detail_table.model.rows[0]["role"] == "用途待确认"
+    assert page.detail_table.row_count() == 8
+    assert [r["role"] for r in page.detail_table.model.rows] == [
+        "供试品", "供试品", "供试品阳性对照", "供试品阳性对照",
+        "阳性对照", "阳性对照", "阴性对照", "阴性对照",
+    ]  # fmt: skip
 
 
 def test_builtin_templates_are_read_only_but_can_be_copied(
@@ -213,7 +210,7 @@ def test_other_roles_can_only_view(
     username: str,
 ) -> None:
     page = open_templates(qapp, window, username)
-    assert len(names(page)) == 5 and page.detail_table.row_count() == 17
+    assert len(names(page)) == 5 and page.detail_table.row_count() == 18
     assert page.readonly_badge.isVisibleTo(page) and page.readonly_badge.text() == "只读"
     for button in (page.new_button, page.copy_button, page.edit_button):
         assert not button.isEnabled()

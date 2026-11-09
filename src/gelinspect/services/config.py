@@ -61,7 +61,7 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
     },
     "device": {"backend": "simulation.sim_device:SimDevice"},
     "engine": {"incubation_minutes": 60, "time_scale": 60},
-    "conclusions": {"enabled": False},
+    "conclusions": {"enabled": True},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
     "traceability": {
         "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},
@@ -257,15 +257,14 @@ class ReportSection(_Section):
 
 
 class ConclusionsSection(_Section):
-    """试验结论（灵敏度 λc、合格、无效、待定）的开关。
+    """试验结论（合格、不合格、无效、待定）的开关。
 
     Attributes:
-        enabled: 是否计算、入库和显示试验结论。判定规则甲方尚未确认，商用软件不能显示
-            未确认的结论，所以默认关闭：关闭时只显示每支管的凝固状态、阴阳性和复核标注，
-            签署不要求有结论，也不计算、不入库结论。规则确认后设为 ``true`` 打开。
+        enabled: 是否计算、入库和显示试验结论（按中国药典通则 1143，默认打开）。关闭时只显示
+            每支管的凝固状态、阴阳性和复核标注，签署不要求有结论，也不计算、不入库结论。
     """
 
-    enabled: bool = False
+    enabled: bool = True
 
 
 class AppConfig(_Section):

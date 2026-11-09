@@ -1,9 +1,9 @@
 """试验模板和内置模板（四类试验，限度试验另有复试模板）。
 
-灵敏度复核模板取自参考视频；其余模板只有管数可考，布局为推定，
-以 ``needs_confirmation=True`` 显式标记，用途和数值留空，等待甲方 QA 核对。
+内置模板的管位布局按中国药典通则 1143 凝胶法的表 1–3 和灵敏度复核的要求排列，每管标明用途。
+``needs_confirmation`` 字段保留给旧数据，内置模板都为 False。
 
-灵敏度模板存**标示灵敏度 λ 的倍数**（2、1、0.5、0.25，阴性对照 0），创建试验时才按鲎试剂的 λ
+模板存**标示灵敏度 λ 的倍数**（2、1、0.5、0.25，阴性对照 0），创建试验时才按鲎试剂的 λ
 算出外加内毒素并固化到试验记录，见 :func:`spike_from_lambda`。判定规则在 ``conclusions.py``。
 """
 
@@ -132,93 +132,139 @@ class ExperimentTemplate:
         )
 
 
-def _sensitivity_template() -> ExperimentTemplate:
-    """构造灵敏度复核（2λ:1）模板。
+SERIES_MULTIPLES = (2.0, 1.0, 0.5, 0.25)
+"""内毒素系列的四个浓度：λ 的倍数，从高到低。"""
+SEMI_QUANTITATIVE_DILUTIONS = (1.0, 2.0, 4.0, 8.0)
+"""半定量试验供试品的默认稀释系列（相对原供试品的稀释倍数），管理员可复制模板后修改。"""
 
-    Returns:
-        17 管模板：4 个浓度梯度各 4 管，加 1 支阴性对照。
-    """
-    # 参考视频新试验页（49.5 秒）中“外加内毒素”列是 1、0.5、0.25、0.125，那次试验 λ=0.5，
-    # 即 2λ、λ、λ/2、λ/4。这里存倍数，λ 不是 0.5 时才算得对。
-    name = "灵敏度复核"
-    items = [
-        TemplateTubeItem(
-            tube_no=index * 4 + offset,
-            sample_name=name,
-            role=TubeRole.TEST,
-            lambda_multiple=multiple,
-        )
-        for index, multiple in enumerate((2.0, 1.0, 0.5, 0.25))
-        for offset in range(1, 5)
-    ]
-    items.append(
-        TemplateTubeItem(
-            tube_no=17,
-            sample_name="阴性对照",
-            role=TubeRole.NEGATIVE_CONTROL,
-            lambda_multiple=0.0,
-        )
-    )
+_SAMPLE = "供试品"
+_NEGATIVE = "阴性对照"
+_POSITIVE = "阳性对照"
+_SAMPLE_POSITIVE = "供试品阳性对照"
+_STANDARD = "内毒素标准系列"
+_SAMPLE_SERIES = "供试品内毒素系列"
+
+
+class _Layout:
+    """按顺序编管号的辅助类：每加一支管号加 1。"""
+
+    def __init__(self) -> None:
+        self.items: list[TemplateTubeItem] = []
+
+    def add(
+        self,
+        count: int,
+        sample_name: str,
+        role: TubeRole,
+        *,
+        lambda_multiple: float | None = None,
+        dilution_factor: float | None = None,
+    ) -> None:
+        for _ in range(count):
+            self.items.append(
+                TemplateTubeItem(
+                    tube_no=len(self.items) + 1,
+                    sample_name=sample_name,
+                    role=role,
+                    dilution_factor=dilution_factor,
+                    lambda_multiple=lambda_multiple,
+                )
+            )
+
+    def series(self, per_level: int, sample_name: str, role: TubeRole) -> None:
+        """2λ、λ、λ/2、λ/4 各 ``per_level`` 支，同一浓度内的第 k 支属于第 k 个平行系列。"""
+        for multiple in SERIES_MULTIPLES:
+            self.add(per_level, sample_name, role, lambda_multiple=multiple)
+
+
+def _sensitivity_template() -> ExperimentTemplate:
+    """灵敏度复核（中国药典通则 1143）：2λ、λ、λ/2、λ/4 各 4 管，阴性对照 2 管，共 18 管。"""
+    layout = _Layout()
+    layout.series(4, _STANDARD, TubeRole.TEST)
+    layout.add(2, _NEGATIVE, TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0)
     return ExperimentTemplate(
         template_id="builtin.sensitivity_confirmation_2lambda_1",
         name="灵敏度复核 (2λ:1)",
         experiment_type=ExperimentType.SENSITIVITY_CONFIRMATION,
-        items=tuple(items),
+        items=tuple(layout.items),
     )
 
 
-def _presumed_template(
-    template_id: str, name: str, experiment_type: ExperimentType, tube_count: int
-) -> ExperimentTemplate:
-    """构造只有管数可考的推定模板。
+def _interference_template() -> ExperimentTemplate:
+    """干扰试验（药典表 1），共 28 管。
 
-    推定内容只有“从 1 号管起连续占位”。用途标记为未确认，数值留空，不做任何推断。
-
-    Args:
-        template_id: 模板标识。
-        name: 显示名称。
-        experiment_type: 试验类型。
-        tube_count: 管数。
-
-    Returns:
-        ``needs_confirmation=True`` 的模板。
+    A 供试品 2 管；B 供试品加 2λ–λ/4 各 4 管；C 检查用水加 2λ–λ/4 各 2 管；D 阴性对照 2 管。
     """
-    items = tuple(
-        TemplateTubeItem(tube_no=tube_no, sample_name=name, role=TubeRole.UNCONFIRMED)
-        for tube_no in range(1, tube_count + 1)
+    layout = _Layout()
+    layout.add(2, _SAMPLE, TubeRole.SAMPLE)
+    layout.series(4, _SAMPLE_SERIES, TubeRole.SAMPLE_SERIES)
+    layout.series(2, _STANDARD, TubeRole.TEST)
+    layout.add(2, _NEGATIVE, TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0)
+    return ExperimentTemplate(
+        template_id="builtin.interference",
+        name="干扰试验",
+        experiment_type=ExperimentType.INTERFERENCE,
+        items=tuple(layout.items),
     )
+
+
+def _limit_template(template_id: str, name: str, sample_tubes: int) -> ExperimentTemplate:
+    """限度试验（药典表 2）。
+
+    A 供试品；B 供试品阳性对照（加 2λ）2 管；C 阳性对照（检查用水加 2λ）2 管；D 阴性对照 2 管。
+    初试 A 为 2 管，复试为 4 管。
+    """
+    layout = _Layout()
+    layout.add(sample_tubes, _SAMPLE, TubeRole.SAMPLE)
+    layout.add(2, _SAMPLE_POSITIVE, TubeRole.SAMPLE_POSITIVE_CONTROL, lambda_multiple=2.0)
+    layout.add(2, _POSITIVE, TubeRole.POSITIVE_CONTROL, lambda_multiple=2.0)
+    layout.add(2, _NEGATIVE, TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0)
     return ExperimentTemplate(
         template_id=template_id,
         name=name,
-        experiment_type=experiment_type,
-        items=items,
-        needs_confirmation=True,
+        experiment_type=ExperimentType.LIMIT,
+        items=tuple(layout.items),
+    )
+
+
+def _semi_quantitative_template() -> ExperimentTemplate:
+    """半定量试验（药典表 3），共 20 管。
+
+    A 供试品按 1、2、4、8 倍稀释各 2 管；B 供试品阳性对照 2 管；C 检查用水加 2λ–λ/4 各 2 管；
+    D 阴性对照 2 管。
+    """
+    layout = _Layout()
+    for dilution in SEMI_QUANTITATIVE_DILUTIONS:
+        layout.add(2, _SAMPLE, TubeRole.SAMPLE, dilution_factor=dilution)
+    layout.add(
+        2,
+        _SAMPLE_POSITIVE,
+        TubeRole.SAMPLE_POSITIVE_CONTROL,
+        lambda_multiple=2.0,
+        dilution_factor=1.0,
+    )
+    layout.series(2, _STANDARD, TubeRole.TEST)
+    layout.add(2, _NEGATIVE, TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0)
+    return ExperimentTemplate(
+        template_id="builtin.semi_quantitative",
+        name="半定量试验",
+        experiment_type=ExperimentType.SEMI_QUANTITATIVE,
+        items=tuple(layout.items),
     )
 
 
 BUILTIN_TEMPLATES: Mapping[ExperimentType, ExperimentTemplate] = MappingProxyType(
     {
         ExperimentType.SENSITIVITY_CONFIRMATION: _sensitivity_template(),
-        ExperimentType.INTERFERENCE: _presumed_template(
-            "builtin.interference", "干扰试验", ExperimentType.INTERFERENCE, 28
-        ),
-        ExperimentType.SEMI_QUANTITATIVE: _presumed_template(
-            "builtin.semi_quantitative", "半定量试验", ExperimentType.SEMI_QUANTITATIVE, 16
-        ),
-        ExperimentType.LIMIT: _presumed_template(
-            "builtin.limit", "限度试验", ExperimentType.LIMIT, 8
-        ),
+        ExperimentType.INTERFERENCE: _interference_template(),
+        ExperimentType.SEMI_QUANTITATIVE: _semi_quantitative_template(),
+        ExperimentType.LIMIT: _limit_template("builtin.limit", "限度试验", 2),
     }
 )
 """每类试验的主模板，按试验类型索引。"""
 
-LIMIT_RETEST_TEMPLATE = _presumed_template(
-    "builtin.limit_retest", "限度试验（复试）", ExperimentType.LIMIT, 10
-)
-"""限度试验的复试模板：供试品两管一阳一阴时，按中国药典通则 1143 复试（供试品 4 管）。
-
-复试属于限度试验，不是单独的试验类型。管数按参考设备推定，布局待甲方确认。
-"""
+LIMIT_RETEST_TEMPLATE = _limit_template("builtin.limit_retest", "限度试验（复试）", 4)
+"""限度试验的复试模板：初试供试品两管一阳一阴时复试，供试品 4 管，共 10 管。"""
 
 ALL_BUILTIN_TEMPLATES: tuple[ExperimentTemplate, ...] = (
     *BUILTIN_TEMPLATES.values(),

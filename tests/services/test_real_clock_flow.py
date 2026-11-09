@@ -55,7 +55,7 @@ def test_start_complete_and_sign_are_ordered_and_the_report_shows_them(
         experimenter = context.auth.login("experimenter", PASSWORDS["experimenter"])
         draft = ExperimentDraft()
         draft.choose_template(SENSITIVITY)
-        draft.set_selected(range(1, 18))
+        draft.set_selected(range(1, 19))
         base = draft.to_request()
         experiment_id = context.experiments.create_experiment(
             experimenter, NewExperimentRequest(base.template_id, base.assignments, FAR_CODES)

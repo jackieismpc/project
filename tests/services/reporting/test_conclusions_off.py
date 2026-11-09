@@ -1,6 +1,6 @@
-"""试验结论开关（``conclusions.enabled``，默认关闭）：关闭时不计算、不入库、不显示结论，签署不要求结论。
+"""试验结论开关（``conclusions.enabled``，默认打开）：关闭时不计算、不入库、不显示结论，签署不要求结论。
 
-判定规则甲方尚未确认，商用软件不能显示未确认的结论。这里同时验证打开时的行为没有变。
+这里同时验证打开时的行为没有变。
 """
 
 from __future__ import annotations
@@ -52,17 +52,17 @@ def _assert_none_of(text: str, words: tuple[str, ...]) -> None:
 # ---------------------------------------------------------------- 配置
 
 
-def test_conclusions_are_off_by_default_in_every_default_config() -> None:
-    assert parse_config(DEFAULT_CONFIG).conclusions.enabled is False
-    assert DEFAULT_CONFIG["conclusions"] == {"enabled": False}
+def test_conclusions_are_on_by_default_in_every_default_config() -> None:
+    assert parse_config(DEFAULT_CONFIG).conclusions.enabled is True
+    assert DEFAULT_CONFIG["conclusions"] == {"enabled": True}
     release = yaml.safe_load((ROOT / "packaging/config/release.yaml").read_text(encoding="utf-8"))
-    assert release["conclusions"] == {"enabled": False}
+    assert release["conclusions"] == {"enabled": True}
     example = yaml.safe_load((ROOT / "simulation/config.example.yaml").read_text(encoding="utf-8"))
-    assert example["conclusions"] == {"enabled": False}
-    # 配置里没有这一段时同样关闭；写 true 才打开
+    assert example["conclusions"] == {"enabled": True}
+    # 配置里没有这一段时同样打开；写 false 才关闭
     bare = {k: v for k, v in DEFAULT_CONFIG.items() if k != "conclusions"}
-    assert parse_config(bare).conclusions.enabled is False
-    assert parse_config({**bare, "conclusions": {"enabled": True}}).conclusions.enabled is True
+    assert parse_config(bare).conclusions.enabled is True
+    assert parse_config({**bare, "conclusions": {"enabled": False}}).conclusions.enabled is False
 
 
 # ---------------------------------------------------------------- 完成时不计算、不入库

@@ -105,7 +105,7 @@ def test_no_arguments_opens_the_window_with_the_default_simulation_config(
 
     monkeypatch.setattr(startup, "run_gui", fake_run)
     assert main([]) == 0
-    assert calls == [{"config_path": None, "data_dir": None, "smoke_test": False}]
+    assert calls == [{"config_path": None, "data_dir": None, "smoke_test": False, "demo": False}]
 
 
 def test_config_option_and_simulate_alias(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

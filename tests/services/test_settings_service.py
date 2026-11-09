@@ -375,7 +375,7 @@ def test_a_new_experiment_really_uses_the_newly_chosen_video_source(
 
     experimenter = context.auth.login("experimenter", PASSWORDS["experimenter"])
     experiment_id = context.experiments.create_experiment(
-        experimenter, request_for_tubes(list(range(1, 18)))
+        experimenter, request_for_tubes(list(range(1, 19)))
     )
     context.experiments.start_experiment(experimenter, experiment_id)
 

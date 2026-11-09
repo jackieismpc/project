@@ -1,12 +1,14 @@
 """试验结论：从单管结果算出合格、不合格、无效或待定。
 
-纯函数，不依赖 Qt 或数据库。公式、手算例和每条规则的来源见 ``docs/features/conclusions.md``。
+纯函数，不依赖 Qt 或数据库。规则按中国药典通则 1143 凝胶法：
 
-**灵敏度复核**的规则由任务书给出（见 :data:`SENSITIVITY_RULE`）。
-**干扰、半定量、限度（含复试）**的布局未确认（PLAN 第 7 节第 4、14 项），
-这里只写好规则结构（需要哪些用途的管、条文和来源），
-凭记忆的条文一律标“待 QA 核对”。这三类**没有任何产生合格或不合格的代码路径**：QA 核对条文和布局后
-再实现判定，并升级规则版本。
+* 灵敏度复核：λc = antilg(mean(lg 终点))，0.5λ–2λ 为合格；
+* 干扰试验：检查用水系列的 Es 在 0.5λ–2λ 内试验有效，供试品系列的 Et 在 0.5Es–2Es 内
+  为无干扰（合格）；
+* 限度试验：对照成立时供试品全阴为符合规定（合格），全阳为不符合规定（不合格），初试一阳一阴需复试；
+  复试（供试品 4 管）全阴符合规定，否则不符合规定；
+* 半定量试验：每个系列的浓度 = 终点稀释倍数 × λ，都小于内毒素限值为符合规定，任何一个不小于限值为
+  不符合规定；浓度的几何平均值为供试品内毒素浓度。
 
 依据和未满足的前提用 :class:`ConclusionNote` 表达：稳定的代码加参数，中文原文存库，界面按当前语言
 翻译。结论入库后不再随规则变化。
@@ -36,6 +38,8 @@ SENSITIVITY_MULTIPLES = (2.0, 1.0, 0.5, 0.25)
 """灵敏度复核的浓度档：λ 的倍数，从高到低。"""
 SENSITIVITY_SERIES_COUNT = 4
 """灵敏度复核的平行系列数。"""
+LIMIT_INITIAL_SAMPLES = 2
+"""限度试验初试的供试品管数；一阳一阴时需复试。"""
 LAMBDA_C_MIN_RATIO = 0.5
 """λc 下限，相对 λ，含边界。"""
 LAMBDA_C_MAX_RATIO = 2.0
@@ -72,6 +76,33 @@ class NoteCode(StrEnum):
     LAMBDA_C_OUT_OF_RANGE = "lambda_c_out_of_range"
     NOT_RECORDED = "not_recorded"
     STOPPED = "stopped"
+    GROUP_MISSING = "group_missing"
+    GROUP_NOT_NEGATIVE = "group_not_negative"
+    GROUP_NOT_POSITIVE = "group_not_positive"
+    GROUP_ALL_NEGATIVE = "group_all_negative"
+    GROUP_ALL_POSITIVE = "group_all_positive"
+    LEVEL_COUNT_UNEVEN = "level_count_uneven"
+    ROLE_SERIES_RESULT = "role_series_result"
+    ROLE_SERIES_NO_POSITIVE = "role_series_no_positive"
+    ROLE_SERIES_DISCONTINUOUS = "role_series_discontinuous"
+    ES_VALUE = "es_value"
+    ES_OUT_OF_RANGE = "es_out_of_range"
+    ET_VALUE = "et_value"
+    NO_INTERFERENCE = "no_interference"
+    INTERFERENCE_PRESENT = "interference_present"
+    INTERFERENCE_NO_ENDPOINT = "interference_no_endpoint"
+    LIMIT_COMPLIES = "limit_complies"
+    LIMIT_NOT_COMPLIES = "limit_not_complies"
+    LIMIT_RETEST = "limit_retest"
+    DILUTION_MISSING = "dilution_missing"
+    SAMPLE_SERIES_RESULT = "sample_series_result"
+    SAMPLE_SERIES_BELOW = "sample_series_below"
+    SAMPLE_SERIES_ABOVE = "sample_series_above"
+    SAMPLE_CONCENTRATION = "sample_concentration"
+    ENDOTOXIN_LIMIT_MISSING = "endotoxin_limit_missing"
+    CONCENTRATION_BELOW_LIMIT = "concentration_below_limit"
+    CONCENTRATION_NOT_BELOW_LIMIT = "concentration_not_below_limit"
+    CONCENTRATION_UNDETERMINED = "concentration_undetermined"
 
 
 NOTE_TEMPLATES: Mapping[NoteCode, str] = MappingProxyType(
@@ -89,10 +120,10 @@ NOTE_TEMPLATES: Mapping[NoteCode, str] = MappingProxyType(
         NoteCode.ROLE_SUMMARY: (
             "{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}"
         ),
-        NoteCode.LAYOUT_EMPTY: "模板布局待确认：没有安排试管",
-        NoteCode.LAYOUT_PRESUMED: "模板布局待确认：模板标记为推定布局，等待 QA 确认",
-        NoteCode.LAYOUT_ROLES_UNMARKED: "模板布局待确认：{tubes} 号管没有标记用途",
-        NoteCode.RULE_PENDING_QA: "判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格",
+        NoteCode.LAYOUT_EMPTY: "没有安排试管",
+        NoteCode.LAYOUT_PRESUMED: "试验使用的旧模板没有标明每管用途，不能判定",
+        NoteCode.LAYOUT_ROLES_UNMARKED: "{tubes} 号管没有指定用途",
+        NoteCode.RULE_PENDING_QA: "旧版本软件没有这类试验的判定规则，不给出合格或不合格",
         NoteCode.RESULT_MISSING: "{tubes} 号管还没有结果",
         NoteCode.REVIEW_PENDING: "{tubes} 号管等待人工复核",
         NoteCode.LAMBDA_MISSING: "没有可用的鲎试剂标示灵敏度 λ",
@@ -112,11 +143,63 @@ NOTE_TEMPLATES: Mapping[NoteCode, str] = MappingProxyType(
         ),
         NoteCode.NEGATIVE_CONTROL_NOT_NEGATIVE: "阴性对照不是阴性（{tubes} 号管）",
         NoteCode.SERIES_DISCONTINUOUS: (
-            "第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考"
+            "第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考"
         ),
         NoteCode.LAMBDA_C_OUT_OF_RANGE: "λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）",
         NoteCode.NOT_RECORDED: "这个试验完成时还没有结论功能，没有入库的结论",
         NoteCode.STOPPED: "试验已停止，不产生结论",
+        NoteCode.GROUP_MISSING: "模板没有标记{role}",
+        NoteCode.GROUP_NOT_NEGATIVE: "{role}不是全部阴性（{tubes} 号管）",
+        NoteCode.GROUP_NOT_POSITIVE: "{role}不是全部阳性（{tubes} 号管）",
+        NoteCode.GROUP_ALL_NEGATIVE: "{role}（{tubes} 号管）：全部阴性",
+        NoteCode.GROUP_ALL_POSITIVE: "{role}（{tubes} 号管）：全部阳性",
+        NoteCode.LEVEL_COUNT_UNEVEN: "{role}：各浓度或稀释度的管数应相同，实际为 {counts}",
+        NoteCode.ROLE_SERIES_RESULT: (
+            "{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL"
+        ),
+        NoteCode.ROLE_SERIES_NO_POSITIVE: (
+            "{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性"
+        ),
+        NoteCode.ROLE_SERIES_DISCONTINUOUS: (
+            "{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定"
+        ),
+        NoteCode.ES_VALUE: (
+            "Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内"
+        ),
+        NoteCode.ES_OUT_OF_RANGE: "Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）",
+        NoteCode.ET_VALUE: (
+            "Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）"
+        ),
+        NoteCode.NO_INTERFERENCE: "Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用",
+        NoteCode.INTERFERENCE_PRESENT: "Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用",
+        NoteCode.INTERFERENCE_NO_ENDPOINT: (
+            "供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用"
+        ),
+        NoteCode.LIMIT_COMPLIES: "供试品（{tubes} 号管）全部阴性：符合规定",
+        NoteCode.LIMIT_NOT_COMPLIES: "供试品（{tubes} 号管）有阳性：不符合规定",
+        NoteCode.LIMIT_RETEST: "供试品两管一阳一阴，需用“限度试验（复试）”模板复试",
+        NoteCode.DILUTION_MISSING: "供试品 {tubes} 号管没有稀释倍数",
+        NoteCode.SAMPLE_SERIES_RESULT: (
+            "供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，"
+            "浓度 {value} EU/mL"
+        ),
+        NoteCode.SAMPLE_SERIES_BELOW: (
+            "供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 < {value} EU/mL"
+        ),
+        NoteCode.SAMPLE_SERIES_ABOVE: (
+            "供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL"
+        ),
+        NoteCode.SAMPLE_CONCENTRATION: (
+            "供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL"
+        ),
+        NoteCode.ENDOTOXIN_LIMIT_MISSING: "没有录入内毒素限值，无法判定是否符合规定",
+        NoteCode.CONCENTRATION_BELOW_LIMIT: "各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定",
+        NoteCode.CONCENTRATION_NOT_BELOW_LIMIT: (
+            "第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定"
+        ),
+        NoteCode.CONCENTRATION_UNDETERMINED: (
+            "第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验"
+        ),
     }
 )
 """每个代码的简体中文原文，``{参数}`` 由 :class:`ConclusionNote` 的 ``params`` 提供。"""
@@ -156,12 +239,13 @@ class ConclusionNote:
 
 
 _ROLE_NAMES = {
-    TubeRole.TEST: "试验管",
+    TubeRole.TEST: "内毒素标准系列",
     TubeRole.NEGATIVE_CONTROL: "阴性对照",
     TubeRole.SAMPLE: "供试品",
     TubeRole.POSITIVE_CONTROL: "阳性对照",
     TubeRole.SAMPLE_POSITIVE_CONTROL: "供试品阳性对照",
-    TubeRole.UNCONFIRMED: "用途待确认",
+    TubeRole.SAMPLE_SERIES: "供试品内毒素系列",
+    TubeRole.UNCONFIRMED: "未指定",
 }
 
 
@@ -198,9 +282,9 @@ class ConclusionRule:
         experiment_type: 试验类型。
         version: 规则版本，规则或阈值变更时必须升级，随结论入库。
         source: 来源。
-        verdict_enabled: 规则能否产生合格或不合格。凭记忆、未经 QA 核对的规则为 False。
+        verdict_enabled: 规则能否产生合格或不合格。
         tracked_roles: 规则读取的用途，只读取明确标记了用途的管。
-        clauses: 规则条文。凭记忆的条文都带“待 QA 核对”。
+        clauses: 规则条文，界面和文档展示用。
     """
 
     experiment_type: ExperimentType
@@ -212,72 +296,85 @@ class ConclusionRule:
 
 
 _SOURCE_1143 = "中国药典通则 1143"
-_PENDING = "（凭记忆，待 QA 核对）"
-_PLACEHOLDER_ROLES = (
-    TubeRole.SAMPLE,
-    TubeRole.SAMPLE_POSITIVE_CONTROL,
-    TubeRole.POSITIVE_CONTROL,
-    TubeRole.NEGATIVE_CONTROL,
-)
-
 SENSITIVITY_RULE = ConclusionRule(
     experiment_type=ExperimentType.SENSITIVITY_CONFIRMATION,
     version="sensitivity-v1",
-    source=f"项目任务书；{_SOURCE_1143}（条文原文待 QA 逐字核对）",
+    source=_SOURCE_1143,
     verdict_enabled=True,
     tracked_roles=(TubeRole.TEST, TubeRole.NEGATIVE_CONTROL),
     clauses=(
-        "4 个平行系列，每个系列的浓度档为 2λ、λ、λ/2、λ/4，另有阴性对照。",
-        "有效性：最大浓度全部阳性、最低浓度全部阴性、阴性对照为阴性，否则无效。",
+        "2λ、λ、0.5λ、0.25λ 四个浓度，每个浓度平行 4 管，另做阴性对照。",
+        "有效性：最大浓度全部阳性、最低浓度全部阴性、阴性对照全部阴性，否则无效。",
         "系列终点：从高浓度到低浓度，最后一个阳性对应的浓度。",
         "λc = antilg(mean(lg 终点))；λc 在 0.5λ–2λ（含）内为合格。",
-        "不连续（阴性之后又阳性）：本软件给“待定”，由 QA 判定，这一条不是药典条文，待 QA 确认。",
+        "系列不连续（阴性之后又出现阳性）时给出参考值，结论待定，由人工判定。",
     ),
 )
 
-_PENDING_RULES = (
-    ConclusionRule(
-        experiment_type=ExperimentType.INTERFERENCE,
-        version="interference-pending-qa-v1",
-        source=f"{_SOURCE_1143}，待 QA 核对",
-        verdict_enabled=False,
-        tracked_roles=_PLACEHOLDER_ROLES,
-        clauses=(
-            f"{_PENDING}用供试品溶液和检查用水分别做 2λ、λ、λ/2、λ/4 系列，比较两者的 λc。",
-            f"{_PENDING}两条系列的终点几何平均值都在 0.5λ–2λ 内，判定不存在干扰。",
-        ),
+INTERFERENCE_RULE = ConclusionRule(
+    experiment_type=ExperimentType.INTERFERENCE,
+    version="interference-v1",
+    source=_SOURCE_1143,
+    verdict_enabled=True,
+    tracked_roles=(
+        TubeRole.SAMPLE,
+        TubeRole.SAMPLE_SERIES,
+        TubeRole.TEST,
+        TubeRole.NEGATIVE_CONTROL,
     ),
-    ConclusionRule(
-        experiment_type=ExperimentType.SEMI_QUANTITATIVE,
-        version="semi-quantitative-pending-qa-v1",
-        source=f"{_SOURCE_1143}，待 QA 核对",
-        verdict_enabled=False,
-        tracked_roles=_PLACEHOLDER_ROLES,
-        clauses=(
-            f"{_PENDING}供试品按系列稀释，由终点计算内毒素含量。",
-            f"{_PENDING}对照成立时，以含量与限值比较判定。内置模板的 16 管未能对应到记忆中的布局。",
-        ),
+    clauses=(
+        "A 供试品、D 阴性对照全部阴性，且 C 检查用水系列符合灵敏度复核要求时，试验有效。",
+        "Es、Et 分别为 C、B 系列终点浓度的几何平均值；Es 应在 0.5λ–2λ 内。",
+        "Et 在 0.5Es–2Es（含）内，供试品在该浓度下无干扰作用（合格），否则存在干扰（不合格）。",
     ),
-    ConclusionRule(
-        experiment_type=ExperimentType.LIMIT,
-        version="limit-pending-qa-v1",
-        source=f"{_SOURCE_1143}，待 QA 核对",
-        verdict_enabled=False,
-        tracked_roles=_PLACEHOLDER_ROLES,
-        clauses=(
-            f"{_PENDING}供试品、供试品阳性对照、阳性对照、阴性对照各 2 管。",
-            f"{_PENDING}阴性对照全阴、两种阳性对照全阳时有效；供试品全阴符合规定，全阳不符合规定，"
-            "一阳一阴复试。",
-            f"{_PENDING}复试用“限度试验（复试）”模板，供试品取 4 管，"
-            "全部阴性符合规定，否则不符合规定。",
+)
+
+LIMIT_RULE = ConclusionRule(
+    experiment_type=ExperimentType.LIMIT,
+    version="limit-v1",
+    source=_SOURCE_1143,
+    verdict_enabled=True,
+    tracked_roles=(
+        TubeRole.SAMPLE,
+        TubeRole.SAMPLE_POSITIVE_CONTROL,
+        TubeRole.POSITIVE_CONTROL,
+        TubeRole.NEGATIVE_CONTROL,
+    ),
+    clauses=(
+        "D 阴性对照全部阴性、B 供试品阳性对照和 C 阳性对照全部阳性时，试验有效。",
+        "初试供试品 2 管：全部阴性符合规定，全部阳性不符合规定，一阳一阴需复试。",
+        "复试供试品 4 管：全部阴性符合规定，否则不符合规定。",
+    ),
+)
+
+SEMI_QUANTITATIVE_RULE = ConclusionRule(
+    experiment_type=ExperimentType.SEMI_QUANTITATIVE,
+    version="semi-quantitative-v1",
+    source=_SOURCE_1143,
+    verdict_enabled=True,
+    tracked_roles=(
+        TubeRole.SAMPLE,
+        TubeRole.SAMPLE_POSITIVE_CONTROL,
+        TubeRole.TEST,
+        TubeRole.NEGATIVE_CONTROL,
+    ),
+    clauses=(
+        (
+            "D 阴性对照全部阴性、B 供试品阳性对照全部阳性、"
+            "C 检查用水系列的 Es 在 0.5λ–2λ 内时，试验有效。"
         ),
+        "供试品每个系列的浓度 = 终点稀释倍数 × λ；全部阴性记为小于最小稀释倍数 × λ。",
+        "各系列浓度都小于内毒素限值为符合规定，任何系列不小于限值为不符合规定。",
+        "各系列浓度的几何平均值为供试品溶液的内毒素浓度。",
     ),
 )
 
 RULES: Mapping[ExperimentType, ConclusionRule] = MappingProxyType(
     {
         ExperimentType.SENSITIVITY_CONFIRMATION: SENSITIVITY_RULE,
-        **{rule.experiment_type: rule for rule in _PENDING_RULES},
+        ExperimentType.INTERFERENCE: INTERFERENCE_RULE,
+        ExperimentType.LIMIT: LIMIT_RULE,
+        ExperimentType.SEMI_QUANTITATIVE: SEMI_QUANTITATIVE_RULE,
     }
 )
 """四类试验的规则。限度试验的复试使用限度试验的规则。"""
@@ -684,49 +781,571 @@ def _sensitivity_invalid_reasons(
     return notes
 
 
-def _evaluate_pending_rule(
-    rule: ConclusionRule,
+def _role_name(role: TubeRole) -> str:
+    return role.value
+
+
+def _group(assignments: Sequence[TubeAssignment], role: TubeRole) -> list[TubeAssignment]:
+    return sorted((a for a in assignments if a.role is role), key=lambda a: a.tube_no)
+
+
+def _readings(
+    tubes: Sequence[TubeAssignment], results: Mapping[int, TubeResult]
+) -> list[Interpretation | None]:
+    return [results[t.tube_no].final_interpretation for t in tubes]
+
+
+def _all(
+    tubes: Sequence[TubeAssignment], results: Mapping[int, TubeResult], value: Interpretation
+) -> list[int]:
+    """不是 ``value`` 的管号。"""
+    return [t.tube_no for t in tubes if results[t.tube_no].final_interpretation is not value]
+
+
+def _geometric_mean(values: Sequence[float]) -> float:
+    mean_lg = math.fsum(math.log10(v) for v in values) / len(values)
+    return float(f"{10**mean_lg:.12g}")
+
+
+def _within(value: float, low: float, high: float) -> bool:
+    return low * (1 - _REL_TOLERANCE) <= value <= high * (1 + _REL_TOLERANCE)
+
+
+def _spike_levels(
+    group: Sequence[TubeAssignment], role: TubeRole, labeled: float
+) -> tuple[list[list[TubeAssignment]] | None, list[ConclusionNote]]:
+    """把内毒素系列按 2λ、λ、λ/2、λ/4 分档，每档管数相同；返回各档（高到低）和不符的原因。"""
+    notes: list[ConclusionNote] = []
+    grouped: dict[float, list[TubeAssignment]] = {m: [] for m in SENSITIVITY_MULTIPLES}
+    for tube in group:
+        multiple = (
+            None
+            if tube.spiked_endotoxin is None
+            else _match_multiple(tube.spiked_endotoxin, labeled)
+        )
+        if multiple is None:
+            notes.append(_note(NoteCode.SPIKE_NOT_ON_LEVEL, tubes=tube.tube_no))
+        else:
+            grouped[multiple].append(tube)
+    counts = [len(grouped[m]) for m in SENSITIVITY_MULTIPLES]
+    if len(set(counts)) != 1 or counts[0] == 0:
+        notes.append(
+            _note(
+                NoteCode.LEVEL_COUNT_UNEVEN,
+                role=_role_name(role),
+                counts="、".join(
+                    f"{m:g}λ {c} 管" for m, c in zip(SENSITIVITY_MULTIPLES, counts, strict=True)
+                ),
+            )
+        )
+    if notes:
+        return None, notes
+    return [sorted(grouped[m], key=lambda a: a.tube_no) for m in SENSITIVITY_MULTIPLES], []
+
+
+@dataclass(frozen=True, slots=True)
+class _SeriesOutcome:
+    """一组内毒素系列的终点。"""
+
+    endpoints: tuple[float | None, ...]
+    discontinuous: tuple[int, ...]
+    notes: tuple[ConclusionNote, ...]
+    evidence: tuple[TubeEvidence, ...]
+
+
+def _spike_series(
+    levels: Sequence[Sequence[TubeAssignment]],
+    results: Mapping[int, TubeResult],
+    role: TubeRole,
+) -> _SeriesOutcome:
+    """同一浓度内按管号排第 k 支的组成第 k 个系列，终点为最后一个阳性对应的浓度。"""
+    endpoints: list[float | None] = []
+    discontinuous: list[int] = []
+    notes: list[ConclusionNote] = []
+    evidence: list[TubeEvidence] = []
+    for index in range(len(levels[0])):
+        series = index + 1
+        tubes = [level[index] for level in levels]
+        readings = _readings(tubes, results)
+        evidence.extend(_evidence(t, results[t.tube_no], series) for t in tubes)
+        marks = "  ".join(
+            f"{m:g}λ({_READING_MARKS.get(r, '?') if r else '?'})"
+            for m, r in zip(SENSITIVITY_MULTIPLES, readings, strict=True)
+        )
+        tube_text = _tube_list([t.tube_no for t in tubes])
+        positive = [i for i, r in enumerate(readings) if r is Interpretation.POSITIVE]
+        if not positive:
+            endpoints.append(None)
+            notes.append(
+                _note(
+                    NoteCode.ROLE_SERIES_NO_POSITIVE,
+                    role=_role_name(role),
+                    series=series,
+                    tubes=tube_text,
+                    readings=marks,
+                )
+            )
+            continue
+        last = positive[-1]
+        concentration = tubes[last].spiked_endotoxin
+        assert concentration is not None
+        endpoints.append(concentration)
+        if len(positive) != last + 1:
+            discontinuous.append(series)
+        notes.append(
+            _note(
+                NoteCode.ROLE_SERIES_RESULT,
+                role=_role_name(role),
+                series=series,
+                tubes=tube_text,
+                readings=marks,
+                endpoint=format_quantity(concentration),
+            )
+        )
+    return _SeriesOutcome(tuple(endpoints), tuple(discontinuous), tuple(notes), tuple(evidence))
+
+
+def _standard_validity(
+    levels: Sequence[Sequence[TubeAssignment]],
+    results: Mapping[int, TubeResult],
+) -> list[ConclusionNote]:
+    """检查用水系列的有效性：最大浓度全阳、最低浓度全阴。"""
+    notes: list[ConclusionNote] = []
+    not_positive = _all(levels[0], results, Interpretation.POSITIVE)
+    not_negative = _all(levels[-1], results, Interpretation.NEGATIVE)
+    if not_positive:
+        notes.append(
+            _note(
+                NoteCode.HIGHEST_NOT_ALL_POSITIVE,
+                level=format_quantity(levels[0][0].spiked_endotoxin or 0.0),
+                tubes=_tube_list(not_positive),
+            )
+        )
+    if not_negative:
+        notes.append(
+            _note(
+                NoteCode.LOWEST_NOT_ALL_NEGATIVE,
+                level=format_quantity(levels[-1][0].spiked_endotoxin or 0.0),
+                tubes=_tube_list(not_negative),
+            )
+        )
+    return notes
+
+
+def _check_group(
+    tubes: Sequence[TubeAssignment],
+    role: TubeRole,
+    results: Mapping[int, TubeResult],
+    expected: Interpretation,
+) -> tuple[ConclusionNote | None, ConclusionNote]:
+    """一组对照管应全阴或全阳：返回（不满足的原因或 None，依据）。"""
+    tube_text = _tube_list([t.tube_no for t in tubes])
+    wrong = _all(tubes, results, expected)
+    if expected is Interpretation.NEGATIVE:
+        basis = _note(NoteCode.GROUP_ALL_NEGATIVE, role=_role_name(role), tubes=tube_text)
+        code = NoteCode.GROUP_NOT_NEGATIVE
+    else:
+        basis = _note(NoteCode.GROUP_ALL_POSITIVE, role=_role_name(role), tubes=tube_text)
+        code = NoteCode.GROUP_ALL_POSITIVE if not wrong else NoteCode.GROUP_NOT_POSITIVE
+    problem = None if not wrong else _note(code, role=_role_name(role), tubes=_tube_list(wrong))
+    return problem, basis
+
+
+class _Builder:
+    """收集依据、前提和单管证据，最后生成结论。"""
+
+    def __init__(
+        self,
+        rule: ConclusionRule,
+        assignments: Sequence[TubeAssignment],
+        results: Mapping[int, TubeResult],
+        labeled: float | None,
+    ) -> None:
+        self.rule = rule
+        self.assignments = assignments
+        self.results = results
+        self.labeled = labeled
+        self.basis: list[ConclusionNote] = []
+        self.evidence: dict[int, TubeEvidence] = {}
+
+    def add_evidence(self, items: Sequence[TubeEvidence]) -> None:
+        for item in items:
+            self.evidence[item.tube_no] = item
+
+    def done(
+        self,
+        verdict: ConclusionVerdict,
+        unmet: Sequence[ConclusionNote] = (),
+        value: float | None = None,
+    ) -> ExperimentConclusion:
+        tubes = {a.tube_no: _evidence(a, self.results.get(a.tube_no)) for a in self.assignments}
+        tubes.update(self.evidence)
+        return ExperimentConclusion(
+            experiment_type=self.rule.experiment_type,
+            verdict=verdict,
+            value=value,
+            basis=tuple(self.basis),
+            unmet=tuple(unmet),
+            rule_version=self.rule.version,
+            rule_source=self.rule.source,
+            rule_verdict_enabled=self.rule.verdict_enabled,
+            labeled_sensitivity=self.labeled,
+            tubes=tuple(tubes[no] for no in sorted(tubes)),
+        )
+
+
+def _common_prerequisites(
+    build: _Builder,
+    layout_confirmed: bool,
+    roles: Sequence[TubeRole],
+    *,
+    needs_lambda: bool,
+) -> list[ConclusionNote]:
+    """布局、λ、必需的用途组和单管结果是否齐全。"""
+    problem = _layout_problem(build.assignments, layout_confirmed)
+    if problem is not None:
+        return [problem]
+    if needs_lambda and build.labeled is None:
+        return [_note(NoteCode.LAMBDA_MISSING)]
+    missing = [
+        _note(NoteCode.GROUP_MISSING, role=_role_name(role))
+        for role in roles
+        if not _group(build.assignments, role)
+    ]
+    if missing:
+        return missing
+    return _result_problems(build.assignments, build.results)
+
+
+def _evaluate_interference(
     assignments: Sequence[TubeAssignment],
     results: Mapping[int, TubeResult],
     labeled: float | None,
     layout_confirmed: bool,
 ) -> ExperimentConclusion:
-    """规则未经 QA 核对的试验：只汇总明确标记了用途的管，结论恒为待定。"""
-    marked = [a for a in assignments if a.role is not TubeRole.UNCONFIRMED]
-    unmet: list[ConclusionNote] = []
-    problem = _layout_problem(assignments, layout_confirmed)
-    if problem is not None:
-        unmet.append(problem)
-    unmet.extend(_result_problems(marked, results))
-    unmet.append(_note(NoteCode.RULE_PENDING_QA))
-    basis: list[ConclusionNote] = []
-    for role in sorted({a.role for a in marked}, key=lambda r: r.value):
-        group = [a for a in marked if a.role is role]
-        finals = [_final(results.get(a.tube_no)) for a in group]
-        positive = sum(f is Interpretation.POSITIVE for f in finals)
-        negative = sum(f is Interpretation.NEGATIVE for f in finals)
-        basis.append(
+    build = _Builder(INTERFERENCE_RULE, assignments, results, labeled)
+    roles = (TubeRole.SAMPLE, TubeRole.SAMPLE_SERIES, TubeRole.TEST, TubeRole.NEGATIVE_CONTROL)
+    unmet = _common_prerequisites(build, layout_confirmed, roles, needs_lambda=True)
+    if unmet:
+        return build.done(ConclusionVerdict.PENDING, unmet)
+    assert labeled is not None
+    sample_levels, notes_b = _spike_levels(
+        _group(assignments, TubeRole.SAMPLE_SERIES), TubeRole.SAMPLE_SERIES, labeled
+    )
+    water_levels, notes_c = _spike_levels(
+        _group(assignments, TubeRole.TEST), TubeRole.TEST, labeled
+    )
+    if sample_levels is None or water_levels is None:
+        return build.done(ConclusionVerdict.PENDING, [*notes_b, *notes_c])
+    build.basis.append(_note(NoteCode.LAMBDA_VALUE, lam=format_quantity(labeled)))
+
+    invalid: list[ConclusionNote] = []
+    for role in (TubeRole.SAMPLE, TubeRole.NEGATIVE_CONTROL):
+        problem, basis = _check_group(
+            _group(assignments, role), role, results, Interpretation.NEGATIVE
+        )
+        build.basis.append(basis) if problem is None else invalid.append(problem)
+    water = _spike_series(water_levels, results, TubeRole.TEST)
+    build.basis.extend(water.notes)
+    build.add_evidence(water.evidence)
+    invalid.extend(_standard_validity(water_levels, results))
+    if invalid:
+        return build.done(ConclusionVerdict.INVALID, invalid)
+    if water.discontinuous:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [
+                _note(NoteCode.ROLE_SERIES_DISCONTINUOUS, role=_role_name(TubeRole.TEST), series=s)
+                for s in water.discontinuous
+            ],
+        )
+    es = _geometric_mean([e for e in water.endpoints if e is not None])
+    low, high = labeled * LAMBDA_C_MIN_RATIO, labeled * LAMBDA_C_MAX_RATIO
+    es_note = dict(value=format_quantity(es), low=format_quantity(low), high=format_quantity(high))
+    build.basis.append(_note(NoteCode.ES_VALUE, **es_note))
+    if not _within(es, low, high):
+        return build.done(ConclusionVerdict.INVALID, [_note(NoteCode.ES_OUT_OF_RANGE, **es_note)])
+
+    sample = _spike_series(sample_levels, results, TubeRole.SAMPLE_SERIES)
+    build.basis.extend(sample.notes)
+    build.add_evidence(sample.evidence)
+    if sample.discontinuous:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [
+                _note(
+                    NoteCode.ROLE_SERIES_DISCONTINUOUS,
+                    role=_role_name(TubeRole.SAMPLE_SERIES),
+                    series=s,
+                )
+                for s in sample.discontinuous
+            ],
+        )
+    no_endpoint = [i + 1 for i, e in enumerate(sample.endpoints) if e is None]
+    if no_endpoint:
+        return build.done(
+            ConclusionVerdict.FAIL,
+            [_note(NoteCode.INTERFERENCE_NO_ENDPOINT, series=s) for s in no_endpoint],
+        )
+    et = _geometric_mean([e for e in sample.endpoints if e is not None])
+    build.basis.append(
+        _note(
+            NoteCode.ET_VALUE,
+            value=format_quantity(et),
+            low=format_quantity(es * 0.5),
+            high=format_quantity(es * 2),
+        )
+    )
+    if _within(et, es * 0.5, es * 2):
+        build.basis.append(_note(NoteCode.NO_INTERFERENCE))
+        return build.done(ConclusionVerdict.PASS, value=et)
+    return build.done(ConclusionVerdict.FAIL, [_note(NoteCode.INTERFERENCE_PRESENT)], value=et)
+
+
+def _evaluate_limit(
+    assignments: Sequence[TubeAssignment],
+    results: Mapping[int, TubeResult],
+    labeled: float | None,
+    layout_confirmed: bool,
+) -> ExperimentConclusion:
+    build = _Builder(LIMIT_RULE, assignments, results, labeled)
+    roles = (
+        TubeRole.SAMPLE,
+        TubeRole.SAMPLE_POSITIVE_CONTROL,
+        TubeRole.POSITIVE_CONTROL,
+        TubeRole.NEGATIVE_CONTROL,
+    )
+    unmet = _common_prerequisites(build, layout_confirmed, roles, needs_lambda=False)
+    if unmet:
+        return build.done(ConclusionVerdict.PENDING, unmet)
+    invalid: list[ConclusionNote] = []
+    for role, expected in (
+        (TubeRole.NEGATIVE_CONTROL, Interpretation.NEGATIVE),
+        (TubeRole.SAMPLE_POSITIVE_CONTROL, Interpretation.POSITIVE),
+        (TubeRole.POSITIVE_CONTROL, Interpretation.POSITIVE),
+    ):
+        problem, basis = _check_group(_group(assignments, role), role, results, expected)
+        build.basis.append(basis) if problem is None else invalid.append(problem)
+    if invalid:
+        return build.done(ConclusionVerdict.INVALID, invalid)
+    samples = _group(assignments, TubeRole.SAMPLE)
+    tube_text = _tube_list([t.tube_no for t in samples])
+    positive = [
+        t.tube_no
+        for t in samples
+        if results[t.tube_no].final_interpretation is Interpretation.POSITIVE
+    ]
+    if not positive:
+        build.basis.append(_note(NoteCode.LIMIT_COMPLIES, tubes=tube_text))
+        return build.done(ConclusionVerdict.PASS)
+    build.basis.append(
+        _note(
+            NoteCode.ROLE_SUMMARY,
+            role=TubeRole.SAMPLE.value,
+            tubes=tube_text,
+            positive=len(positive),
+            negative=len(samples) - len(positive),
+            other=0,
+        )
+    )
+    if len(samples) == LIMIT_INITIAL_SAMPLES and len(positive) == 1:
+        return build.done(ConclusionVerdict.PENDING, [_note(NoteCode.LIMIT_RETEST)])
+    return build.done(ConclusionVerdict.FAIL, [_note(NoteCode.LIMIT_NOT_COMPLIES, tubes=tube_text)])
+
+
+def _evaluate_semi_quantitative(
+    assignments: Sequence[TubeAssignment],
+    results: Mapping[int, TubeResult],
+    labeled: float | None,
+    layout_confirmed: bool,
+    endotoxin_limit: float | None,
+) -> ExperimentConclusion:
+    build = _Builder(SEMI_QUANTITATIVE_RULE, assignments, results, labeled)
+    roles = (
+        TubeRole.SAMPLE,
+        TubeRole.SAMPLE_POSITIVE_CONTROL,
+        TubeRole.TEST,
+        TubeRole.NEGATIVE_CONTROL,
+    )
+    unmet = _common_prerequisites(build, layout_confirmed, roles, needs_lambda=True)
+    if unmet:
+        return build.done(ConclusionVerdict.PENDING, unmet)
+    assert labeled is not None
+    samples = _group(assignments, TubeRole.SAMPLE)
+    no_dilution = [t.tube_no for t in samples if not t.dilution_factor]
+    if no_dilution:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [_note(NoteCode.DILUTION_MISSING, tubes=_tube_list(no_dilution))],
+        )
+    by_dilution: dict[float, list[TubeAssignment]] = {}
+    for tube in samples:
+        assert tube.dilution_factor is not None
+        by_dilution.setdefault(tube.dilution_factor, []).append(tube)
+    dilutions = sorted(by_dilution)
+    counts = [len(by_dilution[d]) for d in dilutions]
+    water_levels, notes_c = _spike_levels(
+        _group(assignments, TubeRole.TEST), TubeRole.TEST, labeled
+    )
+    layout_notes = list(notes_c)
+    if len(set(counts)) != 1:
+        layout_notes.append(
             _note(
-                NoteCode.ROLE_SUMMARY,
-                role=role.value,
-                tubes=_tube_list([a.tube_no for a in group]),
-                positive=positive,
-                negative=negative,
-                other=len(group) - positive - negative,
+                NoteCode.LEVEL_COUNT_UNEVEN,
+                role=TubeRole.SAMPLE.value,
+                counts="、".join(
+                    f"{d:g} 倍 {c} 管" for d, c in zip(dilutions, counts, strict=True)
+                ),
             )
         )
-    return ExperimentConclusion(
-        experiment_type=rule.experiment_type,
-        verdict=ConclusionVerdict.PENDING,
-        value=None,
-        basis=tuple(basis),
-        unmet=tuple(unmet),
-        rule_version=rule.version,
-        rule_source=rule.source,
-        rule_verdict_enabled=rule.verdict_enabled,
-        labeled_sensitivity=labeled,
-        tubes=tuple(_evidence(a, results.get(a.tube_no)) for a in marked),
-    )
+    if water_levels is None or layout_notes:
+        return build.done(ConclusionVerdict.PENDING, layout_notes)
+    build.basis.append(_note(NoteCode.LAMBDA_VALUE, lam=format_quantity(labeled)))
+
+    invalid: list[ConclusionNote] = []
+    for role, expected in (
+        (TubeRole.NEGATIVE_CONTROL, Interpretation.NEGATIVE),
+        (TubeRole.SAMPLE_POSITIVE_CONTROL, Interpretation.POSITIVE),
+    ):
+        problem, basis = _check_group(_group(assignments, role), role, results, expected)
+        build.basis.append(basis) if problem is None else invalid.append(problem)
+    water = _spike_series(water_levels, results, TubeRole.TEST)
+    build.basis.extend(water.notes)
+    build.add_evidence(water.evidence)
+    invalid.extend(_standard_validity(water_levels, results))
+    if invalid:
+        return build.done(ConclusionVerdict.INVALID, invalid)
+    if water.discontinuous:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [
+                _note(NoteCode.ROLE_SERIES_DISCONTINUOUS, role=_role_name(TubeRole.TEST), series=s)
+                for s in water.discontinuous
+            ],
+        )
+    es = _geometric_mean([e for e in water.endpoints if e is not None])
+    low, high = labeled * LAMBDA_C_MIN_RATIO, labeled * LAMBDA_C_MAX_RATIO
+    es_note = dict(value=format_quantity(es), low=format_quantity(low), high=format_quantity(high))
+    build.basis.append(_note(NoteCode.ES_VALUE, **es_note))
+    if not _within(es, low, high):
+        return build.done(ConclusionVerdict.INVALID, [_note(NoteCode.ES_OUT_OF_RANGE, **es_note)])
+
+    # 供试品系列：每个稀释度内按管号排第 k 支的组成第 k 个系列
+    exact: list[float] = []
+    below: dict[int, float] = {}
+    above: dict[int, float] = {}
+    discontinuous: list[int] = []
+    for index in range(counts[0]):
+        series = index + 1
+        tubes = [by_dilution[d][index] for d in dilutions]
+        readings = _readings(tubes, results)
+        build.add_evidence([_evidence(t, results[t.tube_no], series) for t in tubes])
+        tube_text = _tube_list([t.tube_no for t in tubes])
+        marks = "  ".join(
+            f"{d:g}×({_READING_MARKS.get(r, '?') if r else '?'})"
+            for d, r in zip(dilutions, readings, strict=True)
+        )
+        positive = [i for i, r in enumerate(readings) if r is Interpretation.POSITIVE]
+        if not positive:
+            bound = dilutions[0] * labeled
+            below[series] = bound
+            build.basis.append(
+                _note(
+                    NoteCode.SAMPLE_SERIES_BELOW,
+                    series=series,
+                    tubes=tube_text,
+                    value=format_quantity(bound),
+                )
+            )
+            continue
+        last = positive[-1]
+        if len(positive) != last + 1:
+            discontinuous.append(series)
+        if last == len(dilutions) - 1 and len(positive) == len(dilutions):
+            bound = dilutions[-1] * labeled
+            above[series] = bound
+            build.basis.append(
+                _note(
+                    NoteCode.SAMPLE_SERIES_ABOVE,
+                    series=series,
+                    tubes=tube_text,
+                    value=format_quantity(bound),
+                )
+            )
+            continue
+        value = dilutions[last] * labeled
+        exact.append(value)
+        build.basis.append(
+            _note(
+                NoteCode.SAMPLE_SERIES_RESULT,
+                series=series,
+                tubes=tube_text,
+                readings=marks,
+                dilution=f"{dilutions[last]:g}",
+                value=format_quantity(value),
+            )
+        )
+    if discontinuous:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [
+                _note(NoteCode.ROLE_SERIES_DISCONTINUOUS, role=TubeRole.SAMPLE.value, series=s)
+                for s in discontinuous
+            ],
+        )
+    concentration = _geometric_mean(exact) if exact and not below and not above else None
+    if concentration is not None:
+        build.basis.append(
+            _note(NoteCode.SAMPLE_CONCENTRATION, value=format_quantity(concentration))
+        )
+    if endotoxin_limit is None or endotoxin_limit <= 0:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [_note(NoteCode.ENDOTOXIN_LIMIT_MISSING)],
+            value=concentration,
+        )
+    limit_text = format_quantity(endotoxin_limit)
+    failed: list[int] = []
+    undetermined: list[int] = []
+    exact_by_series = {
+        s: v
+        for s, v in zip(
+            [i + 1 for i in range(counts[0]) if i + 1 not in below and i + 1 not in above],
+            exact,
+            strict=True,
+        )
+    }
+    for series in range(1, counts[0] + 1):
+        if series in below:
+            if below[series] > endotoxin_limit * (1 + _REL_TOLERANCE):
+                undetermined.append(series)
+        elif series in above:
+            if above[series] >= endotoxin_limit * (1 - _REL_TOLERANCE):
+                failed.append(series)
+            else:
+                undetermined.append(series)
+        elif exact_by_series[series] >= endotoxin_limit * (1 - _REL_TOLERANCE):
+            failed.append(series)
+    if failed:
+        return build.done(
+            ConclusionVerdict.FAIL,
+            [
+                _note(NoteCode.CONCENTRATION_NOT_BELOW_LIMIT, series=s, limit=limit_text)
+                for s in failed
+            ],
+            value=concentration,
+        )
+    if undetermined:
+        return build.done(
+            ConclusionVerdict.PENDING,
+            [
+                _note(NoteCode.CONCENTRATION_UNDETERMINED, series=s, limit=limit_text)
+                for s in undetermined
+            ],
+            value=concentration,
+        )
+    build.basis.append(_note(NoteCode.CONCENTRATION_BELOW_LIMIT, limit=limit_text))
+    return build.done(ConclusionVerdict.PASS, value=concentration)
 
 
 def evaluate_conclusion(
@@ -736,6 +1355,7 @@ def evaluate_conclusion(
     labeled_sensitivity: float | None,
     *,
     layout_confirmed: bool,
+    endotoxin_limit: float | None = None,
 ) -> ExperimentConclusion:
     """由单管结果计算结论。
 
@@ -744,15 +1364,21 @@ def evaluate_conclusion(
         assignments: 试管安排。
         results: 单管结果，按管号索引。
         labeled_sensitivity: 标示灵敏度 λ。
-        layout_confirmed: 模板布局是否已确认。
+        layout_confirmed: 模板布局是否完整（旧数据可能为 False）。
+        endotoxin_limit: 内毒素限值（EU/mL），半定量试验用。
 
     Returns:
         结论，``computed_at`` 为 None。有管缺结果或待复核时一定是待定。
     """
-    rule = RULES[experiment_type]
     if experiment_type is ExperimentType.SENSITIVITY_CONFIRMATION:
         return _evaluate_sensitivity(assignments, results, labeled_sensitivity, layout_confirmed)
-    return _evaluate_pending_rule(rule, assignments, results, labeled_sensitivity, layout_confirmed)
+    if experiment_type is ExperimentType.INTERFERENCE:
+        return _evaluate_interference(assignments, results, labeled_sensitivity, layout_confirmed)
+    if experiment_type is ExperimentType.LIMIT:
+        return _evaluate_limit(assignments, results, labeled_sensitivity, layout_confirmed)
+    return _evaluate_semi_quantitative(
+        assignments, results, labeled_sensitivity, layout_confirmed, endotoxin_limit
+    )
 
 
 def conclude_experiment(experiment: Experiment) -> ExperimentConclusion:
@@ -770,6 +1396,7 @@ def conclude_experiment(experiment: Experiment) -> ExperimentConclusion:
         experiment.results,
         labeled_sensitivity_of(experiment),
         layout_confirmed=experiment.layout_confirmed,
+        endotoxin_limit=experiment.endotoxin_limit,
     )
 
 

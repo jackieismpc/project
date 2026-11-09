@@ -97,14 +97,14 @@ def test_results_workbook_has_conclusion_lambda_c_features_and_review(
     assert stored is not None and stored.conclusion is not None
     target = tmp_path / "out" / "结果.xlsx"
     summary = exports.export_results(stack.login("analyst"), ["EXP-X-0001"], target)
-    assert summary.path == target and summary.rows == 17 and target.is_file()
+    assert summary.path == target and summary.rows == 18 and target.is_file()
     assert not list(target.parent.glob(".export-*"))  # 临时文件已清理
 
     book = load_workbook(target)
     assert book.sheetnames == ["试验", "单管结果", "结论依据"]
     head = [c.value for c in book["试验"][1]]
     row = dict(zip(head, [c.value for c in book["试验"][2]], strict=True))
-    assert row["试验编号"] == "EXP-X-0001" and row["管数"] == 17
+    assert row["试验编号"] == "EXP-X-0001" and row["管数"] == 18
     assert row["结论"] == stored.conclusion.verdict.value
     assert row["结论数值"] == pytest.approx(stored.conclusion.value)  # λc
     assert row["实测灵敏度 λc（EU/mL）"] == pytest.approx(stored.measured_sensitivity)
@@ -115,7 +115,7 @@ def test_results_workbook_has_conclusion_lambda_c_features_and_review(
     tubes = book["单管结果"]
     columns = [c.value for c in tubes[1]]
     first = dict(zip(columns, [c.value for c in tubes[2]], strict=True))
-    assert tubes.max_row == 18
+    assert tubes.max_row == 19
     for needed in ("管号", "排", "样品名称", "最终判读", "复核状态", "复核人", "复核备注",
                    "面积变化率 ΔA（%）", "轴向偏移 Δs", "模型版本", "配置版本"):  # fmt: skip
         assert needed in columns
@@ -137,7 +137,7 @@ def test_every_user_text_is_neutralised_in_the_file(
     exports.export_results(stack.login("admin"), ["EXP-X-0001"], target)
     sheet = load_workbook(target)["单管结果"]
     names = [row[3] for row in sheet.iter_rows(min_row=2)]
-    assert len(names) == 17
+    assert len(names) == 18
     for cell in names:
         assert cell.data_type == "s", cell.value  # 绝不是公式
         assert str(cell.value).startswith("'") or not str(cell.value).startswith(
@@ -235,7 +235,7 @@ def test_export_permissions_and_audit(stack: Stack, exports: ExportService, tmp_
     exports.export_results(analyst, ["EXP-X-0001"], tmp_path / "ok.xlsx")
     exports.export_audit(stack.login("admin"), AuditFilter(), tmp_path / "ok2.xlsx")
     lines = stack.audit(AuditAction.DATA_EXPORTED)
-    assert any("导出试验结果到 Excel：1 个试验，17 管" in line for line in lines)
+    assert any("导出试验结果到 Excel：1 个试验，18 管" in line for line in lines)
     assert any("导出审计追踪到 Excel" in line for line in lines)
 
 

@@ -135,7 +135,7 @@ def test_conclusion_is_shown_again_after_a_restart(
     first = open_context(tmp_path, conclusions=True)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 18)))
+        session, request_for_tubes(list(range(1, 19)))
     )
     first.experiments.start_experiment(session, experiment_id)
     wait_finished(qapp, first)
@@ -234,7 +234,7 @@ def repair_analyzer(context: AppContext) -> None:
 def fail_row_analysis(qapp: QApplication, window: MainWindow, context: AppContext) -> MonitorPage:
     """用算法整体故障跑完一排：全部读完后试验转异常，等待重试。"""
     break_analyzer(context)
-    monitor = start_sensitivity(qapp, window, tubes=range(1, 18))
+    monitor = start_sensitivity(qapp, window, tubes=range(1, 19))
     assert wait_for(
         qapp,
         lambda: (s := context.engine.snapshot()) is not None and s.state is ExperimentState.FAULTED,
@@ -340,7 +340,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
     break_analyzer(first)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 18)))
+        session, request_for_tubes(list(range(1, 19)))
     )
     first.experiments.start_experiment(session, experiment_id)
     assert wait_for(
@@ -384,7 +384,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
         )
         assert second.engine.wait(30.0)
         stored = second.database.experiments.get(experiment_id)
-        assert stored is not None and set(stored.results) == set(range(1, 18))
+        assert stored is not None and set(stored.results) == set(range(1, 19))
         assert wait_for(qapp, lambda: monitor.retry_button.isHidden(), 10.0)
     finally:
         close_window(qapp, window)
@@ -417,10 +417,10 @@ def test_wizard_shows_spikes_calculated_from_lambda(qapp: QApplication, window: 
     # 由 λ 算出的列不能手工改
     assert not table.cell_item(0, 3).flags() & Qt.ItemFlag.ItemIsEditable
     assert table.cell_item(0, 1).flags() & Qt.ItemFlag.ItemIsEditable
-    select_tubes(qapp, page, range(1, 18))
+    select_tubes(qapp, page, range(1, 19))
     click(qapp, page.sample_next)
     summary = page.summary_table
-    assert summary.row_count() == 17
+    assert summary.row_count() == 18
     model = summary.view.model()
     assert model.index(0, 3).data() == "0.5"
     assert model.index(12, 3).data() == "0.0625"

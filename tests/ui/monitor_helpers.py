@@ -72,6 +72,7 @@ def open_window(app: QApplication, context: AppContext, language: LanguageManage
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
+        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.resize(1280, 800)
@@ -131,10 +132,10 @@ def live_window(
 def start_sensitivity(
     app: QApplication,
     window: MainWindow,
-    tubes: range = range(1, 18),
+    tubes: range = range(1, 19),
     template: str = "灵敏度复核 (2λ:1)",
 ) -> MonitorPage:
-    """以实验员身份走完向导并启动试验（默认灵敏度复核 17 管），返回监控页。"""
+    """以实验员身份走完向导并启动试验（默认灵敏度复核 18 管），返回监控页。"""
     page = open_wizard(app, window, "experimenter")
     choose_template(app, page, template)
     click(app, page.template_next)

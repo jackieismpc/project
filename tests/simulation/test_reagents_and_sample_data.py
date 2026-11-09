@@ -123,11 +123,11 @@ def test_sensitivity_sample_data() -> None:
 
 def test_sensitivity_experiment_matches_template_and_reagents_pass() -> None:
     experiment = sensitivity_experiment()
-    assert len(experiment.assignments) == 17
+    assert len(experiment.assignments) == 18
     assert check_reagents(experiment.reagents, SAMPLE_DATE).passed
     scenario = sensitivity_scenario()
     assert scenario.state_for(7) is GelState.PARTIALLY_GELLED
-    assert scenario.state_for(18) is None
+    assert scenario.state_for(19) is None
 
 
 # ----- 隔离 -----

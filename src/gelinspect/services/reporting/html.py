@@ -63,12 +63,13 @@ _VERDICT_SOURCES = {
     ConclusionVerdict.PENDING: str(QT_TRANSLATE_NOOP("Conclusion", "待定")),
 }
 _ROLE_SOURCES = {
-    TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "试验管")),
+    TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "内毒素标准系列")),
     TubeRole.NEGATIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "阴性对照")),
     TubeRole.SAMPLE: str(QT_TRANSLATE_NOOP("TubeRole", "供试品")),
     TubeRole.POSITIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "阳性对照")),
     TubeRole.SAMPLE_POSITIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "供试品阳性对照")),
-    TubeRole.UNCONFIRMED: str(QT_TRANSLATE_NOOP("TubeRole", "用途待确认")),
+    TubeRole.SAMPLE_SERIES: str(QT_TRANSLATE_NOOP("TubeRole", "供试品内毒素系列")),
+    TubeRole.UNCONFIRMED: str(QT_TRANSLATE_NOOP("TubeRole", "未指定")),
 }
 
 

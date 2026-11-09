@@ -1,4 +1,4 @@
-"""试验结论规则：手算对照表、有效性、边界、不连续、待复核、四类未确认模板。"""
+"""试验结论规则：灵敏度复核手算对照表、有效性、边界、不连续、待复核，以及干扰、限度、半定量。"""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ P, N, R = Interpretation.POSITIVE, Interpretation.NEGATIVE, Interpretation.PENDI
 
 
 def assignments(labeled: float) -> list[TubeAssignment]:
-    """内置模板的 17 管：每档 4 管，管号竖向，17 号阴性对照。"""
+    """内置模板的 18 管：每档 4 管，17、18 号阴性对照。"""
     template = BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION]
     return [
         TubeAssignment(
@@ -82,6 +82,7 @@ def results_for(series: Sequence[str], control: Interpretation = N) -> dict[int,
             tube_no = level * 4 + index + 1
             table[tube_no] = result(tube_no, marks[mark])
     table[17] = result(17, control)
+    table[18] = result(18, control)
     return table
 
 
@@ -139,7 +140,7 @@ def test_basis_lists_the_calculation_and_the_tubes() -> None:
     assert "2λ(+)  1λ(−)  0.5λ(−)  0.25λ(−)，终点 1 EU/mL（2λ）" in text
     assert "antilg" in text and "0.5946" in text
     assert "0.25–1" in text
-    assert {t.tube_no for t in conclusion.tubes} == set(range(1, 18))
+    assert {t.tube_no for t in conclusion.tubes} == set(range(1, 19))
     assert next(t for t in conclusion.tubes if t.tube_no == 6).series == 2
     assert next(t for t in conclusion.tubes if t.tube_no == 17).series is None
 
@@ -229,7 +230,7 @@ def test_invalid_never_passes_and_has_no_value(
 def test_invalid_reasons_name_the_tubes() -> None:
     conclusion = sensitivity(("++--", "++--", "++--", "-+--"), control=P)
     text = "\n".join(note.text for note in conclusion.unmet)
-    assert "4 号管" in text and "17 号管" in text
+    assert "4 号管" in text and "17、18 号管" in text
 
 
 # ---------------------------------------------------------------- 不连续
@@ -327,9 +328,9 @@ def test_spikes_that_do_not_match_lambda_are_pending() -> None:
 
 
 def test_missing_negative_control_is_pending() -> None:
-    tubes = assignments(0.5)[:-1]
+    tubes = assignments(0.5)[:-2]
     table = results_for(("++--",) * 4)
-    del table[17]
+    del table[17], table[18]
     conclusion = evaluate_conclusion(
         ExperimentType.SENSITIVITY_CONFIRMATION, tubes, table, 0.5, layout_confirmed=True
     )
@@ -398,85 +399,273 @@ def test_sensitivity_with_unmarked_roles_is_pending() -> None:
     assert conclusion.unmet[0].code is NoteCode.LAYOUT_ROLES_UNMARKED
 
 
-# ---------------------------------------------------------------- 四类未确认模板
-
-UNCONFIRMED_TYPES = [
-    ExperimentType.INTERFERENCE,
-    ExperimentType.SEMI_QUANTITATIVE,
-    ExperimentType.LIMIT,
-]
+# ------------------------------------------------------- 干扰、限度、半定量（药典通则 1143）
 
 
-def unconfirmed_tubes(kind: ExperimentType) -> list[TubeAssignment]:
+def builtin_tubes(kind: ExperimentType, labeled: float = 0.5) -> list[TubeAssignment]:
+    template = BUILTIN_TEMPLATES[kind]
     return [
-        TubeAssignment(item.tube_no, Sample(f"S{item.tube_no}", item.sample_name), item.role)
-        for item in BUILTIN_TEMPLATES[kind].items
+        TubeAssignment(
+            tube_no=item.tube_no,
+            sample=Sample(f"S{item.tube_no}", item.sample_name),
+            role=item.role,
+            dilution_factor=item.dilution_factor,
+            spiked_endotoxin=item.spike_for(labeled),
+        )
+        for item in template.items
     ]
 
 
-@pytest.mark.parametrize("kind", UNCONFIRMED_TYPES)
-@pytest.mark.parametrize("reading", [P, N, R])
-@pytest.mark.parametrize("confirmed", [True, False])
-def test_builtin_unconfirmed_templates_only_give_pending(
-    kind: ExperimentType, reading: Interpretation, confirmed: bool
-) -> None:
-    tubes = unconfirmed_tubes(kind)
-    table = {t.tube_no: result(t.tube_no, reading) for t in tubes}
-    conclusion = evaluate_conclusion(kind, tubes, table, 0.5, layout_confirmed=confirmed)
-    assert conclusion.verdict is ConclusionVerdict.PENDING
-    assert conclusion.value is None
-    assert conclusion.tubes == ()  # 没有标记用途的管一支都不读
-    codes = {note.code for note in conclusion.unmet}
-    assert codes & {NoteCode.LAYOUT_PRESUMED, NoteCode.LAYOUT_ROLES_UNMARKED}
-    assert NoteCode.RULE_PENDING_QA in codes
+def by_role(
+    tubes: Sequence[TubeAssignment],
+    readings: Mapping[TubeRole, Interpretation],
+    overrides: Mapping[int, Interpretation] | None = None,
+) -> dict[int, TubeResult]:
+    table = {t.tube_no: result(t.tube_no, readings[t.role]) for t in tubes}
+    for no, value in (overrides or {}).items():
+        table[no] = result(no, value)
+    return table
 
 
-@pytest.mark.parametrize("kind", UNCONFIRMED_TYPES)
+def series_readings(
+    tubes: Sequence[TubeAssignment], role: TubeRole, patterns: Sequence[str]
+) -> dict[int, Interpretation]:
+    """按浓度档（2λ、λ、λ/2、λ/4）和系列给出某一用途的读数，``patterns`` 每个系列一个四字符串。"""
+    group = sorted((t for t in tubes if t.role is role), key=lambda t: t.tube_no)
+    per_level = len(group) // 4
+    marks = {"+": P, "-": N}
+    readings: dict[int, Interpretation] = {}
+    for level in range(4):
+        for k in range(per_level):
+            readings[group[level * per_level + k].tube_no] = marks[patterns[k][level]]
+    return readings
+
+
+def interference(
+    sample_series: Sequence[str],
+    water_series: Sequence[str] = ("++--", "++--"),
+    sample: Interpretation = N,
+    control: Interpretation = N,
+) -> ExperimentConclusion:
+    tubes = builtin_tubes(ExperimentType.INTERFERENCE)
+    overrides = {
+        **series_readings(tubes, TubeRole.SAMPLE_SERIES, sample_series),
+        **series_readings(tubes, TubeRole.TEST, water_series),
+    }
+    table = by_role(
+        tubes,
+        {
+            TubeRole.SAMPLE: sample,
+            TubeRole.NEGATIVE_CONTROL: control,
+            TubeRole.SAMPLE_SERIES: N,
+            TubeRole.TEST: N,
+        },
+        overrides,
+    )
+    return evaluate_conclusion(
+        ExperimentType.INTERFERENCE, tubes, table, 0.5, layout_confirmed=True
+    )
+
+
+def test_interference_layout_follows_the_pharmacopoeia() -> None:
+    tubes = builtin_tubes(ExperimentType.INTERFERENCE)
+    roles = [t.role for t in tubes]
+    assert len(tubes) == 28
+    assert roles.count(TubeRole.SAMPLE) == 2 and roles.count(TubeRole.NEGATIVE_CONTROL) == 2
+    assert roles.count(TubeRole.SAMPLE_SERIES) == 16 and roles.count(TubeRole.TEST) == 8
+
+
+def test_no_interference_when_et_is_within_half_to_double_es() -> None:
+    conclusion = interference(("++--",) * 4)
+    assert conclusion.verdict is ConclusionVerdict.PASS
+    assert conclusion.value == pytest.approx(0.5)  # Et
+    codes = [n.code for n in conclusion.basis]
+    assert NoteCode.ES_VALUE in codes and NoteCode.NO_INTERFERENCE in codes
+
+
+def test_inhibition_is_interference() -> None:
+    conclusion = interference(("+---",) * 4)  # Et = 1 = 2Es → 边界内
+    assert conclusion.verdict is ConclusionVerdict.PASS
+    conclusion = interference(("----",) * 3 + ("+---",))
+    assert conclusion.verdict is ConclusionVerdict.FAIL
+    assert conclusion.unmet[0].code is NoteCode.INTERFERENCE_NO_ENDPOINT
+
+
+def test_enhancement_beyond_double_es_is_interference() -> None:
+    conclusion = interference(("++++",) * 4, water_series=("+---", "+---"))
+    # Es = 1，Et = 0.25 < 0.5Es
+    assert conclusion.verdict is ConclusionVerdict.FAIL
+    assert NoteCode.INTERFERENCE_PRESENT in {n.code for n in conclusion.unmet}
+
+
 @pytest.mark.parametrize(
-    "pattern",
+    ("kwargs", "code"),
     [
-        {TubeRole.SAMPLE: N, TubeRole.NEGATIVE_CONTROL: N, TubeRole.POSITIVE_CONTROL: P},
-        {TubeRole.SAMPLE: P, TubeRole.NEGATIVE_CONTROL: N, TubeRole.POSITIVE_CONTROL: P},
-        {TubeRole.SAMPLE: N, TubeRole.NEGATIVE_CONTROL: P, TubeRole.POSITIVE_CONTROL: N},
+        ({"sample": P}, NoteCode.GROUP_NOT_NEGATIVE),
+        ({"control": P}, NoteCode.GROUP_NOT_NEGATIVE),
+        ({"water_series": ("-+--", "++--")}, NoteCode.HIGHEST_NOT_ALL_POSITIVE),
+        ({"water_series": ("++++", "++--")}, NoteCode.LOWEST_NOT_ALL_NEGATIVE),
     ],
 )
-def test_even_fully_marked_layouts_stay_pending_until_qa(
-    kind: ExperimentType, pattern: Mapping[TubeRole, Interpretation]
+def test_interference_is_invalid_when_controls_fail(
+    kwargs: Mapping[str, object], code: NoteCode
 ) -> None:
-    """规则条文是凭记忆的，没有产生合格或不合格的代码路径。"""
+    conclusion = interference(("++--",) * 4, **kwargs)  # type: ignore[arg-type]
+    assert conclusion.verdict is ConclusionVerdict.INVALID
+    assert code in {n.code for n in conclusion.unmet}
+
+
+def limit(
+    sample: Sequence[Interpretation], *, retest: bool = False, **roles: Interpretation
+) -> ExperimentConclusion:
+    from gelinspect.domain.templates import LIMIT_RETEST_TEMPLATE
+
+    template = LIMIT_RETEST_TEMPLATE if retest else BUILTIN_TEMPLATES[ExperimentType.LIMIT]
     tubes = [
-        TubeAssignment(index + 1, Sample(f"S{index}", "样品"), role)
-        for index, role in enumerate(pattern)
+        TubeAssignment(
+            item.tube_no,
+            Sample(f"S{item.tube_no}", item.sample_name),
+            item.role,
+            spiked_endotoxin=item.spike_for(0.5),
+        )
+        for item in template.items
     ]
-    table = {t.tube_no: result(t.tube_no, pattern[t.role]) for t in tubes}
-    conclusion = evaluate_conclusion(kind, tubes, table, 0.5, layout_confirmed=True)
+    readings = {
+        TubeRole.SAMPLE: N,
+        TubeRole.SAMPLE_POSITIVE_CONTROL: roles.get("spc", P),
+        TubeRole.POSITIVE_CONTROL: roles.get("pc", P),
+        TubeRole.NEGATIVE_CONTROL: roles.get("nc", N),
+    }
+    samples = [t.tube_no for t in tubes if t.role is TubeRole.SAMPLE]
+    table = by_role(tubes, readings, dict(zip(samples, sample, strict=True)))
+    return evaluate_conclusion(ExperimentType.LIMIT, tubes, table, 0.5, layout_confirmed=True)
+
+
+def test_limit_layouts_follow_the_pharmacopoeia() -> None:
+    from gelinspect.domain.templates import LIMIT_RETEST_TEMPLATE
+
+    assert BUILTIN_TEMPLATES[ExperimentType.LIMIT].tube_count == 8
+    assert LIMIT_RETEST_TEMPLATE.tube_count == 10
+
+
+@pytest.mark.parametrize(
+    ("sample", "retest", "verdict"),
+    [
+        ((N, N), False, ConclusionVerdict.PASS),
+        ((P, P), False, ConclusionVerdict.FAIL),
+        ((P, N), False, ConclusionVerdict.PENDING),
+        ((N, N, N, N), True, ConclusionVerdict.PASS),
+        ((N, N, P, N), True, ConclusionVerdict.FAIL),
+    ],
+)
+def test_limit_verdicts(
+    sample: Sequence[Interpretation], retest: bool, verdict: ConclusionVerdict
+) -> None:
+    conclusion = limit(sample, retest=retest)
+    assert conclusion.verdict is verdict
+    if verdict is ConclusionVerdict.PENDING:
+        assert conclusion.unmet[0].code is NoteCode.LIMIT_RETEST
+
+
+@pytest.mark.parametrize("role", ["spc", "pc"])
+def test_limit_is_invalid_when_a_positive_control_is_negative(role: str) -> None:
+    conclusion = limit((N, N), spc=N) if role == "spc" else limit((N, N), pc=N)
+    assert conclusion.verdict is ConclusionVerdict.INVALID
+    assert conclusion.unmet[0].code is NoteCode.GROUP_NOT_POSITIVE
+
+
+def test_limit_is_invalid_when_the_negative_control_is_positive() -> None:
+    assert limit((N, N), nc=P).verdict is ConclusionVerdict.INVALID
+
+
+def semi(sample_series: Sequence[str], limit_value: float | None = 5.0) -> ExperimentConclusion:
+    """``sample_series`` 每个系列一个四字符串，依次是稀释 1、2、4、8 倍。"""
+    tubes = builtin_tubes(ExperimentType.SEMI_QUANTITATIVE)
+    samples = [t for t in tubes if t.role is TubeRole.SAMPLE]
+    overrides: dict[int, Interpretation] = {}
+    for d_index in range(4):
+        for k in range(2):
+            mark = sample_series[k][d_index]
+            overrides[samples[d_index * 2 + k].tube_no] = P if mark == "+" else N
+    overrides.update(series_readings(tubes, TubeRole.TEST, ("++--", "++--")))
+    table = by_role(
+        tubes,
+        {
+            TubeRole.SAMPLE: N,
+            TubeRole.SAMPLE_POSITIVE_CONTROL: P,
+            TubeRole.TEST: N,
+            TubeRole.NEGATIVE_CONTROL: N,
+        },
+        overrides,
+    )
+    return evaluate_conclusion(
+        ExperimentType.SEMI_QUANTITATIVE,
+        tubes,
+        table,
+        0.5,
+        layout_confirmed=True,
+        endotoxin_limit=limit_value,
+    )
+
+
+def test_semi_quantitative_layout_follows_the_pharmacopoeia() -> None:
+    tubes = builtin_tubes(ExperimentType.SEMI_QUANTITATIVE)
+    assert len(tubes) == 20
+    assert [t.dilution_factor for t in tubes if t.role is TubeRole.SAMPLE] == [
+        1, 1, 2, 2, 4, 4, 8, 8,
+    ]  # fmt: skip
+
+
+def test_semi_quantitative_concentration_and_pass() -> None:
+    conclusion = semi(("++--", "+++-"))  # 终点 2 倍、4 倍 → 1、2 EU/mL
+    assert conclusion.verdict is ConclusionVerdict.PASS
+    assert conclusion.value == pytest.approx(math.sqrt(2))
+    assert NoteCode.CONCENTRATION_BELOW_LIMIT in {n.code for n in conclusion.basis}
+
+
+def test_semi_quantitative_fails_when_a_series_reaches_the_limit() -> None:
+    conclusion = semi(("++--", "+++-"), limit_value=2.0)
+    assert conclusion.verdict is ConclusionVerdict.FAIL
+    assert conclusion.unmet[0].code is NoteCode.CONCENTRATION_NOT_BELOW_LIMIT
+
+
+def test_semi_quantitative_all_negative_is_below_lambda() -> None:
+    conclusion = semi(("----", "----"))
+    assert conclusion.verdict is ConclusionVerdict.PASS  # < 0.5 EU/mL，限值 5
+    assert conclusion.value is None
+    assert NoteCode.SAMPLE_SERIES_BELOW in {n.code for n in conclusion.basis}
+
+
+def test_semi_quantitative_all_positive_above_limit_fails_and_below_is_undetermined() -> None:
+    assert semi(("++++", "++++"), limit_value=4.0).verdict is ConclusionVerdict.FAIL
+    undetermined = semi(("++++", "++++"), limit_value=10.0)
+    assert undetermined.verdict is ConclusionVerdict.PENDING
+    assert undetermined.unmet[0].code is NoteCode.CONCENTRATION_UNDETERMINED
+
+
+def test_semi_quantitative_without_a_limit_is_pending_with_a_value() -> None:
+    conclusion = semi(("++--", "++--"), limit_value=None)
     assert conclusion.verdict is ConclusionVerdict.PENDING
-    assert NoteCode.RULE_PENDING_QA in {note.code for note in conclusion.unmet}
-    assert len(conclusion.tubes) == 3
-    summary = "\n".join(note.text for note in conclusion.basis)
-    assert "供试品" in summary and "阴性对照" in summary
+    assert conclusion.value == pytest.approx(1.0)
+    assert conclusion.unmet[0].code is NoteCode.ENDOTOXIN_LIMIT_MISSING
 
 
-def test_marked_tubes_are_read_and_unmarked_ones_are_not() -> None:
+def test_unmarked_roles_block_every_type() -> None:
     tubes = [
         TubeAssignment(1, Sample("S1", "样品"), TubeRole.SAMPLE),
         TubeAssignment(2, Sample("S2", "样品"), TubeRole.UNCONFIRMED),
     ]
     table = {1: result(1, N), 2: result(2, P)}
     conclusion = evaluate_conclusion(ExperimentType.LIMIT, tubes, table, 0.5, layout_confirmed=True)
-    assert [t.tube_no for t in conclusion.tubes] == [1]
     assert conclusion.verdict is ConclusionVerdict.PENDING
     assert conclusion.unmet[0].code is NoteCode.LAYOUT_ROLES_UNMARKED
 
 
-def test_rules_mark_every_clause_from_memory_as_pending_qa() -> None:
-    assert RULES[ExperimentType.SENSITIVITY_CONFIRMATION].verdict_enabled
-    for kind in UNCONFIRMED_TYPES:
-        rule = RULES[kind]
-        assert not rule.verdict_enabled
-        assert "通则 1143" in rule.source and "待 QA 核对" in rule.source
+def test_every_rule_gives_verdicts_and_cites_the_pharmacopoeia() -> None:
+    for rule in RULES.values():
+        assert rule.verdict_enabled
+        assert rule.source == "中国药典通则 1143"
         assert rule.clauses
-        assert all("待 QA 核对" in clause for clause in rule.clauses)
 
 
 # ---------------------------------------------------------------- 固化和存取

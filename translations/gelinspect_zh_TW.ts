@@ -607,14 +607,6 @@
         <translation>待定</translation>
     </message>
     <message>
-        <source>项目任务书；中国药典通则 1143（条文原文待 QA 逐字核对）</source>
-        <translation>專案任務書；中國藥典通則 1143（條文原文待 QA 逐字核對）</translation>
-    </message>
-    <message>
-        <source>中国药典通则 1143，待 QA 核对</source>
-        <translation>中國藥典通則 1143，待 QA 核對</translation>
-    </message>
-    <message>
         <source>标示灵敏度 λ = {lam} EU/mL</source>
         <translation>標示靈敏度 λ = {lam} EU/mL</translation>
     </message>
@@ -643,20 +635,24 @@
         <translation>{role}（{tubes} 號管）：陽性 {positive}，陰性 {negative}，待定 {other}</translation>
     </message>
     <message>
-        <source>模板布局待确认：没有安排试管</source>
-        <translation>範本佈局待確認：沒有安排試管</translation>
+        <source>中国药典通则 1143</source>
+        <translation>中國藥典通則 1143</translation>
     </message>
     <message>
-        <source>模板布局待确认：模板标记为推定布局，等待 QA 确认</source>
-        <translation>範本佈局待確認：範本標記為推定佈局，等待 QA 確認</translation>
+        <source>没有安排试管</source>
+        <translation>沒有安排試管</translation>
     </message>
     <message>
-        <source>模板布局待确认：{tubes} 号管没有标记用途</source>
-        <translation>範本佈局待確認：{tubes} 號管沒有標記用途</translation>
+        <source>试验使用的旧模板没有标明每管用途，不能判定</source>
+        <translation>試驗使用的舊範本沒有標明每管用途，不能判定</translation>
     </message>
     <message>
-        <source>判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格</source>
-        <translation>判定規則待 QA 核對（中國藥典通則 1143），不給出合格或不合格</translation>
+        <source>{tubes} 号管没有指定用途</source>
+        <translation>{tubes} 號管沒有指定用途</translation>
+    </message>
+    <message>
+        <source>旧版本软件没有这类试验的判定规则，不给出合格或不合格</source>
+        <translation>舊版本軟體沒有這類試驗的判定規則，不給出合格或不合格</translation>
     </message>
     <message>
         <source>{tubes} 号管还没有结果</source>
@@ -699,8 +695,116 @@
         <translation>陰性對照不是陰性（{tubes} 號管）</translation>
     </message>
     <message>
-        <source>第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考</source>
-        <translation>第 {series} 系列不連續（陰性之後又出現陽性），需 QA 判定；上面的 λc 只作參考</translation>
+        <source>第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考</source>
+        <translation>第 {series} 系列不連續（陰性之後又出現陽性），需人工判定；上面的 λc 只作參考</translation>
+    </message>
+    <message>
+        <source>模板没有标记{role}</source>
+        <translation>範本沒有標記{role}</translation>
+    </message>
+    <message>
+        <source>{role}不是全部阴性（{tubes} 号管）</source>
+        <translation>{role}不是全部陰性（{tubes} 號管）</translation>
+    </message>
+    <message>
+        <source>{role}不是全部阳性（{tubes} 号管）</source>
+        <translation>{role}不是全部陽性（{tubes} 號管）</translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：全部阴性</source>
+        <translation>{role}（{tubes} 號管）：全部陰性</translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：全部阳性</source>
+        <translation>{role}（{tubes} 號管）：全部陽性</translation>
+    </message>
+    <message>
+        <source>{role}：各浓度或稀释度的管数应相同，实际为 {counts}</source>
+        <translation>{role}：各濃度或稀釋度的管數應相同，實際為 {counts}</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL</source>
+        <translation>{role}第 {series} 系列（{tubes} 號管）：{readings}，終點 {endpoint} EU/mL</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性</source>
+        <translation>{role}第 {series} 系列（{tubes} 號管）：{readings}，沒有陽性</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定</source>
+        <translation>{role}第 {series} 系列不連續（陰性之後又出現陽性），需人工判定</translation>
+    </message>
+    <message>
+        <source>Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内</source>
+        <translation>Es = antilg(mean(lg 終點)) ≈ {value} EU/mL，應在 0.5λ–2λ（{low}–{high} EU/mL）內</translation>
+    </message>
+    <message>
+        <source>Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
+        <translation>Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</translation>
+    </message>
+    <message>
+        <source>Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）</source>
+        <translation>Et = antilg(mean(lg 終點)) ≈ {value} EU/mL，判定範圍 0.5Es–2Es（{low}–{high} EU/mL）</translation>
+    </message>
+    <message>
+        <source>Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用</source>
+        <translation>Et 在 0.5Es–2Es 內：供試品在該濃度下無干擾作用</translation>
+    </message>
+    <message>
+        <source>Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用</source>
+        <translation>Et 超出 0.5Es–2Es：供試品在該濃度下存在干擾作用</translation>
+    </message>
+    <message>
+        <source>供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用</source>
+        <translation>供試品內毒素系列第 {series} 系列沒有陽性，無法計算 Et：供試品在該濃度下存在干擾作用</translation>
+    </message>
+    <message>
+        <source>供试品（{tubes} 号管）全部阴性：符合规定</source>
+        <translation>供試品（{tubes} 號管）全部陰性：符合規定</translation>
+    </message>
+    <message>
+        <source>供试品（{tubes} 号管）有阳性：不符合规定</source>
+        <translation>供試品（{tubes} 號管）有陽性：不符合規定</translation>
+    </message>
+    <message>
+        <source>供试品两管一阳一阴，需用“限度试验（复试）”模板复试</source>
+        <translation>供試品兩管一陽一陰，需用“限度試驗（複試）”範本複試</translation>
+    </message>
+    <message>
+        <source>供试品 {tubes} 号管没有稀释倍数</source>
+        <translation>供試品 {tubes} 號管沒有稀釋倍數</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，浓度 {value} EU/mL</source>
+        <translation>供試品第 {series} 系列（{tubes} 號管）：{readings}，終點稀釋 {dilution} 倍，濃度 {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 &lt; {value} EU/mL</source>
+        <translation>供試品第 {series} 系列（{tubes} 號管）：全部陰性，濃度 &lt; {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL</source>
+        <translation>供試品第 {series} 系列（{tubes} 號管）：全部陽性，濃度 ≥ {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL</source>
+        <translation>供試品內毒素濃度 = antilg(mean(lg 各系列濃度)) ≈ {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>没有录入内毒素限值，无法判定是否符合规定</source>
+        <translation>沒有輸入內毒素限值，無法判定是否符合規定</translation>
+    </message>
+    <message>
+        <source>各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定</source>
+        <translation>各系列濃度均小於內毒素限值 {limit} EU/mL：符合規定</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定</source>
+        <translation>第 {series} 系列濃度不小於內毒素限值 {limit} EU/mL：不符合規定</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验</source>
+        <translation>第 {series} 系列無法與內毒素限值 {limit} EU/mL 比較，需調整稀釋倍數後重新試驗</translation>
     </message>
     <message>
         <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
@@ -2080,8 +2184,8 @@
         <translation>選擇檢測範本</translation>
     </message>
     <message>
-        <source>模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。</source>
-        <translation>範本決定試管數量和每管的樣品、外加內毒素。標“佈局待確認”的範本仍可使用。</translation>
+        <source>模板决定试管数量和每管的用途、样品、稀释倍数和外加内毒素。</source>
+        <translation>範本決定試管數量和每管的用途、樣品、稀釋倍數和外加內毒素。</translation>
     </message>
     <message>
         <source>还没有可用的模板</source>
@@ -4324,6 +4428,26 @@
         <source>阴性对照</source>
         <translation>陰性對照</translation>
     </message>
+    <message>
+        <source>阳性对照</source>
+        <translation>陽性對照</translation>
+    </message>
+    <message>
+        <source>供试品</source>
+        <translation>供試品</translation>
+    </message>
+    <message>
+        <source>供试品阳性对照</source>
+        <translation>供試品陽性對照</translation>
+    </message>
+    <message>
+        <source>内毒素标准系列</source>
+        <translation>內毒素標準系列</translation>
+    </message>
+    <message>
+        <source>供试品内毒素系列</source>
+        <translation>供試品內毒素系列</translation>
+    </message>
 </context>
 <context>
     <name>TemplateOption</name>
@@ -4338,14 +4462,6 @@
     <message>
         <source>{type} · {count} 管 · {source}</source>
         <translation>{type} · {count} 管 · {source}</translation>
-    </message>
-    <message>
-        <source>布局待确认</source>
-        <translation>佈局待確認</translation>
-    </message>
-    <message>
-        <source>，布局待确认</source>
-        <translation>，佈局待確認</translation>
     </message>
     <message>
         <source>模板 {name}，{count} 管</source>
@@ -4369,10 +4485,6 @@
     <message>
         <source>来源</source>
         <translation>來源</translation>
-    </message>
-    <message>
-        <source>状态</source>
-        <translation>狀態</translation>
     </message>
     <message>
         <source>管号</source>
@@ -4413,10 +4525,6 @@
     <message>
         <source>自定义</source>
         <translation>自訂</translation>
-    </message>
-    <message>
-        <source>布局待确认</source>
-        <translation>佈局待確認</translation>
     </message>
     <message>
         <source>还没有模板</source>
@@ -4741,8 +4849,8 @@
 <context>
     <name>TubeRole</name>
     <message>
-        <source>试验管</source>
-        <translation>試驗管</translation>
+        <source>内毒素标准系列</source>
+        <translation>內毒素標準系列</translation>
     </message>
     <message>
         <source>阴性对照</source>
@@ -4761,8 +4869,12 @@
         <translation>供試品陽性對照</translation>
     </message>
     <message>
-        <source>用途待确认</source>
-        <translation>用途待確認</translation>
+        <source>供试品内毒素系列</source>
+        <translation>供試品內毒素系列</translation>
+    </message>
+    <message>
+        <source>未指定</source>
+        <translation>未指定</translation>
     </message>
 </context>
 <context>

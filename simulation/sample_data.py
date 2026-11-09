@@ -1,7 +1,7 @@
 """示例试验数据：灵敏度复核（2λ:1）。
 
-17 支试管，λ=0.5 时外加内毒素列为 1 / 0.5 / 0.25 / 0.125 各 4 管加 1 支 0（阴性对照）。
-状态：1–6 号完全凝固（阳性），7 号部分凝固（待复核），8 号及 9–17 号未凝固（阴性）。
+18 支试管，λ=0.5 时外加内毒素列为 1 / 0.5 / 0.25 / 0.125 各 4 管加 2 支 0（阴性对照）。
+状态：1–6 号完全凝固（阳性），7 号部分凝固（待复核），8 号及 9–18 号未凝固（阴性）。
 7 号复核为阳性时，4 个系列的终点是 0.5、0.5、0.5、1，λc≈0.59。
 """
 
@@ -23,7 +23,7 @@ SENSITIVITY_STATES: Mapping[int, GelState] = MappingProxyType(
     {
         **dict.fromkeys(range(1, 7), GelState.FULLY_GELLED),
         7: GelState.PARTIALLY_GELLED,
-        **dict.fromkeys(range(8, 18), GelState.NOT_GELLED),
+        **dict.fromkeys(range(8, 19), GelState.NOT_GELLED),
     }
 )
 """灵敏度复核示例中每支试管的真实状态。"""
@@ -42,11 +42,11 @@ SENSITIVITY_ENDOTOXIN: Mapping[int, float] = MappingProxyType(
         for item in BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION].items
     }
 )
-"""外加内毒素列：1–4 号 1.0，5–8 号 0.5，9–12 号 0.25，13–16 号 0.125，17 号 0.0。"""
+"""外加内毒素列：1–4 号 1.0，5–8 号 0.5，9–12 号 0.25，13–16 号 0.125，17、18 号 0.0。"""
 
 
 def sensitivity_scenario(seed: int = 0) -> Scenario:
-    """灵敏度复核示例的场景：1–17 号按示例状态，其余管位没有试管。
+    """灵敏度复核示例的场景：1–18 号按示例状态，其余管位没有试管。
 
     Args:
         seed: 随机种子，决定每支试管的外观细节。

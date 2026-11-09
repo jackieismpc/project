@@ -152,7 +152,11 @@ class TemplateEditorDialog(QDialog):
             EditColumn(
                 self.tr("用途"),
                 "choice",
-                choices=[(role.value, tube_role_label(role)) for role in TubeRole],
+                choices=[
+                    (role.value, tube_role_label(role))
+                    for role in TubeRole
+                    if role is not TubeRole.UNCONFIRMED
+                ],
             ),
         ]
 

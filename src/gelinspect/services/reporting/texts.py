@@ -121,7 +121,9 @@ class ReportTexts:
         if text is None:
             if (context, source) not in self._missing:
                 self._missing.add((context, source))
-                _log.warning("报告文字缺少译文（%s）：[%s] %s：[%s] %s", context, source)
+                _log.warning(
+                    "报告文字缺少译文（%s）：[%s] %s", self.language.value, context, source
+                )
             return source
         return text
 

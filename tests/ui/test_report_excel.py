@@ -48,7 +48,7 @@ def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(
         r for r in tubes.iter_rows(min_row=2, values_only=True) if r[header.index("复核人")]
     ]
     assert reviewed and all(r[header.index("复核备注")] == "人工判阳性" for r in reviewed)
-    assert tubes.max_row == 18  # 17 管
+    assert tubes.max_row == 19  # 18 管
     events = fast_context.database.audit.query(
         AuditQuery(action=AuditAction.DATA_EXPORTED), PageRequest()
     )

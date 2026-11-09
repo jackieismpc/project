@@ -135,7 +135,7 @@ def close_rig(rig: Rig) -> None:
 
 
 def run_experiment(rig: Rig, *, wait: bool = True, timeout_s: float = 120.0) -> str:
-    """实验员走真实向导启动灵敏度复核（17 管），可选等它跑完。
+    """实验员走真实向导启动灵敏度复核（18 管），可选等它跑完。
 
     Args:
         rig: 应用。

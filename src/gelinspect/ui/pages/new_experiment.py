@@ -95,7 +95,12 @@ class NewExperimentPage(QWidget):
     started = Signal(str)
 
     def __init__(
-        self, services: AppServices, bridge: EngineBridge, parent: QWidget | None = None
+        self,
+        services: AppServices,
+        bridge: EngineBridge,
+        parent: QWidget | None = None,
+        *,
+        demo_helpers: bool = False,
     ) -> None:
         """创建向导页。
 
@@ -103,9 +108,11 @@ class NewExperimentPage(QWidget):
             services: 界面服务。
             bridge: 引擎事件桥，用来得知启动成功或失败。
             parent: 父控件。
+            demo_helpers: 是否在试剂卡上显示示例码（启动参数 ``--demo``）。
         """
         super().__init__(parent)
         self._services = services
+        self._demo_helpers = demo_helpers
         self._session: Session | None = None
         self._draft = ExperimentDraft()
         self._templates: list[TemplateInfo] = []
@@ -390,7 +397,7 @@ class NewExperimentPage(QWidget):
         )
         self.template_card.set_title(self.tr("选择检测模板"))
         self.template_hint.setText(
-            self.tr("模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。")
+            self.tr("模板决定试管数量和每管的用途、样品、稀释倍数和外加内毒素。")
         )
         self.template_empty.setText(self.tr("还没有可用的模板"))
         self.template_next.setText(self.tr("下一步：校验试剂"))
@@ -455,7 +462,8 @@ class NewExperimentPage(QWidget):
             return
         self._load_templates()
         for kind, card in self.reagent_cards.items():
-            card.set_samples(self._services.reagents.sample_codes(kind))
+            samples = self._services.reagents.sample_codes(kind) if self._demo_helpers else []
+            card.set_samples(samples)
         self._render()
 
     def current_step(self) -> int:

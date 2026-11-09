@@ -162,12 +162,13 @@ _REAGENT_KINDS: dict[ReagentKind, str] = {
 }
 
 _TUBE_ROLES: dict[TubeRole, str] = {
-    TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "试验管")),
+    TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "内毒素标准系列")),
     TubeRole.NEGATIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "阴性对照")),
     TubeRole.SAMPLE: str(QT_TRANSLATE_NOOP("TubeRole", "供试品")),
     TubeRole.POSITIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "阳性对照")),
     TubeRole.SAMPLE_POSITIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "供试品阳性对照")),
-    TubeRole.UNCONFIRMED: str(QT_TRANSLATE_NOOP("TubeRole", "用途待确认")),
+    TubeRole.SAMPLE_SERIES: str(QT_TRANSLATE_NOOP("TubeRole", "供试品内毒素系列")),
+    TubeRole.UNCONFIRMED: str(QT_TRANSLATE_NOOP("TubeRole", "未指定")),
 }
 
 
@@ -473,10 +474,7 @@ _VERDICTS = {
     ConclusionVerdict.INVALID: str(QT_TRANSLATE_NOOP("Conclusion", "无效")),
     ConclusionVerdict.PENDING: str(QT_TRANSLATE_NOOP("Conclusion", "待定")),
 }
-_RULE_SOURCES = (
-    str(QT_TRANSLATE_NOOP("Conclusion", "项目任务书；中国药典通则 1143（条文原文待 QA 逐字核对）")),
-    str(QT_TRANSLATE_NOOP("Conclusion", "中国药典通则 1143，待 QA 核对")),
-)
+_RULE_SOURCES = (str(QT_TRANSLATE_NOOP("Conclusion", "中国药典通则 1143")),)
 _NOTE_SOURCES = (
     str(QT_TRANSLATE_NOOP("Conclusion", "标示灵敏度 λ = {lam} EU/mL")),
     str(QT_TRANSLATE_NOOP("Conclusion", "第 {series} 系列（{tubes} 号管）：{readings}")),
@@ -502,14 +500,10 @@ _NOTE_SOURCES = (
             "Conclusion", "{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}"
         )
     ),
-    str(QT_TRANSLATE_NOOP("Conclusion", "模板布局待确认：没有安排试管")),
-    str(QT_TRANSLATE_NOOP("Conclusion", "模板布局待确认：模板标记为推定布局，等待 QA 确认")),
-    str(QT_TRANSLATE_NOOP("Conclusion", "模板布局待确认：{tubes} 号管没有标记用途")),
-    str(
-        QT_TRANSLATE_NOOP(
-            "Conclusion", "判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格"
-        )
-    ),
+    str(QT_TRANSLATE_NOOP("Conclusion", "没有安排试管")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "试验使用的旧模板没有标明每管用途，不能判定")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{tubes} 号管没有指定用途")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "旧版本软件没有这类试验的判定规则，不给出合格或不合格")),
     str(QT_TRANSLATE_NOOP("Conclusion", "{tubes} 号管还没有结果")),
     str(QT_TRANSLATE_NOOP("Conclusion", "{tubes} 号管等待人工复核")),
     str(QT_TRANSLATE_NOOP("Conclusion", "没有可用的鲎试剂标示灵敏度 λ")),
@@ -543,12 +537,93 @@ _NOTE_SOURCES = (
     str(
         QT_TRANSLATE_NOOP(
             "Conclusion",
-            "第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考",
+            "第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考",
         )
     ),
     str(QT_TRANSLATE_NOOP("Conclusion", "λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）")),
     str(QT_TRANSLATE_NOOP("Conclusion", "这个试验完成时还没有结论功能，没有入库的结论")),
     str(QT_TRANSLATE_NOOP("Conclusion", "试验已停止，不产生结论")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "模板没有标记{role}")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{role}不是全部阴性（{tubes} 号管）")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{role}不是全部阳性（{tubes} 号管）")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{role}（{tubes} 号管）：全部阴性")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{role}（{tubes} 号管）：全部阳性")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "{role}：各浓度或稀释度的管数应相同，实际为 {counts}")),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL",
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性"
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定"
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内",
+        )
+    ),
+    str(QT_TRANSLATE_NOOP("Conclusion", "Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）")),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）",
+        )
+    ),
+    str(QT_TRANSLATE_NOOP("Conclusion", "Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用")),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用",
+        )
+    ),
+    str(QT_TRANSLATE_NOOP("Conclusion", "供试品（{tubes} 号管）全部阴性：符合规定")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "供试品（{tubes} 号管）有阳性：不符合规定")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "供试品两管一阳一阴，需用“限度试验（复试）”模板复试")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "供试品 {tubes} 号管没有稀释倍数")),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，浓度 {value} EU/mL",  # noqa: E501
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 < {value} EU/mL"
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL"
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL"
+        )
+    ),
+    str(QT_TRANSLATE_NOOP("Conclusion", "没有录入内毒素限值，无法判定是否符合规定")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定")),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion", "第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定"
+        )
+    ),
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验",
+        )
+    ),
 )
 """让翻译工具收集 :data:`NOTE_TEMPLATES` 的原文；测试保证它们和领域层的原文一字不差。"""
 
@@ -735,6 +810,11 @@ _BUILTIN_NAMES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("TemplateName", "半定量试验")),
     str(QT_TRANSLATE_NOOP("TemplateName", "限度试验")),
     str(QT_TRANSLATE_NOOP("TemplateName", "阴性对照")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "阳性对照")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "供试品")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "供试品阳性对照")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "内毒素标准系列")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "供试品内毒素系列")),
 )
 """内置模板的名称和默认样品名（入库的原文），显示时按语言翻译。"""
 

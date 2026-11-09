@@ -125,7 +125,7 @@ def test_history_opens_a_finished_experiment_read_only(
     # 只读：没有停止按钮、实时视频和温度，有结果、回放和图像
     assert not page.stop_button.isVisibleTo(page) and not page.temperature.isVisibleTo(page)
     assert not page.video_card.isVisibleTo(page) and page.replay_card.isVisibleTo(page)
-    assert page.table.row_count() == 17 and page.badge.text().startswith("待复核")
+    assert page.table.row_count() == 18 and page.badge.text().startswith("待复核")
     stored = fast_context.database.experiments.get(experiment_id)
     assert stored is not None
     pending = list(stored.pending_review_tubes)
@@ -156,7 +156,7 @@ def test_a_finished_experiment_can_be_reviewed_again_after_a_restart(
     first = open_context(tmp_path)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 18)))
+        session, request_for_tubes(list(range(1, 19)))
     )
     first.experiments.start_experiment(session, experiment_id)
     assert wait_for(
@@ -179,7 +179,7 @@ def test_a_finished_experiment_can_be_reviewed_again_after_a_restart(
         assert window.open_experiment(experiment_id)
         page = window.page("monitor")
         assert isinstance(page, MonitorPage)
-        assert page.read_only and page.table.row_count() == 17
+        assert page.read_only and page.table.row_count() == 18
         after = second.database.experiments.get(experiment_id)
         assert after is not None and after.state is ExperimentState.PENDING_REVIEW
         assert {n: r.auto_interpretation for n, r in after.results.items()} == {
@@ -227,10 +227,10 @@ def test_dashboard_shows_the_running_experiment_results_and_things_to_handle(
     assert wait_for(qapp, lambda: dashboard.running_state.isVisibleTo(dashboard))
     assert dashboard.running_id.text() == experiment_id
     assert dashboard.mini_plate.state(1) is WellState.INCUBATING
-    assert dashboard.mini_plate.state(17) is WellState.INCUBATING
-    assert dashboard.mini_plate.state(18) is WellState.EMPTY
+    assert dashboard.mini_plate.state(18) is WellState.INCUBATING
+    assert dashboard.mini_plate.state(19) is WellState.EMPTY
     assert dashboard.mini_plate.state(40) is WellState.EMPTY
-    assert dashboard.progress.value == 0.0 and "17 管" in dashboard.running_rows.text()
+    assert dashboard.progress.value == 0.0 and "18 管" in dashboard.running_rows.text()
     assert dashboard.recent_table.row_count() == 1
     texts = [
         dashboard.attention_box.itemAt(i).widget().text()  # type: ignore[union-attr]

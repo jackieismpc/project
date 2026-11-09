@@ -77,7 +77,7 @@ def test_monitor_shows_only_states_and_review_marks_when_off(
     assert_no_conclusion_text(monitor)
     # 每管的凝固状态、阴阳性和复核标注都在
     rows = monitor.table.model.rows
-    assert len(rows) == 17
+    assert len(rows) == 18
     cells = {v for row in rows for v in row.values() if isinstance(v, WellState)}
     assert {WellState.POSITIVE, WellState.NEGATIVE} <= cells
 

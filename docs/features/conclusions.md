@@ -2,22 +2,27 @@
 
 对应阶段：P10。代码：`src/gelinspect/domain/conclusions.py`（纯函数）、`domain/interpretation.py`（三态映射）、`domain/templates.py`（λ 倍数）；入库在 `infrastructure/db/repositories/experiments.py`、迁移 `rev_0003_conclusions.py`；界面 `ui/pages/conclusion_card.py`、`ui/pages/monitor_page.py`。
 
-## 开关：默认关闭
+## 开关：默认打开
 
-**试验结论（灵敏度 λc、合格、不合格、无效、待定）的判定规则甲方还没有确认，商用软件不能显示未确认的结论，所以默认关闭。** 算法只输出每支管的凝固状态；关闭时软件只给出每支管的凝固状态（三态）、阴阳性和复核标注。本文其余部分描述的计算代码都已写好、保留，只是由开关控制。
-
-### 打开方法
-
-配置项 `conclusions.enabled`，默认 `false`，在以下位置保持一致：`services/config.py` 的 `ConclusionsSection` 和 `DEFAULT_CONFIG`、`simulation/config.example.yaml`、`packaging/config/release.yaml`。要打开，在配置文件里写：
+四类试验的判定规则按中国药典通则 1143 实现，结论功能默认打开。配置项 `conclusions.enabled`（默认 `true`）在以下位置保持一致：`services/config.py` 的 `ConclusionsSection` 和 `DEFAULT_CONFIG`、`simulation/config.example.yaml`、`packaging/config/release.yaml`。需要关闭时在配置文件里写：
 
 ```yaml
 conclusions:
-  enabled: true
+  enabled: false
 ```
 
-发布包把这段写到数据目录下的 `config.yaml`（或 `--config` 指定的文件），重启软件生效；运行中不能切换。判定规则经甲方确认后再打开。
+### 规则概要
 
-### 关闭时（默认）
+| 试验 | 规则版本 | 有效性 | 结论 |
+|---|---|---|---|
+| 灵敏度复核（18 管） | `sensitivity-v1` | 2λ 全阳、λ/4 全阴、阴性对照全阴 | λc = antilg(mean(lg 终点))，0.5λ–2λ 合格 |
+| 干扰试验（28 管） | `interference-v1` | A 供试品、D 阴性对照全阴；C 检查用水系列 2λ 全阳、λ/4 全阴，Es 在 0.5λ–2λ | B 供试品系列 Et 在 0.5Es–2Es 为无干扰（合格），否则不合格 |
+| 限度试验（8 管 / 复试 10 管） | `limit-v1` | D 全阴，B 供试品阳性对照、C 阳性对照全阳 | 供试品全阴合格；初试全阳、复试有阳性不合格；初试一阳一阴待定（需复试） |
+| 半定量试验（20 管） | `semi-quantitative-v1` | D 全阴，B 全阳，C 的 Es 在 0.5λ–2λ | 各系列浓度 = 终点稀释倍数 × λ，都小于限值合格，任一不小于限值不合格；几何平均为供试品浓度 |
+
+系列不连续（阴性之后又阳性）、缺结果或有待复核的管时结论为待定；待定和无效不能签署。旧版本软件在“布局推定”模板下完成的试验，保留当时入库的结论，不重新计算。
+
+### 关闭时
 
 | 位置 | 行为 |
 |---|---|

@@ -23,19 +23,19 @@ def test_view_of_a_stored_experiment_is_read_only_and_complete(real_app: AppCont
     session = real_app.auth.login("analyst", PASSWORDS["analyst"])
     experimenter = real_app.auth.login("experimenter", PASSWORDS["experimenter"])
     experiment_id = real_app.experiments.create_experiment(
-        experimenter, request_for_tubes(list(range(1, 18)))
+        experimenter, request_for_tubes(list(range(1, 19)))
     )
     monitor = real_app.monitor
     view = monitor.view(session, experiment_id)
     assert view.state is ExperimentState.READY and not view.live and not view.can_stop
-    assert len(view.tubes) == 17 and [r.row_index for r in view.rows] == [1, 2, 3]
+    assert len(view.tubes) == 18 and [r.row_index for r in view.rows] == [1, 2, 3]
     assert view.reagent_batches[ReagentKind.LAL_REAGENT] == "LAL2606A"
     assert view.labeled_sensitivity == 0.25 and view.measured_sensitivity is None
     assert view.operator == "experimenter" and view.operator_name
     assert view.template_builtin and view.started_at is None
     assert all(t.status is None and t.result is None for t in view.tubes)
     assert all(r.phase is None for r in view.rows)
-    assert monitor.view(session, experiment_id).tube(18) is None
+    assert monitor.view(session, experiment_id).tube(19) is None
     with pytest.raises(ServiceError) as missing:
         monitor.view(session, "NOPE")
     assert missing.value.code is ServiceErrorCode.EXPERIMENT_NOT_FOUND
@@ -48,7 +48,7 @@ def test_live_view_shows_row_phases_start_time_and_stop_rules(real_app: AppConte
     experimenter = real_app.auth.login("experimenter", PASSWORDS["experimenter"])
     analyst = real_app.auth.login("analyst", PASSWORDS["analyst"])
     experiment_id = real_app.experiments.create_experiment(
-        experimenter, request_for_tubes(list(range(1, 18)))
+        experimenter, request_for_tubes(list(range(1, 19)))
     )
     real_app.experiments.start_experiment(experimenter, experiment_id)
     assert eventually(lambda: monitor.view(experimenter, experiment_id).live)

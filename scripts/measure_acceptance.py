@@ -7,7 +7,7 @@
 测量内容（依赖算法和样机的指标——8 支 10 秒、准确率、错判率——测不了，不在其中）：
 
 1. 环境：系统、机型、Python、Qt。
-2. 全流程：真实向导启动 17 管灵敏度复核，跑完后复核、签署、验签；再跑一次 12 排×8 支整板（96 管）。
+2. 全流程：真实向导启动 18 管灵敏度复核，跑完后复核、签署、验签；再跑一次 12 排×8 支整板（96 管）。
    运行期间用 5 ms 的心跳定时器统计界面线程被阻塞的最长时间，作为“无卡顿”的依据。
 3. 界面响应：10 万条审计加 1 万管结果的数据量下，逐页切换和切换语言的耗时。
 4. 报告：预览（版面计算）、签署（渲染加签名加入库）、验签、批量导出的耗时。
@@ -218,7 +218,7 @@ def start_and_wait(rig: support.Rig, page: NewExperimentPage) -> dict[str, objec
 
 
 def measure_flow(root: Path) -> support.Rig:
-    """17 管灵敏度复核的全流程（真实控件），再跑整板。返回仍打开的应用，供后面的测量使用。"""
+    """18 管灵敏度复核的全流程（真实控件），再跑整板。返回仍打开的应用，供后面的测量使用。"""
     rig = support.open_rig(
         root,
         incubation_minutes=0.05,
@@ -226,7 +226,7 @@ def measure_flow(root: Path) -> support.Rig:
     )
     flow: dict[str, object] = {}
     began = time.perf_counter()
-    page = prepare_wizard(rig, "灵敏度复核 (2λ:1)", range(1, 18))
+    page = prepare_wizard(rig, "灵敏度复核 (2λ:1)", range(1, 19))
     flow["wizard_s"] = round(time.perf_counter() - began, 2)
     flow.update(start_and_wait(rig, page))
     experiment_id = str(flow["experiment_id"])
@@ -243,7 +243,7 @@ def measure_flow(root: Path) -> support.Rig:
     flow["verify_ok"] = bool(verification.ok)  # type: ignore[attr-defined]
     flow["total_s"] = round(time.perf_counter() - began, 2)
     RESULTS["flow_17_tubes"] = flow
-    log(f"全流程（17 管）：{flow}")
+    log(f"全流程（18 管）：{flow}")
 
     admin = rig.context.auth.login("admin", support.DEMO_PASSWORDS["admin"])
     rig.context.templates.create_template(
@@ -393,12 +393,12 @@ def measure_reports(rig: support.Rig, tmp: Path) -> None:
     """报告：预览、签署、验签、导出。"""
     analyst = rig.context.auth.login("analyst", support.DEMO_PASSWORDS["analyst"])
     reports = rig.context.reports
-    flow17 = RESULTS["flow_17_tubes"]
+    flow18 = RESULTS["flow_17_tubes"]
     flow_full = RESULTS["flow_96_tubes"]
-    assert isinstance(flow17, dict) and isinstance(flow_full, dict)
+    assert isinstance(flow18, dict) and isinstance(flow_full, dict)
     out: dict[str, object] = {}
     for label, experiment_id in (
-        ("17 管", flow17["experiment_id"]),
+        ("18 管", flow18["experiment_id"]),
         (f"{TUBE_COUNT} 管", flow_full["experiment_id"]),
     ):
         for language in (ReportLanguage.ZH_CN, ReportLanguage.EN):
@@ -407,7 +407,7 @@ def measure_reports(rig: support.Rig, tmp: Path) -> None:
             )
             out[f"预览 {label} {language.value} (ms)"] = round(seconds * 1000, 1)
     for label, experiment_id in (
-        ("17 管", flow17["experiment_id"]),
+        ("18 管", flow18["experiment_id"]),
         (f"{TUBE_COUNT} 管", flow_full["experiment_id"]),
     ):
         preview = reports.preview(analyst, str(experiment_id), ReportLanguage.ZH_CN)
@@ -422,7 +422,7 @@ def measure_reports(rig: support.Rig, tmp: Path) -> None:
         lambda: reports.export_report_file(analyst, record.report_id, tmp / "one.pdf")
     )
     out["导出单份报告 (ms)"] = round(seconds * 1000, 1)
-    # 再签署一份英文报告：用 17 管试验的新一轮
+    # 再签署一份英文报告：用 18 管试验的新一轮
     RESULTS["reports"] = out
     log(f"报告：{out}")
 

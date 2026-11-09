@@ -28,7 +28,7 @@ def request_for_tubes(tubes: list[int]) -> NewExperimentRequest:
 
 def test_the_engine_receives_exactly_the_selected_tubes(real_app: AppContext) -> None:
     session = real_app.auth.login("experimenter", PASSWORDS["experimenter"])
-    tubes = list(range(10, 27))  # 跨 Row02–Row04
+    tubes = list(range(10, 28))  # 跨 Row02–Row04
     experiment_id = real_app.experiments.create_experiment(session, request_for_tubes(tubes))
     real_app.experiments.start_experiment(session, experiment_id)
 
@@ -61,7 +61,7 @@ def test_a_failed_start_reports_why_and_the_experiment_can_be_retried(
     assert isinstance(device, SimDevice)
     device.inject_temperature_excursion(+3.0)  # 40 ℃，超出 37±1 ℃
     experiment_id = real_app.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 18)))
+        session, request_for_tubes(list(range(1, 19)))
     )
     real_app.experiments.start_experiment(session, experiment_id)  # 立即返回，失败走引擎告警
 
@@ -86,14 +86,14 @@ def test_a_failed_start_reports_why_and_the_experiment_can_be_retried(
 
 def test_starting_while_another_experiment_runs_is_refused_clearly(real_app: AppContext) -> None:
     session = real_app.auth.login("experimenter", PASSWORDS["experimenter"])
-    first = real_app.experiments.create_experiment(session, request_for_tubes(list(range(1, 18))))
+    first = real_app.experiments.create_experiment(session, request_for_tubes(list(range(1, 19))))
     real_app.experiments.start_experiment(session, first)
     assert eventually(
         lambda: (
             (s := real_app.engine.snapshot()) is not None and s.state is ExperimentState.INCUBATING
         )
     )
-    second = real_app.experiments.create_experiment(session, request_for_tubes(list(range(1, 18))))
+    second = real_app.experiments.create_experiment(session, request_for_tubes(list(range(1, 19))))
     try:
         real_app.experiments.start_experiment(session, second)
     except ServiceError as error:
@@ -113,7 +113,7 @@ def test_reagent_locked_experiments_never_reach_the_engine(real_app: AppContext)
     session = real_app.auth.login("experimenter", PASSWORDS["experimenter"])
     log: list[EngineEvent] = []
     real_app.engine.add_listener(log.append)
-    request = request_for_tubes(list(range(1, 18)))
+    request = request_for_tubes(list(range(1, 19)))
     bad = NewExperimentRequest(
         request.template_id,
         request.assignments,

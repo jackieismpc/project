@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="显式使用默认的模拟配置（与不带参数相同）",
     )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="开发和演示用：登录页显示演示账号，试剂卡显示示例码（正式使用不要加）",
+    )
     # 隐藏参数：完整启动一遍后自动退出，用于干净克隆验证和 CI。
     parser.add_argument("--smoke-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
@@ -78,6 +83,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         config_path=args.config,
         data_dir=args.data_dir,
         smoke_test=args.smoke_test,
+        demo=args.demo,
     )
 
 

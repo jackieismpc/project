@@ -91,6 +91,7 @@ def big_window(qapp: QApplication, big: AppContext) -> Iterator[MainWindow]:
         LanguageManager(qapp),
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
+        demo_helpers=True,
         idle_timeout_s=0,
     )
     window.resize(1280, 800)

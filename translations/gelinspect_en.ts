@@ -607,14 +607,6 @@
         <translation>Pending</translation>
     </message>
     <message>
-        <source>项目任务书；中国药典通则 1143（条文原文待 QA 逐字核对）</source>
-        <translation>Project brief; Chinese Pharmacopoeia General Chapter 1143 (wording pending QA verification)</translation>
-    </message>
-    <message>
-        <source>中国药典通则 1143，待 QA 核对</source>
-        <translation>Chinese Pharmacopoeia General Chapter 1143, pending QA verification</translation>
-    </message>
-    <message>
         <source>标示灵敏度 λ = {lam} EU/mL</source>
         <translation>Labeled sensitivity λ = {lam} EU/mL</translation>
     </message>
@@ -643,20 +635,24 @@
         <translation>{role} (tubes {tubes}): positive {positive}, negative {negative}, undetermined {other}</translation>
     </message>
     <message>
-        <source>模板布局待确认：没有安排试管</source>
-        <translation>Template layout awaiting confirmation: no tubes assigned</translation>
+        <source>中国药典通则 1143</source>
+        <translation>Chinese Pharmacopoeia General Chapter 1143</translation>
     </message>
     <message>
-        <source>模板布局待确认：模板标记为推定布局，等待 QA 确认</source>
-        <translation>Template layout awaiting confirmation: the template is marked as a presumed layout, awaiting QA</translation>
+        <source>没有安排试管</source>
+        <translation>No tubes are assigned</translation>
     </message>
     <message>
-        <source>模板布局待确认：{tubes} 号管没有标记用途</source>
-        <translation>Template layout awaiting confirmation: tubes {tubes} have no role assigned</translation>
+        <source>试验使用的旧模板没有标明每管用途，不能判定</source>
+        <translation>The experiment uses an old template without tube roles, so no conclusion can be given</translation>
     </message>
     <message>
-        <source>判定规则待 QA 核对（中国药典通则 1143），不给出合格或不合格</source>
-        <translation>Decision rule awaiting QA verification (Chinese Pharmacopoeia General Chapter 1143); no pass or fail is given</translation>
+        <source>{tubes} 号管没有指定用途</source>
+        <translation>Tubes {tubes} have no role assigned</translation>
+    </message>
+    <message>
+        <source>旧版本软件没有这类试验的判定规则，不给出合格或不合格</source>
+        <translation>An older software version had no rule for this test type; no pass or fail is given</translation>
     </message>
     <message>
         <source>{tubes} 号管还没有结果</source>
@@ -699,8 +695,116 @@
         <translation>The negative control is not negative (tubes {tubes})</translation>
     </message>
     <message>
-        <source>第 {series} 系列不连续（阴性之后又出现阳性），需 QA 判定；上面的 λc 只作参考</source>
-        <translation>Series {series} is discontinuous (positive after negative) and needs a QA decision; the λc is for reference only</translation>
+        <source>第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考</source>
+        <translation>Series {series} is discontinuous (positive after negative) and needs a manual decision; the λc is for reference only</translation>
+    </message>
+    <message>
+        <source>模板没有标记{role}</source>
+        <translation>The template has no tubes marked as {role}</translation>
+    </message>
+    <message>
+        <source>{role}不是全部阴性（{tubes} 号管）</source>
+        <translation>{role} is not all negative (tubes {tubes})</translation>
+    </message>
+    <message>
+        <source>{role}不是全部阳性（{tubes} 号管）</source>
+        <translation>{role} is not all positive (tubes {tubes})</translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：全部阴性</source>
+        <translation>{role} (tubes {tubes}): all negative</translation>
+    </message>
+    <message>
+        <source>{role}（{tubes} 号管）：全部阳性</source>
+        <translation>{role} (tubes {tubes}): all positive</translation>
+    </message>
+    <message>
+        <source>{role}：各浓度或稀释度的管数应相同，实际为 {counts}</source>
+        <translation>{role}: every concentration or dilution needs the same number of tubes; found {counts}</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL</source>
+        <translation>{role} series {series} (tubes {tubes}): {readings}, endpoint {endpoint} EU/mL</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性</source>
+        <translation>{role} series {series} (tubes {tubes}): {readings}, no positive</translation>
+    </message>
+    <message>
+        <source>{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定</source>
+        <translation>{role} series {series} is discontinuous (positive after negative) and needs a manual decision</translation>
+    </message>
+    <message>
+        <source>Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内</source>
+        <translation>Es = antilg(mean(lg endpoint)) ≈ {value} EU/mL; must be within 0.5λ–2λ ({low}–{high} EU/mL)</translation>
+    </message>
+    <message>
+        <source>Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
+        <translation>Es = {value} EU/mL is outside 0.5λ–2λ ({low}–{high} EU/mL)</translation>
+    </message>
+    <message>
+        <source>Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）</source>
+        <translation>Et = antilg(mean(lg endpoint)) ≈ {value} EU/mL; acceptance range 0.5Es–2Es ({low}–{high} EU/mL)</translation>
+    </message>
+    <message>
+        <source>Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用</source>
+        <translation>Et is within 0.5Es–2Es: the sample does not interfere at this concentration</translation>
+    </message>
+    <message>
+        <source>Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用</source>
+        <translation>Et is outside 0.5Es–2Es: the sample interferes at this concentration</translation>
+    </message>
+    <message>
+        <source>供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用</source>
+        <translation>Spiked sample series {series} has no positive, so Et cannot be calculated: the sample interferes at this concentration</translation>
+    </message>
+    <message>
+        <source>供试品（{tubes} 号管）全部阴性：符合规定</source>
+        <translation>Sample (tubes {tubes}) all negative: complies</translation>
+    </message>
+    <message>
+        <source>供试品（{tubes} 号管）有阳性：不符合规定</source>
+        <translation>Sample (tubes {tubes}) has a positive: does not comply</translation>
+    </message>
+    <message>
+        <source>供试品两管一阳一阴，需用“限度试验（复试）”模板复试</source>
+        <translation>One of the two sample tubes is positive: retest with the “Limit test (retest)” template</translation>
+    </message>
+    <message>
+        <source>供试品 {tubes} 号管没有稀释倍数</source>
+        <translation>Sample tubes {tubes} have no dilution factor</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，浓度 {value} EU/mL</source>
+        <translation>Sample series {series} (tubes {tubes}): {readings}, endpoint dilution {dilution}×, concentration {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 &lt; {value} EU/mL</source>
+        <translation>Sample series {series} (tubes {tubes}): all negative, concentration &lt; {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL</source>
+        <translation>Sample series {series} (tubes {tubes}): all positive, concentration ≥ {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL</source>
+        <translation>Sample endotoxin concentration = antilg(mean(lg series concentrations)) ≈ {value} EU/mL</translation>
+    </message>
+    <message>
+        <source>没有录入内毒素限值，无法判定是否符合规定</source>
+        <translation>No endotoxin limit was entered, so compliance cannot be judged</translation>
+    </message>
+    <message>
+        <source>各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定</source>
+        <translation>Every series is below the endotoxin limit {limit} EU/mL: complies</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定</source>
+        <translation>Series {series} is not below the endotoxin limit {limit} EU/mL: does not comply</translation>
+    </message>
+    <message>
+        <source>第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验</source>
+        <translation>Series {series} cannot be compared with the endotoxin limit {limit} EU/mL; adjust the dilutions and repeat the test</translation>
     </message>
     <message>
         <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
@@ -2080,8 +2184,8 @@
         <translation>Choose a test template</translation>
     </message>
     <message>
-        <source>模板决定试管数量和每管的样品、外加内毒素。标“布局待确认”的模板仍可使用。</source>
-        <translation>The template sets the number of tubes and each tube&apos;s sample and spiked endotoxin. Templates marked &quot;Layout to be confirmed&quot; can still be used.</translation>
+        <source>模板决定试管数量和每管的用途、样品、稀释倍数和外加内毒素。</source>
+        <translation>The template sets the number of tubes and each tube&apos;s role, sample, dilution and spiked endotoxin.</translation>
     </message>
     <message>
         <source>还没有可用的模板</source>
@@ -4324,6 +4428,26 @@ Fix the configuration file and start again. Starting without --config uses the d
         <source>阴性对照</source>
         <translation>Negative control</translation>
     </message>
+    <message>
+        <source>阳性对照</source>
+        <translation>Positive control</translation>
+    </message>
+    <message>
+        <source>供试品</source>
+        <translation>Sample</translation>
+    </message>
+    <message>
+        <source>供试品阳性对照</source>
+        <translation>Positive product control</translation>
+    </message>
+    <message>
+        <source>内毒素标准系列</source>
+        <translation>Endotoxin standard series</translation>
+    </message>
+    <message>
+        <source>供试品内毒素系列</source>
+        <translation>Spiked sample series</translation>
+    </message>
 </context>
 <context>
     <name>TemplateOption</name>
@@ -4338,14 +4462,6 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>{type} · {count} 管 · {source}</source>
         <translation>{type} · {count} tubes · {source}</translation>
-    </message>
-    <message>
-        <source>布局待确认</source>
-        <translation>Layout to be confirmed</translation>
-    </message>
-    <message>
-        <source>，布局待确认</source>
-        <translation>, layout to be confirmed</translation>
     </message>
     <message>
         <source>模板 {name}，{count} 管</source>
@@ -4369,10 +4485,6 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>来源</source>
         <translation>Source</translation>
-    </message>
-    <message>
-        <source>状态</source>
-        <translation>Status</translation>
     </message>
     <message>
         <source>管号</source>
@@ -4413,10 +4525,6 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>自定义</source>
         <translation>Custom</translation>
-    </message>
-    <message>
-        <source>布局待确认</source>
-        <translation>Layout to be confirmed</translation>
     </message>
     <message>
         <source>还没有模板</source>
@@ -4741,8 +4849,8 @@ Fix the configuration file and start again. Starting without --config uses the d
 <context>
     <name>TubeRole</name>
     <message>
-        <source>试验管</source>
-        <translation>Test tube</translation>
+        <source>内毒素标准系列</source>
+        <translation>Endotoxin standard series</translation>
     </message>
     <message>
         <source>阴性对照</source>
@@ -4761,8 +4869,12 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Positive product control</translation>
     </message>
     <message>
-        <source>用途待确认</source>
-        <translation>Purpose to be confirmed</translation>
+        <source>供试品内毒素系列</source>
+        <translation>Spiked sample series</translation>
+    </message>
+    <message>
+        <source>未指定</source>
+        <translation>Not assigned</translation>
     </message>
 </context>
 <context>
