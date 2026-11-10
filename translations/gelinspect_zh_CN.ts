@@ -95,10 +95,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>读数晚于到时过久</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>温度超出允许范围</source>
         <translation type="unfinished"></translation>
     </message>

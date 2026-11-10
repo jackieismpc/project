@@ -60,7 +60,7 @@ START：incubating，所有排的截止时间 = 现在 + 孵育时长（默认 6
 跑完或停止：退出滑台，停算法线程，停视频（只停自己启动的管线），断开设备
 ```
 
-某排分析期间下一排到时，状态机走 `analyzing → reading → analyzing`，算法线程排队处理。倒计时用截止时间计算，翻转阻塞期间不会漂移，读数晚于到时超过 `row_late_warn_s`（默认 120 秒）时告警并写审计，审计里记录每排实际孵育时长。
+某排分析期间下一排到时，状态机走 `analyzing → reading → analyzing`，算法线程排队处理。倒计时用截止时间计算，翻转阻塞期间不会漂移，读数晚于到时不单独告警，审计里记录每排实际孵育时长。
 
 翻转前多等一帧再取帧：跨过 `select_row` 时刻的那一帧可能拍的是上一排。
 
@@ -166,7 +166,6 @@ P9 起监控页（`ui/pages/monitor_page.py`）订阅这些事件，并合并刷
 | `frames_per_side` | 3（不小于 3） | |
 | `temperature_target_c`、`temperature_tolerance_c` | 37、1 | |
 | `temperature_hold_s`、`temperature_log_interval_s` | 60、30 | 设备时间 |
-| `row_late_warn_s` | 120 | 设备时间 |
 | `status_poll_s`、`countdown_interval_s`、`tick_s` | 1、1、0.05 | 真实时间 |
 | `video_ready_timeout_s`、`preflip_frame_timeout_s` | 30、5 | 真实时间 |
 | `video_down_grace_s`、`worker_stop_timeout_s` | 30、5 | 真实时间 |

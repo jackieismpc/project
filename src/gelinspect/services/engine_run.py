@@ -670,13 +670,6 @@ class EngineRun:
         except Exception:
             row.phase = RowPhase.WAITING
             raise
-        if late_s > self._cfg.row_late_warn_s:
-            self._alert(
-                AlertCode.ROW_LATE,
-                AlertLevel.WARNING,
-                f"{row.label} 晚于到时 {late_s:.0f} 秒才开始读数",
-                row_index=row.row_index,
-            )
         self._finish_capture(row, self._capture_row(row))
 
     def _capture_row(self, row: _Row) -> _Capture:

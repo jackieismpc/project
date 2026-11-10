@@ -95,10 +95,6 @@
         <translation>讀數失敗</translation>
     </message>
     <message>
-        <source>读数晚于到时过久</source>
-        <translation>讀數晚於預定時間過久</translation>
-    </message>
-    <message>
         <source>温度超出允许范围</source>
         <translation>溫度超出允許範圍</translation>
     </message>

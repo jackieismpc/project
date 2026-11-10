@@ -33,7 +33,7 @@ from .conftest import NOW, PASSWORDS
 from .engine_helpers import eventually
 from .test_new_experiment_engine import request_for_tubes
 
-FAST: dict[str, object] = {"incubation_minutes": 0.05, "time_scale": 60, "row_late_warn_s": 1e6}
+FAST: dict[str, object] = {"incubation_minutes": 0.05, "time_scale": 60}
 
 
 def make_context(tmp_path: Path, **sections: object) -> AppContext:

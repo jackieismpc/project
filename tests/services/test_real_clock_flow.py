@@ -41,7 +41,7 @@ def test_start_complete_and_sign_are_ordered_and_the_report_shows_them(
 ) -> None:
     config: dict[str, object] = dict(DEFAULT_CONFIG)
     config["data_dir"] = str(tmp_path / "data")
-    config["engine"] = {"incubation_minutes": 0.05, "time_scale": 60, "row_late_warn_s": 1e6}
+    config["engine"] = {"incubation_minutes": 0.05, "time_scale": 60}
     config["video"] = {
         "source": "simulation.sim_video:SimVideoSource",
         "device": "sim",

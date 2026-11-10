@@ -855,7 +855,6 @@ _ALERT_TEXTS: dict[AlertCode, str] = {
     AlertCode.VIDEO_QUALITY: str(QT_TRANSLATE_NOOP("Alert", "视频质量告警")),
     AlertCode.SEGMENT_INTERRUPTED: str(QT_TRANSLATE_NOOP("Alert", "录制段异常")),
     AlertCode.READ_FAILED: str(QT_TRANSLATE_NOOP("Alert", "读数失败")),
-    AlertCode.ROW_LATE: str(QT_TRANSLATE_NOOP("Alert", "读数晚于到时过久")),
     AlertCode.TEMPERATURE_EXCURSION: str(QT_TRANSLATE_NOOP("Alert", "温度超出允许范围")),
     AlertCode.TEMPERATURE_RECOVERED: str(QT_TRANSLATE_NOOP("Alert", "温度回到范围内")),
     AlertCode.ANALYSIS_TIMEOUT: str(QT_TRANSLATE_NOOP("Alert", "分析超时，继续等待结果")),

@@ -129,7 +129,6 @@ engine:
   temperature_target_c: 37.0
   temperature_tolerance_c: 1.0
   temperature_hold_s: 60      # 越限持续多久转异常
-  row_late_warn_s: 120        # 读数晚于到时多久告警（PLAN 第 7 节第 16 项待 QA 确认）
   frames_per_side: 3          # 翻转前后各取几帧，≥3
 ```
 

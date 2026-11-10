@@ -32,7 +32,6 @@ class EngineConfig(BaseModel):
         temperature_tolerance_c: 允许的偏差，默认 ±1 ℃。
         temperature_hold_s: 越限持续多久转异常，设备时间。
         temperature_log_interval_s: 温度写库的间隔，设备时间。
-        row_late_warn_s: 读数晚于到时超过这么久时告警，设备时间。
         status_poll_s: 读取设备状态的周期，真实时间。
         countdown_interval_s: 发出倒计时事件的周期，真实时间。
         tick_s: 主循环空闲时的最长等待，真实时间。
@@ -55,7 +54,6 @@ class EngineConfig(BaseModel):
     temperature_tolerance_c: float = Field(default=1.0, gt=0)
     temperature_hold_s: float = Field(default=60.0, ge=0)
     temperature_log_interval_s: float = Field(default=30.0, gt=0)
-    row_late_warn_s: float = Field(default=120.0, ge=0)
     status_poll_s: float = Field(default=1.0, gt=0)
     countdown_interval_s: float = Field(default=1.0, gt=0)
     tick_s: float = Field(default=0.05, gt=0)
@@ -152,8 +150,6 @@ class AlertCode(StrEnum):
     """录制段不完整。"""
     READ_FAILED = "read_failed"
     """一排读数失败。"""
-    ROW_LATE = "row_late"
-    """读数晚于到时过久。"""
     TEMPERATURE_EXCURSION = "temperature_excursion"
     """温度越限。"""
     TEMPERATURE_RECOVERED = "temperature_recovered"

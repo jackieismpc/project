@@ -86,7 +86,7 @@ def test_typed_signals_and_instrument_status(qapp: QApplication) -> None:
     done = threading.Event()
 
     def work() -> None:
-        bridge.handle_event(EngineAlert("E1", NOW, AlertLevel.WARNING, AlertCode.ROW_LATE, "晚"))
+        bridge.handle_event(EngineAlert("E1", NOW, AlertLevel.WARNING, AlertCode.DOOR_OPEN, "开"))
         bridge.handle_event(TemperatureChanged("E1", NOW, 37.0, True))
         bridge.handle_instrument(InstrumentStatus(True, 36.9, NOW))
         done.set()
