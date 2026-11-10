@@ -77,6 +77,7 @@ class S(StrEnum):
     META_SUBJECT = "meta_subject"
     SIGN_REASON = "sign_reason"
     HOLDER_PLACEHOLDER = "holder_placeholder"
+    CLIENT_COMPANY = "client_company"
 
 
 SOURCES: dict[S, str] = {
@@ -150,6 +151,7 @@ SOURCES: dict[S, str] = {
     S.META_SUBJECT: str(QT_TRANSLATE_NOOP("Report", "凝胶法细菌内毒素检测")),
     S.SIGN_REASON: str(QT_TRANSLATE_NOOP("Report", "签署报告 {id}")),
     S.HOLDER_PLACEHOLDER: str(QT_TRANSLATE_NOOP("Report", "[版权方名称]")),
+    S.CLIENT_COMPANY: str(QT_TRANSLATE_NOOP("Report", "厦门鲎试剂生物科技股份有限公司")),
 }
 """键到简体中文原文。"""
 

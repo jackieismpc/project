@@ -54,6 +54,7 @@ from gelinspect.interfaces.storage import (
     UserRepository,
 )
 from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.config import CLIENT_COMPANY
 from gelinspect.services.encrypted_zip import EncryptedZipError, write_encrypted_zip
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.export_service import ExportPolicy
@@ -276,7 +277,7 @@ class ReportService:
         data_dir: Path,
         keystore: KeyStore,
         media: MediaService | None = None,
-        copyright_holder: str = "[版权方名称]",
+        copyright_holder: str = CLIENT_COMPANY,
         include_images: bool = False,
         renderer: ReportRenderer | None = None,
         signer: Signer | None = None,
@@ -293,7 +294,7 @@ class ReportService:
             data_dir: 数据目录，报告放在 ``<data_dir>/reports/<试验>/``。
             keystore: 签名证书和私钥。
             media: 读取 8 连图用的媒体服务；没有时报告不能附图。
-            copyright_holder: 版权声明的权利人（配置，默认占位文字）。
+            copyright_holder: 版权声明的权利人（配置，默认为甲方公司名称）。
             include_images: 报告是否默认附 8 连图缩略页。
             renderer: 排版输出，测试可注入。
             signer: PDF 签名函数，测试可注入会失败的实现。

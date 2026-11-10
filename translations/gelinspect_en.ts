@@ -3321,6 +3321,10 @@
         <source>[版权方名称]</source>
         <translation>[Copyright holder]</translation>
     </message>
+    <message>
+        <source>厦门鲎试剂生物科技股份有限公司</source>
+        <translation>Xiamen Bioendo Technology Co., Ltd.</translation>
+    </message>
 </context>
 <context>
     <name>ReportsPage</name>

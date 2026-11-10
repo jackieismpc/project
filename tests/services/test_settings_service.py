@@ -233,7 +233,7 @@ def test_save_applies_persists_and_audits_old_and_new_values(
     assert "仪器编号 GI-001 → GI-009" in line
     assert "孵育时间（分钟） 0.05 → 30" in line
     assert "数据保留天数 不自动删除 → 365" in line
-    assert "版权方名称 [版权方名称] → 厦门某某生物科技" in line
+    assert "版权方名称 厦门鲎试剂生物科技股份有限公司 → 厦门某某生物科技" in line
     # 默认配置没有被改：基础配置对象不变，用户配置文件在数据目录里
     assert context.base_config.instrument_no == "GI-001"
     assert settings_file(context.base_config.data_dir).parent == tmp_path / "data"

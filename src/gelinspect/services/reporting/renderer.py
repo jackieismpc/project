@@ -41,7 +41,7 @@ from PySide6.QtGui import (
 
 from gelinspect.services.reporting.document import ReportDocument
 from gelinspect.services.reporting.html import MONO, SANS, image_resource_name, render_html
-from gelinspect.services.reporting.strings import DEFAULT_HOLDER, S
+from gelinspect.services.reporting.strings import DEFAULT_HOLDER, SOURCES, S
 from gelinspect.services.reporting.texts import ReportTexts
 
 _log = logging.getLogger(__name__)
@@ -268,6 +268,8 @@ class ReportRenderer:
         holder = document.copyright_holder
         if holder == DEFAULT_HOLDER:
             holder = texts.s(S.HOLDER_PLACEHOLDER)
+        elif holder == SOURCES[S.CLIENT_COMPANY]:
+            holder = texts.s(S.CLIENT_COMPANY)  # 默认的甲方公司名称按报告语言显示
         copyright_text = texts.s(S.FOOT_COPYRIGHT, holder=holder)
         line_height = round((height - pad) / 3)
         wrap = Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop

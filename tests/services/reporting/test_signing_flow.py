@@ -89,7 +89,7 @@ def test_pdf_has_chinese_text_key_fields_and_embedded_bundled_font(
         "λc = 0.5946",
         "sensitivity-v1",
         "本报告已使用数字签名，任何修改都会导致验签失败。",
-        "© [版权方名称]，未经许可不得复制。",
+        "© 厦门鲎试剂生物科技股份有限公司，未经许可不得复制。",
         "SHA-256",
         "第 1 页 / 共 1 页",
     ):

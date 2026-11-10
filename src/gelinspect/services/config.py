@@ -40,6 +40,9 @@ from gelinspect.services.video.config import (
 
 T = TypeVar("T")
 
+CLIENT_COMPANY = "厦门鲎试剂生物科技股份有限公司"
+"""甲方公司名称，报告版权声明的默认权利人。"""
+
 DATABASE_FILE = "gelinspect.db"
 """数据库文件名，放在数据目录下。"""
 
@@ -236,8 +239,8 @@ class ReportSection(_Section):
     """报告与数字签名配置。
 
     Attributes:
-        copyright_holder: 版权声明里的权利人。正式名称未定（PLAN 第 7 节第 7 项），
-            默认是占位文字，写入每份报告的页脚。
+        copyright_holder: 版权声明里的权利人，默认为甲方公司名称，写入每份报告的页脚；
+            管理员可在仪器设置中修改。
         certificate_common_name: 本地自签证书的通用名（CN）。
         certificate_organization: 本地自签证书的组织名（O）。
         certificate_valid_days: 证书有效天数。已签署的报告在证书过期后仍可验签的前提是
@@ -246,7 +249,7 @@ class ReportSection(_Section):
         include_images: 报告是否附每排 8 连图缩略页。图是读盘解码的，12 MP 下较慢，默认关闭。
     """
 
-    copyright_holder: str = Field(default="[版权方名称]", min_length=1, max_length=120)
+    copyright_holder: str = Field(default=CLIENT_COMPANY, min_length=1, max_length=120)
     certificate_common_name: str = Field(
         default="GelInspect Report Signing", min_length=1, max_length=64
     )

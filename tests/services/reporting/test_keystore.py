@@ -164,7 +164,7 @@ def test_certificate_validity_is_issued_from_the_real_clock_and_configurable(
 
 def test_report_configuration_defaults_and_validation() -> None:
     section = ReportSection()
-    assert section.copyright_holder == "[版权方名称]"
+    assert section.copyright_holder == "厦门鲎试剂生物科技股份有限公司"
     assert section.key_algorithm == "ecdsa" and section.include_images is False
     config = parse_config(DEFAULT_CONFIG, base_dir=ROOT)
     assert config.keys_dir == config.data_dir / "keys"

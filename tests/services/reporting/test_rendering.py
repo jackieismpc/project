@@ -281,3 +281,23 @@ def test_service_attaches_real_images_only_when_asked(signing_stack: Stack, tmp_
     assert service.preview(analyst, "EXP-SAMPLE-0001").document.images == {}
     assert service.preview(analyst, "EXP-SAMPLE-0001", with_images=True).document.images == {}
     assert PASSWORDS and SIGN_TIME  # 夹具已使用
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        (ReportLanguage.ZH_CN, "© 厦门鲎试剂生物科技股份有限公司，未经许可不得复制。"),
+        (ReportLanguage.ZH_TW, "© 廈門鱟試劑生物科技股份有限公司，未經許可不得複製。"),
+        (ReportLanguage.EN, "© Xiamen Bioendo Technology Co., Ltd."),
+    ],
+)
+def test_default_copyright_holder_is_the_client_company_in_the_report_language(
+    language: ReportLanguage, expected: str
+) -> None:
+    from gelinspect.services.config import CLIENT_COMPANY
+
+    renderer = ReportRenderer(zone=UTC)
+    pdf, _ = renderer.render_pdf(
+        document_of(big_experiment(5), holder=CLIENT_COMPANY), ReportTexts(language)
+    )
+    assert expected in flat_text(pdf)

@@ -51,7 +51,7 @@ def test_shows_every_setting_with_the_effective_values(
     assert text["frames_per_side"] == "3" and text["settle_s"] == "1"
     assert text["temperature_target_c"] == "37" and text["temperature_tolerance_c"] == "1"
     assert text["temperature_hold_s"] == "60" and text["retention_days"] == ""  # 默认不自动删除
-    assert text["copyright_holder"] == "[版权方名称]"
+    assert text["copyright_holder"] == "厦门鲎试剂生物科技股份有限公司"
     assert page.range_label.text() == "有效温度范围 36 – 38 ℃"
     assert "自动删除" in page.fields["retention_days"].hint.text()
     # 算法后端信息只读展示
