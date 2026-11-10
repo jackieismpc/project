@@ -607,6 +607,10 @@
         <translation>Pending</translation>
     </message>
     <message>
+        <source>不适用</source>
+        <translation>Not applicable</translation>
+    </message>
+    <message>
         <source>标示灵敏度 λ = {lam} EU/mL</source>
         <translation>Labeled sensitivity λ = {lam} EU/mL</translation>
     </message>
@@ -637,6 +641,14 @@
     <message>
         <source>中国药典通则 1143</source>
         <translation>Chinese Pharmacopoeia General Chapter 1143</translation>
+    </message>
+    <message>
+        <source>通用检测，按每管阴阳性出具结果</source>
+        <translation>General test: results are reported per tube</translation>
+    </message>
+    <message>
+        <source>共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定</source>
+        <translation>{total} tubes: {positive} positive, {negative} negative. A general test reports each tube&apos;s result; there is no test-level verdict</translation>
     </message>
     <message>
         <source>没有安排试管</source>
@@ -1121,6 +1133,10 @@
     <message>
         <source>限度试验</source>
         <translation>Limit test</translation>
+    </message>
+    <message>
+        <source>通用检测</source>
+        <translation>General test</translation>
     </message>
 </context>
 <context>
@@ -4447,6 +4463,14 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>供试品内毒素系列</source>
         <translation>Spiked sample series</translation>
+    </message>
+    <message>
+        <source>通用检测（96 管）</source>
+        <translation>General test (96 tubes)</translation>
+    </message>
+    <message>
+        <source>样品</source>
+        <translation>Sample</translation>
     </message>
 </context>
 <context>

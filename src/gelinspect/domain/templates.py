@@ -15,7 +15,7 @@ from decimal import Decimal
 from types import MappingProxyType
 
 from gelinspect.domain.enums import ExperimentType, TubeRole
-from gelinspect.domain.plate import tube_to_position
+from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 
 
 def spike_from_lambda(labeled_sensitivity: float, multiple: float) -> float:
@@ -253,12 +253,25 @@ def _semi_quantitative_template() -> ExperimentTemplate:
     )
 
 
+def _general_template() -> ExperimentTemplate:
+    """通用检测：96 支管都是样品，每支管按凝固状态直接给出阴阳性，不做试验级判定。"""
+    layout = _Layout()
+    layout.add(TUBE_COUNT, "样品", TubeRole.SAMPLE)
+    return ExperimentTemplate(
+        template_id="builtin.general_96",
+        name="通用检测（96 管）",
+        experiment_type=ExperimentType.GENERAL,
+        items=tuple(layout.items),
+    )
+
+
 BUILTIN_TEMPLATES: Mapping[ExperimentType, ExperimentTemplate] = MappingProxyType(
     {
         ExperimentType.SENSITIVITY_CONFIRMATION: _sensitivity_template(),
         ExperimentType.INTERFERENCE: _interference_template(),
         ExperimentType.SEMI_QUANTITATIVE: _semi_quantitative_template(),
         ExperimentType.LIMIT: _limit_template("builtin.limit", "限度试验", 2),
+        ExperimentType.GENERAL: _general_template(),
     }
 )
 """每类试验的主模板，按试验类型索引。"""

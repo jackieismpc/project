@@ -662,7 +662,10 @@ def test_unmarked_roles_block_every_type() -> None:
 
 
 def test_every_rule_gives_verdicts_and_cites_the_pharmacopoeia() -> None:
-    for rule in RULES.values():
+    for kind, rule in RULES.items():
+        if kind is ExperimentType.GENERAL:
+            assert not rule.verdict_enabled
+            continue
         assert rule.verdict_enabled
         assert rule.source == "中国药典通则 1143"
         assert rule.clauses
@@ -816,3 +819,39 @@ def test_tube_list_merges_runs_of_three_or_more(tubes: list[int], expected: str)
     from gelinspect.domain.conclusions import _tube_list
 
     assert _tube_list(tubes) == expected
+
+
+# ------------------------------------------------------- 通用检测
+
+
+def test_general_template_is_96_sample_tubes_without_lambda() -> None:
+    template = BUILTIN_TEMPLATES[ExperimentType.GENERAL]
+    assert template.tube_count == 96 and not template.requires_lambda
+    assert {item.role for item in template.items} == {TubeRole.SAMPLE}
+
+
+def test_general_gives_not_applicable_with_a_summary_once_every_tube_is_read() -> None:
+    tubes = builtin_tubes(ExperimentType.GENERAL)
+    table = {t.tube_no: result(t.tube_no, P if t.tube_no <= 10 else N) for t in tubes}
+    conclusion = evaluate_conclusion(
+        ExperimentType.GENERAL, tubes, table, None, layout_confirmed=True
+    )
+    assert conclusion.verdict is ConclusionVerdict.NOT_APPLICABLE
+    assert conclusion.value is None and conclusion.unmet == ()
+    assert "阳性 10，阴性 86" in conclusion.basis[0].text
+
+
+def test_general_waits_for_review() -> None:
+    tubes = builtin_tubes(ExperimentType.GENERAL)
+    table = {t.tube_no: result(t.tube_no, R if t.tube_no == 5 else N) for t in tubes}
+    conclusion = evaluate_conclusion(
+        ExperimentType.GENERAL, tubes, table, None, layout_confirmed=True
+    )
+    assert conclusion.verdict is ConclusionVerdict.PENDING
+    assert conclusion.unmet[0].code is NoteCode.REVIEW_PENDING
+
+
+def test_not_applicable_can_be_signed() -> None:
+    from gelinspect.domain.signing import SIGNABLE_VERDICTS
+
+    assert ConclusionVerdict.NOT_APPLICABLE in SIGNABLE_VERDICTS

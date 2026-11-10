@@ -145,7 +145,7 @@ def test_first_start_creates_data_dir_database_logs_and_demo_accounts(
     db = open_keyed(data)
     try:
         assert [u.username for u in db.users.list_all()] == ["admin", "analyst", "experimenter"]
-        assert len(db.templates.list_all()) == 5
+        assert len(db.templates.list_all()) == 6
         # 冒烟测试登录并退出了一次：登录、退出各一条审计
         events = db.audit.query(AuditQuery(actor="admin"), PageRequest(limit=50)).items
         actions = [r.event.action for r in events]
@@ -222,7 +222,7 @@ def test_real_config_has_no_default_accounts(qapp: QApplication, tmp_path: Path)
     db = open_keyed(tmp_path / "data")
     try:
         assert db.users.list_all() == []  # 真实配置：不创建任何账号，更没有默认密码
-        assert len(db.templates.list_all()) == 5
+        assert len(db.templates.list_all()) == 6
     finally:
         db.close()
 

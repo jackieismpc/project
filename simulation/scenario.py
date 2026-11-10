@@ -5,7 +5,7 @@
 
 状态的来源按优先级：显式的 ``tube_states`` → 孔板内容（:class:`PlatePlan`）的剂量关系 → 比例抽取。
 剂量关系见 :func:`dose_response_states`：高浓度阳性、低浓度阴性、阴性对照和未加内毒素的供试品阴性，
-边界附近有部分凝固。
+边界附近有部分凝固。通用检测（孔板上没有对照）的样品按比例抽取。
 用途未确认或没有外加内毒素的管（推定模板）没有剂量可依，仍按比例抽取。
 """
 
@@ -53,13 +53,17 @@ def dose_response_states(plan: PlatePlan, seed: int = 0) -> dict[int, GelState]:
         return {}
     states: dict[int, GelState] = {}
     ranks: dict[float, int] = {}
+    has_controls = any(
+        t.role in (TubeRole.NEGATIVE_CONTROL, TubeRole.POSITIVE_CONTROL) for t in plan.tubes
+    )
     for tube in sorted(plan.tubes, key=lambda t: t.tube_no):
         if tube.role is TubeRole.NEGATIVE_CONTROL:
             states[tube.tube_no] = GelState.NOT_GELLED
             continue
         if tube.role is TubeRole.SAMPLE and not tube.spiked_endotoxin:
-            states[tube.tube_no] = GelState.NOT_GELLED  # 模拟的供试品内毒素低于 λ
-            continue
+            if has_controls:
+                states[tube.tube_no] = GelState.NOT_GELLED  # 模拟的供试品内毒素低于 λ
+            continue  # 通用检测（没有对照）：按比例抽取，阴阳性都有
         if tube.role is TubeRole.UNCONFIRMED or tube.spiked_endotoxin is None:
             continue
         ratio = tube.spiked_endotoxin / labeled

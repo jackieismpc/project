@@ -103,6 +103,7 @@ class NoteCode(StrEnum):
     CONCENTRATION_BELOW_LIMIT = "concentration_below_limit"
     CONCENTRATION_NOT_BELOW_LIMIT = "concentration_not_below_limit"
     CONCENTRATION_UNDETERMINED = "concentration_undetermined"
+    GENERAL_SUMMARY = "general_summary"
 
 
 NOTE_TEMPLATES: Mapping[NoteCode, str] = MappingProxyType(
@@ -196,6 +197,10 @@ NOTE_TEMPLATES: Mapping[NoteCode, str] = MappingProxyType(
         NoteCode.CONCENTRATION_BELOW_LIMIT: "各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定",
         NoteCode.CONCENTRATION_NOT_BELOW_LIMIT: (
             "第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定"
+        ),
+        NoteCode.GENERAL_SUMMARY: (
+            "共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，"
+            "不做试验级判定"
         ),
         NoteCode.CONCENTRATION_UNDETERMINED: (
             "第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验"
@@ -369,15 +374,28 @@ SEMI_QUANTITATIVE_RULE = ConclusionRule(
     ),
 )
 
+GENERAL_RULE = ConclusionRule(
+    experiment_type=ExperimentType.GENERAL,
+    version="general-v1",
+    source="通用检测，按每管阴阳性出具结果",
+    verdict_enabled=False,
+    tracked_roles=(TubeRole.SAMPLE,),
+    clauses=(
+        "每支管按算法凝固状态标记阴阳性：完全凝固阳性，未凝固阴性，部分凝固待人工复核。",
+        "不做试验级判定，结论为“不适用”；全部待复核处理完后即可签署。",
+    ),
+)
+
 RULES: Mapping[ExperimentType, ConclusionRule] = MappingProxyType(
     {
+        ExperimentType.GENERAL: GENERAL_RULE,
         ExperimentType.SENSITIVITY_CONFIRMATION: SENSITIVITY_RULE,
         ExperimentType.INTERFERENCE: INTERFERENCE_RULE,
         ExperimentType.LIMIT: LIMIT_RULE,
         ExperimentType.SEMI_QUANTITATIVE: SEMI_QUANTITATIVE_RULE,
     }
 )
-"""四类试验的规则。限度试验的复试使用限度试验的规则。"""
+"""各类试验的规则。限度试验的复试使用限度试验的规则；通用检测不做试验级判定。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -1348,6 +1366,30 @@ def _evaluate_semi_quantitative(
     return build.done(ConclusionVerdict.PASS, value=concentration)
 
 
+def _evaluate_general(
+    assignments: Sequence[TubeAssignment],
+    results: Mapping[int, TubeResult],
+    labeled: float | None,
+) -> ExperimentConclusion:
+    """通用检测：没有试验级判定，全部单管结果齐全且复核完后结论为“不适用”。"""
+    build = _Builder(GENERAL_RULE, assignments, results, labeled)
+    if not assignments:
+        return build.done(ConclusionVerdict.PENDING, [_note(NoteCode.LAYOUT_EMPTY)])
+    problems = _result_problems(assignments, results)
+    if problems:
+        return build.done(ConclusionVerdict.PENDING, problems)
+    finals = [results[a.tube_no].final_interpretation for a in assignments]
+    build.basis.append(
+        _note(
+            NoteCode.GENERAL_SUMMARY,
+            total=len(assignments),
+            positive=sum(f is Interpretation.POSITIVE for f in finals),
+            negative=sum(f is Interpretation.NEGATIVE for f in finals),
+        )
+    )
+    return build.done(ConclusionVerdict.NOT_APPLICABLE)
+
+
 def evaluate_conclusion(
     experiment_type: ExperimentType,
     assignments: Sequence[TubeAssignment],
@@ -1376,6 +1418,8 @@ def evaluate_conclusion(
         return _evaluate_interference(assignments, results, labeled_sensitivity, layout_confirmed)
     if experiment_type is ExperimentType.LIMIT:
         return _evaluate_limit(assignments, results, labeled_sensitivity, layout_confirmed)
+    if experiment_type is ExperimentType.GENERAL:
+        return _evaluate_general(assignments, results, labeled_sensitivity)
     return _evaluate_semi_quantitative(
         assignments, results, labeled_sensitivity, layout_confirmed, endotoxin_limit
     )

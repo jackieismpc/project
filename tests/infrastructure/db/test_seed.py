@@ -69,13 +69,13 @@ def test_seed_does_not_overwrite_edited_builtin_template(database: Database) -> 
     original = BUILTIN_TEMPLATES[next(iter(BUILTIN_TEMPLATES))]
     assert database.templates.get(original.template_id) == original
     seed_defaults(database, admin_password=PASSWORD)
-    assert len(database.templates.list_all()) == 5
+    assert len(database.templates.list_all()) == 6
 
 
 def test_seed_writes_valid_audit_trail(database: Database) -> None:
     seed_defaults(database, admin_password=PASSWORD)
     page = database.audit.query(AuditQuery(actor="system"), PageRequest(limit=100))
-    assert page.total == 6
+    assert page.total == 7
     assert verify_audit_chain(database).ok
     assert all(PASSWORD not in r.event.detail for r in page.items)
 

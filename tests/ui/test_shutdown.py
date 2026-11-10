@@ -98,7 +98,7 @@ def test_closing_a_locked_window_during_a_run_is_refused(
     settle(qapp)
     assert window.isVisible()  # 没有弹确认框（夹具会让弹框立刻失败），直接拒绝
     assert window.session is not None
-    window.lock_page.password.setText("Experimenter@2026")
+    window.lock_page.password.setText("12345678")
     window.lock_page.submit_button.click()
     assert window.session is not None and not window.session.locked
     app_context.engine.stop(window.session.user)

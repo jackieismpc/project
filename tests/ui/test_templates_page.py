@@ -76,9 +76,10 @@ def test_lists_builtin_templates_with_type_count_and_state(
     rows = page.list_table.model.rows
     assert [r["name"] for r in rows] == [
         "灵敏度复核 (2λ:1)", "干扰试验", "半定量试验", "限度试验", "限度试验（复试）",
+        "通用检测（96 管）",
     ]  # fmt: skip
-    assert [r["count"] for r in rows] == [18, 28, 20, 8, 10]
-    assert [r["source"] for r in rows] == ["内置"] * 5
+    assert [r["count"] for r in rows] == [18, 28, 20, 8, 10, 96]
+    assert [r["source"] for r in rows] == ["内置"] * 6
     assert all("state" not in r for r in rows)  # 没有“布局待确认”列
     assert page.detail_table.row_count() == 18  # 默认选中第一个，显示它的管位
     select_row(qapp, page, "限度试验")
@@ -170,7 +171,7 @@ def test_the_editor_reports_errors_without_closing(
     monkeypatch.setattr(TemplateEditorDialog, "exec", run)
     click(qapp, page.new_button)
     assert shown == ["模板名称不能为空", "已有同名模板：干扰试验", "第 1 支试管的样品名称不能为空"]
-    assert len(names(page)) == 5  # 一个都没有保存
+    assert len(names(page)) == 6  # 一个都没有保存
 
 
 def test_edit_a_custom_template(
@@ -210,7 +211,7 @@ def test_other_roles_can_only_view(
     username: str,
 ) -> None:
     page = open_templates(qapp, window, username)
-    assert len(names(page)) == 5 and page.detail_table.row_count() == 18
+    assert len(names(page)) == 6 and page.detail_table.row_count() == 18
     assert page.readonly_badge.isVisibleTo(page) and page.readonly_badge.text() == "只读"
     for button in (page.new_button, page.copy_button, page.edit_button):
         assert not button.isEnabled()
@@ -231,7 +232,7 @@ def test_other_roles_can_only_view(
     page.create_template()
     assert errors == ["当前角色无此权限"]
     page.copy_selected()
-    assert len(names(page)) == 5 and audit(app_context) == [
+    assert len(names(page)) == 6 and audit(app_context) == [
         d for d in audit(app_context) if "初始化内置模板" in d
     ]
     window.logout()

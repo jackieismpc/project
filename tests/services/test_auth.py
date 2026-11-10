@@ -72,7 +72,7 @@ def audit_of(database: Database, action: AuditAction, actor: str | None = None) 
 
 
 def test_login_success_writes_audit(auth: AuthService, database: Database) -> None:
-    session = auth.login("experimenter", "Experimenter@2026")
+    session = auth.login("experimenter", "12345678")
     assert session.user.role is Role.EXPERIMENTER
     assert not session.must_change_password
     assert audit_of(database, AuditAction.LOGIN, "experimenter") == ["登录成功"]
@@ -105,17 +105,17 @@ def test_lockout_after_max_failures_and_release_after_timeout(
     assert info.value.retry_after_s == pytest.approx(60.0)
     # 锁定期间连正确的密码也被拒绝
     with pytest.raises(AccountLockedError):
-        auth.login("analyst", "Analyst@2026")
+        auth.login("analyst", "12345678")
     assert any("锁定" in d for d in audit_of(database, AuditAction.LOGIN_FAILED, "analyst"))
     clock.advance(61)
-    assert auth.login("analyst", "Analyst@2026").user.username == "analyst"
+    assert auth.login("analyst", "12345678").user.username == "analyst"
 
 
 def test_success_resets_the_failure_counter(auth: AuthService) -> None:
     for _ in range(2):
         with pytest.raises(InvalidCredentialsError):
             auth.login("admin", "bad")
-    auth.login("admin", "Admin@2026")
+    auth.login("admin", "12345678")
     with pytest.raises(InvalidCredentialsError) as info:
         auth.login("admin", "bad")
     assert info.value.remaining_attempts == 2
@@ -128,13 +128,13 @@ def test_disabled_account_cannot_log_in(auth: AuthService, database: Database) -
         User(user.user_id, user.username, user.display_name, user.role, active=False)
     )
     with pytest.raises(AccountDisabledError):
-        auth.login("analyst", "Analyst@2026")
+        auth.login("analyst", "12345678")
 
 
 def test_logout_audits_once_and_invalidates_the_session(
     auth: AuthService, database: Database
 ) -> None:
-    session = auth.login("admin", "Admin@2026")
+    session = auth.login("admin", "12345678")
     auth.logout(session)
     auth.logout(session)
     assert audit_of(database, AuditAction.LOGOUT, "admin") == ["退出登录"]
@@ -143,7 +143,7 @@ def test_logout_audits_once_and_invalidates_the_session(
 
 
 def test_authorize_checks_role_and_audits_denial(auth: AuthService, database: Database) -> None:
-    session = auth.login("experimenter", "Experimenter@2026")
+    session = auth.login("experimenter", "12345678")
     assert auth.authorize(session, Permission.EXPERIMENT_RUN).username == "experimenter"
     with pytest.raises(PermissionDeniedError):
         auth.authorize(session, Permission.USER_MANAGE)
@@ -158,7 +158,7 @@ def test_authorize_rejects_missing_session(auth: AuthService) -> None:
 
 
 def test_role_change_takes_effect_immediately(auth: AuthService, database: Database) -> None:
-    session = auth.login("analyst", "Analyst@2026")
+    session = auth.login("analyst", "12345678")
     auth.authorize(session, Permission.RESULT_REVIEW)
     user = database.users.get_by_username("analyst")
     assert user is not None
@@ -170,7 +170,7 @@ def test_role_change_takes_effect_immediately(auth: AuthService, database: Datab
 def test_disabling_the_account_ends_access_mid_session(
     auth: AuthService, database: Database
 ) -> None:
-    session = auth.login("admin", "Admin@2026")
+    session = auth.login("admin", "12345678")
     user = database.users.get_by_username("admin")
     assert user is not None
     database.users.update(
@@ -181,7 +181,7 @@ def test_disabling_the_account_ends_access_mid_session(
 
 
 def test_lock_blocks_every_operation_until_unlocked(auth: AuthService, database: Database) -> None:
-    session = auth.login("admin", "Admin@2026")
+    session = auth.login("admin", "12345678")
     auth.lock(session)
     assert session.locked and session.permissions() == frozenset()
     with pytest.raises(PermissionDeniedError):
@@ -189,7 +189,7 @@ def test_lock_blocks_every_operation_until_unlocked(auth: AuthService, database:
     with pytest.raises(InvalidCredentialsError):
         auth.unlock(session, "bad")
     assert session.locked
-    auth.unlock(session, "Admin@2026")
+    auth.unlock(session, "12345678")
     assert not session.locked
     auth.authorize(session, Permission.TEMPLATE_VIEW)
     assert audit_of(database, AuditAction.SCREEN_LOCKED, "admin")
@@ -197,7 +197,7 @@ def test_lock_blocks_every_operation_until_unlocked(auth: AuthService, database:
 
 
 def test_unlock_failures_count_towards_lockout(auth: AuthService) -> None:
-    session = auth.login("admin", "Admin@2026")
+    session = auth.login("admin", "12345678")
     auth.lock(session)
     for _ in range(2):
         with pytest.raises(InvalidCredentialsError):
@@ -207,17 +207,17 @@ def test_unlock_failures_count_towards_lockout(auth: AuthService) -> None:
 
 
 def test_change_password_flow(auth: AuthService, database: Database) -> None:
-    session = auth.login("admin", "Admin@2026")
+    session = auth.login("admin", "12345678")
     with pytest.raises(InvalidCredentialsError):
         auth.change_password(session, "wrong", "NewPassw0rd!")
     with pytest.raises(PasswordPolicyError):
-        auth.change_password(session, "Admin@2026", "short")
+        auth.change_password(session, "12345678", "short")
     with pytest.raises(PasswordPolicyError):
-        auth.change_password(session, "Admin@2026", "Admin@2026")
-    auth.change_password(session, "Admin@2026", "NewPassw0rd!")
+        auth.change_password(session, "12345678", "12345678")
+    auth.change_password(session, "12345678", "NewPassw0rd!")
     assert audit_of(database, AuditAction.PASSWORD_CHANGED, "admin")
     with pytest.raises(InvalidCredentialsError):
-        auth.login("admin", "Admin@2026")
+        auth.login("admin", "12345678")
     assert auth.login("admin", "NewPassw0rd!")
 
 

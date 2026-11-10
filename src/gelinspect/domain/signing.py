@@ -56,7 +56,9 @@ class SigningBlock:
     state: ExperimentState | None = None
 
 
-SIGNABLE_VERDICTS = frozenset({ConclusionVerdict.PASS, ConclusionVerdict.FAIL})
+SIGNABLE_VERDICTS = frozenset(
+    {ConclusionVerdict.PASS, ConclusionVerdict.FAIL, ConclusionVerdict.NOT_APPLICABLE}
+)
 """可以签署的结论。"""
 
 

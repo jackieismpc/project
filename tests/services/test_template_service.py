@@ -37,10 +37,17 @@ def test_list_shows_builtin_first_in_type_order_then_custom(stack: Stack) -> Non
     stack.templates.create_template(stack.login("admin"), custom_draft("乙"))
     stack.templates.create_template(stack.login("admin"), custom_draft("甲"))
     infos = stack.templates.list_templates(stack.login("analyst"))  # 所有角色可查看
-    assert [i.builtin for i in infos] == [True] * 5 + [False] * 2
-    types = [i.template.experiment_type for i in infos[:5]]
-    assert types == [*ExperimentType, ExperimentType.LIMIT]
-    assert [i.template.name for i in infos[5:]] == sorted(["乙", "甲"])  # 自定义的按名称排
+    assert [i.builtin for i in infos] == [True] * 6 + [False] * 2
+    types = [i.template.experiment_type for i in infos[:6]]
+    assert types == [
+        ExperimentType.SENSITIVITY_CONFIRMATION,
+        ExperimentType.INTERFERENCE,
+        ExperimentType.SEMI_QUANTITATIVE,
+        ExperimentType.LIMIT,
+        ExperimentType.LIMIT,
+        ExperimentType.GENERAL,
+    ]
+    assert [i.template.name for i in infos[6:]] == sorted(["乙", "甲"])  # 自定义的按名称排
 
 
 def test_builtin_templates_are_read_only_but_can_be_copied(stack: Stack) -> None:
@@ -130,7 +137,7 @@ def test_invalid_templates_are_rejected_and_nothing_is_saved(
     with pytest.raises(ServiceError) as caught:
         stack.templates.create_template(stack.login("admin"), draft)
     assert caught.value.code is code
-    assert len(stack.templates.list_templates(stack.login("admin"))) == 5
+    assert len(stack.templates.list_templates(stack.login("admin"))) == 6
 
 
 def test_duplicate_names_are_rejected(stack: Stack) -> None:
@@ -170,7 +177,7 @@ def test_only_the_admin_can_manage_templates(stack: Stack, role: str) -> None:
     created = stack.templates.create_template(stack.login("admin"), custom_draft())
     with pytest.raises(PermissionDeniedError):
         stack.templates.update_template(session, created.template_id, custom_draft("改"))
-    assert len(stack.templates.list_templates(session)) == 6
+    assert len(stack.templates.list_templates(session)) == 7
     assert any("拒绝 template_manage" in d for d in stack.audit(AuditAction.PERMISSION_DENIED))
 
 

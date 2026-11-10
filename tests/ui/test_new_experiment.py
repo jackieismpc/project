@@ -133,13 +133,14 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
 def test_templates_are_listed_with_type_and_count(qapp: QApplication, window: MainWindow) -> None:
     page = open_wizard(qapp, window)
     options = {o.template.name: o for o in page._options}
-    assert len(options) == 5
+    assert len(options) == 6
     for name, count in [
         ("灵敏度复核 (2λ:1)", 18),
         ("干扰试验", 28),
         ("半定量试验", 20),
         ("限度试验", 8),
         ("限度试验（复试）", 10),
+        ("通用检测（96 管）", 96),
     ]:
         option = options[name]
         assert f"{count} 管" in option.meta.text()

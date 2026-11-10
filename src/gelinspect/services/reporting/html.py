@@ -51,6 +51,7 @@ _TYPE_SOURCES = {
     ExperimentType.INTERFERENCE: str(QT_TRANSLATE_NOOP("ExperimentType", "干扰试验")),
     ExperimentType.SEMI_QUANTITATIVE: str(QT_TRANSLATE_NOOP("ExperimentType", "半定量试验")),
     ExperimentType.LIMIT: str(QT_TRANSLATE_NOOP("ExperimentType", "限度试验")),
+    ExperimentType.GENERAL: str(QT_TRANSLATE_NOOP("ExperimentType", "通用检测")),
 }
 _STATE_SOURCES = {
     ExperimentState.COMPLETED: str(QT_TRANSLATE_NOOP("ExperimentState", "已完成")),
@@ -61,6 +62,7 @@ _VERDICT_SOURCES = {
     ConclusionVerdict.FAIL: str(QT_TRANSLATE_NOOP("Conclusion", "不合格")),
     ConclusionVerdict.INVALID: str(QT_TRANSLATE_NOOP("Conclusion", "无效")),
     ConclusionVerdict.PENDING: str(QT_TRANSLATE_NOOP("Conclusion", "待定")),
+    ConclusionVerdict.NOT_APPLICABLE: str(QT_TRANSLATE_NOOP("Conclusion", "不适用")),
 }
 _ROLE_SOURCES = {
     TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "内毒素标准系列")),

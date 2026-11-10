@@ -25,6 +25,7 @@ _TONES = {
     ConclusionVerdict.FAIL: BadgeTone.DANGER,
     ConclusionVerdict.INVALID: BadgeTone.DANGER,
     ConclusionVerdict.PENDING: BadgeTone.WARNING,
+    ConclusionVerdict.NOT_APPLICABLE: BadgeTone.NEUTRAL,
 }
 
 

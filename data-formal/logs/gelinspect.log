@@ -1,0 +1,13 @@
+2026-11-10 08:48:52,653 INFO    MainThread gelinspect.startup: GelInspect 启动 mode=repository config=packaging/config/release.yaml smoke=False
+2026-11-10 08:48:52,885 INFO    MainThread alembic.runtime.migration: Context impl SQLiteImpl.
+2026-11-10 08:48:52,885 INFO    MainThread alembic.runtime.migration: Will assume non-transactional DDL.
+2026-11-10 08:48:52,888 INFO    MainThread alembic.runtime.migration: Running upgrade  -> 0001, 初始表结构。
+2026-11-10 08:48:52,894 INFO    MainThread alembic.runtime.migration: Running upgrade 0001 -> 0002, 增加试剂校验记录表。
+2026-11-10 08:48:52,894 INFO    MainThread alembic.runtime.migration: Running upgrade 0002 -> 0003, 增加试验结论、完成时间、模板 λ 倍数和抓帧时间。
+2026-11-10 08:48:52,899 INFO    MainThread alembic.runtime.migration: Running upgrade 0003 -> 0004, 报告记录增加范围、批号、语言、签署信息和证书指纹，试验标识可为空。
+2026-11-10 08:48:52,902 INFO    MainThread alembic.runtime.migration: Running upgrade 0004 -> 0005, 审计链分段：记录从哪个序号起改用 HMAC-SHA256 以及所用密钥的标识。
+2026-11-10 08:48:52,902 INFO    MainThread alembic.runtime.migration: Running upgrade 0005 -> 0006, 复试并入限度试验：删除“复试试验”类型。
+2026-11-10 08:48:52,913 INFO    MainThread gelinspect.infrastructure.security.audit_keys: 审计链已改用 HMAC-SHA256，起点序号 1
+2026-11-10 08:48:52,920 INFO    MainThread gelinspect.bootstrap: 已写入内置模板：builtin.sensitivity_confirmation_2lambda_1, builtin.interference, builtin.semi_quantitative, builtin.limit, builtin.limit_retest
+2026-11-10 08:48:52,921 INFO    MainThread gelinspect.startup: 开发模式（仓库运行），跳过程序完整性校验（0.00 秒）
+2026-11-10 08:49:26,815 WARNING MainThread gelinspect.ui.background: 后台任务失败：ServiceError('无法读取视频输入：相机尚未接入：请在“仪器设置”里选择视频文件或图片文件夹，或在配置文件的 video.source 里指定真实相机')

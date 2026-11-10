@@ -607,6 +607,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>不适用</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>标示灵敏度 λ = {lam} EU/mL</source>
         <translation type="unfinished"></translation>
     </message>
@@ -636,6 +640,14 @@
     </message>
     <message>
         <source>中国药典通则 1143</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>通用检测，按每管阴阳性出具结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1120,6 +1132,10 @@
     </message>
     <message>
         <source>限度试验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>通用检测</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4444,6 +4460,14 @@
     </message>
     <message>
         <source>供试品内毒素系列</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>通用检测（96 管）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>样品</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

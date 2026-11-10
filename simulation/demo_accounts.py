@@ -11,10 +11,13 @@ from collections.abc import Sequence
 from gelinspect.domain.enums import Role
 from gelinspect.interfaces.bootstrap import AccountProvisioner, DemoAccount
 
+DEMO_PASSWORD = "12345678"
+"""三个演示账号共用的密码。"""
+
 DEMO_ACCOUNTS: tuple[DemoAccount, ...] = (
-    DemoAccount("admin", "Admin@2026", "Alex Chen", Role.ADMIN),
-    DemoAccount("experimenter", "Experimenter@2026", "Jordan Li", Role.EXPERIMENTER),
-    DemoAccount("analyst", "Analyst@2026", "Sam Wu", Role.ANALYST),
+    DemoAccount("admin", DEMO_PASSWORD, "Alex Chen", Role.ADMIN),
+    DemoAccount("experimenter", DEMO_PASSWORD, "Jordan Li", Role.EXPERIMENTER),
+    DemoAccount("analyst", DEMO_PASSWORD, "Sam Wu", Role.ANALYST),
 )
 """三个角色各一个演示账号。"""
 

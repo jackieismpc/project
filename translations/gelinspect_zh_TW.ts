@@ -607,6 +607,10 @@
         <translation>待定</translation>
     </message>
     <message>
+        <source>不适用</source>
+        <translation>不適用</translation>
+    </message>
+    <message>
         <source>标示灵敏度 λ = {lam} EU/mL</source>
         <translation>標示靈敏度 λ = {lam} EU/mL</translation>
     </message>
@@ -637,6 +641,14 @@
     <message>
         <source>中国药典通则 1143</source>
         <translation>中國藥典通則 1143</translation>
+    </message>
+    <message>
+        <source>通用检测，按每管阴阳性出具结果</source>
+        <translation>通用檢測，按每管陰陽性出具結果</translation>
+    </message>
+    <message>
+        <source>共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定</source>
+        <translation>共 {total} 管：陽性 {positive}，陰性 {negative}；通用檢測按每管陰陽性出具結果，不做試驗級判定</translation>
     </message>
     <message>
         <source>没有安排试管</source>
@@ -1121,6 +1133,10 @@
     <message>
         <source>限度试验</source>
         <translation>限度試驗</translation>
+    </message>
+    <message>
+        <source>通用检测</source>
+        <translation>通用檢測</translation>
     </message>
 </context>
 <context>
@@ -4447,6 +4463,14 @@
     <message>
         <source>供试品内毒素系列</source>
         <translation>供試品內毒素系列</translation>
+    </message>
+    <message>
+        <source>通用检测（96 管）</source>
+        <translation>通用檢測（96 管）</translation>
+    </message>
+    <message>
+        <source>样品</source>
+        <translation>樣品</translation>
     </message>
 </context>
 <context>

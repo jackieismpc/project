@@ -19,6 +19,8 @@ class ExperimentType(StrEnum):
     """半定量试验。"""
     LIMIT = "limit"
     """限度试验。"""
+    GENERAL = "general"
+    """通用检测：每支管按凝固状态直接给出阴阳性，没有试验级的判定规则。"""
 
 
 class TubeRole(StrEnum):
@@ -88,6 +90,8 @@ class ConclusionVerdict(StrEnum):
     """无效：有效性前提不满足，不得据此放行。"""
     PENDING = "pending"
     """待定：前提未满足或规则待确认，不是最终结论。"""
+    NOT_APPLICABLE = "not_applicable"
+    """不适用：通用检测没有试验级结论，结果就是每支管的阴阳性。"""
 
 
 class ReviewStatus(StrEnum):

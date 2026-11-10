@@ -76,7 +76,7 @@ def test_all_builtin_templates_roundtrip(database: Database) -> None:
     for template in ALL_BUILTIN_TEMPLATES:
         assert database.templates.get(template.template_id) == template
         assert database.templates.is_builtin(template.template_id)
-    assert len(database.templates.list_all()) == 5
+    assert len(database.templates.list_all()) == 6
     limit = database.templates.list_all(ExperimentType.LIMIT)
     assert {t.template_id for t in limit} == {"builtin.limit", "builtin.limit_retest"}
     assert database.templates.get("missing") is None

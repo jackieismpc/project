@@ -42,6 +42,7 @@ _EXPERIMENT_TYPES: dict[ExperimentType, str] = {
     ExperimentType.INTERFERENCE: str(QT_TRANSLATE_NOOP("ExperimentType", "干扰试验")),
     ExperimentType.SEMI_QUANTITATIVE: str(QT_TRANSLATE_NOOP("ExperimentType", "半定量试验")),
     ExperimentType.LIMIT: str(QT_TRANSLATE_NOOP("ExperimentType", "限度试验")),
+    ExperimentType.GENERAL: str(QT_TRANSLATE_NOOP("ExperimentType", "通用检测")),
 }
 
 _EXPERIMENT_STATES: dict[ExperimentState, str] = {
@@ -473,9 +474,19 @@ _VERDICTS = {
     ConclusionVerdict.FAIL: str(QT_TRANSLATE_NOOP("Conclusion", "不合格")),
     ConclusionVerdict.INVALID: str(QT_TRANSLATE_NOOP("Conclusion", "无效")),
     ConclusionVerdict.PENDING: str(QT_TRANSLATE_NOOP("Conclusion", "待定")),
+    ConclusionVerdict.NOT_APPLICABLE: str(QT_TRANSLATE_NOOP("Conclusion", "不适用")),
 }
-_RULE_SOURCES = (str(QT_TRANSLATE_NOOP("Conclusion", "中国药典通则 1143")),)
+_RULE_SOURCES = (
+    str(QT_TRANSLATE_NOOP("Conclusion", "中国药典通则 1143")),
+    str(QT_TRANSLATE_NOOP("Conclusion", "通用检测，按每管阴阳性出具结果")),
+)
 _NOTE_SOURCES = (
+    str(
+        QT_TRANSLATE_NOOP(
+            "Conclusion",
+            "共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定",  # noqa: E501
+        )
+    ),
     str(QT_TRANSLATE_NOOP("Conclusion", "标示灵敏度 λ = {lam} EU/mL")),
     str(QT_TRANSLATE_NOOP("Conclusion", "第 {series} 系列（{tubes} 号管）：{readings}")),
     str(
@@ -815,6 +826,8 @@ _BUILTIN_NAMES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("TemplateName", "供试品阳性对照")),
     str(QT_TRANSLATE_NOOP("TemplateName", "内毒素标准系列")),
     str(QT_TRANSLATE_NOOP("TemplateName", "供试品内毒素系列")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "通用检测（96 管）")),
+    str(QT_TRANSLATE_NOOP("TemplateName", "样品")),
 )
 """内置模板的名称和默认样品名（入库的原文），显示时按语言翻译。"""
 

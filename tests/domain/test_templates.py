@@ -15,7 +15,7 @@ def test_every_type_has_a_template() -> None:
     assert set(BUILTIN_TEMPLATES) == set(ExperimentType)
     for experiment_type, template in BUILTIN_TEMPLATES.items():
         assert template.experiment_type is experiment_type
-    assert len({t.template_id for t in BUILTIN_TEMPLATES.values()}) == 4
+    assert len({t.template_id for t in BUILTIN_TEMPLATES.values()}) == 5
 
 
 def test_limit_retest_template_belongs_to_limit_test() -> None:
@@ -24,7 +24,7 @@ def test_limit_retest_template_belongs_to_limit_test() -> None:
     roles = [item.role for item in LIMIT_RETEST_TEMPLATE.items]
     assert roles.count(TubeRole.SAMPLE) == 4
     ids = [t.template_id for t in ALL_BUILTIN_TEMPLATES]
-    assert len(ids) == len(set(ids)) == 5 and LIMIT_RETEST_TEMPLATE in ALL_BUILTIN_TEMPLATES
+    assert len(ids) == len(set(ids)) == 6 and LIMIT_RETEST_TEMPLATE in ALL_BUILTIN_TEMPLATES
 
 
 def test_sensitivity_template_matches_specification() -> None:
@@ -132,7 +132,11 @@ def test_absolute_spike_is_kept_for_old_custom_items() -> None:
 
 
 def test_templates_with_spiked_controls_need_lambda() -> None:
-    assert all(t.requires_lambda for t in ALL_BUILTIN_TEMPLATES)
+    assert all(
+        t.requires_lambda
+        for t in ALL_BUILTIN_TEMPLATES
+        if t.experiment_type is not ExperimentType.GENERAL
+    )
     plain = ExperimentTemplate(
         "t", "t", ExperimentType.LIMIT, (TemplateTubeItem(1, "样品", TubeRole.SAMPLE),)
     )
