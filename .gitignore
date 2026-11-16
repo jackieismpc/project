@@ -38,3 +38,7 @@ nuitka-crash-report.xml
 
 # 算法仓库（独立 git 仓库，本地 clone，不纳入本仓库）
 /yolov8seg_tubegel/
+
+# 文档修订的本地渲染和检查产物
+/docx_revision_qa/
+/data-formal/
