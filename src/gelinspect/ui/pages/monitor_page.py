@@ -64,6 +64,7 @@ from gelinspect.ui.pages.monitor_format import (
     well_state,
 )
 from gelinspect.ui.pages.monitor_images import ImagesTab
+from gelinspect.ui.pages.monitor_report import MonitorReportPreview
 from gelinspect.ui.pages.replay_dialog import ReplayDialog
 from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.alert_stack import AlertStack
@@ -341,7 +342,7 @@ class MonitorPage(QWidget):
         self.stack.addWidget(data)
 
     def _build_report_tab(self) -> Card:
-        """“报告打印预览”标签：说明现状，一键到报告中心预览、打印和签署。"""
+        """“报告打印预览”标签：真实分页预览，并可到报告中心处理。"""
         card = Card()
         icon = Label()
         icon.setPixmap(IconLoader.pixmap("file-text", 36, "ink_muted"))
@@ -353,6 +354,8 @@ class MonitorPage(QWidget):
         for widget in (icon, self.report_headline, self.report_summary):
             card.body.addWidget(widget)
         card.body.addWidget(self.report_open, 0, Qt.AlignmentFlag.AlignLeft)
+        self.report_preview = MonitorReportPreview(self._services.reports)
+        card.body.addWidget(self.report_preview)
         return card
 
     def _build_batch_tab(self) -> Card:
@@ -379,6 +382,11 @@ class MonitorPage(QWidget):
         """按当前试验刷新两个报告标签。"""
         view = self._view
         self.report_open.setEnabled(view is not None)
+        self.report_preview.set_context(
+            self._session,
+            view.experiment_id if view is not None else None,
+            (view.state, view.tubes) if view is not None else None,
+        )
         while self.batch_buttons.count():
             item = self.batch_buttons.takeAt(0)
             widget = item.widget() if item is not None else None
@@ -435,6 +443,7 @@ class MonitorPage(QWidget):
             session: 会话，退出登录时为 None。
         """
         self._session = session
+        self.report_preview.set_context(session, None, None)
         self._render_permissions()
 
     @property
@@ -471,6 +480,7 @@ class MonitorPage(QWidget):
         self._signature = None
         self._view = view
         if view is None:
+            self.report_preview.set_context(self._session, None, None)
             self._show_empty(True)
             self.images_tab.set_experiment(self._session, None)
             return False
@@ -860,6 +870,7 @@ class MonitorPage(QWidget):
 
     def _on_tab(self, index: int) -> None:
         self.stack.setCurrentIndex(index)
+        self.report_preview.set_active(index == TAB_REPORT)
         if index == TAB_IMAGES:
             self.images_tab.refresh()
 
@@ -1072,6 +1083,8 @@ class MonitorPage(QWidget):
         self._closed = True
         self._view = None
         self._timer.stop()
+        self.report_preview.set_active(False)
+        self.report_preview.set_context(None, None, None)
         self.replay_player.unload()
         if self._replay_dialog is not None:
             self._replay_dialog.close()

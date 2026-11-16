@@ -440,6 +440,7 @@ class MainWindow(QMainWindow):
             return reagents
         if route.key == "monitor":
             monitor = MonitorPage(self._services, self.bridge)
+            monitor.report_preview.set_ui_language(self._language.current.value)
             monitor.set_session(self._session)
             monitor.tubeRequested.connect(self.open_tube)
             monitor.navigationRequested.connect(self.navigate)
@@ -655,6 +656,9 @@ class MainWindow(QMainWindow):
         reports = self._pages.get("reports")
         if isinstance(reports, ReportsPage):
             reports.set_ui_language(code)
+        monitor = self._pages.get("monitor")
+        if isinstance(monitor, MonitorPage):
+            monitor.report_preview.set_ui_language(code)
         session = self._session
         if session is not None:
             user = session.user

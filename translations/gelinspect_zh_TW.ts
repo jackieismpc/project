@@ -5165,4 +5165,31 @@
         <translation>正在讀取影像…</translation>
     </message>
 </context>
+<context>
+    <name>MonitorReportPreview</name>
+    <message>
+        <source>先选择一个试验。</source>
+        <translation>請先選擇一個試驗。</translation>
+    </message>
+    <message>
+        <source>第 {page} 页</source>
+        <translation>第 {page} 頁</translation>
+    </message>
+    <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>暫時無法顯示報告預覽，請按“重新整理預覽”重試。</translation>
+    </message>
+    <message>
+        <source>全部页面</source>
+        <translation>全部頁面</translation>
+    </message>
+    <message>
+        <source>刷新预览</source>
+        <translation>重新整理預覽</translation>
+    </message>
+    <message>
+        <source>选择报告页码</source>
+        <translation>選擇報告頁碼</translation>
+    </message>
+</context>
 </TS>

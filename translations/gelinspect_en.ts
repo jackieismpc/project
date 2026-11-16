@@ -5165,4 +5165,31 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Loading images…</translation>
     </message>
 </context>
+<context>
+    <name>MonitorReportPreview</name>
+    <message>
+        <source>先选择一个试验。</source>
+        <translation>Select an experiment first.</translation>
+    </message>
+    <message>
+        <source>第 {page} 页</source>
+        <translation>Page {page}</translation>
+    </message>
+    <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
+    </message>
+    <message>
+        <source>全部页面</source>
+        <translation>All pages</translation>
+    </message>
+    <message>
+        <source>刷新预览</source>
+        <translation>Refresh preview</translation>
+    </message>
+    <message>
+        <source>选择报告页码</source>
+        <translation>Select report page</translation>
+    </message>
+</context>
 </TS>
