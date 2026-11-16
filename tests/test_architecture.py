@@ -97,6 +97,7 @@ UI_ALLOWED = (
     "gelinspect.domain",
     "gelinspect.interfaces",
     "PySide6",
+    "shiboken6",  # PySide6 配套绑定：检查 Qt 对象的原生生命周期。
     "pyqtgraph",
     "numpy",
 )

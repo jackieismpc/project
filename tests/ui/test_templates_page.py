@@ -237,3 +237,29 @@ def test_other_roles_can_only_view(
     ]
     window.logout()
     assert window.session is None
+
+
+def test_admin_can_save_templates_after_previous_toast_expires(
+    qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    from gelinspect.ui.widgets.toast import Toast
+
+    page = open_templates(qapp, window, "admin")
+    for index in range(5):
+
+        def edit(dialog: TemplateEditorDialog, index: int = index) -> None:
+            dialog.name.setText(f"连续保存模板{index}")
+            dialog.table.cell_item(0, COL_SAMPLE).setText("样品")
+
+        fake_dialog(monkeypatch, edit)
+        click(qapp, page.new_button)
+        assert page.selected() is not None
+        assert page.selected().template.name == f"连续保存模板{index}"  # type: ignore[union-attr]
+        toast = getattr(window, "_gel_toast", None)
+        assert isinstance(toast, Toast)
+        toast.dismiss()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        settle(qapp)
+    assert sum("新建模板 连续保存模板" in detail for detail in audit(app_context)) == 5

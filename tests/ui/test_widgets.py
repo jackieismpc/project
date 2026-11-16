@@ -71,3 +71,68 @@ def test_all_icons_load(qapp: QApplication) -> None:
     assert len(names) >= 20
     for name in names:
         assert not IconLoader.pixmap(name, 18, "primary").isNull()
+
+
+def test_toast_can_be_replaced_after_native_deletion(qtbot: QtBot) -> None:
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from shiboken6 import isValid
+
+    host = QWidget()
+    qtbot.addWidget(host)
+    first = Toast.show_message(host, "第一条", timeout_ms=0)
+    # 也覆盖外部直接删除；此时 Python 引用仍在，但原生对象已经不存在。
+    first.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert not isValid(first)
+    second = Toast.show_message(host, "第二条", timeout_ms=0)
+    assert second.message_label.text() == "第二条"
+    assert isValid(second)
+
+
+def test_toast_repeated_replacement_and_expiry(qtbot: QtBot) -> None:
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    host = QWidget()
+    qtbot.addWidget(host)
+    host.show()
+    for index in range(30):
+        first = Toast.show_message(host, f"保存 {index}", timeout_ms=0)
+        second = Toast.show_message(host, f"替换 {index}", timeout_ms=1)
+        # 重复关闭旧提示不能清除当前提示的引用。
+        first.dismiss()
+        assert getattr(host, "_gel_toast", None) is second
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        qtbot.waitUntil(lambda: getattr(host, "_gel_toast", None) is None, timeout=2000)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert not host.findChildren(Toast)
+        host.resize(400 + index, 300)
+
+
+def test_toast_expiry_regression_in_separate_process() -> None:
+    """原生崩溃必须由独立进程的退出状态检测，不能靠捕获 Python 异常。"""
+    import os
+    import subprocess
+    import sys
+
+    script = """
+from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QCoreApplication, QEvent
+from gelinspect.ui.widgets.toast import Toast
+app = QApplication([])
+host = QWidget()
+for i in range(50):
+    toast = Toast.show_message(host, str(i), timeout_ms=0)
+    toast.dismiss()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+Toast.show_message(host, "done", timeout_ms=0)
+host.deleteLater()
+QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+"""
+    result = subprocess.run(
+        [sys.executable, "-X", "faulthandler", "-c", script],
+        env={**os.environ, "QT_QPA_PLATFORM": "offscreen"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr

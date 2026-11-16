@@ -319,3 +319,14 @@ class DeviceController(Protocol):
 - **启动检查**：在干净的克隆里运行 `uv run gelinspect`，首次启动能进入登录页并跑完模拟试验。Windows 由你运行同一条命令验证。
 - **打包检查**：在 macOS 上构建并启动 `.app`；Windows 由你运行构建产物，按 `docs/deployment.md` 的清单验证。
 - **接口检查**：契约测试同时跑 `MockAnalyzer` 和一个按 `adapter_template.py` 写的假后端，确认仅改配置就能切换，界面和业务层无需改动；临时移走 `simulation/` 后，主代码仍能导入。
+
+## 2026-11-16 甲方反馈修复
+
+按 [已批准专项计划](client-feedback-remediation-plan-20261116.md) 逐项实施。当前仅实施第1项；用户验证通过前不得启动第2项。
+
+| 项目 | 状态 | 提交 |
+|---|---|---|
+| 基线与专项计划 | 已完成，原业务基线757e538，分支基线0b4f0e5 | 20a1739 |
+| 新建模板闪退 | 已复现提示条失效指针导致的SIGSEGV并修复，待用户验证 | 见 `fix(ui): 修复提示销毁后再次操作导致的原生崩溃` 提交 |
+
+证据与验证步骤见 [提示稳定性](features/toast-stability.md)。开发数据暂保留，清理在专项第3项执行。

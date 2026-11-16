@@ -22,7 +22,8 @@ PASSWORD = "Export#2026"
 
 def test_round_trip_keeps_names_and_bytes(tmp_path: Path) -> None:
     source = tmp_path / "结果.xlsx"
-    source.write_bytes(os.urandom(70_000) + b"tail")
+    marker = b"gelinspect-private-payload-20261116"
+    source.write_bytes(os.urandom(70_000) + marker)
     archive = write_encrypted_zip(
         tmp_path / "out.zip",
         [("结果.xlsx", source), ("manifest.csv", b"a,b\n1,2\n")],
@@ -32,7 +33,8 @@ def test_round_trip_keeps_names_and_bytes(tmp_path: Path) -> None:
     content = read_encrypted_zip(archive, PASSWORD)
     assert content == {"结果.xlsx": source.read_bytes(), "manifest.csv": b"a,b\n1,2\n"}
     raw = archive.read_bytes()
-    assert b"tail" not in raw and b"a,b" not in raw  # 内容是密文
+    # 短到3字节的字符串可能偶然出现在随机密文里；检查完整明文标记。
+    assert marker not in raw and b"a,b\n1,2\n" not in raw
     assert not list(tmp_path.glob("*.part"))
 
 

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import contextlib
 from enum import StrEnum
 
 from PySide6.QtCore import QEvent, QObject, QTimer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QWidget
+from shiboken6 import isValid
 
 from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
@@ -107,6 +107,11 @@ class Toast(QFrame):
     def dismiss(self) -> None:
         """立即关闭并销毁。"""
         self._timer.stop()
+        parent = self.parentWidget()
+        if parent is not None:
+            parent.removeEventFilter(self)
+            if getattr(parent, "_gel_toast", None) is self:
+                parent._gel_toast = None  # type: ignore[attr-defined]
         self.hide()
         self.deleteLater()
 
@@ -128,11 +133,12 @@ class Toast(QFrame):
         Returns:
             新建的 Toast。
         """
-        previous = parent.property("_gel_toast")
-        if isinstance(previous, Toast):
-            with contextlib.suppress(RuntimeError):  # 旧对象可能已被 Qt 销毁
-                previous.dismiss()
+        # QObject 动态属性会留下已销毁 QObject 的指针；取属性时即可原生崩溃，
+        # Python 的异常处理来不及兜底。使用 Python 引用并在访问 Qt 对象前检查有效性。
+        previous = getattr(parent, "_gel_toast", None)
+        if isinstance(previous, Toast) and isValid(previous):
+            previous.dismiss()
         toast = Toast(message, kind, parent)
-        parent.setProperty("_gel_toast", toast)
+        parent._gel_toast = toast  # type: ignore[attr-defined]
         toast.popup(timeout_ms)
         return toast
