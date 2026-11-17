@@ -235,12 +235,28 @@
 <context>
     <name>AppearanceDialog</name>
     <message>
+        <source>主色</source>
+        <translation>Primary color</translation>
+    </message>
+    <message>
+        <source>背景</source>
+        <translation>Background</translation>
+    </message>
+    <message>
+        <source>内容区</source>
+        <translation>Content area</translation>
+    </message>
+    <message>
+        <source>文字</source>
+        <translation>Text color</translation>
+    </message>
+    <message>
         <source>外观设置</source>
         <translation>Appearance</translation>
     </message>
     <message>
-        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
-        <translation>Saved per account. Changes preview immediately; Cancel restores the saved settings.</translation>
+        <source>按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。</source>
+        <translation>Saved per account. Font size follows the system or is adjusted manually, within 12–22 pixels. Changes preview immediately; cancel restores saved settings.</translation>
     </message>
     <message>
         <source>选择颜色</source>
@@ -256,7 +272,7 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>这是界面内容和正文文字的预览。</source>
@@ -285,6 +301,10 @@
     <message>
         <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
         <translation>Some text has low contrast against its background. Adjust the colors for readability.</translation>
+    </message>
+    <message>
+        <source>无法保存外观设置，请检查数据目录后重试。</source>
+        <translation>Unable to save appearance settings. Check the data folder and try again.</translation>
     </message>
 </context>
 <context>
@@ -1871,6 +1891,10 @@
         <translation>Your role cannot open: {page}</translation>
     </message>
     <message>
+        <source>无法读取外观设置，请检查数据目录后重试。</source>
+        <translation>Unable to read appearance settings. Check the data folder and try again.</translation>
+    </message>
+    <message>
         <source>密码已修改</source>
         <translation>Password changed</translation>
     </message>
@@ -2519,7 +2543,7 @@
     </message>
     <message>
         <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
-        <translation>The LAL reagent&#x27;s labeled sensitivity λ is missing, so the endotoxin spike cannot be calculated. Complete a valid reagent check.</translation>
+        <translation>The LAL reagent&apos;s labeled sensitivity λ is missing, so the endotoxin spike cannot be calculated. Complete a valid reagent check.</translation>
     </message>
     <message>
         <source>管位数量要与模板一致，样品名称不能为空</source>
@@ -2859,16 +2883,12 @@
         <translation>New Experiment</translation>
     </message>
     <message>
-        <source>模板管理</source>
-        <translation>Templates</translation>
-    </message>
-    <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
-        <source>审计追踪</source>
-        <translation>Audit trail</translation>
+        <source>当前实验</source>
+        <translation>Current experiment</translation>
     </message>
     <message>
         <source>设置</source>
@@ -2893,6 +2913,10 @@
     <message>
         <source>关于</source>
         <translation>About</translation>
+    </message>
+    <message>
+        <source>公司与版权设置</source>
+        <translation>Company and copyright settings</translation>
     </message>
     <message>
         <source>更多</source>
@@ -3545,10 +3569,6 @@
         <translation>Already signed. You can verify again or export the same file.</translation>
     </message>
     <message>
-        <source>签署需要再次输入密码；签署后结果和复核被锁定。</source>
-        <translation>Signing asks for your password again; results and review are locked afterwards.</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>Your role does not have this permission</translation>
     </message>
@@ -3621,6 +3641,10 @@
         <translation>The PDF status could not be confirmed. Check file access and contact support for review.</translation>
     </message>
     <message>
+        <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
+        <translation>Signing requires your password again. Later reviews create a revision that must be signed again.</translation>
+    </message>
+    <message>
         <source>已发送到打印机（{pages} 页）</source>
         <translation>Sent to the printer ({pages} page(s))</translation>
     </message>
@@ -3650,7 +3674,7 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>试验</source>
@@ -3839,7 +3863,7 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -4460,12 +4484,8 @@
         <translation>Templates</translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation>New Experiment</translation>
-    </message>
-    <message>
-        <source>实验监控</source>
-        <translation>Experiment Monitor</translation>
+        <source>用户管理</source>
+        <translation>User management</translation>
     </message>
     <message>
         <source>试剂记录</source>
@@ -4473,23 +4493,11 @@
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Reports</translation>
+        <translation>Report Center</translation>
     </message>
     <message>
         <source>审计追踪</source>
         <translation>Audit trail</translation>
-    </message>
-    <message>
-        <source>用户与权限</source>
-        <translation>Users &amp; permissions</translation>
-    </message>
-    <message>
-        <source>设置</source>
-        <translation>Settings</translation>
-    </message>
-    <message>
-        <source>关于</source>
-        <translation>About</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>

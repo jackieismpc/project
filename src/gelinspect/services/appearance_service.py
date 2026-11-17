@@ -34,9 +34,11 @@ def validate_preferences(preferences: AppearancePreferences) -> AppearancePrefer
     """Validate color values and restrict manual font size to a readable range."""
     for name in _COLORS:
         value = getattr(preferences, name)
-        if value is not None and not _COLOR.fullmatch(value):
+        if value is not None and (not isinstance(value, str) or not _COLOR.fullmatch(value)):
             raise AppearanceSettingsError(f"{name} must be a #RRGGBB color")
-    if preferences.font_size is not None and not 12 <= preferences.font_size <= 22:
+    if preferences.font_size is not None and (
+        type(preferences.font_size) is not int or not 12 <= preferences.font_size <= 22
+    ):
         raise AppearanceSettingsError("font_size must be between 12 and 22 pixels")
     return preferences
 
@@ -50,7 +52,7 @@ class AppearanceService:
 
     @staticmethod
     def _account_key(username: str) -> str:
-        return username.strip().casefold()
+        return username.strip()
 
     def get(self, username: str) -> AppearancePreferences:
         """Load one account's preferences, using defaults when no override exists."""
@@ -97,7 +99,7 @@ class AppearanceService:
             return {}
         try:
             payload = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise AppearanceSettingsError(f"cannot read appearance settings: {exc}") from exc
         if not isinstance(payload, dict) or payload.get("version") != _VERSION:
             raise AppearanceSettingsError("appearance settings file has an unsupported format")

@@ -46,6 +46,11 @@ _SENSITIVE_TEXT = re.compile(
 )
 
 
+def diagnostic_cancel_token() -> threading.Event:
+    """Create a thread-safe cancellation flag for background diagnostic exports."""
+    return threading.Event()
+
+
 class DiagnosticStorage(Protocol):
     @property
     def experiments(self) -> ExperimentRepository: ...

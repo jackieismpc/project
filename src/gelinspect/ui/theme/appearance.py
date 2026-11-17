@@ -15,7 +15,7 @@ _COLOR_KEYS = ("primary", "bg", "surface", "ink")
 
 
 def system_body_size() -> int:
-    """Return the operating system's general UI font size in logical pixels."""
+    """Return the system UI size clamped to the supported 12–22 logical-pixel range."""
     font = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
     size = font.pixelSize()
     if size <= 0:
@@ -41,11 +41,9 @@ def tokens_for_preferences(
 ) -> Tokens:
     """Create theme tokens from preferences while keeping Noto fixed."""
     system_size = system_body_size() if system_size is None else system_size
-    body = preferences.font_size or system_size
+    body = min(22, max(12, preferences.font_size or system_size))
     overrides = {
-        key: value
-        for key in _COLOR_KEYS
-        if (value := getattr(preferences, key)) is not None
+        key: value for key in _COLOR_KEYS if (value := getattr(preferences, key)) is not None
     }
     colors = replace(LIGHT.colors, **overrides)
     if "primary" in overrides:

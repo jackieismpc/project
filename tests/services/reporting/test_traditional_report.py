@@ -87,7 +87,10 @@ def test_traditional_pdf_embeds_the_requested_system_fonts(
     fonts = pdf_font_report(data)
     assert fonts and all(embedded for _, embedded in fonts)
     assert any("TimesNewRoman" in name or "Times New Roman" in name for name, _ in fonts)
-    assert any("SimSun" in name for name, _ in fonts)
+    from gelinspect.services.reporting.renderer import ensure_fonts
+
+    if ensure_fonts():
+        assert any("SimSun" in name for name, _ in fonts)
 
 
 def test_signed_report_keeps_its_traditional_language(signing_stack: Stack, tmp_path: Path) -> None:

@@ -41,6 +41,7 @@ _BLOCKS: dict[SigningBlocker, str] = {
     ),
 }
 
+
 def describe_signing_blocks(
     blocks: tuple[SigningBlock, ...],
     conclusion: ExperimentConclusion | None = None,

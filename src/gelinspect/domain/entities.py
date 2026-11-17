@@ -494,7 +494,7 @@ class Experiment:
         reviewed_at: datetime,
         note: str | None = None,
     ) -> TubeResult:
-        """记录人工复核结论，只能在待复核状态调用。
+        """记录任意已有结果的人工复核结论，保留复核历史。
 
         权限由服务层用 ``Permission.RESULT_REVIEW`` 检查。
 
@@ -509,7 +509,7 @@ class Experiment:
             更新后的单管结果。
 
         Raises:
-            TransitionGuardError: 当前不在待复核状态，或该管号没有结果。
+            TransitionGuardError: 该管号没有结果。
             ValueError: 复核结论或时间不合法。
         """
         if tube_no not in self.results:

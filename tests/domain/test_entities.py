@@ -245,12 +245,13 @@ def test_cannot_sign_while_review_is_pending() -> None:
     assert experiment.signed_by is None
 
 
-def test_review_is_only_allowed_in_pending_review_state() -> None:
+def test_completed_result_can_be_reviewed_without_changing_state() -> None:
     experiment = completed_experiment()
-    with pytest.raises(TransitionGuardError):
-        experiment.review_tube(
-            1, interpretation=Interpretation.NEGATIVE, reviewed_by="a", reviewed_at=NOW
-        )
+    result = experiment.review_tube(
+        1, interpretation=Interpretation.NEGATIVE, reviewed_by="a", reviewed_at=NOW
+    )
+    assert result.final_interpretation is Interpretation.NEGATIVE
+    assert experiment.state is S.COMPLETED
 
 
 def test_review_of_unknown_tube_is_rejected() -> None:

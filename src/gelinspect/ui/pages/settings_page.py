@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import shutil
-import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -34,6 +33,7 @@ from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.diagnostics_service import (
     DiagnosticCancelledError,
     DiagnosticPackageResult,
+    diagnostic_cancel_token,
 )
 from gelinspect.services.errors import ServiceError
 from gelinspect.services.settings_service import SettingsError, SettingsView, VideoProbe
@@ -132,7 +132,7 @@ class SettingsPage(QWidget):
         self._preview_token: int | None = None
         self._previewing = False
         self._runner = BackgroundRunner(self)
-        self._diagnostic_cancel = threading.Event()
+        self._diagnostic_cancel = diagnostic_cancel_token()
         self._diagnostic_progress: QProgressDialog | None = None
         self._diagnostic_relay = _DiagnosticProgress(self)
         self._diagnostic_relay.updated.connect(self._update_diagnostic_progress)
@@ -670,6 +670,13 @@ class SettingsPage(QWidget):
             self._diagnostics_failed,
         )
         self._apply_enabled()
+
+    def shutdown(self) -> None:
+        """Cancel diagnostic exports and discard callbacks before leaving the session."""
+        self._diagnostic_cancel.set()
+        self._runner.cancel()
+        self._runner.wait(5000)
+        self._finish_diagnostics()
 
     def _update_diagnostic_progress(self, done: int, total: int) -> None:
         dialog = self._diagnostic_progress

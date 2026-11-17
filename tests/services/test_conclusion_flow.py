@@ -374,3 +374,14 @@ def test_summaries_carry_the_completion_time(stack: Stack) -> None:
     review(stack, 7, Interpretation.POSITIVE)
     page = stack.database.experiments.query(ExperimentQuery(), PageRequest(limit=5))
     assert page.items[0].completed_at == NOW
+
+
+def test_lambda_recalculation_keeps_the_users_edited_multiple() -> None:
+    draft = ExperimentDraft()
+    draft.choose_template(BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION])
+    draft.set_labeled_sensitivity(0.25)
+    assert not draft.has_sample_input()
+    draft.rows[0].lambda_multiple = 3
+    draft.set_labeled_sensitivity(0.5)
+    assert draft.rows[0].spiked_endotoxin == 1.5
+    assert draft.has_sample_input()

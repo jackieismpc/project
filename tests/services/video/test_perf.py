@@ -221,4 +221,3 @@ def test_4000x3000_10fps_preview_record_and_snapshots(tmp_path: Path) -> None:
     assert preview_shapes == {(720, 960, 3)}
     assert record.frame_count >= 0.5 * stats.frames_captured
     assert not record.interrupted
-

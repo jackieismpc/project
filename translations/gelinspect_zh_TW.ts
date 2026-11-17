@@ -235,12 +235,28 @@
 <context>
     <name>AppearanceDialog</name>
     <message>
+        <source>主色</source>
+        <translation>主色</translation>
+    </message>
+    <message>
+        <source>背景</source>
+        <translation>背景</translation>
+    </message>
+    <message>
+        <source>内容区</source>
+        <translation>內容區</translation>
+    </message>
+    <message>
+        <source>文字</source>
+        <translation>文字</translation>
+    </message>
+    <message>
         <source>外观设置</source>
         <translation>外觀設定</translation>
     </message>
     <message>
-        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
-        <translation>按帳號儲存。變更會立即預覽，取消可還原原設定。</translation>
+        <source>按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。</source>
+        <translation>依帳號儲存。字級跟隨系統或手動調整，均限制在12–22像素內。變更會立即預覽，取消可還原原設定。</translation>
     </message>
     <message>
         <source>选择颜色</source>
@@ -285,6 +301,10 @@
     <message>
         <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
         <translation>部分文字與背景的對比度較低，請調整顏色以確保可讀性。</translation>
+    </message>
+    <message>
+        <source>无法保存外观设置，请检查数据目录后重试。</source>
+        <translation>無法儲存外觀設定，請檢查資料目錄後重試。</translation>
     </message>
 </context>
 <context>
@@ -1871,6 +1891,10 @@
         <translation>目前角色無此權限：{page}</translation>
     </message>
     <message>
+        <source>无法读取外观设置，请检查数据目录后重试。</source>
+        <translation>無法讀取外觀設定，請檢查資料目錄後重試。</translation>
+    </message>
+    <message>
         <source>密码已修改</source>
         <translation>密碼已修改</translation>
     </message>
@@ -2133,7 +2157,7 @@
     </message>
     <message>
         <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
-        <translation>在「新增實驗」中啟動實驗後，這裡會顯示即時畫面、孔板和結果；也可以到歷史記錄回看已完成的實驗。</translation>
+        <translation>在“新增實驗”中啟動實驗後，這裡會顯示即時畫面、孔板和結果；也可以到歷史記錄回看已完成的實驗。</translation>
     </message>
     <message>
         <source>当前没有进行中的试验</source>
@@ -2859,16 +2883,12 @@
         <translation>新增實驗</translation>
     </message>
     <message>
-        <source>模板管理</source>
-        <translation>範本管理</translation>
-    </message>
-    <message>
         <source>报告中心</source>
         <translation>報告中心</translation>
     </message>
     <message>
-        <source>审计追踪</source>
-        <translation>稽核軌跡</translation>
+        <source>当前实验</source>
+        <translation>目前實驗</translation>
     </message>
     <message>
         <source>设置</source>
@@ -2893,6 +2913,10 @@
     <message>
         <source>关于</source>
         <translation>關於</translation>
+    </message>
+    <message>
+        <source>公司与版权设置</source>
+        <translation>公司與版權設定</translation>
     </message>
     <message>
         <source>更多</source>
@@ -2971,7 +2995,7 @@
     </message>
     <message>
         <source>点击填入并校验此扫码内容</source>
-        <translation>點擊填入並校驗此掃碼內容</translation>
+        <translation>點擊填入並驗證此掃碼內容</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -3545,10 +3569,6 @@
         <translation>已經簽署，可以重新驗章或匯出同一份檔案。</translation>
     </message>
     <message>
-        <source>签署需要再次输入密码；签署后结果和复核被锁定。</source>
-        <translation>簽署需要再次輸入密碼；簽署後結果和複核被鎖定。</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>目前角色無此權限</translation>
     </message>
@@ -3619,6 +3639,10 @@
     <message>
         <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
         <translation>無法確認 PDF 狀態，請檢查檔案權限並聯絡後台檢查。</translation>
+    </message>
+    <message>
+        <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
+        <translation>簽署需要再次輸入密碼；後續複核將產生需重新簽署的修訂版。</translation>
     </message>
     <message>
         <source>已发送到打印机（{pages} 页）</source>
@@ -4460,12 +4484,8 @@
         <translation>範本管理</translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation>新增實驗</translation>
-    </message>
-    <message>
-        <source>实验监控</source>
-        <translation>實驗監控</translation>
+        <source>用户管理</source>
+        <translation>使用者管理</translation>
     </message>
     <message>
         <source>试剂记录</source>
@@ -4478,18 +4498,6 @@
     <message>
         <source>审计追踪</source>
         <translation>稽核軌跡</translation>
-    </message>
-    <message>
-        <source>用户与权限</source>
-        <translation>使用者與權限</translation>
-    </message>
-    <message>
-        <source>设置</source>
-        <translation>設定</translation>
-    </message>
-    <message>
-        <source>关于</source>
-        <translation>關於</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>

@@ -39,10 +39,11 @@ from PySide6.QtWidgets import (
 
 from gelinspect.ui.i18n import Language
 from gelinspect.ui.routes import PAGE_ROUTES
+from gelinspect.ui.widgets.data_table import RecordTableModel
 from gelinspect.ui.widgets.toast import Toast
 
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")
-ALLOWED = {"简体中文"}
+ALLOWED = {"简体中文", "繁體中文"}
 """语言菜单里各语言用自己的名字显示，这是应该保留的中文。"""
 
 
@@ -78,6 +79,8 @@ def _model_strings(model: QAbstractItemModel) -> list[str]:
             found.append(header)
     for row in range(min(model.rowCount(root), 200)):
         for column in range(columns):
+            if isinstance(model, RecordTableModel) and model.columns[column].key == "detail":
+                continue  # 审计原始记录保留写入时的内容，不随界面语言改写。
             value = model.index(row, column).data(Qt.ItemDataRole.DisplayRole)
             if isinstance(value, str):
                 found.append(value)
@@ -156,8 +159,8 @@ def main() -> int:
                 rig.window.open_experiment(experiment_id)
                 support.settle(rig.app)
                 scan([rig.window], f"{username}:monitor-open", hits)
-                for tab in range(4):
-                    page = rig.window.page("monitor")
+                page = rig.window.page("monitor")
+                for tab in range(3):
                     page.tabs.set_current(tab)
                     page.stack.setCurrentIndex(tab)
                     support.settle(rig.app)
@@ -192,6 +195,7 @@ def scan_dialogs(
     """实例化各个对话框（不进入事件循环）并扫描。"""
     from gelinspect.domain.enums import Role
     from gelinspect.services.reporting.report_service import ReportService
+    from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
     from gelinspect.ui.pages.auth_pages import ChangePasswordDialog
     from gelinspect.ui.pages.export_password import ExportPasswordDialog
     from gelinspect.ui.pages.report_dialogs import BatchExportDialog, SignDialog
@@ -202,11 +206,12 @@ def scan_dialogs(
     session = rig.window.session
     records = services.reports.signed_reports(session) if session is not None else []
     dialogs: list[QDialog] = [
+        AppearanceDialog(username, services.appearance, rig.window, app=rig.app),
         SignDialog(lambda _p: None, subject=experiment_id, signer=username, parent=rig.window),
         BatchExportDialog(records, lambda *_: None, rig.window),
         ExportPasswordDialog(rig.window),
         NewUserDialog(lambda *_: None, rig.window),
-        RoleDialog("analyst", Role.ANALYST, lambda _r: None, rig.window),
+        RoleDialog("analyst", Role.USER, lambda _r: None, rig.window),
         CredentialDialog("newuser", "Temp#Pass1", rig.window),
         ChangePasswordDialog(lambda _o, _n: None, parent=rig.window),
     ]

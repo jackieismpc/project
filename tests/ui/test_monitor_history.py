@@ -74,6 +74,17 @@ def test_replay_plays_a_real_mp4_row_by_row(
     )
     page.replay_rows.setCurrentIndex(2)  # 换排
     assert player.clip is not None and "row_03" in player.clip.path.name
+    assert page.plate.active_row == 3
+    page._on_row_title_activated(1)
+    assert page.replay_rows.currentData() == 1
+    assert page.plate.active_row == 1
+    assert player.clip is not None and "row_01" in player.clip.path.name
+    page._on_row_title_activated(12)
+    assert player.clip is None and not player.is_playing
+    assert page.replay_rows.currentIndex() == -1
+    page.replay_rows.setCurrentIndex(2)
+    assert page.plate.active_row == 3
+    assert player.clip is not None and "row_03" in player.clip.path.name
     player.pause()
 
     # 对话框版（实时页的“回放第 N 排”）：同样能播
@@ -111,8 +122,8 @@ def test_history_opens_a_finished_experiment_read_only(
     experiment_id = finished_experiment(qapp, fast_window, fast_context)
     assert fast_window.logout()
     sign_in(qapp, fast_window, "analyst")
-    # “打开文件”快捷操作进入历史记录
-    fast_window.shell.toolbar.actionTriggered.emit("open_file")
+    # 侧栏历史记录入口统一进入实验历史
+    fast_window.shell.navigationRequested.emit("history")
     assert fast_window.current_route == "history"
     history = fast_window.page("history")
     assert isinstance(history, HistoryPage)

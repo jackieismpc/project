@@ -7,6 +7,7 @@ Qt 把每个字形写成 ``<glyph> Tj``，字形到 Unicode 的对应在字体�
 from __future__ import annotations
 
 import re
+import unicodedata
 from io import BytesIO
 from typing import Any
 
@@ -90,7 +91,16 @@ def pdf_pages_text(data: bytes) -> list[str]:
                     chars.append(current.get(code, "�"))
             if chars:
                 # 字体把空格字形登记为制表符（空格字形同时对应 U+0009 和 U+0020），还原成空格。
-                lines.append("".join(chars).replace("\t", " "))
+                text = "".join(chars).replace("\t", " ")
+                # 系统字体可能将统一汉字映射为同形的康熙部首。仅规范这些字形，保留全角标点。
+                lines.append(
+                    "".join(
+                        unicodedata.normalize("NFKC", char)
+                        if "\u2f00" <= char <= "\u2fdf"
+                        else char
+                        for char in text
+                    )
+                )
         texts.append("\n".join(lines))
     return texts
 

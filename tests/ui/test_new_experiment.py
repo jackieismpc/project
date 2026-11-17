@@ -492,10 +492,10 @@ def test_leaving_an_unfinished_wizard_asks_for_confirmation(
 
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(ask))
     assert not window.navigate("dashboard")  # 选择留下
-    assert window.current_route == "new" and asked == ["离开新试验向导？"]
+    assert window.current_route == "new" and asked == ["离开新建实验向导？"]
     assert page.draft().selected == list(range(1, 9)) and page.current_step() == STEP_SAMPLES
     # 快捷栏和侧栏走同一个入口
-    window.shell.toolbar.actionTriggered.emit("templates")
+    window.shell.navigationRequested.emit("templates")
     assert window.current_route == "new" and len(asked) == 2
     answer["value"] = True
     assert window.navigate("templates")  # 确认离开

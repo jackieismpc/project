@@ -20,10 +20,11 @@ from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
+from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.app_services import AppServices
-from gelinspect.services.appearance_service import AppearancePreferences
+from gelinspect.services.appearance_service import AppearancePreferences, AppearanceSettingsError
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
 from gelinspect.services.engine_types import (
     AlertLevel,
@@ -322,6 +323,9 @@ class MainWindow(QMainWindow):
         )
         toolbar = self.shell.toolbar
         toolbar.set_user_permissions(session.permissions() if session is not None else ())
+        toolbar.set_experiment_active(
+            session is not None and self._services.monitor.active_experiment_id() is not None
+        )
         self.shell.nav.set_denied(denied_nav_keys(session))
 
     def logout(self, *, confirm: bool = True) -> bool:
@@ -427,7 +431,7 @@ class MainWindow(QMainWindow):
             self.page_stack.addWidget(page)
         self.page_stack.setCurrentWidget(page)
         self._current_route = key
-        nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "monitor"
+        nav_key = key if key in {r.key for r in PAGE_ROUTES if r.in_nav} else "history"
         self.shell.nav.set_current(nav_key)
         refreshable = (
             DashboardPage
@@ -593,9 +597,7 @@ class MainWindow(QMainWindow):
         Returns:
             成功显示时为 True。
         """
-        monitor = self._pages.get("monitor")
-        if isinstance(monitor, MonitorPage) and monitor.experiment_id == experiment_id:
-            self._tube_return_context = (experiment_id, tube_no)
+        self._tube_return_context = (experiment_id, tube_no)
         if not self.navigate("tube"):
             return False
         page = self._pages.get("tube")
@@ -607,6 +609,8 @@ class MainWindow(QMainWindow):
         context, self._tube_return_context = self._tube_return_context, None
         monitor = self._pages.get("monitor")
         if context is not None and isinstance(monitor, MonitorPage):
+            if monitor.experiment_id != context[0] and not monitor.open_experiment(context[0]):
+                return
             monitor.focus_tube(context[1])
 
     def _on_reviewed(self, experiment_id: str) -> None:
@@ -628,13 +632,29 @@ class MainWindow(QMainWindow):
 
     def _drop_pages(self) -> None:
         for page in self._pages.values():
-            if isinstance(page, MonitorPage | TubeDetailPage):
+            if isinstance(page, MonitorPage | TubeDetailPage | SettingsPage):
                 page.shutdown()
             self.page_stack.removeWidget(page)
             page.deleteLater()
         self._pages.clear()
+        self._tube_return_context = None
 
     def _on_quick_action(self, action_id: str) -> None:
+        if action_id == "company_settings":
+            if (
+                self._session is not None
+                and self._session.can(Permission.COMPANY_CONFIGURE)
+                and self.navigate("settings")
+            ):
+                settings = self._pages.get("settings")
+                if isinstance(settings, SettingsPage):
+                    settings.fields["copyright_holder"].edit.setFocus()
+            return
+        if action_id == "current_experiment":
+            active = self._services.monitor.active_experiment_id()
+            if active is not None:
+                self.open_experiment(active)
+            return
         key = QUICK_ACTION_ROUTES.get(action_id)
         if key is not None:
             self.navigate(key)
@@ -654,9 +674,16 @@ class MainWindow(QMainWindow):
             session = self._session
             app = QApplication.instance()
             if session is not None and isinstance(app, QApplication):
-                dialog = AppearanceDialog(
-                    session.user.username, self._services.appearance, self, app=app
-                )
+                try:
+                    dialog = AppearanceDialog(
+                        session.user.username, self._services.appearance, self, app=app
+                    )
+                except (OSError, AppearanceSettingsError):
+                    _log.exception("APPEARANCE_OPEN_FAILED")
+                    Toast.show_message(
+                        self, self.tr("无法读取外观设置，请检查数据目录后重试。"), ToastKind.DANGER
+                    )
+                    return
                 dialog.exec()
 
     def change_password(self) -> None:
@@ -683,6 +710,18 @@ class MainWindow(QMainWindow):
         _log.info(
             "试验 %s：%s → %s", event.experiment_id, event.previous.value, event.current.value
         )
+        self.shell.toolbar.set_experiment_active(
+            self._session is not None
+            and event.current
+            in {
+                ExperimentState.INCUBATING,
+                ExperimentState.READING,
+                ExperimentState.ANALYZING,
+                ExperimentState.FAULTED,
+            }
+        )
+        if self._screen is not Screen.SHELL:
+            return
         if event.current is ExperimentState.PENDING_REVIEW:
             monitor = self._pages.get("monitor")
             pending = 0
@@ -700,8 +739,7 @@ class MainWindow(QMainWindow):
         elif event.current is ExperimentState.COMPLETED:
             Toast.show_message(
                 self,
-                self.tr("试验 {id} 已完成，可查看报告。")
-                .format(id=event.experiment_id),
+                self.tr("试验 {id} 已完成，可查看报告。").format(id=event.experiment_id),
                 ToastKind.SUCCESS,
                 6000,
             )
@@ -820,6 +858,7 @@ class MainWindow(QMainWindow):
         self._permission_timer.stop()
         self.idle.stop()
         self.bridge.close()
+        self._drop_pages()
         session = self._session
         if session is not None:
             try:

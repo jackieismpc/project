@@ -430,10 +430,7 @@ class MonitorPage(QWidget):
         Returns:
             成功显示时为 True；没有试验或没有权限时显示空状态并返回 False。
         """
-        if self._view is not None and (
-            experiment_id is None or experiment_id != self._view.experiment_id
-        ):
-            self.replay_player.unload()
+        self.replay_player.unload()
         self._selected_video_row = None
         self._tube_focus = None
         self.plate.set_active_row(None)
@@ -792,28 +789,23 @@ class MonitorPage(QWidget):
             self.replay_button.setText(self.tr("回放第 {n} 排").format(n=self._recordings[-1]))
         else:
             self.replay_button.setText(self.tr("回放（还没有录像）"))
-        if row_playback:
-            selected_row = self._selected_video_row
-            assert selected_row is not None
-            self.replay_rows.setVisible(bool(self._recordings))
-            self.replay_empty.setVisible(selected_row not in self._recordings)
-            self.replay_player.setVisible(True)
-            if selected_row not in self._recordings:
-                self.replay_empty.setText(self.tr("这个排没有录像"))
-                self.replay_player.show_message(self.tr("这个排没有录像"))
-        elif not live:
-            current = self.replay_rows.currentData()
+        if not live or row_playback:
+            current = self._selected_video_row or self.replay_rows.currentData()
             self.replay_rows.blockSignals(True)
             self.replay_rows.clear()
             for row in self._recordings:
                 self.replay_rows.addItem(row_label(row), row)
             index = self.replay_rows.findData(current)
-            self.replay_rows.setCurrentIndex(max(0, index))
+            self.replay_rows.setCurrentIndex(index if row_playback else max(0, index))
             self.replay_rows.blockSignals(False)
             self.replay_rows.setVisible(bool(self._recordings))
-            self.replay_empty.setVisible(not self._recordings)
-            self.replay_player.setVisible(bool(self._recordings))
-            if self._recordings and self.replay_player.clip is None:
+            missing = row_playback and current not in self._recordings
+            self.replay_empty.setVisible(missing or not self._recordings)
+            self.replay_player.setVisible(row_playback or bool(self._recordings))
+            if missing:
+                self.replay_empty.setText(self.tr("这个排没有录像"))
+                self.replay_player.show_message(self.tr("这个排没有录像"))
+            elif self._recordings and self.replay_player.clip is None:
                 self._load_inline(self.replay_rows.currentData(), autoplay=False)
         else:
             if self.video.image() is None:
@@ -878,6 +870,7 @@ class MonitorPage(QWidget):
     def _on_row_title_activated(self, row_index: int) -> None:
         """选择整排并播放对应录像；没有录像时清除旧画面并提示。"""
         self._selected_video_row = row_index
+        self.plate.set_active_row(row_index)
         recordings = set(self._recordings)
         if row_index not in recordings:
             self.replay_player.show_message(self.tr("这个排没有录像"))
@@ -894,10 +887,14 @@ class MonitorPage(QWidget):
         """返回监控页时重新选中原管位。"""
         self._tube_focus = tube_no
         self.plate.set_current_tube(tube_no)
-        row = next(
-            (index for index, tube in enumerate(self._view.tubes) if tube.tube_no == tube_no),
-            None,
-        ) if self._view is not None else None
+        row = (
+            next(
+                (index for index, tube in enumerate(self._view.tubes) if tube.tube_no == tube_no),
+                None,
+            )
+            if self._view is not None
+            else None
+        )
         if row is not None:
             self.table.view.selectRow(row)
 
@@ -1015,7 +1012,10 @@ class MonitorPage(QWidget):
     def _on_replay_row(self, _index: int) -> None:
         row = self.replay_rows.currentData()
         if row is not None:
+            self._selected_video_row = int(row)
+            self.plate.set_active_row(int(row))
             self._load_inline(int(row), autoplay=True)
+            self._render_video()
 
     def _load_inline(self, row: int | None, *, autoplay: bool) -> None:
         view = self._view
@@ -1026,7 +1026,8 @@ class MonitorPage(QWidget):
         except ServiceError as error:
             self.replay_player.show_message(describe_service_error(error))
             return
-        except AuthError:
+        except AuthError as error:
+            self.replay_player.show_message(describe_auth_error(error))
             return
         self.replay_player.load(clip, autoplay=autoplay)
 

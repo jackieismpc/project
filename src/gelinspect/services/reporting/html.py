@@ -435,7 +435,8 @@ class _Builder:
         )
         return (
             "<html><head><meta charset='utf-8'></head>"
-            f"<body style=\"font-family:'{SANS}','{CJK}';font-size:9pt;color:{INK}\">{body}</body></html>"
+            f"<body style=\"font-family:'{SANS}','{CJK}';font-size:9pt;color:{INK}\">"
+            f"{body}</body></html>"
         )
 
 

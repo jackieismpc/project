@@ -59,6 +59,7 @@ from gelinspect.ui.labels import (
 )
 from gelinspect.ui.pages.export_password import PasswordProvider, ask_export_password
 from gelinspect.ui.pages.report_dialogs import BatchExportDialog, SignDialog
+from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.report_labels import (
     describe_signing_blocks,
     describe_verification,
@@ -567,8 +568,8 @@ class ReportsPage(QWidget):
                 {
                     "experiment_id": item.experiment_id,
                     "created_at": item.created_at.astimezone().strftime("%Y-%m-%d %H:%M"),
-                    "sample_batches": "、".join(samples),
-                    "reagent_batches": "、".join(value for value in reagents if value),
+                    "sample_batches": join_items(samples),
+                    "reagent_batches": join_items(value for value in reagents if value),
                     "report_state": self.tr("已签署") if record is not None else self.tr("待签署"),
                 }
             )
@@ -818,7 +819,9 @@ class ReportsPage(QWidget):
         elif signed:
             self.sign_hint.setText(self.tr("已经签署，可以重新验签或导出同一份文件。"))
         else:
-            self.sign_hint.setText(self.tr("签署需要再次输入密码；签署后结果和复核被锁定。"))
+            self.sign_hint.setText(
+                self.tr("签署需要再次输入密码；后续复核将生成需重新签署的修订版。")
+            )
         self.print_button.setEnabled(
             self._session is not None and self._session.can(Permission.REPORT_PRINT)
         )

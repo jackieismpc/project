@@ -32,7 +32,12 @@ def main() -> None:
     if password != getpass.getpass("再次输入密码："):
         raise SystemExit("两次密码不一致")
     config = load_config(Path(__file__).resolve().parents[1] / "packaging/config/release.yaml")
-    config = config.model_copy(update={"data_dir": args.data_dir.resolve()})
+    config = config.model_copy(
+        update={
+            "data_dir": args.data_dir.resolve(),
+            "bootstrap": config.bootstrap.model_copy(update={"hook": None}),
+        }
+    )
     context = build_app_context(config)
     try:
         with context.database.unit_of_work() as uow:

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from typing import cast
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -15,12 +16,18 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QLabel,
+    QLayout,
+    QScrollArea,
     QSlider,
     QVBoxLayout,
     QWidget,
 )
 
-from gelinspect.services.appearance_service import AppearancePreferences, AppearanceService
+from gelinspect.services.appearance_service import (
+    AppearancePreferences,
+    AppearanceService,
+    AppearanceSettingsError,
+)
 from gelinspect.ui.theme.appearance import (
     apply_appearance,
     contrast_ratio,
@@ -31,11 +38,13 @@ from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.label import Label
 
+_log = logging.getLogger(__name__)
+
 _COLOR_FIELDS = (
-    ("primary", "主色"),
-    ("bg", "背景"),
-    ("surface", "内容区"),
-    ("ink", "文字"),
+    ("primary", str(QT_TRANSLATE_NOOP("AppearanceDialog", "主色"))),
+    ("bg", str(QT_TRANSLATE_NOOP("AppearanceDialog", "背景"))),
+    ("surface", str(QT_TRANSLATE_NOOP("AppearanceDialog", "内容区"))),
+    ("ink", str(QT_TRANSLATE_NOOP("AppearanceDialog", "文字"))),
 )
 
 
@@ -72,9 +81,22 @@ class AppearanceDialog(QDialog):
         self._color_buttons: dict[str, Button] = {}
         self._labels: dict[str, QLabel] = {}
 
-        root = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        content = QWidget()
+        root = QVBoxLayout(content)
+        root.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
         root.setSpacing(12)
-        description = Label(self.tr("按账号保存。更改会立即预览，取消可恢复原设置。"), "meta")
+        scroll.setWidget(content)
+        outer.addWidget(scroll, 1)
+        description = Label(
+            self.tr(
+                "按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。"
+            ),
+            "meta",
+        )
         description.setWordWrap(True)
         root.addWidget(description)
 
@@ -127,13 +149,14 @@ class AppearanceDialog(QDialog):
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(self.tr("保存"))
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(self.tr("取消"))
         action_row.addWidget(self.buttons)
-        root.addLayout(action_row)
+        outer.addLayout(action_row)
         self.reset_button.clicked.connect(self.restore_defaults)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
         self._sync_controls()
         self._apply_preview()
+        self.resize(540, 680)
 
     def _color(self, key: str) -> str:
         value = cast(str | None, getattr(self._preferences, key))
@@ -179,9 +202,7 @@ class AppearanceDialog(QDialog):
         )
         self.font_slider.blockSignals(False)
         self.font_slider.setEnabled(not follows)
-        self.font_value.setText(
-            self.tr("系统") if follows else str(self._preferences.font_size)
-        )
+        self.font_value.setText(self.tr("系统") if follows else str(self._preferences.font_size))
 
     def _apply_preview(self) -> None:
         self._sync_controls()
@@ -210,7 +231,12 @@ class AppearanceDialog(QDialog):
 
     def accept(self) -> None:
         """Save this account's preferences and close the dialog."""
-        self._service.save(self._username, self._preferences)
+        try:
+            self._service.save(self._username, self._preferences)
+        except (OSError, AppearanceSettingsError):
+            _log.exception("APPEARANCE_SAVE_FAILED")
+            self.warning.setText(self.tr("无法保存外观设置，请检查数据目录后重试。"))
+            return
         super().accept()
 
     def reject(self) -> None:

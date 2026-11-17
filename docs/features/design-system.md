@@ -75,7 +75,7 @@ QT_QPA_PLATFORM=offscreen uv run python -m gelinspect.ui.gallery \
 
 Noto Sans SC 的裁剪方法：`scripts/build_fonts.py` 从 google/fonts 仓库的可变字体 `NotoSansSC[wght].ttf` 用 fontTools 先裁剪再固定字重为 400、500、700，沿用现有名称表使三个字重可同时注册。字符集、与教育部字表的关系和字形取舍见 [auth-and-i18n.md](auth-and-i18n.md#字体)。
 
-个人外观设置由 `AppearanceService` 按登录账号保存主色、背景色、内容色、文字色和可选字号；字号默认取操作系统通用字体字号，选择“恢复默认”会清除自定义值。`AppearanceDialog` 会即时预览，取消恢复已保存主题，并对文字、表面和主色的低对比组合提示。界面字体仍固定为内置 Noto Sans SC，不提供字体切换。主题覆写和账户隔离有服务及对话框定向测试；Windows 100%、125%、150%、200% 显示缩放的人工验收尚未完成。
+个人外观设置由 `AppearanceService` 按登录账号保存主色、背景色、内容色、文字色和可选字号；字号默认跟随操作系统通用字体并限制在12–22逻辑像素内，选择“恢复默认”会清除自定义值。`AppearanceDialog` 会即时预览，取消恢复已保存主题，并对文字、表面和主色的低对比组合提示。界面字体仍固定为内置 Noto Sans SC，不提供字体切换。主题覆写和账户隔离有服务及对话框定向测试；Windows 100%、125%、150%、200% 显示缩放的人工验收尚未完成。
 
 **报告字体待验收依赖**：报告代码固定优先使用 Times New Roman（英文及数字）和 SimSun（中文），由目标操作系统提供，不随软件分发。`ReportRenderer.ensure_fonts()` 检查字体是否可用，缺少时记录告警并回退系统字体。发布前仍须在目标 Windows/macOS 版本确认字体可用、PDF 字形嵌入及许可适用范围；不能据此宣称跨平台字体已验收。
 

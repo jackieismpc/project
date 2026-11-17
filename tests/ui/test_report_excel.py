@@ -33,6 +33,7 @@ def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(
     sign_in(qapp, fast_window, "analyst")
     assert fast_window.navigate("reports")
     page = reports_of(fast_window)
+    assert page.open_experiment(experiment_id)
     assert page.excel_button.text() == "导出 Excel 数据…" and page.excel_button.isEnabled()
     target = tmp_path / "导出.xlsx"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *_a, **_k: (str(target), ""))
@@ -58,8 +59,9 @@ def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(
 def test_the_experimenter_cannot_export_excel(
     qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
 ) -> None:
-    finish_experiment(qapp, fast_window, fast_context)
+    experiment_id = finish_experiment(qapp, fast_window, fast_context)
     sign_in(qapp, fast_window, "experimenter")
     fast_window.navigate("reports")
     page = reports_of(fast_window)
+    assert page.open_experiment(experiment_id)
     assert not page.excel_button.isEnabled() and "无此权限" in page.excel_button.toolTip()

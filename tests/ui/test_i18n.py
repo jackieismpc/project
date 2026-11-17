@@ -133,22 +133,22 @@ def test_shell_texts_change_everywhere(
     sign_in(qapp, window, "experimenter")
     toolbar = window.shell.toolbar
     nav = window.shell.nav
-    assert toolbar.action("new_experiment").text() == "新建试验"
+    assert toolbar.action("new_experiment").text() == "新建实验"
     assert toolbar._user.text() == "Jordan Li · 普通用户"
     assert nav.items()[0].text() == "工作台"
     language.set_language(Language.EN)
     settle(qapp)
-    assert toolbar.action("new_experiment").text() == "New experiment"
+    assert toolbar.action("new_experiment").text() == "New Experiment"
     assert toolbar.action("instrument_settings").text() == "Settings"
     assert toolbar._user.text() == "Jordan Li · Standard user"
     assert toolbar._language.text() == "English"
     assert [i.text() for i in nav.items()][:3] == [
         "Dashboard",
-        "New experiment",
-        "Experiment monitor",
+        "History",
+        "Templates",
     ]
     assert nav._brand_label.text() == "GelInspect"
-    assert "Not permitted" in toolbar.action("audit_trail").toolTip()
+    assert "Not permitted" in next(i for i in nav.items() if i.entry.key == "audit").toolTip()
     dashboard = window.page("dashboard")
     assert dashboard is not None
     assert dashboard.title.text() == "Dashboard"  # type: ignore[attr-defined]
@@ -161,7 +161,7 @@ def test_shell_texts_change_everywhere(
     language.set_language(Language.ZH_CN)
     settle(qapp)
     assert page.title.text() == "报告中心"
-    assert toolbar.action("new_experiment").text() == "新建试验"
+    assert toolbar.action("new_experiment").text() == "新建实验"
     assert toolbar._user.text() == "Jordan Li · 普通用户"
 
 

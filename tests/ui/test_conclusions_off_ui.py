@@ -116,6 +116,7 @@ def test_signing_needs_no_conclusion_and_pdf_and_excel_have_none_when_off(
     sign_in(qapp, window, "analyst")
     assert window.navigate("reports")
     page = reports_of(window)
+    assert page.open_experiment(experiment_id)
     preview = page.current_preview
     assert preview is not None and preview.can_sign and not preview.conclusions_enabled
     assert page.sign_button.isEnabled()

@@ -16,9 +16,8 @@ CTRL = Qt.KeyboardModifier.ControlModifier
 
 SHORTCUT_KEYS = {
     "new_experiment": Qt.Key.Key_N,
-    "templates": Qt.Key.Key_T,
     "reports": Qt.Key.Key_R,
-    "audit_trail": Qt.Key.Key_L,
+    "current_experiment": Qt.Key.Key_E,
     "instrument_settings": Qt.Key.Key_Comma,
 }
 
@@ -28,11 +27,18 @@ def make_toolbar(qtbot: QtBot, width: int = 1280, *, allow_all: bool = True) -> 
     qtbot.addWidget(toolbar)
     if allow_all:
         toolbar.set_user_permissions(set(Permission))
+    toolbar.set_experiment_active(True)
     toolbar.resize(width, TOOLBAR_HEIGHT)
     toolbar.show()
     qtbot.waitExposed(toolbar)
     toolbar.activateWindow()
     qtbot.waitUntil(lambda: QApplication.activeWindow() is toolbar, timeout=2000)
+    return toolbar
+
+
+def make_overflow_toolbar(qtbot: QtBot, *, allow_all: bool = True) -> QuickToolbar:
+    toolbar = make_toolbar(qtbot, allow_all=allow_all)
+    toolbar.resize(toolbar.minimumSizeHint().width(), TOOLBAR_HEIGHT)
     return toolbar
 
 
@@ -49,8 +55,8 @@ def test_declared_actions_and_height(qtbot: QtBot) -> None:
 def test_button_click_emits_action_id(qtbot: QtBot) -> None:
     toolbar = make_toolbar(qtbot)
     with qtbot.waitSignal(toolbar.actionTriggered) as blocker:
-        QTest.mouseClick(toolbar.button("templates"), Qt.MouseButton.LeftButton)
-    assert blocker.args == ["templates"]
+        QTest.mouseClick(toolbar.button("reports"), Qt.MouseButton.LeftButton)
+    assert blocker.args == ["reports"]
 
 
 def test_menu_button_emits_menu_requested(qtbot: QtBot) -> None:
@@ -79,6 +85,8 @@ def test_no_permission_disables_button_and_shortcut(qtbot: QtBot) -> None:
     toolbar = make_toolbar(qtbot, allow_all=False)
     spy = QSignalSpy(toolbar.actionTriggered)
     for action_id, key in SHORTCUT_KEYS.items():
+        if action_id == "instrument_settings":
+            continue
         assert not toolbar.button(action_id).isEnabled()
         assert "无此权限" in toolbar.button(action_id).toolTip()
         QTest.keyClick(toolbar, key, CTRL)
@@ -92,8 +100,9 @@ def test_permissions_follow_role(qtbot: QtBot) -> None:
     # “仪器设置”所有角色都能打开（只读），修改由服务层拒绝；审计追踪实验员没有权限
     assert enabled == {
         "new_experiment",
-        "templates",
+        "current_experiment",
         "reports",
+        "instrument_settings",
     }
     spy = QSignalSpy(toolbar.actionTriggered)
     QTest.keyClick(toolbar, Qt.Key.Key_L, CTRL)  # 审计追踪：实验员无权限
@@ -128,8 +137,9 @@ def test_wide_toolbar_shows_all_actions(qtbot: QtBot) -> None:
 
 def test_narrow_toolbar_moves_tail_actions_to_more(qtbot: QtBot) -> None:
     previous = 0
-    for width in (1280, 1024, 800):
-        toolbar = make_toolbar(qtbot, width)
+    toolbar = make_toolbar(qtbot)
+    for width in (1280, 1024, 800, toolbar.minimumSizeHint().width()):
+        toolbar.resize(width, TOOLBAR_HEIGHT)
         _assert_layout_ok(toolbar)
         overflow = toolbar.overflow_ids()
         assert len(overflow) >= previous
@@ -144,7 +154,7 @@ def test_narrow_toolbar_moves_tail_actions_to_more(qtbot: QtBot) -> None:
 
 
 def test_overflow_menu_triggers_action_and_shortcut_still_works(qtbot: QtBot) -> None:
-    toolbar = make_toolbar(qtbot, 800)
+    toolbar = make_overflow_toolbar(qtbot)
     assert "instrument_settings" in toolbar.overflow_ids()
     toolbar.more_menu.aboutToShow.emit()
     last = toolbar.more_menu.actions()[-1]
@@ -157,14 +167,17 @@ def test_overflow_menu_triggers_action_and_shortcut_still_works(qtbot: QtBot) ->
 
 
 def test_overflow_menu_marks_disabled_actions(qtbot: QtBot) -> None:
-    toolbar = make_toolbar(qtbot, 800, allow_all=False)
+    toolbar = make_overflow_toolbar(qtbot, allow_all=False)
     toolbar.more_menu.aboutToShow.emit()
     assert toolbar.more_menu.actions()
-    assert all(not a.isEnabled() for a in toolbar.more_menu.actions())
+    assert all(
+        a.isEnabled() == toolbar.action(action_id).isEnabled()
+        for a, action_id in zip(toolbar.more_menu.actions(), toolbar.overflow_ids(), strict=True)
+    )
 
 
 def test_resize_back_restores_buttons(qtbot: QtBot) -> None:
-    toolbar = make_toolbar(qtbot, 800)
+    toolbar = make_overflow_toolbar(qtbot)
     assert toolbar.overflow_ids()
     toolbar.resize(1280, TOOLBAR_HEIGHT)
     assert toolbar.overflow_ids() == ()
@@ -176,3 +189,49 @@ def test_status_area_updates(qtbot: QtBot) -> None:
     toolbar.set_language("English")
     toolbar.set_user("张工", "实验员")
     _assert_layout_ok(toolbar)
+
+
+def test_current_experiment_is_hidden_without_an_active_run(qtbot: QtBot) -> None:
+    toolbar = make_overflow_toolbar(qtbot)
+    toolbar.set_experiment_active(False)
+    assert not toolbar.action("current_experiment").isVisible()
+    assert not toolbar.action("current_experiment").isEnabled()
+    assert "current_experiment" not in toolbar.overflow_ids()
+    toolbar._rebuild_more_menu()
+    assert all("当前实验" not in action.text() for action in toolbar.more_menu.actions())
+
+
+def test_settings_keep_personal_options_and_restrict_company_settings(qtbot: QtBot) -> None:
+    toolbar = make_toolbar(qtbot, allow_all=False)
+    assert toolbar.action("instrument_settings").isEnabled()
+    assert toolbar._settings_actions["appearance"].isEnabled()
+    assert not toolbar._settings_actions["instrument_settings"].isEnabled()
+    assert not toolbar._settings_actions["company_settings"].isVisible()
+    toolbar.set_user_permissions(permissions_of(Role.ADMIN))
+    assert toolbar._settings_actions["instrument_settings"].isEnabled()
+    assert not toolbar._settings_actions["company_settings"].isVisible()
+    toolbar.set_user_permissions(permissions_of(Role.DEVELOPER))
+    assert toolbar._settings_actions["company_settings"].isVisible()
+
+
+def test_collapsed_settings_preserve_personal_menu(qtbot: QtBot) -> None:
+    toolbar = make_overflow_toolbar(qtbot, allow_all=False)
+    toolbar._rebuild_more_menu()
+    settings = next(a for a in toolbar.more_menu.actions() if a.text().startswith("设置"))
+    assert settings.isEnabled() and settings.menu() is toolbar._settings_menu
+    assert toolbar._settings_actions["appearance"].isEnabled()
+
+
+def test_live_font_change_reflows_status_and_actions(qtbot: QtBot, qapp: QApplication) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    toolbar = make_toolbar(qtbot, 1024)
+    toolbar.set_user("Alex Chen", "管理员")
+    try:
+        apply_appearance(qapp, AppearancePreferences(font_size=22))
+        qtbot.waitUntil(lambda: not toolbar._layout_timer.isActive())
+        _assert_layout_ok(toolbar)
+        assert toolbar._user.width() >= toolbar._user.sizeHint().width() - 2
+    finally:
+        apply_appearance(qapp, AppearancePreferences())

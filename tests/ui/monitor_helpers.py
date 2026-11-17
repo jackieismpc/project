@@ -47,7 +47,7 @@ def open_context(
 ) -> AppContext:
     """画面小的完整装配（真实 SQLite、模拟后端），数据放在 ``tmp_path/data``。
 
-    ``conclusions`` 是试验结论功能的开关，默认与产品一致（关闭）。
+    ``conclusions`` 是独立测试场景开关，默认关闭，不代表产品默认配置。
     """
     config = make_config(
         tmp_path, video=FAST_VIDEO, engine=engine, conclusions={"enabled": conclusions}

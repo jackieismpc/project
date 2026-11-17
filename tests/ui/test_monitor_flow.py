@@ -40,6 +40,7 @@ def test_full_review_flow_from_wizard_to_signable(
     window, context = fast_window, fast_context
     monitor = start_sensitivity(qapp, window)
 
+    assert window.shell.toolbar.action("current_experiment").isVisible()
     # 孵育一开始，监控页就显示 18 管和各排倒计时；孔板随引擎更新
     assert wait_for(qapp, lambda: monitor.view_model is not None and monitor.view_model.live)
     experiment_id = monitor.experiment_id
@@ -64,6 +65,8 @@ def test_full_review_flow_from_wizard_to_signable(
         60.0,
     )
     wait_finished(qapp, context)
+    settle(qapp)
+    assert not window.shell.toolbar.action("current_experiment").isVisible()
     assert wait_for(qapp, lambda: not monitor.read_only or monitor.badge.text() != "", 10.0)
     assert wait_for(qapp, lambda: monitor.view_model is not None and not monitor.view_model.live)
     stored = context.database.experiments.get(experiment_id)

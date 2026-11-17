@@ -349,7 +349,7 @@ def test_state_changed_elsewhere_is_a_conflict_not_a_half_signature(
     assert stored.signed_by is None
 
 
-def test_review_cannot_change_results_after_signing_even_through_the_domain(
+def test_signed_result_allows_review_but_rejects_replacing_algorithm_result(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
     from gelinspect.domain.errors import TransitionGuardError
@@ -360,12 +360,13 @@ def test_review_cannot_change_results_after_signing_even_through_the_domain(
     service.sign(stack.login("analyst"), "EXP-SAMPLE-0001", PASSWORDS["analyst"])
     stored = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert stored is not None
-    with pytest.raises(TransitionGuardError):
-        stored.review_tube(
-            7,
-            interpretation=Interpretation.NEGATIVE,
-            reviewed_by="analyst",
-            reviewed_at=stored.signed_at or stored.created_at,
-        )
+    reviewed = stored.review_tube(
+        7,
+        interpretation=Interpretation.NEGATIVE,
+        reviewed_by="analyst",
+        reviewed_at=stored.signed_at or stored.created_at,
+    )
+    assert reviewed.final_interpretation is Interpretation.NEGATIVE
+    assert stored.state is ExperimentState.SIGNED
     with pytest.raises(TransitionGuardError):
         stored.record_result(stored.results[7])

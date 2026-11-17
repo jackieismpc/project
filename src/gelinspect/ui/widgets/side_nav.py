@@ -47,18 +47,14 @@ def _nav(key: str, label: str, icon: str) -> NavEntry:
 
 DEFAULT_NAV: tuple[NavEntry, ...] = (
     _nav("dashboard", str(QT_TRANSLATE_NOOP("SideNav", "工作台")), "layout-dashboard"),
-    _nav("new", str(QT_TRANSLATE_NOOP("SideNav", "新建实验")), "circle-plus"),
-    _nav("monitor", str(QT_TRANSLATE_NOOP("SideNav", "实验监控")), "video"),
     _nav("history", str(QT_TRANSLATE_NOOP("SideNav", "历史记录")), "history"),
     _nav("templates", str(QT_TRANSLATE_NOOP("SideNav", "模板管理")), "columns-2"),
     _nav("reagents", str(QT_TRANSLATE_NOOP("SideNav", "试剂记录")), "flask-conical"),
     _nav("reports", str(QT_TRANSLATE_NOOP("SideNav", "报告中心")), "file-text"),
     _nav("audit", str(QT_TRANSLATE_NOOP("SideNav", "审计追踪")), "text-align-start"),
-    _nav("users", str(QT_TRANSLATE_NOOP("SideNav", "用户与权限")), "user"),
-    _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "设置")), "settings"),
-    _nav("about", str(QT_TRANSLATE_NOOP("SideNav", "关于")), "info"),
+    _nav("users", str(QT_TRANSLATE_NOOP("SideNav", "用户管理")), "user"),
 )
-"""设计稿中的 10 个主导航项，加上“关于”。label 是简体中文源文本，显示时经翻译。"""
+"""主要业务导航项。label 是简体中文源文本，显示时经翻译。"""
 
 
 class NavItem(QAbstractButton):

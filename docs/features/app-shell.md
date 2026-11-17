@@ -6,7 +6,7 @@
 
 评审 Qt 组件后提出两点：左侧菜单栏要能自动隐藏，把宽度还给孔板、视频和数据表；窗口上方要有常用操作的快捷入口。
 
-- `QuickToolbar`：全局常驻的顶部快捷栏，放菜单按钮、6 个快捷操作和状态区。
+- `QuickToolbar`：全局常驻的顶部快捷栏，放菜单按钮、新建实验、报告中心、当前实验、设置和状态区。
 - `AppShell`：把快捷栏、`SideNav` 和页面内容拼成统一外壳，管理侧栏的两种模式。
 
 页面只需要写内容，用 `AppShell(content)` 包起来即可。`monitor_sample.py` 与 `gallery.py` 已接入；P7 起真实主窗口 `ui/main_window.py` 用它承载页面栈，登录、权限、语言见 [auth-and-i18n.md](auth-and-i18n.md)。
@@ -17,7 +17,7 @@
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ [≡] │ 新建试验 打开文件 检测模板 打印报告 审计追踪 仪器设置 … 仪器已连接 简体中文 张工·实验员 │  56px，卡片底色 + 底部 1px 线
+│ [≡] │ 新建实验 报告中心 当前实验 设置 … 仪器已连接 简体中文 张工·实验员 │  56px，卡片底色 + 底部 1px 线
 ├────────────┬──────────────────────────────────────────────────┤
 │ SideNav    │ 内容区（页面标题行、孔板、视频、表格……）           │
 │ 208px      │                                                  │
@@ -74,24 +74,22 @@
 - 宽度不足时从右端开始收进“更多”菜单，按钮文字不截断、控件不越界；被收纳操作的快捷键仍然有效。1280 宽全部显示，1024 宽约收起 2 项，800 宽收起 4 项。
 - 状态区：仪器连接用图标加文字区分（`plug` 加“仪器已连接”/`unplug` 加“仪器未连接”），不只靠颜色。P7 起语言和用户是带菜单的按钮：语言菜单（`set_language_options`，选项用各语言自己的名字，发 `languageSelected(code)`）、用户菜单（修改密码、锁定屏幕、退出登录，发 `userActionRequested(id)`；未登录时禁用）。
 - 危险操作（停止试验）不放进全局快捷栏，留在页面标题行。
-- 文字用 `self.tr()`，上下文为 `QuickToolbar`，操作名用 `QT_TRANSLATE_NOOP` 标记。语言切换时 `changeEvent(LanguageChange)` 调用 `_retranslate_static`，刷新全部文字、提示和无障碍名称。英文下“仪器设置”写成 `Settings`、连接状态写成 `Connected`/`Disconnected`，保证 1280 宽仍能容纳全部 6 个操作。
+- 文字用 `self.tr()`，上下文为 `QuickToolbar`，操作名用 `QT_TRANSLATE_NOOP` 标记。语言切换时 `changeEvent(LanguageChange)` 调用 `_retranslate_static`，刷新全部文字、提示和无障碍名称。英文下“仪器设置”写成 `Settings`、连接状态写成 `Connected`/`Disconnected`，保证 1280 宽仍能容纳当前快捷操作。
 
 快捷键表：
 
 | 操作 id | 文字 | 快捷键 | 所需权限 | 允许的角色 |
 |---|---|---|---|---|
-| `new_experiment` | 新建试验 | `Ctrl+N` | `EXPERIMENT_CREATE` | 实验员 |
-| `open_file` | 打开文件 | `Ctrl+O` | `EXPERIMENT_VIEW` | 全部 |
-| `templates` | 检测模板 | `Ctrl+T` | `TEMPLATE_VIEW` | 全部 |
-| `print_report` | 打印报告 | `Ctrl+P` | `REPORT_VIEW` | 全部 |
-| `audit_trail` | 审计追踪 | `Ctrl+L` | `AUDIT_VIEW` | 管理员、分析员 |
-| `instrument_settings` | 仪器设置 | `Ctrl+,` | `INSTRUMENT_CONFIGURE` | 管理员 |
+| `new_experiment` | 新建实验 | `Ctrl+N` | `EXPERIMENT_CREATE` | 有实验与结果处理权限 |
+| `reports` | 报告中心 | `Ctrl+R` | `REPORT_VIEW` | 有查看记录权限 |
+| `current_experiment` | 当前实验 | `Ctrl+E` | `EXPERIMENT_VIEW` | 仅运行中显示，打开准确运行实验 |
+| `instrument_settings` | 设置 | `Ctrl+,` | 个人设置无需业务权限 | 菜单内维护功能另行授权 |
 | （外壳） | 展开/收起侧栏 | `Ctrl+B` | 无 | 全部 |
 | （外壳） | 收起侧栏 | `Esc` | 无 | 全部 |
 
 ## 权限
 
-快捷栏自己不判断角色，调用方在登录后调用 `set_user_permissions(permissions_of(role))`（主窗口用 `session.permissions()`，锁屏或必须改密时为空）。创建后默认没有任何权限（默认拒绝）。侧栏同理：`SideNav.set_denied(keys)` 把无权进入的项置灰并禁用，提示“当前角色无此权限”。侧栏在 P7 增加了“关于”项（共 11 项）。
+快捷栏自己不判断角色，调用方在登录后调用 `set_user_permissions(permissions_of(role))`（主窗口用 `session.permissions()`，锁屏或必须改密时为空）。创建后默认没有任何权限（默认拒绝）。侧栏同理：`SideNav.set_denied(keys)` 把无权进入的项置灰并禁用，提示“当前角色无此权限”。侧栏目前包含工作台、历史记录、模板管理、试剂记录、报告中心、审计追踪及管理账号专属的用户管理；新建实验、实验监控、设置和关于不再单列。设置菜单包含外观、仪器与维护、关于，开发人员另有公司与版权设置；窄窗口收纳时保留子菜单。
 
 - 无权限的操作：按钮与“更多”菜单项禁用，快捷键不触发，提示显示“某操作：当前角色无此权限”。
 - 角色与权限的对应以 `domain/permissions.py` 的 `PERMISSION_ROLES` 为准，见 [permissions.md](permissions.md)。
@@ -108,7 +106,7 @@
 自动化（`tests/ui/`，pytest-qt 离屏，动画关闭，延迟注入 10 至 40ms）：
 
 - `test_app_shell.py`：默认自动隐藏且完全不可见；热区进入展开、离开延迟收起、延迟内返回取消；默认延迟为 500ms；菜单按钮切换；点按热区或在悬停展开的侧栏内点按转为持久展开且鼠标离开不收起；外部点击、`Esc`、选中项（含已选中项）收起；`Ctrl+B` 切换；覆盖模式下内容区 geometry 不变、固定模式下内容区变窄；图钉按钮与菜单按钮切换模式；模式持久化并在新实例恢复；覆盖层高度随窗口缩放；收起时侧栏控件不可获得焦点、Tab 不进入；关闭时焦点离开侧栏；菜单按钮提示随状态变化。
-- `test_quick_toolbar.py`：6 个操作与高度；点击与快捷键触发 `actionTriggered`；提示含平台格式的快捷键；无权限时按钮禁用、快捷键不触发；按角色权限启用；1280、1024、800 宽下按钮不越界、不重叠、文字不截断，收纳的是右端连续一段，“更多”菜单内容正确；被收纳操作的快捷键仍有效；加宽后恢复；状态区更新后布局仍正确。
+- `test_quick_toolbar.py`：当前操作、运行状态显隐与高度；点击与快捷键触发 `actionTriggered`；提示含平台格式的快捷键；无权限时按钮禁用、快捷键不触发；按角色权限启用；1280、1024、800 宽下按钮不越界、不重叠、文字不截断，收纳的是右端连续一段，“更多”菜单内容正确；被收纳操作的快捷键仍有效；加宽后恢复；状态区更新后布局仍正确。
 
 P7 补充：语言菜单与用户菜单、无权限的侧栏项置灰、切换语言后快捷栏与侧栏文字刷新，见 `tests/ui/test_main_window.py`、`tests/ui/test_i18n.py`；中英文、1280×800 与 1024×700 下的无超界检查见 `tests/ui/test_layout_languages.py`。
 

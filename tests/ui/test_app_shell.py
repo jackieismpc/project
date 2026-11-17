@@ -160,7 +160,7 @@ def test_selecting_item_closes_and_reports(qtbot: QtBot) -> None:
 
 def test_selecting_current_item_also_closes(qtbot: QtBot) -> None:
     shell = make_shell(qtbot)
-    shell.nav.set_current("monitor")
+    shell.nav.set_current("history")
     shell.open_nav()
     current = next(i for i in shell.nav.items() if i.isChecked())
     QTest.mouseClick(current, LEFT)

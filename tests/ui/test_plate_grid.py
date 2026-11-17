@@ -110,3 +110,21 @@ def test_legend_and_strip_paint(qtbot: QtBot) -> None:
     assert strip.levels() == [0.5, 1.0, 0.0, 0, 0, 0, 0, 0]
     assert not legend.grab().isNull()
     assert not strip.resize(360, 190) or not strip.grab().isNull()
+
+
+def test_row_headers_select_only_valid_display_rows(qtbot: QtBot) -> None:
+    grid = PlateGrid()
+    qtbot.addWidget(grid)
+    grid.resize(600, 420)
+    grid.show()
+    seen: list[int] = []
+    grid.rowActivated.connect(seen.append)
+    assert grid._row_header_at(QPointF(-1, 8)) is None
+    assert grid._row_header_at(QPointF(600, 8)) is None
+    assert grid._row_header_at(QPointF(25, -1)) is None
+    QTest.mouseClick(grid, Qt.MouseButton.LeftButton, pos=QPointF(25, 8).toPoint())
+    assert seen == [1] and grid.active_row == 1
+    grid.set_mode(PlateMode.SELECT)
+    QTest.mouseClick(grid, Qt.MouseButton.LeftButton, pos=QPointF(75, 8).toPoint())
+    assert seen == [1]
+    assert grid.selected_tubes() == []

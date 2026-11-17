@@ -63,6 +63,12 @@ def make_config(tmp_path: Path, **overrides: object) -> dict[str, object]:
     """默认的模拟配置，数据目录放到临时目录。"""
     config: dict[str, object] = dict(DEFAULT_CONFIG)
     config["data_dir"] = str(tmp_path / "data")
+    config["analysis"] = {
+        **DEFAULT_CONFIG["analysis"],
+        "config_path": str(
+            Path(__file__).resolve().parents[2] / "simulation/analyzer.measurement.yaml"
+        ),
+    }
     config.update(overrides)
     return config
 
@@ -73,7 +79,7 @@ FIXED_NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def conclusions_enabled() -> bool:
-    """试验结论功能是否打开，默认与产品一致（关闭）；需要结论的测试模块覆盖这个夹具返回 True。"""
+    """结论功能测试开关；本夹具默认关闭，需要结论的模块覆盖为True，独立于产品默认值。"""
     return False
 
 

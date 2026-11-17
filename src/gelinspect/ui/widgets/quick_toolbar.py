@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence, QResizeEvent, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
@@ -65,13 +65,6 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         Permission.EXPERIMENT_CREATE,
     ),
     QuickAction(
-        "templates",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "模板管理")),
-        "columns-2",
-        "Ctrl+T",
-        Permission.TEMPLATE_VIEW,
-    ),
-    QuickAction(
         "reports",
         str(QT_TRANSLATE_NOOP("QuickToolbar", "报告中心")),
         "file-text",
@@ -79,18 +72,18 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         Permission.REPORT_VIEW,
     ),
     QuickAction(
-        "audit_trail",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "审计追踪")),
-        "text-align-start",
-        "Ctrl+L",
-        Permission.AUDIT_VIEW,
+        "current_experiment",
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "当前实验")),
+        "video",
+        "Ctrl+E",
+        Permission.EXPERIMENT_VIEW,
     ),
     QuickAction(
         "instrument_settings",
         str(QT_TRANSLATE_NOOP("QuickToolbar", "设置")),
         "settings",
         "Ctrl+,",
-        Permission.SETTINGS_VIEW,
+        None,
     ),
 )
 """快捷入口从左到右排列；宽度不足时从右端开始收进“更多”。"""
@@ -234,10 +227,14 @@ class QuickToolbar(QFrame):
         self.setFixedHeight(TOOLBAR_HEIGHT)
         self.setAccessibleName(self.tr("快捷操作栏"))
         self._granted: frozenset[Permission] = frozenset()
+        self._experiment_active = False
         self._specs = tuple(actions)
         self._actions: dict[str, QAction] = {}
         self._shortcuts: dict[str, QShortcut] = {}
         self._buttons: dict[str, QToolButton] = {}
+        self._layout_timer = QTimer(self)
+        self._layout_timer.setSingleShot(True)
+        self._layout_timer.timeout.connect(self._after_status_change)
 
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(8, 0, 16, 0)
@@ -271,6 +268,9 @@ class QuickToolbar(QFrame):
                 _icon("settings"), self.tr("仪器与维护")
             ),
             "about": self._settings_menu.addAction(_icon("info"), self.tr("关于")),
+            "company_settings": self._settings_menu.addAction(
+                _icon("settings"), self.tr("公司与版权设置")
+            ),
         }
         self._settings_actions["appearance"].triggered.connect(
             lambda: self.userActionRequested.emit("appearance")
@@ -280,6 +280,9 @@ class QuickToolbar(QFrame):
         )
         self._settings_actions["about"].triggered.connect(
             lambda: self.actionTriggered.emit("about")
+        )
+        self._settings_actions["company_settings"].triggered.connect(
+            lambda: self.actionTriggered.emit("company_settings")
         )
         settings_button = self._buttons.get("instrument_settings")
         if settings_button is not None:
@@ -324,9 +327,7 @@ class QuickToolbar(QFrame):
         self._user.setMenu(self._user_menu)
         self._user_actions: dict[str, QAction] = {}
         appearance_action = self._user_menu.addAction(_icon("settings"), "")
-        appearance_action.triggered.connect(
-            lambda: self.userActionRequested.emit("appearance")
-        )
+        appearance_action.triggered.connect(lambda: self.userActionRequested.emit("appearance"))
         self._user_actions["appearance"] = appearance_action
         self._user_menu.addSeparator()
         for action_id, icon_name in (
@@ -432,7 +433,11 @@ class QuickToolbar(QFrame):
         Returns:
             被隐藏按钮对应的 id，保持显示顺序。
         """
-        return tuple(i for i in self.action_ids() if self._buttons[i].isHidden())
+        return tuple(
+            i
+            for i in self.action_ids()
+            if self._actions[i].isVisible() and self._buttons[i].isHidden()
+        )
 
     def set_user_permissions(self, permissions: Iterable[Permission]) -> None:
         """设置当前用户的权限，刷新按钮、快捷键与提示。
@@ -442,6 +447,14 @@ class QuickToolbar(QFrame):
         """
         self._granted = frozenset(permissions)
         self._refresh_actions()
+
+    def set_experiment_active(self, active: bool) -> None:
+        """Show the current-experiment entry only while an experiment is running."""
+        self._experiment_active = active
+        if "current_experiment" in self._actions:
+            self._actions["current_experiment"].setVisible(active)
+        self._refresh_actions()
+        self._update_overflow()
 
     def set_menu_hint(self, text: str) -> None:
         """设置菜单按钮的提示文字，附加平台格式的 ``Ctrl+B``。
@@ -528,6 +541,10 @@ class QuickToolbar(QFrame):
         """
         if event.type() == QEvent.Type.LanguageChange:
             self._retranslate_static()
+        elif event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange) and hasattr(
+            self, "_layout_timer"
+        ):
+            self._layout_timer.start(0)
         super().changeEvent(event)
 
     def _retranslate_static(self) -> None:
@@ -549,6 +566,7 @@ class QuickToolbar(QFrame):
         self._settings_actions["appearance"].setText(self.tr("外观设置"))
         self._settings_actions["instrument_settings"].setText(self.tr("仪器与维护"))
         self._settings_actions["about"].setText(self.tr("关于"))
+        self._settings_actions["company_settings"].setText(self.tr("公司与版权设置"))
         self.set_instrument_status(self._connected)
         self.set_user(self._user_name, self._user_role)
         if self._language_name:
@@ -556,8 +574,17 @@ class QuickToolbar(QFrame):
 
     def _refresh_actions(self) -> None:
         """按权限刷新各操作的可用状态与提示。"""
+        self._settings_actions["company_settings"].setVisible(
+            Permission.COMPANY_CONFIGURE in self._granted
+        )
+        self._settings_actions["instrument_settings"].setEnabled(
+            Permission.SETTINGS_VIEW in self._granted
+        )
         for spec in self._specs:
             allowed = spec.permission is None or spec.permission in self._granted
+            if spec.id == "current_experiment":
+                allowed = allowed and self._experiment_active
+                self._actions[spec.id].setVisible(self._experiment_active)
             action = self._actions[spec.id]
             name = self.tr(spec.text)
             action.setEnabled(allowed)
@@ -583,6 +610,8 @@ class QuickToolbar(QFrame):
             source = self._actions[action_id]
             hint = native_shortcut_text(spec.shortcut)
             proxy = self.more_menu.addAction(source.icon(), f"{source.text()}\t{hint}")
+            if action_id == "instrument_settings":
+                proxy.setMenu(self._settings_menu)
             proxy.setEnabled(source.isEnabled())
             proxy.setToolTip(source.toolTip())
             proxy.triggered.connect(lambda _=False, a=source: a.trigger())
@@ -608,7 +637,11 @@ class QuickToolbar(QFrame):
     def _update_overflow(self) -> None:
         """根据当前宽度决定哪些操作直接显示，其余收进“更多”。"""
         sp = self._layout.spacing()
-        widths = [self._buttons[i].sizeHint().width() for i in self.action_ids()]
+        ids = tuple(i for i in self.action_ids() if self._actions[i].isVisible())
+        for action_id in self.action_ids():
+            if action_id not in ids:
+                self._buttons[action_id].hide()
+        widths = [self._buttons[i].sizeHint().width() for i in ids]
         count = len(widths)
         shown = 0
         for k in range(count, -1, -1):
@@ -616,7 +649,7 @@ class QuickToolbar(QFrame):
             if needed <= self.width():
                 shown = k
                 break
-        for index, action_id in enumerate(self.action_ids()):
+        for index, action_id in enumerate(ids):
             self._buttons[action_id].setVisible(index < shown)
         self.more_button.setVisible(shown < count)
 

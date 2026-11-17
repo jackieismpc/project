@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 from gelinspect.domain.enums import ReagentKind, TubeRole
 from gelinspect.domain.plate import tube_to_position
-from gelinspect.domain.templates import ExperimentTemplate
+from gelinspect.domain.templates import ExperimentTemplate, spike_from_lambda
 from gelinspect.interfaces.traceability import ReagentInput
 
 
@@ -43,13 +43,19 @@ class SampleRow:
     row_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     lambda_multiple_overridden: bool = False
 
-    def snapshot(self) -> tuple[str, str, float | None, float | None]:
+    def snapshot(self) -> tuple[str, str, float | None, float | None, float | None]:
         """用于判断是否被编辑过的快照（按 λ 算出的值不算编辑）。
 
         Returns:
             可比较的元组。
         """
-        return (self.name, self.batch_no, self.spiked_endotoxin, self.dilution_factor)
+        return (
+            self.name,
+            self.batch_no,
+            self.spiked_endotoxin if self.lambda_multiple is None else None,
+            self.dilution_factor,
+            self.lambda_multiple,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,7 +125,7 @@ class ExperimentDraft:
         self._template: ExperimentTemplate | None = None
         self._source_template_id: str | None = None
         self._rows: list[SampleRow] = []
-        self._baseline: list[tuple[str, str, float | None, float | None]] = []
+        self._baseline: list[tuple[str, str, float | None, float | None, float | None]] = []
         self._selected: list[int] = []
         self._reagent_codes: dict[ReagentKind, str] = {}
         self._reagent_inputs: dict[ReagentKind, ReagentInput] = {}
@@ -324,13 +330,13 @@ class ExperimentDraft:
         self._labeled_sensitivity = value
         if self._template is None:
             return
-        items = sorted(self._template.items, key=lambda i: i.tube_no)
         for row in self._rows:
             if row.lambda_multiple is not None:
-                item = next(
-                    (candidate for candidate in items if candidate.tube_no == row.tube_no), None
+                row.spiked_endotoxin = (
+                    spike_from_lambda(value, row.lambda_multiple)
+                    if value is not None and value > 0
+                    else None
                 )
-                row.spiked_endotoxin = item.spike_for(value) if item is not None else None
 
     @property
     def lambda_missing(self) -> bool:

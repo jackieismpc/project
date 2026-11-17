@@ -32,11 +32,17 @@ LOGIN_ROUTE = Route("login", str(QT_TRANSLATE_NOOP("Routes", "登录")), in_nav=
 
 PAGE_ROUTES: tuple[Route, ...] = (
     Route("dashboard", str(QT_TRANSLATE_NOOP("Routes", "工作台"))),
-    Route("new", str(QT_TRANSLATE_NOOP("Routes", "新建实验")), Permission.EXPERIMENT_CREATE),
+    Route(
+        "new",
+        str(QT_TRANSLATE_NOOP("Routes", "新建实验")),
+        Permission.EXPERIMENT_CREATE,
+        in_nav=False,
+    ),
     Route(
         "monitor",
         str(QT_TRANSLATE_NOOP("Routes", "实验监控")),
         Permission.EXPERIMENT_VIEW,
+        in_nav=False,
     ),
     Route(
         "tube",
@@ -67,8 +73,10 @@ PAGE_ROUTES: tuple[Route, ...] = (
         Permission.USER_MANAGE,
     ),
     # 所有角色可以查看；修改需要 instrument_configure，由页面和服务层判断。
-    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "设置")), Permission.SETTINGS_VIEW),
-    Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
+    Route(
+        "settings", str(QT_TRANSLATE_NOOP("Routes", "设置")), Permission.SETTINGS_VIEW, in_nav=False
+    ),
+    Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于")), in_nav=False),
 )
 """外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，“关于”属于仪器设置和关于页。"""
 
@@ -79,9 +87,8 @@ _BY_KEY = {route.key: route for route in ROUTES}
 
 QUICK_ACTION_ROUTES: dict[str, str] = {
     "new_experiment": "new",
-    "templates": "templates",
     "reports": "reports",
-    "audit_trail": "audit",
+    "current_experiment": "monitor",
     "instrument_settings": "settings",
     "about": "about",
 }

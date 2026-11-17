@@ -340,14 +340,14 @@ def test_window_texts_switch_to_traditional_chinese_immediately(
     assert window.windowTitle() == "凝膠智檢系統 GelInspect"
     sign_in(qapp, window, "experimenter")
     toolbar = window.shell.toolbar
-    assert toolbar.action("new_experiment").text() == "新增試驗"
+    assert toolbar.action("new_experiment").text() == "新增實驗"
     assert toolbar._user.text() == "Jordan Li · 一般使用者"
     assert toolbar._language.text() == "繁體中文"
-    assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "新試驗", "試驗監控"]
+    assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "歷史紀錄", "範本管理"]
     language.set_language(Language.ZH_CN)
     settle(qapp)
     assert toolbar._language.text() == "简体中文"
-    assert toolbar.action("new_experiment").text() == "新建试验"
+    assert toolbar.action("new_experiment").text() == "新建实验"
 
 
 def test_an_error_on_screen_switches_to_traditional_chinese(

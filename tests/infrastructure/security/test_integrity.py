@@ -78,7 +78,7 @@ def test_a_rewritten_manifest_or_foreign_key_is_rejected(
     build_manifest(root, attacker, version="0.1.0", build_id="b1")
     assert verify_manifest(root, public_hex(key)).status is IntegrityStatus.BAD_SIGNATURE
     # 只改清单内容不重签
-    data = (root / MANIFEST_FILE).read_text(encoding="utf-8").replace("release", "demo")
+    data = (root / MANIFEST_FILE).read_text(encoding="utf-8").replace("0.1.0", "9.9.9")
     (root / MANIFEST_FILE).write_text(data, encoding="utf-8")
     assert verify_manifest(root, public_hex(attacker)).status is IntegrityStatus.BAD_SIGNATURE
 

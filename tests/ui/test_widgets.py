@@ -47,9 +47,9 @@ def test_side_nav_selection(qtbot: QtBot) -> None:
     nav = SideNav(DEFAULT_NAV)
     qtbot.addWidget(nav)
     with qtbot.waitSignal(nav.currentChanged) as blocker:
-        nav.set_current("monitor")
-    assert blocker.args == ["monitor"]
-    assert nav.current() == "monitor"
+        nav.set_current("history")
+    assert blocker.args == ["history"]
+    assert nav.current() == "history"
 
 
 def test_step_tabs_badge_sparkline_paint(qtbot: QtBot) -> None:

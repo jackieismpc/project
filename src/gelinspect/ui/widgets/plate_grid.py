@@ -433,6 +433,18 @@ class PlateGrid(QWidget):
         self._update_accessible()
         self.update()
 
+    def _row_header_at(self, point: QPointF) -> int | None:
+        if (
+            self._mode is not PlateMode.DISPLAY
+            or not self._show_labels
+            or not 0 <= point.x() < self.width()
+            or not 0 <= point.y() < _LABEL_H + 6
+        ):
+            return None
+        col_w, _, _, _ = self._metrics()
+        row = int(point.x() // col_w) + 1
+        return row if 1 <= row <= ROW_COUNT else None
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """更新悬停孔与光标。
 
@@ -440,12 +452,7 @@ class PlateGrid(QWidget):
             event: 鼠标事件。
         """
         tube = self.tube_at(event.position())
-        col_w, _, _, _ = self._metrics()
-        row_header = (
-            int(event.position().x() // col_w) + 1
-            if self._show_labels and event.position().y() < _LABEL_H + 6
-            else None
-        )
+        row_header = self._row_header_at(event.position())
         if tube != self._hover:
             self._hover = tube
             self.update()
@@ -474,12 +481,9 @@ class PlateGrid(QWidget):
         self._pressed = (
             self.tube_at(event.position()) if event.button() == Qt.MouseButton.LeftButton else None
         )
-        col_w, _, _, _ = self._metrics()
         self._pressed_row = (
-            int(event.position().x() // col_w) + 1
+            self._row_header_at(event.position())
             if event.button() == Qt.MouseButton.LeftButton
-            and self._show_labels
-            and event.position().y() < _LABEL_H + 6
             else None
         )
         self.setFocus(Qt.FocusReason.MouseFocusReason)
@@ -494,12 +498,7 @@ class PlateGrid(QWidget):
         tube = self.tube_at(event.position())
         pressed, self._pressed = self._pressed, None
         pressed_row, self._pressed_row = self._pressed_row, None
-        col_w, _, _, _ = self._metrics()
-        release_row = (
-            int(event.position().x() // col_w) + 1
-            if self._show_labels and event.position().y() < _LABEL_H + 6
-            else None
-        )
+        release_row = self._row_header_at(event.position())
         if pressed_row is not None and pressed_row == release_row:
             self.set_active_row(pressed_row)
             self.rowActivated.emit(pressed_row)
@@ -655,9 +654,7 @@ class PlateGrid(QWidget):
             col_w, _, _, _ = self._metrics()
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.setPen(QPen(QColor(c.success), 2.0))
-            p.drawRect(
-                QRectF((self._active_row - 1) * col_w + 1, 1, col_w - 2, self.height() - 2)
-            )
+            p.drawRect(QRectF((self._active_row - 1) * col_w + 1, 1, col_w - 2, self.height() - 2))
         if self.hasFocus() and self._kb_focus:
             paint_focus_ring(p, self.well_rect(self._current), tokens)
         p.end()

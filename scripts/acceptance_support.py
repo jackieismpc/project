@@ -83,7 +83,7 @@ def open_rig(
         root: 数据目录的父目录（会创建 ``root/data``）。
         incubation_minutes: 每排孵育的设备分钟数，时间加速 60 倍，0.05 约等于 0.05 秒。
         video: 视频参数，默认 :data:`VIDEO_FAST`。
-        analyzer_config: 模拟算法的配置文件，默认用内置参数。
+        analyzer_config: 模拟算法配置，默认使用独立的合成图测量配置。
         demo_accounts: False 时去掉初始化钩子，首次启动显示“创建管理员”。
         extra: 追加或覆盖的顶层配置项。
 
@@ -97,6 +97,10 @@ def open_rig(
     config["data_dir"] = str(root / "data")
     config["video"] = dict(VIDEO_FAST if video is None else video)
     config["engine"] = {"incubation_minutes": incubation_minutes, "time_scale": 60}
+    if analyzer_config is None:
+        analyzer_config = (
+            Path(__file__).resolve().parents[1] / "simulation/analyzer.measurement.yaml"
+        )
     if analyzer_config is not None:
         config["analysis"] = {**DEFAULT_CONFIG["analysis"], "config_path": str(analyzer_config)}
     if not demo_accounts:
@@ -124,7 +128,7 @@ def close_rig(rig: Rig) -> None:
 
     engine = rig.window.services.engine
     if engine.active_experiment_id is not None:
-        engine.stop(User("tool", "tool", "tool", Role.EXPERIMENTER), "脚本结束")
+        engine.stop(User("tool", "tool", "tool", Role.ADMIN), "脚本结束")
         engine.wait(30.0)
     rig.window.bridge.close()
     rig.window.close()

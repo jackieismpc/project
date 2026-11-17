@@ -235,11 +235,27 @@
 <context>
     <name>AppearanceDialog</name>
     <message>
+        <source>主色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>背景</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内容区</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>文字</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>外观设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
+        <source>按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -284,6 +300,10 @@
     </message>
     <message>
         <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法保存外观设置，请检查数据目录后重试。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1871,6 +1891,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>无法读取外观设置，请检查数据目录后重试。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>密码已修改</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2859,15 +2883,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>模板管理</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>报告中心</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>审计追踪</source>
+        <source>当前实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2892,6 +2912,10 @@
     </message>
     <message>
         <source>关于</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>公司与版权设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3545,10 +3569,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>签署需要再次输入密码；签署后结果和复核被锁定。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3618,6 +3638,10 @@
     </message>
     <message>
         <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4460,11 +4484,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实验监控</source>
+        <source>用户管理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4477,18 +4497,6 @@
     </message>
     <message>
         <source>审计追踪</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>用户与权限</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>关于</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

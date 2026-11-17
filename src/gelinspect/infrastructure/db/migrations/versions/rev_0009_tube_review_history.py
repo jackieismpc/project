@@ -23,9 +23,7 @@ def upgrade() -> None:
         "reports",
         sa.Column("revision", sa.Integer(), nullable=False, server_default="1"),
     )
-    op.add_column(
-        "reports", sa.Column("supersedes_report_id", sa.String(length=64), nullable=True)
-    )
+    op.add_column("reports", sa.Column("supersedes_report_id", sa.String(length=64), nullable=True))
     # Preserve the latest review already present before the history field existed.
     bind = op.get_bind()
     bind.execute(

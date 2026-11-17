@@ -3,8 +3,8 @@
 * 每个入口先校验权限：预览和验签需要 ``report_view``，打印需要 ``report_print``，
   签署需要 ``experiment_sign``，导出需要 ``data_export``。UI 不碰数据库，只通过这里取数据。
 * **签署**是一个原子操作：任一步失败都不留下半成品，试验状态不变（见 :meth:`ReportService.sign`）。
-* 已签署的试验锁定：状态是“已签署”，状态机不再接受任何事件，复核服务拒绝修改
-  （``review_service``）；同一份签名文件可以反复导出。
+* 已签署的原件保留；后续人工复核或语言变更生成独立修订版并重新签署。
+  同一份签名文件可以反复导出。
 * 签名是本地自签证书的，只能“防篡改”，没有第三方 CA 的法律效力。
 """
 
@@ -415,8 +415,10 @@ class ReportService:
                 )
                 items.extend(page.items)
                 offset += len(page.items)
-                if not page.items or offset >= page.total or (
-                    limit is not None and offset >= limit
+                if (
+                    not page.items
+                    or offset >= page.total
+                    or (limit is not None and offset >= limit)
                 ):
                     break
         items.sort(key=lambda item: (item.created_at, item.experiment_id), reverse=True)
@@ -639,8 +641,8 @@ class ReportService:
         latest = self._latest_signed(experiment_id)
         is_revision = experiment.state is ExperimentState.SIGNED
         language_revision = latest is not None and language.value != latest.language
-        has_new_review = (
-            latest is not None and self._has_reviews_after(experiment, latest.signed_at)
+        has_new_review = latest is not None and self._has_reviews_after(
+            experiment, latest.signed_at
         )
         if is_revision and (latest is None or not (has_new_review or language_revision)):
             raise SigningNotAllowedError(

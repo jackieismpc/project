@@ -44,7 +44,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPageSize, QPdfWriter
 
 from gelinspect import __version__
-from gelinspect.domain.enums import AuditAction, ExperimentType, Interpretation, Role, TubeRole
+from gelinspect.domain.enums import AuditAction, ExperimentType, Interpretation, TubeRole
 from gelinspect.domain.permissions import PERMISSION_ROLES, Permission, has_permission
 from gelinspect.domain.plate import ROW_COUNT, TUBE_COUNT
 from gelinspect.domain.state_machine import ExperimentState
@@ -431,25 +431,22 @@ def measure_permissions(rig: support.Rig, tmp: Path) -> None:
     """全部角色乘全部权限，核对服务层和界面路由。"""
     context = rig.context
     sessions = {
-        Role.ADMIN: context.auth.login("admin", support.DEMO_PASSWORDS["admin"]),
-        Role.EXPERIMENTER: context.auth.login(
-            "experimenter", support.DEMO_PASSWORDS["experimenter"]
-        ),
-        Role.ANALYST: context.auth.login("analyst", support.DEMO_PASSWORDS["analyst"]),
+        name: context.auth.login(name, support.DEMO_PASSWORDS[name])
+        for name in ("admin", "experimenter", "analyst")
     }
     mismatches: list[str] = []
     checks = 0
     for role, session in sessions.items():
         for permission in Permission:
             checks += 1
-            expected = has_permission(role, permission)
+            expected = has_permission(session.role, permission, session.user.permission_groups)
             try:
                 context.auth.authorize(session, permission)
                 allowed = True
             except PermissionDeniedError:
                 allowed = False
             if allowed != expected:
-                mismatches.append(f"authorize {role.value}/{permission.value}")
+                mismatches.append(f"authorize {role}/{permission.value}")
     calls: dict[Permission, Callable[[object], object]] = {
         Permission.USER_MANAGE: lambda s: context.users.list_users(s),  # type: ignore[arg-type]
         Permission.AUDIT_VIEW: lambda s: context.audit.query(
@@ -478,7 +475,7 @@ def measure_permissions(rig: support.Rig, tmp: Path) -> None:
     for role, session in sessions.items():
         for permission, call in calls.items():
             service_checks += 1
-            expected = has_permission(role, permission)
+            expected = has_permission(session.role, permission, session.user.permission_groups)
             try:
                 call(session)
                 denied = False
@@ -487,15 +484,17 @@ def measure_permissions(rig: support.Rig, tmp: Path) -> None:
             except Exception:  # noqa: BLE001 - 有权限时因为数据不存在而失败是预期的
                 denied = False
             if denied == expected:
-                mismatches.append(f"service {role.value}/{permission.value}")
+                mismatches.append(f"service {role}/{permission.value}")
     route_checks = 0
     for role, session in sessions.items():
         for route in PAGE_ROUTES:
             route_checks += 1
             allowed = can_enter(route, session)
-            expected = route.permission is None or has_permission(role, route.permission)
+            expected = route.permission is None or has_permission(
+                session.role, route.permission, session.user.permission_groups
+            )
             if allowed != expected:
-                mismatches.append(f"route {role.value}/{route.key}")
+                mismatches.append(f"route {role}/{route.key}")
     RESULTS["permissions"] = {
         "permissions": len(PERMISSION_ROLES),
         "authorize_checks": checks,

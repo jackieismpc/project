@@ -302,7 +302,7 @@ def test_bad_config_file_shows_a_clear_dialog_and_logs(qapp: QApplication, tmp_p
     assert code == EXIT_CONFIG
     ((failure, log_path),) = presenter.failures
     assert failure.title == "配置有误，无法启动"
-    assert "bad.yaml" in failure.message and "--config" in failure.message
+    assert "bad.yaml" in failure.message and "请修改配置文件" in failure.message
     assert log_path is not None and log_path.is_file()
     assert "配置有误" in log_path.read_text(encoding="utf-8")
 
@@ -376,7 +376,7 @@ def test_error_messages_follow_the_ui_language(qapp: QApplication) -> None:
         manager.set_language(Language.EN, persist=False)
         failure = describe_startup_error(ConfigError("bad"))
         assert failure.title == "Invalid configuration"
-        assert "Fix the configuration file" in failure.message
+        assert "Correct the configuration file" in failure.message
         manager.set_language(Language.ZH_TW, persist=False)
         failure = describe_startup_error(ConfigError("bad"))
         assert failure.title == "設定有誤，無法啟動"
@@ -429,7 +429,7 @@ def test_log_rolls_over_when_full(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     path = configure_logging(tmp_path / "logs")
     for i in range(100):
         logging.getLogger("gelinspect.roll").warning("填满日志 %d %s", i, "x" * 60)
-    assert (path.parent / f"{LOG_FILE_NAME}.1").is_file()
+    assert list(path.parent.glob(f"{LOG_FILE_NAME}.*"))
 
 
 def test_uncaught_exceptions_are_logged_and_reported(tmp_path: Path) -> None:

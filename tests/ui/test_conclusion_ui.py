@@ -413,7 +413,7 @@ def test_wizard_shows_spikes_calculated_from_lambda(qapp: QApplication, window: 
     click(qapp, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
     table = page.sample_table
-    assert [table.cell_text(r, 3) for r in (0, 4, 8, 12, 16)] == [
+    assert [table.cell_text(r, 4) for r in (0, 4, 8, 12, 16)] == [
         "0.5",
         "0.25",
         "0.125",
@@ -421,7 +421,7 @@ def test_wizard_shows_spikes_calculated_from_lambda(qapp: QApplication, window: 
         "0",
     ]
     # 由 λ 算出的列不能手工改
-    assert not table.cell_item(0, 3).flags() & Qt.ItemFlag.ItemIsEditable
+    assert not table.cell_item(0, 4).flags() & Qt.ItemFlag.ItemIsEditable
     assert table.cell_item(0, 1).flags() & Qt.ItemFlag.ItemIsEditable
     select_tubes(qapp, page, range(1, 19))
     click(qapp, page.sample_next)
@@ -492,6 +492,7 @@ def test_report_center_mentions_the_verdict_and_needs_a_conclusion_when_on(
     sign_in(qapp, fast_window, "analyst")
     assert fast_window.navigate("reports")
     page = reports_of(fast_window)
+    assert page.open_experiment(experiment_id)
     preview = page.current_preview
     assert preview is not None and preview.can_sign and preview.conclusions_enabled
     assert preview.conclusion is not None

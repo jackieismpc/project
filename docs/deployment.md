@@ -16,7 +16,7 @@
 |---|---|
 | 数据目录 | 仓库下的 `data/`（配置 `data_dir`、`--data-dir` 或环境变量 `GELINSPECT_DATA_DIR` 可改），首次启动自动创建 |
 | 数据库 | `data/gelinspect.db`（SQLite，WAL），启动时自动运行迁移；数据库比程序新则拒绝启动并说明 |
-| 日志 | `data/logs/gelinspect.log`，滚动，单个 1 MB，保留 5 份 |
+| 日志 | `data/logs/gelinspect.log`，按大小轮转归档，默认保留全部历史日志 |
 | 后端 | 依据当前配置运行流程 |
 | 账号 | 新数据目录使用 README 所列的快捷填入账号；已有数据目录保留原账号 |
 | 密钥 | `data/keys/`：签名证书和私钥、审计链密钥。macOS 能访问钥匙串时用钥匙串保护，否则用安装密钥（见 security.md） |
@@ -73,7 +73,7 @@ uv run python scripts/build.py                    # → dist/GelInspect.app、di
 此前的双制品构建测量属于历史记录，不代表当前单一路径的构建结果。
 ### 2.2 Windows
 
-**开发机只有 macOS，Windows 包没有在本机构建或运行过**，需要在 Windows 上按下面的步骤实测。也可以用 GitHub Actions（见 2.3）。
+2026-11-17已有Windows预构建及隔离数据目录首次启动记录，但构建时源码未冻结，不能作为最终交付制品。最终版本仍需在目标Windows环境按下面步骤构建、断网运行并验收；也可用GitHub Actions（见2.3）。
 
 前提：Windows 10/11 64 位；[uv](https://docs.astral.sh/uv/)；C 编译器——推荐 Visual Studio 2022 Build Tools（勾选“使用 C++ 的桌面开发”）。没有 MSVC 时 Nuitka 会提示下载 MinGW64（`--assume-yes-for-downloads` 已打开，需要联网）。
 
@@ -96,7 +96,7 @@ Windows 验证清单：zip 解压后双击能打开；测试账号能登录；�
 
 ### 2.3 GitHub Actions
 
-`.github/workflows/build.yml`：在 `windows-latest` 和 `macos-latest` 上各构建唯一发布包，先跑 ruff 和 mypy，构建后运行 `--diagnose` 和 `--smoke-test`，Windows 另外尝试 Inno Setup，最后上传 `dist/` 里的 zip、dmg、安装程序和构建报告。手动触发（Actions → build → Run workflow）或推送 `v*` 标签时运行。仓库目前只在本地提交，推送到 GitHub 后才能使用。
+`.github/workflows/build.yml`：在 `windows-latest` 和 `macos-latest` 上各构建唯一发布包，先跑 ruff 和 mypy，构建后运行 `--diagnose` 和 `--smoke-test`，Windows 另外尝试 Inno Setup，最后上传 `dist/` 里的 zip、dmg、安装程序和构建报告。手动触发（Actions → build → Run workflow）或推送 `v*` 标签时运行。工作流执行情况及最终制品以对应提交的CI记录为准。
 
 ## 3. 首次运行
 

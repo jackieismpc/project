@@ -28,6 +28,7 @@ from gelinspect.ui.labels import (
 from gelinspect.ui.pages.page_frame import build_page_column
 from gelinspect.ui.pages.permission_picker import PermissionDialog, group_label
 from gelinspect.ui.pages.users_dialogs import CredentialDialog, NewUserDialog
+from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
@@ -178,7 +179,7 @@ class UsersPage(QWidget):
                     "name": name,
                     "role": role_label(user.role),
                     "state": state,
-                    "groups": "、".join(
+                    "groups": join_items(
                         group_label(g) for g in PermissionGroup if g in user.permission_groups
                     ),
                     **({} if user.active else {"_tone": "warning"}),

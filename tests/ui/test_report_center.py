@@ -229,7 +229,6 @@ def test_monitor_report_tab_and_quick_action_open_report(
     assert window.current_route == "reports" and reports_of(window).list_card.isVisible()
 
 
-
 def test_empty_state_and_language_follow(
     qapp: QApplication,
     window: MainWindow,
@@ -256,9 +255,7 @@ def test_empty_state_and_language_follow(
     ]
     page._refresh_report_list()
     assert page.report_table.row_count() == 201
-    assert any(
-        row["experiment_id"] == "EXP-0200" for row in page.report_table.model.rows
-    )
+    assert any(row["experiment_id"] == "EXP-0200" for row in page.report_table.model.rows)
     for box, value in (
         (page.sample_filter, "SAMPLE-0200"),
         (page.lal_filter, "LAL-0200"),
@@ -344,4 +341,3 @@ def test_preview_layout_settles_instead_of_oscillating(
     settle(qapp, 30)
     qapp.removeEventFilter(counter)
     assert resizes < 200, resizes
-
