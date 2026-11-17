@@ -516,12 +516,30 @@ class TemplateRepository(Protocol):
         """按标识查询模板。"""
         ...
 
-    def list_all(self, experiment_type: ExperimentType | None = None) -> list[ExperimentTemplate]:
+    def list_all(
+        self, experiment_type: ExperimentType | None = None, *, include_hidden: bool = False,
+        include_deleted: bool = False,
+    ) -> list[ExperimentTemplate]:
         """列出模板，可按试验类型过滤，按标识排序。"""
+        ...
+
+    def set_visibility(
+        self, template_id: str, *, hidden: bool | None = None,
+        deleted: bool = False, deleted_at: datetime | None = None, deleted_by: str | None = None,
+    ) -> None:
+        """更新隐藏或软删除状态。"""
         ...
 
     def is_builtin(self, template_id: str) -> bool:
         """模板是否为内置模板，不存在时为 False。"""
+        ...
+
+    def is_hidden(self, template_id: str) -> bool:
+        """模板当前已隐藏时返回 True。"""
+        ...
+
+    def is_deleted(self, template_id: str) -> bool:
+        """自建模板已软删除时返回 True。"""
         ...
 
 

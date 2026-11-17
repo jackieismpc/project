@@ -2327,6 +2327,18 @@
         <translation>留在精靈</translation>
     </message>
     <message>
+        <source>模板来源已变化</source>
+        <translation>範本來源已變更</translation>
+    </message>
+    <message>
+        <source>所选模板已删除或隐藏。本次草稿仍保留原配置快照；是否继续使用本次配置？</source>
+        <translation>所選範本已刪除或隱藏。本次草稿仍保留原設定快照；是否繼續使用此設定？</translation>
+    </message>
+    <message>
+        <source>保留本次配置</source>
+        <translation>保留本次設定</translation>
+    </message>
+    <message>
         <source>更换模板？</source>
         <translation>更換範本？</translation>
     </message>
@@ -4511,8 +4523,8 @@
         <translation>新增試管</translation>
     </message>
     <message>
-        <source>删除最后一支</source>
-        <translation>刪除最後一支</translation>
+        <source>删除选中试管</source>
+        <translation>刪除選取的試管</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4652,12 +4664,40 @@
         <translation>範本已儲存</translation>
     </message>
     <message>
+        <source>模板已隐藏</source>
+        <translation>範本已隱藏</translation>
+    </message>
+    <message>
+        <source>模板已恢复</source>
+        <translation>範本已還原</translation>
+    </message>
+    <message>
+        <source>删除自建模板</source>
+        <translation>刪除自訂範本</translation>
+    </message>
+    <message>
+        <source>删除后该模板不能再用于新实验。已运行实验的配置快照不受影响，删除标记会保留在审计记录中。</source>
+        <translation>刪除後，此範本將無法用於新實驗。已執行實驗的設定快照不受影響，刪除標記會保留在稽核記錄中。</translation>
+    </message>
+    <message>
+        <source>删除模板</source>
+        <translation>刪除範本</translation>
+    </message>
+    <message>
+        <source>模板已删除</source>
+        <translation>範本已刪除</translation>
+    </message>
+    <message>
         <source>内置</source>
         <translation>內建</translation>
     </message>
     <message>
         <source>自定义</source>
         <translation>自訂</translation>
+    </message>
+    <message>
+        <source>内置·已隐藏</source>
+        <translation>內建・已隱藏</translation>
     </message>
     <message>
         <source>还没有模板</source>
@@ -4678,6 +4718,14 @@
     <message>
         <source>内置模板只读，请先复制再编辑</source>
         <translation>內建範本唯讀，請先複製再編輯</translation>
+    </message>
+    <message>
+        <source>恢复</source>
+        <translation>還原</translation>
+    </message>
+    <message>
+        <source>隐藏</source>
+        <translation>隱藏</translation>
     </message>
     <message>
         <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
@@ -4706,6 +4754,10 @@
     <message>
         <source>编辑</source>
         <translation>編輯</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>刪除</translation>
     </message>
     <message>
         <source>检测模板</source>

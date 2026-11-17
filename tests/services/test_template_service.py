@@ -202,3 +202,49 @@ def test_changes_are_audited_in_the_same_transaction(stack: Stack) -> None:
         AuditQuery(action=AuditAction.TEMPLATE_CHANGED, actor="admin"), PageRequest()
     )
     assert page.total == 3 and all(r.event.actor_role is not None for r in page.items)
+
+
+def test_builtin_can_be_hidden_and_restored_only_by_template_managers(stack: Stack) -> None:
+    admin = stack.login("admin")
+    analyst = stack.login("analyst")
+    with pytest.raises(PermissionDeniedError):
+        stack.templates.list_templates(analyst, include_hidden=True)
+    audit_count = len(stack.audit(AuditAction.TEMPLATE_CHANGED))
+    stack.templates.set_builtin_hidden(admin, SENSITIVITY.template_id, hidden=True)
+    assert all(
+        i.template.template_id != SENSITIVITY.template_id
+        for i in stack.templates.list_templates(admin)
+    )
+    assert [t.template_id for t in stack.templates.list_hidden_builtins(admin)] == [
+        SENSITIVITY.template_id
+    ]
+    with pytest.raises(ServiceError):
+        stack.templates.get_template(admin, SENSITIVITY.template_id)
+    with pytest.raises(ServiceError):
+        stack.templates.copy_template(admin, SENSITIVITY.template_id)
+    stack.templates.set_builtin_hidden(admin, SENSITIVITY.template_id, hidden=False)
+    assert stack.templates.get_template(admin, SENSITIVITY.template_id).template == SENSITIVITY
+    assert len(stack.audit(AuditAction.TEMPLATE_CHANGED)) == audit_count + 2
+
+
+def test_custom_delete_is_soft_and_audited_without_changing_experiment_snapshot(
+    stack: Stack,
+) -> None:
+    admin = stack.login("admin")
+    created = stack.templates.create_template(admin, custom_draft("待删除"))
+    stack.templates.delete_template(admin, created.template_id)
+    with pytest.raises(ServiceError):
+        stack.templates.get_template(admin, created.template_id)
+    with pytest.raises(ServiceError):
+        stack.templates.copy_template(admin, created.template_id)
+    assert all(
+        i.template.template_id != created.template_id for i in stack.templates.list_templates(admin)
+    )
+    assert stack.database.templates.is_deleted(created.template_id)
+    assert any("删除自建模板 待删除" in d for d in stack.audit(AuditAction.TEMPLATE_CHANGED))
+
+
+def test_builtin_cannot_be_soft_deleted(stack: Stack) -> None:
+    with pytest.raises(ServiceError) as caught:
+        stack.templates.delete_template(stack.login("admin"), SENSITIVITY.template_id)
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_READ_ONLY

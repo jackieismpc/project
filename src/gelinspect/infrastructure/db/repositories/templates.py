@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import delete, select
 
 from gelinspect.domain.enums import ExperimentType, TubeRole
@@ -99,16 +101,28 @@ class SqlTemplateRepository(TemplateRepository):
             )
             return _to_template(row, items)
 
-    def list_all(self, experiment_type: ExperimentType | None = None) -> list[ExperimentTemplate]:
+    def list_all(
+        self,
+        experiment_type: ExperimentType | None = None,
+        *,
+        include_hidden: bool = False,
+        include_deleted: bool = False,
+    ) -> list[ExperimentTemplate]:
         """列出模板，可按试验类型过滤，按标识排序。
 
         Args:
             experiment_type: 试验类型，None 表示全部。
+            include_hidden: 是否包含已隐藏模板。
+            include_deleted: 是否包含已软删除模板。
 
         Returns:
             模板列表。
         """
         statement = select(TemplateRow).order_by(TemplateRow.template_id)
+        if not include_hidden:
+            statement = statement.where(TemplateRow.hidden.is_(False))
+        if not include_deleted:
+            statement = statement.where(TemplateRow.deleted_at.is_(None))
         if experiment_type is not None:
             statement = statement.where(TemplateRow.experiment_type == experiment_type.value)
         with self._sessions() as session:
@@ -118,6 +132,29 @@ class SqlTemplateRepository(TemplateRepository):
             for item in items:
                 by_template.setdefault(item.template_id, []).append(item)
             return [_to_template(row, by_template.get(row.template_id, [])) for row in rows]
+
+    def set_visibility(
+        self,
+        template_id: str,
+        *,
+        hidden: bool | None = None,
+        deleted: bool = False,
+        deleted_at: datetime | None = None,
+        deleted_by: str | None = None,
+    ) -> None:
+        """更新模板的隐藏或软删除标记。"""
+        with translate_lock_errors(), self._sessions() as session:
+            row = session.get(TemplateRow, template_id)
+            if row is None:
+                return
+            if hidden is not None:
+                row.hidden = hidden
+            if deleted:
+                row.deleted_at = deleted_at
+                row.deleted_by = deleted_by
+            elif deleted_at is None:
+                row.deleted_at = None
+                row.deleted_by = None
 
     def is_builtin(self, template_id: str) -> bool:
         """模板是否为内置模板。
@@ -131,3 +168,15 @@ class SqlTemplateRepository(TemplateRepository):
         with self._sessions() as session:
             row = session.get(TemplateRow, template_id)
             return row is not None and row.builtin
+
+    def is_hidden(self, template_id: str) -> bool:
+        """模板当前已隐藏时返回 True。"""
+        with self._sessions() as session:
+            row = session.get(TemplateRow, template_id)
+            return row is not None and row.hidden
+
+    def is_deleted(self, template_id: str) -> bool:
+        """自建模板已软删除时返回 True。"""
+        with self._sessions() as session:
+            row = session.get(TemplateRow, template_id)
+            return row is not None and row.deleted_at is not None

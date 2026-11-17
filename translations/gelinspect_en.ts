@@ -2327,6 +2327,18 @@
         <translation>Stay</translation>
     </message>
     <message>
+        <source>模板来源已变化</source>
+        <translation>Template source changed</translation>
+    </message>
+    <message>
+        <source>所选模板已删除或隐藏。本次草稿仍保留原配置快照；是否继续使用本次配置？</source>
+        <translation>The selected template was deleted or hidden. This draft still has its original configuration snapshot. Continue with this configuration?</translation>
+    </message>
+    <message>
+        <source>保留本次配置</source>
+        <translation>Keep this configuration</translation>
+    </message>
+    <message>
         <source>更换模板？</source>
         <translation>Change template?</translation>
     </message>
@@ -4511,8 +4523,8 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Add tube</translation>
     </message>
     <message>
-        <source>删除最后一支</source>
-        <translation>Remove last</translation>
+        <source>删除选中试管</source>
+        <translation>Delete selected tubes</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4652,12 +4664,40 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Template saved</translation>
     </message>
     <message>
+        <source>模板已隐藏</source>
+        <translation>Template hidden</translation>
+    </message>
+    <message>
+        <source>模板已恢复</source>
+        <translation>Template restored</translation>
+    </message>
+    <message>
+        <source>删除自建模板</source>
+        <translation>Delete custom template</translation>
+    </message>
+    <message>
+        <source>删除后该模板不能再用于新实验。已运行实验的配置快照不受影响，删除标记会保留在审计记录中。</source>
+        <translation>This template will no longer be available for new experiments. Existing experiment snapshots are unaffected, and the deletion marker will remain in the audit log.</translation>
+    </message>
+    <message>
+        <source>删除模板</source>
+        <translation>Delete template</translation>
+    </message>
+    <message>
+        <source>模板已删除</source>
+        <translation>Template deleted</translation>
+    </message>
+    <message>
         <source>内置</source>
         <translation>Built-in</translation>
     </message>
     <message>
         <source>自定义</source>
         <translation>Custom</translation>
+    </message>
+    <message>
+        <source>内置·已隐藏</source>
+        <translation>Built-in · Hidden</translation>
     </message>
     <message>
         <source>还没有模板</source>
@@ -4678,6 +4718,14 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>内置模板只读，请先复制再编辑</source>
         <translation>Built-in templates are read-only. Copy one to edit it.</translation>
+    </message>
+    <message>
+        <source>恢复</source>
+        <translation>Restore</translation>
+    </message>
+    <message>
+        <source>隐藏</source>
+        <translation>Hide</translation>
     </message>
     <message>
         <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
@@ -4706,6 +4754,10 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>编辑</source>
         <translation>Edit</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>Delete</translation>
     </message>
     <message>
         <source>检测模板</source>

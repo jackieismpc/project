@@ -9,7 +9,13 @@ from datetime import date, timedelta
 import pytest
 
 from gelinspect.domain.entities import ReagentBatch
-from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind, TubeRole
+from gelinspect.domain.enums import (
+    AuditAction,
+    ExperimentType,
+    PermissionGroup,
+    ReagentKind,
+    TubeRole,
+)
 from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
@@ -23,6 +29,7 @@ from gelinspect.services.experiment_draft import (
     SampleAssignmentInput,
 )
 from gelinspect.services.reagent_service import ReagentLockedError, ScanOutcome
+from gelinspect.services.template_service import TemplateDraft, TemplateItemInput
 from simulation.reagents import SAMPLE_CODES
 
 from .conftest import GOOD_CODES, NOW, Stack
@@ -41,7 +48,10 @@ def request_for(
     draft.set_selected(tubes if tubes is not None else [i.tube_no for i in template.items])
     request = draft.to_request()
     return NewExperimentRequest(
-        request.template_id, request.assignments, GOOD_CODES if codes is None else codes
+        request.template_id,
+        request.assignments,
+        GOOD_CODES if codes is None else codes,
+        template_snapshot=request.template_snapshot,
     )
 
 
@@ -73,6 +83,59 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert {b.kind for b in experiment.reagents} == set(ReagentKind)
     assert all(b.registered and b.expiry_date is not None for b in experiment.reagents)
     assert stack.engine.started == []  # 创建不启动
+
+
+def test_only_template_manager_can_retain_deleted_template_snapshot(stack: Stack) -> None:
+    admin = stack.login("admin")
+    template = stack.templates.create_template(
+        admin,
+        TemplateDraft(
+            "草稿模板",
+            ExperimentType.LIMIT,
+            [TemplateItemInput("供试品"), TemplateItemInput("阴性对照", TubeRole.NEGATIVE_CONTROL)],
+        ),
+    )
+    request = request_for(template)
+    stack.templates.delete_template(admin, template.template_id)
+    forged = dataclasses.replace(request, template_snapshot=SENSITIVITY)
+    with pytest.raises(ServiceError) as mismatched:
+        stack.experiments.create_experiment(admin, forged)
+    assert mismatched.value.code is ServiceErrorCode.TEMPLATE_NOT_FOUND
+    with pytest.raises(ServiceError) as caught:
+        stack.experiments.create_experiment(stack.login("experimenter"), request)
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_NOT_FOUND
+    experiment_id = stack.experiments.create_experiment(admin, request)
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None and experiment.template_id == template.template_id
+    assert experiment.experiment_type is ExperimentType.LIMIT
+    assert len(experiment.assignments) == 2
+    assert experiment.assignments[1].role is TubeRole.NEGATIVE_CONTROL
+
+
+def test_snapshot_reuse_rechecks_revoked_template_permission(stack: Stack) -> None:
+    admin = stack.login("admin")
+    template = stack.templates.create_template(
+        admin, TemplateDraft("草稿模板", ExperimentType.LIMIT, [TemplateItemInput("供试品")])
+    )
+    stack.templates.delete_template(admin, template.template_id)
+    session = stack.login("experimenter")
+    user = stack.database.users.get(session.user.user_id)
+    assert user is not None
+    manager = dataclasses.replace(
+        user, permission_groups=frozenset({PermissionGroup.EXPERIMENT, PermissionGroup.TEMPLATE})
+    )
+    stack.database.users.update(manager)
+    stack.auth.refresh_sessions(manager)
+    request = request_for(template)
+    # 权限在会话打开后被撤销；authorize 必须用新权限刷新会话。
+    revoked = dataclasses.replace(
+        manager, permission_groups=frozenset({PermissionGroup.EXPERIMENT})
+    )
+    stack.database.users.update(revoked)
+    stack.auth.refresh_sessions(revoked)
+    with pytest.raises(ServiceError) as caught:
+        stack.experiments.create_experiment(session, request)
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_NOT_FOUND
 
 
 def test_create_writes_the_audit_and_check_records(stack: Stack) -> None:

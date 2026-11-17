@@ -2327,6 +2327,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>模板来源已变化</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>所选模板已删除或隐藏。本次草稿仍保留原配置快照；是否继续使用本次配置？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保留本次配置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>更换模板？</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4509,7 +4521,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>删除最后一支</source>
+        <source>删除选中试管</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4650,11 +4662,39 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>模板已隐藏</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已恢复</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除自建模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除后该模板不能再用于新实验。已运行实验的配置快照不受影响，删除标记会保留在审计记录中。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已删除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>内置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>自定义</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>内置·已隐藏</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4675,6 +4715,14 @@
     </message>
     <message>
         <source>内置模板只读，请先复制再编辑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>隐藏</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4703,6 +4751,10 @@
     </message>
     <message>
         <source>编辑</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

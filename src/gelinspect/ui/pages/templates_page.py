@@ -28,6 +28,7 @@ from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
+from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.toast import Toast, ToastKind
 
@@ -75,10 +76,18 @@ class TemplatesPage(QWidget):
         self.new_button = Button("", ButtonVariant.PRIMARY, icon="plus")
         self.copy_button = Button("", ButtonVariant.SECONDARY, icon="copy")
         self.edit_button = Button("", ButtonVariant.SECONDARY, icon="pencil")
+        self.lifecycle_button = Button("", ButtonVariant.SECONDARY)
+        self.delete_button = Button("", ButtonVariant.DANGER)
         top.addWidget(self.title)
         top.addWidget(self.readonly_badge)
         top.addStretch(1)
-        for button in (self.new_button, self.copy_button, self.edit_button):
+        for button in (
+            self.new_button,
+            self.copy_button,
+            self.edit_button,
+            self.lifecycle_button,
+            self.delete_button,
+        ):
             top.addWidget(button)
         column.addLayout(top)
 
@@ -104,6 +113,8 @@ class TemplatesPage(QWidget):
         self.new_button.clicked.connect(self.create_template)
         self.copy_button.clicked.connect(self.copy_selected)
         self.edit_button.clicked.connect(self.edit_selected)
+        self.lifecycle_button.clicked.connect(self.toggle_selected_visibility)
+        self.delete_button.clicked.connect(self.delete_selected)
         self.retranslate()
 
     # ------------------------------------------------------------------ 列定义
@@ -144,7 +155,9 @@ class TemplatesPage(QWidget):
         """
         self._error = ""
         try:
-            self._infos = self._services.templates.list_templates(self._session)
+            self._infos = self._services.templates.list_templates(
+                self._session, include_hidden=self.can_manage()
+            )
         except AuthError as error:
             self._infos = []
             self._error = describe_auth_error(error)
@@ -193,7 +206,7 @@ class TemplatesPage(QWidget):
     def copy_selected(self) -> None:
         """复制选中的模板（内置或自定义）为新的自定义模板，复制后可以再编辑改名。"""
         info = self.selected()
-        if info is None:
+        if info is None or info.hidden:
             return
         try:
             copy = self._services.templates.copy_template(self._session, info.template.template_id)
@@ -210,7 +223,7 @@ class TemplatesPage(QWidget):
     def edit_selected(self) -> None:
         """编辑选中的自定义模板。"""
         info = self.selected()
-        if info is None or info.builtin:
+        if info is None or info.builtin or info.hidden:
             return
         template_id = info.template.template_id
         dialog = TemplateEditorDialog(
@@ -222,6 +235,56 @@ class TemplatesPage(QWidget):
             parent=self,
         )
         self._finish(dialog, self.tr("模板已保存"))
+
+    def toggle_selected_visibility(self) -> None:
+        """隐藏或恢复选中的内置模板。"""
+        info = self.selected()
+        if info is None or not info.builtin or not self.can_manage():
+            return
+        try:
+            self._services.templates.set_builtin_hidden(
+                self._session, info.template.template_id, hidden=not info.hidden
+            )
+        except (ServiceError, AuthError, StorageBusyError) as error:
+            self._toast(self._error_text(error), ToastKind.DANGER)
+        else:
+            self.refresh(select=info.template.template_id)
+            self._toast(
+                self.tr("模板已隐藏") if not info.hidden else self.tr("模板已恢复"),
+                ToastKind.SUCCESS,
+            )
+
+    def delete_selected(self) -> None:
+        """确认后软删除选中的自建模板。"""
+        info = self.selected()
+        if info is None or info.builtin or not self.can_manage():
+            return
+        confirmed = ConfirmDialog.ask(
+            self,
+            self.tr("删除自建模板"),
+            self.tr(
+                "删除后该模板不能再用于新实验。已运行实验的配置快照不受影响，删除标记会保留在审计记录中。"
+            ),
+            confirm_text=self.tr("删除模板"),
+            danger=True,
+        )
+        if not confirmed:
+            return
+        try:
+            self._services.templates.delete_template(self._session, info.template.template_id)
+        except (ServiceError, AuthError, StorageBusyError) as error:
+            self._toast(self._error_text(error), ToastKind.DANGER)
+        else:
+            self.refresh()
+            self._toast(self.tr("模板已删除"), ToastKind.SUCCESS)
+
+    @staticmethod
+    def _error_text(error: Exception) -> str:
+        if isinstance(error, ServiceError):
+            return describe_service_error(error)
+        if isinstance(error, AuthError):
+            return describe_auth_error(error)
+        return describe_storage_busy()
 
     def _finish(self, dialog: TemplateEditorDialog, message: str) -> None:
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.saved is not None:
@@ -240,7 +303,9 @@ class TemplatesPage(QWidget):
                     "name": builtin_name_text(i.template.name),
                     "type": experiment_type_label(i.template.experiment_type),
                     "count": i.template.tube_count,
-                    "source": self.tr("内置") if i.builtin else self.tr("自定义"),
+                    "source": (self.tr("内置·已隐藏") if i.hidden else self.tr("内置"))
+                    if i.builtin
+                    else self.tr("自定义"),
                 }
                 for i in self._infos
             ]
@@ -292,9 +357,9 @@ class TemplatesPage(QWidget):
         denied = self.tr("当前角色无此权限")
         self.new_button.setEnabled(manage)
         self.new_button.setToolTip("" if manage else denied)
-        self.copy_button.setEnabled(manage and info is not None)
+        self.copy_button.setEnabled(manage and info is not None and not info.hidden)
         self.copy_button.setToolTip("" if manage else denied)
-        editable = manage and info is not None and not info.builtin
+        editable = manage and info is not None and not info.builtin and not info.hidden
         self.edit_button.setEnabled(editable)
         if not manage:
             self.edit_button.setToolTip(denied)
@@ -302,6 +367,11 @@ class TemplatesPage(QWidget):
             self.edit_button.setToolTip(self.tr("内置模板只读，请先复制再编辑"))
         else:
             self.edit_button.setToolTip("")
+        self.lifecycle_button.setVisible(bool(info and info.builtin))
+        self.lifecycle_button.setEnabled(bool(manage and info and info.builtin))
+        self.lifecycle_button.setText(self.tr("恢复") if info and info.hidden else self.tr("隐藏"))
+        self.delete_button.setVisible(bool(info and not info.builtin))
+        self.delete_button.setEnabled(bool(manage and info and not info.builtin))
         if manage:
             self.note.setText(
                 self.tr("内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。")
@@ -316,6 +386,8 @@ class TemplatesPage(QWidget):
         self.new_button.setText(self.tr("新建模板"))
         self.copy_button.setText(self.tr("复制"))
         self.edit_button.setText(self.tr("编辑"))
+        self.lifecycle_button.setText(self.tr("隐藏"))
+        self.delete_button.setText(self.tr("删除"))
         self.list_card.set_title(self.tr("检测模板"))
         self.list_table.set_columns(self._list_columns())
         self.detail_table.set_columns(self._detail_columns())

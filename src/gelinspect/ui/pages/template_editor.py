@@ -9,7 +9,15 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QLineEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from gelinspect.domain.enums import ExperimentType, TubeRole
 from gelinspect.domain.plate import TUBE_COUNT
@@ -104,6 +112,8 @@ class TemplateEditorDialog(QDialog):
         layout.addLayout(form)
 
         self.table = EditTable(self._columns())
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setMinimumHeight(220)
         layout.addWidget(self.table, 1)
         for i, item in enumerate(draft.items, start=1):
@@ -138,6 +148,7 @@ class TemplateEditorDialog(QDialog):
         self.save_button.clicked.connect(self._save)
         self.add_button.clicked.connect(self._add_row)
         self.remove_button.clicked.connect(self._remove_row)
+        self.table.selectionModel().selectionChanged.connect(self._refresh_count)
         self.retranslate()
 
     # ------------------------------------------------------------------ 表格
@@ -182,15 +193,21 @@ class TemplateEditorDialog(QDialog):
 
     def _remove_row(self) -> None:
         self.table.commit_editor()
-        if self.table.rowCount() > 1:
-            self.table.removeRow(self.table.rowCount() - 1)
+        rows = sorted(
+            {index.row() for index in self.table.selectionModel().selectedRows()}, reverse=True
+        )
+        removable = max(0, self.table.rowCount() - 1)
+        for row in rows[:removable]:
+            self.table.removeRow(row)
         self._refresh_count()
 
     def _refresh_count(self) -> None:
         count = self.table.rowCount()
         self.count_label.setText(self.tr("共 {count} 支试管").format(count=count))
         self.add_button.setEnabled(count < TUBE_COUNT)
-        self.remove_button.setEnabled(count > 1)
+        self.remove_button.setEnabled(
+            count > 1 and bool(self.table.selectionModel().selectedRows())
+        )
 
     def draft(self) -> TemplateDraft:
         """读取对话框里当前的内容。
@@ -255,7 +272,7 @@ class TemplateEditorDialog(QDialog):
             if item is not None:
                 item.setData(Qt.ItemDataRole.UserRole, value)
         self.add_button.setText(self.tr("添加试管"))
-        self.remove_button.setText(self.tr("删除最后一支"))
+        self.remove_button.setText(self.tr("删除选中试管"))
         self.cancel_button.setText(self.tr("取消"))
         self.save_button.setText(self.tr("保存"))
         self._refresh_count()

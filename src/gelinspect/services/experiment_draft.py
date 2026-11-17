@@ -84,6 +84,7 @@ class NewExperimentRequest:
     reagent_codes: Mapping[ReagentKind, str] = field(default_factory=dict)
     mvd: float | None = None
     endotoxin_limit: float | None = None
+    template_snapshot: ExperimentTemplate | None = None
 
 
 def parse_limit(text: str) -> float | None:
@@ -333,4 +334,5 @@ class ExperimentDraft:
             reagent_codes=dict(self._reagent_codes),
             mvd=self.mvd,
             endotoxin_limit=self.endotoxin_limit,
+            template_snapshot=self._template,
         )

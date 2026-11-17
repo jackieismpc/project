@@ -549,7 +549,19 @@ class NewExperimentPage(QWidget):
         self._options = []
         current = self._draft.template.template_id if self._draft.template else None
         if current is not None and all(t.template.template_id != current for t in self._templates):
-            self._draft = ExperimentDraft()  # 选中的模板已不存在
+            can_retain = (
+                session is not None
+                and session.can(Permission.TEMPLATE_MANAGE)
+                and session.can(Permission.EXPERIMENT_CREATE)
+            )
+            retained = can_retain and ConfirmDialog.ask(
+                self,
+                self.tr("模板来源已变化"),
+                self.tr("所选模板已删除或隐藏。本次草稿仍保留原配置快照；是否继续使用本次配置？"),
+                confirm_text=self.tr("保留本次配置"),
+            )
+            if not retained:
+                self._draft = ExperimentDraft()
             current = None
         for index, info in enumerate(self._templates):
             option = TemplateOption(info.template, info.builtin)

@@ -56,6 +56,7 @@ class TemplateInfo:
 
     template: ExperimentTemplate
     builtin: bool
+    hidden: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,11 +130,14 @@ class TemplateService:
 
     # ------------------------------------------------------------------ 查询
 
-    def list_templates(self, session: Session | None) -> list[TemplateInfo]:
+    def list_templates(
+        self, session: Session | None, *, include_hidden: bool = False
+    ) -> list[TemplateInfo]:
         """列出全部模板：内置在前（按试验类型顺序），自定义在后（按名称）。
 
         Args:
             session: 调用者的会话，需要 ``template_view`` 权限。
+            include_hidden: 是否包含隐藏模板，仅模板管理权限可用。
 
         Returns:
             模板列表。
@@ -142,8 +146,13 @@ class TemplateService:
             PermissionDeniedError: 没有权限。
         """
         self._auth.authorize(session, Permission.TEMPLATE_VIEW)
+        if include_hidden:
+            self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
         repo = self._storage.templates
-        infos = [TemplateInfo(t, repo.is_builtin(t.template_id)) for t in repo.list_all()]
+        infos = [
+            TemplateInfo(t, repo.is_builtin(t.template_id), repo.is_hidden(t.template_id))
+            for t in repo.list_all(include_hidden=include_hidden)
+        ]
         infos.sort(
             key=lambda i: (
                 not i.builtin,
@@ -215,6 +224,8 @@ class TemplateService:
         """
         user = self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
         source = self._require(source_id).template
+        if self._storage.templates.is_hidden(source_id):
+            raise ServiceError("模板已隐藏，恢复后才能复制", ServiceErrorCode.TEMPLATE_NOT_FOUND)
         base = draft_of(source)
         new_name = (name or "").strip() or self._free_name(f"{source.name} 副本")
         draft = TemplateDraft(new_name, base.experiment_type, base.items)
@@ -254,16 +265,86 @@ class TemplateService:
         self._save(user, template, f"编辑模板 {template.name}（{template.tube_count} 管）")
         return template
 
+    def delete_template(self, session: Session | None, template_id: str) -> None:
+        """软删除自建模板并记录审计；内置模板不能删除。"""
+        user = self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
+        info = self._require(template_id)
+        if info.builtin:
+            raise ServiceError("内置模板只能隐藏，不能删除", ServiceErrorCode.TEMPLATE_READ_ONLY)
+        self._set_lifecycle(
+            user,
+            template_id,
+            deleted=True,
+            detail=f"删除自建模板 {info.template.name}",
+        )
+
+    def set_builtin_hidden(
+        self, session: Session | None, template_id: str, *, hidden: bool
+    ) -> None:
+        """隐藏或恢复内置模板。"""
+        user = self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
+        info = self._require(template_id, allow_hidden=True)
+        if not info.builtin:
+            raise ServiceError("只有内置模板可以隐藏或恢复", ServiceErrorCode.TEMPLATE_READ_ONLY)
+        self._set_lifecycle(
+            user,
+            template_id,
+            hidden=hidden,
+            detail=f"{'隐藏' if hidden else '恢复'}内置模板 {info.template.name}",
+        )
+
+    def list_hidden_builtins(self, session: Session | None) -> list[ExperimentTemplate]:
+        """列出可恢复的内置模板，需要模板管理权限。"""
+        self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
+        repo = self._storage.templates
+        hidden = repo.list_all(include_hidden=True)
+        visible_ids = {t.template_id for t in repo.list_all()}
+        return [
+            template
+            for template in hidden
+            if repo.is_builtin(template.template_id) and template.template_id not in visible_ids
+        ]
+
+    def _set_lifecycle(
+        self,
+        user: User,
+        template_id: str,
+        *,
+        detail: str,
+        hidden: bool | None = None,
+        deleted: bool = False,
+    ) -> None:
+        event = AuditEvent(
+            occurred_at=datetime.now(UTC),
+            actor=user.username,
+            actor_role=user.role,
+            action=AuditAction.TEMPLATE_CHANGED,
+            detail=f"{detail}［{template_id}］",
+        )
+        with self._storage.unit_of_work() as uow:
+            uow.templates.set_visibility(
+                template_id,
+                hidden=hidden,
+                deleted=deleted,
+                deleted_at=datetime.now(UTC) if deleted else None,
+                deleted_by=user.username if deleted else None,
+            )
+            uow.audit.append(event)
+
     # ------------------------------------------------------------------ 内部
 
     def _new_id(self) -> str:
         return uuid.uuid4().hex[:12]
 
-    def _require(self, template_id: str) -> TemplateInfo:
+    def _require(self, template_id: str, *, allow_hidden: bool = False) -> TemplateInfo:
         repo = self._storage.templates
         template = repo.get(template_id)
         if template is None:
             raise ServiceError(f"模板不存在：{template_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND)
+        if repo.is_deleted(template_id):
+            raise ServiceError(f"模板已删除：{template_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND)
+        if repo.is_hidden(template_id) and not allow_hidden:
+            raise ServiceError(f"模板已隐藏：{template_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND)
         return TemplateInfo(template, repo.is_builtin(template_id))
 
     def _check_name(self, name: str, own_id: str) -> None:

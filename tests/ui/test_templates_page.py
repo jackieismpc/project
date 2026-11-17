@@ -9,6 +9,7 @@ from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ExperimentType, TubeRole
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
+from gelinspect.services.template_service import TemplateDraft, TemplateItemInput
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.template_editor import (
     COL_DILUTION,
@@ -112,6 +113,21 @@ def test_builtin_templates_are_read_only_but_can_be_copied(
     assert original == BUILTIN_TEMPLATES[ExperimentType.INTERFERENCE]
 
 
+def test_editor_deletes_selected_tubes_instead_of_last_row(qapp: QApplication) -> None:
+    draft = TemplateDraft(
+        "测试",
+        ExperimentType.LIMIT,
+        [TemplateItemInput(f"样品{index}") for index in range(1, 4)],
+    )
+    dialog = TemplateEditorDialog(lambda _draft: None, initial=draft)  # type: ignore[arg-type]
+    dialog.table.selectRow(0)
+    dialog.table.selectRow(2)
+    assert dialog.remove_button.isEnabled()
+    dialog.remove_button.click()
+    assert dialog.table.rowCount() == 2
+    assert [dialog.table.cell_text(row, COL_SAMPLE) for row in range(2)] == ["样品1", "样品2"]
+
+
 def test_create_a_template_with_the_editor(
     qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -187,6 +203,7 @@ def test_edit_a_custom_template(
         assert dialog.name.text() == "限度试验 副本" and dialog.table.rowCount() == 8
         dialog.name.setText("限度试验（改）")
         for _ in range(3):
+            dialog.table.selectRow(dialog.table.rowCount() - 1)
             dialog.remove_button.click()
         dialog.table.cell_item(0, COL_SAMPLE).setText("供试品")
 

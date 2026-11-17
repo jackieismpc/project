@@ -174,6 +174,21 @@ class ExperimentService:
             raise ServiceError(
                 f"模板不存在：{request.template_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND
             )
+        inactive = self._storage.templates.is_hidden(
+            request.template_id
+        ) or self._storage.templates.is_deleted(request.template_id)
+        if inactive:
+            if (
+                request.template_snapshot is None
+                or request.template_snapshot.template_id != request.template_id
+                or session is None
+                or not session.can(Permission.TEMPLATE_MANAGE)
+            ):
+                raise ServiceError(
+                    f"模板不可用于新实验：{request.template_id}",
+                    ServiceErrorCode.TEMPLATE_NOT_FOUND,
+                )
+            template = request.template_snapshot
         ordered_items = sorted(template.items, key=lambda i: i.tube_no)
         assignments = sorted(request.assignments, key=lambda a: a.tube_no)
         if len(assignments) != len(ordered_items):
