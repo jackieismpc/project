@@ -12,7 +12,7 @@
 
 在 `tests/conftest.py` 将 Windows 默认 Qt 平台设为 `windows`，其他平台仍用 `offscreen`。使用 `setdefault` 保留调用方显式选择；UI 和报告测试夹具中已有的 `setdefault("offscreen")` 不会覆盖根夹具的 Windows 默认值。新增 `tests/test_windows_qt_printing.py`，验证清空平台变量后根 pytest 配置选择原生 Windows QPA，并在带 faulthandler 的独立原生 Qt 子进程中创建 QPrinter，断言退出码为 0 且没有 0x80040155 打印。
 
-已验证：新打印回归 2 项通过；监控页文件在默认配置下连续三次独立运行，每次 9 项通过、0 次 fatal 输出；报告中心 5 项通过（31.87 秒）。`QT_ACCESSIBILITY=0` 并不能消除 offscreen 下异常，因此没有把问题归因于 UI Automation，也没有关闭 faulthandler、过滤异常或改动系统 COM 注册表。
+已验证：新打印回归 3 项通过（默认平台、显式覆盖和独立 QPrinter 进程）；监控页文件在默认配置下连续三次独立运行，每次 9 项通过、0 次 fatal 输出；报告中心 5 项通过（31.87 秒）。`QT_ACCESSIBILITY=0` 并不能消除 offscreen 下异常，因此没有把问题归因于 UI Automation，也没有关闭 faulthandler、过滤异常或改动系统 COM 注册表。
 
 ## 证据边界
 

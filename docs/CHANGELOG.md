@@ -92,4 +92,4 @@
 - P13：报告签名私钥加密存储（Windows DPAPI、macOS 钥匙串、安装密钥回退）；审计链改用 HMAC-SHA256 并兼容旧链（迁移 0005）；导出可选 AES-256 加密 ZIP；发布包文件清单签名并在启动时校验；授权接口（默认不启用）。`scripts/build.py` 用 Nuitka 构建目录模式发布包，正式包排除 `simulation/`；GitHub Actions 双平台构建；发布包使用平台标准数据目录。
 - P14：用户手册（30 张真实截图）、验收指标报告、交接说明；验收测量脚本；英文界面告警、模板名和标点修正，补全英文翻译；清理开发阶段编号。
 
-- Windows 专项（优先于反馈第7项）：确认 `QPrinter` 在 Windows Qt offscreen 平台触发 first-chance `0x80040155`，切换原生 `windows` QPA 后不再触发。Windows 测试根配置改用原生 QPA，其他平台继续 offscreen，显式环境变量仍优先；新增打印后端隔离回归。打印回归2项、监控页连续3次独立运行（每次9项）、报告中心5项通过。详见 `docs/features/windows-native-exception.md`。
+- Windows 专项（优先于反馈第7项）：确认 `QPrinter` 在 Windows Qt offscreen 平台触发 first-chance `0x80040155`，切换原生 `windows` QPA 后不再触发。Windows 测试根配置改用原生 QPA，其他平台继续 offscreen，显式环境变量仍优先；新增打印后端隔离回归。打印回归3项、监控页连续3次独立运行（每次9项）、报告中心5项通过。详见 `docs/features/windows-native-exception.md`。
