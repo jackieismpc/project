@@ -2,6 +2,13 @@
 
 import os
 
+# Qt's Windows print support probes COM-backed printer interfaces when
+# QPrinter is constructed. The offscreen plugin triggers first-chance
+# REGDB_E_IIDNOTREG exceptions for this supported Windows integration, so use
+# the native Windows QPA plugin by default on Windows. Explicit caller choice
+# still takes precedence; other platforms retain the headless plugin.
+os.environ.setdefault("QT_QPA_PLATFORM", "windows" if os.name == "nt" else "offscreen")
+
 import pytest
 
 # 测试会建很多临时数据目录，每个都会生成密钥：一律用安装密钥保护，不往登录钥匙串里写条目。

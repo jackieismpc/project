@@ -1,8 +1,4 @@
-"""界面测试夹具：离屏平台并加载主题与字体。"""
-
-import os
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+"""界面测试夹具：加载主题与字体。"""
 
 import pytest  # noqa: E402
 from PySide6.QtCore import QEvent  # noqa: E402
