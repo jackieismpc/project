@@ -136,17 +136,6 @@ class ReportScope(StrEnum):
 
     EXPERIMENT = "experiment"
     """单个试验的报告。"""
-    BATCH = "batch"
-    """单批次报告：同一批号的多个试验汇总。"""
-
-
-class BatchKind(StrEnum):
-    """单批次报告按哪种批号汇总，存库。"""
-
-    LAL_REAGENT = "lal_reagent"
-    """鲎试剂批号。"""
-    SAMPLE = "sample"
-    """样品批号。"""
 
 
 class PermissionGroup(StrEnum):

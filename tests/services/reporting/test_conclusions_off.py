@@ -14,7 +14,7 @@ from openpyxl import load_workbook
 
 from gelinspect.domain.conclusions import finalize_completion
 from gelinspect.domain.entities import TubeResult
-from gelinspect.domain.enums import AuditAction, BatchKind, GelState, TubeAnalysisStatus
+from gelinspect.domain.enums import AuditAction, GelState, TubeAnalysisStatus
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.signing import SigningBlocker, signing_blocks
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
@@ -248,24 +248,6 @@ def test_content_digest_excludes_the_conclusion_when_off(
         off.preview(session, "EXP-SAMPLE-0001").digest
         != on.preview(session, "EXP-SAMPLE-0001").digest
     )
-
-
-def test_batch_report_has_no_conclusion_column_when_off(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    make_completed(stack, conclusions_enabled=False)
-    service, _ = make_service(stack, tmp_path, conclusions_enabled=False)
-    service.sign(stack.login("analyst"), "EXP-SAMPLE-0001", PASSWORDS["analyst"])
-    preview = service.batch_preview(stack.login("analyst"), BatchKind.LAL_REAGENT, "LAL2606A")
-    renderer = ReportRenderer(zone=UTC)
-    for language in (ReportLanguage.ZH_CN, ReportLanguage.EN):
-        data, _ = renderer.render_pdf(preview.document, ReportTexts(language))
-        text = flat_text(data)
-        _assert_none_of(
-            text, CONCLUSION_WORDS_ZH if language is ReportLanguage.ZH_CN else CONCLUSION_WORDS_EN
-        )
-        assert "EXP-SAMPLE-0001" in text
 
 
 # ---------------------------------------------------------------- Excel

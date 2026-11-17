@@ -130,13 +130,14 @@ def test_the_conclusion_must_be_positive_or_negative(stack: Stack) -> None:
     assert caught.value.code is ServiceErrorCode.REVIEW_CONCLUSION_INVALID
 
 
-def test_review_only_in_the_pending_review_state(stack: Stack) -> None:
-    make_pending(stack, finish=False)  # 还在分析中
+def test_existing_result_can_be_reviewed_while_other_rows_are_still_analyzing(stack: Stack) -> None:
+    make_pending(stack, finish=False)  # 仍在分析中，但这支管已有结果
     analyst = stack.login("analyst")
-    with pytest.raises(ServiceError) as caught:
-        service(stack).review_tube(analyst, "EXP-REV-1", 3, Interpretation.POSITIVE, "x")
-    assert caught.value.code is ServiceErrorCode.REVIEW_NOT_ALLOWED
-    assert stored(stack).results[3].reviewed_by is None
+    reviewed = service(stack).review_tube(
+        analyst, "EXP-REV-1", 3, Interpretation.POSITIVE, "已有结果复核原因"
+    )
+    assert reviewed.state is ExperimentState.ANALYZING
+    assert stored(stack).results[3].reviewed_by == "analyst"
     with pytest.raises(ServiceError) as missing:
         service(stack).review_tube(analyst, "EXP-REV-1", 40, Interpretation.POSITIVE, "x")
     assert missing.value.code is ServiceErrorCode.TUBE_NOT_FOUND
@@ -179,3 +180,23 @@ def test_a_stale_state_is_reported_as_a_conflict(stack: Stack) -> None:
         reviews.review_tube(stack.login("analyst"), "EXP-REV-1", 3, Interpretation.POSITIVE, "x")
     assert caught.value.code is ServiceErrorCode.REVIEW_CONFLICT
     assert stored(stack).results[3].reviewed_by is None  # 同一事务回滚
+
+
+def test_completed_result_can_be_re_reviewed_without_changing_conclusion_and_keeps_history(
+    stack: Stack,
+) -> None:
+    make_pending(stack)
+    reviewer = stack.login("analyst")
+    reviews = service(stack)
+    reviews.review_tube(reviewer, "EXP-REV-1", 3, Interpretation.POSITIVE, "首次原因")
+    reviews.review_tube(reviewer, "EXP-REV-1", 5, Interpretation.NEGATIVE, "完成待复核")
+    assert stored(stack).state is ExperimentState.COMPLETED
+
+    result = reviews.review_tube(
+        reviewer, "EXP-REV-1", 3, Interpretation.POSITIVE, "结论未变，再核原因"
+    ).result
+    assert result.final_interpretation is Interpretation.POSITIVE
+    assert [entry.reason for entry in result.review_history] == ["首次原因", "结论未变，再核原因"]
+    assert [entry.reviewed_by for entry in result.review_history] == ["analyst", "analyst"]
+    assert len(stack.audit(AuditAction.TUBE_REVIEWED)) == 3
+    assert stored(stack).state is ExperimentState.COMPLETED

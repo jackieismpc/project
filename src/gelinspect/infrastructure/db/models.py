@@ -229,6 +229,9 @@ class TubeResultRow(Base):
     reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    review_history: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, nullable=False, default=list, server_default=sql_text("'[]'")
+    )
 
 
 class MediaFileRow(Base):
@@ -255,13 +258,10 @@ class MediaFileRow(Base):
 
 
 class ReportRow(Base):
-    """报告记录表。单批次报告的 ``experiment_id`` 为空，成员在 ``experiment_ids`` 里。"""
+    """报告记录表。"""
 
     __tablename__ = "reports"
-    __table_args__ = (
-        Index("ix_reports_experiment_id", "experiment_id"),
-        Index("ix_reports_batch_no", "batch_no"),
-    )
+    __table_args__ = (Index("ix_reports_experiment_id", "experiment_id"),)
 
     report_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     experiment_id: Mapped[str | None] = mapped_column(
@@ -275,8 +275,6 @@ class ReportRow(Base):
     scope: Mapped[str] = mapped_column(
         String(16), default="experiment", server_default=sql_text("'experiment'")
     )
-    batch_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    batch_no: Mapped[str | None] = mapped_column(String(64), nullable=True)
     language: Mapped[str] = mapped_column(
         String(8), default="zh_CN", server_default=sql_text("'zh_CN'")
     )
@@ -284,9 +282,8 @@ class ReportRow(Base):
     signed_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     certificate_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     content_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    experiment_ids: Mapped[list[str]] = mapped_column(
-        JSON, default=list, server_default=sql_text("'[]'")
-    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    supersedes_report_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class AuditEventRow(Base):

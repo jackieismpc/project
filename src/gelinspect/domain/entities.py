@@ -179,6 +179,16 @@ class TubeAssignment:
 
 
 @dataclass(frozen=True, slots=True)
+class TubeReview:
+    """一条不可变的人工复核历史记录。"""
+
+    interpretation: Interpretation
+    reviewed_by: str
+    reviewed_at: datetime
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
 class TubeResult:
     """单管结果。
 
@@ -216,6 +226,7 @@ class TubeResult:
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
     review_note: str | None = None
+    review_history: tuple[TubeReview, ...] = ()
     elapsed_ms: float | None = None
 
     @classmethod
@@ -327,6 +338,10 @@ class TubeResult:
             reviewed_by=reviewed_by,
             reviewed_at=reviewed_at,
             review_note=note,
+            review_history=(
+                *self.review_history,
+                TubeReview(interpretation, reviewed_by, reviewed_at, note or ""),
+            ),
         )
 
 
@@ -497,8 +512,6 @@ class Experiment:
             TransitionGuardError: 当前不在待复核状态，或该管号没有结果。
             ValueError: 复核结论或时间不合法。
         """
-        if self.state is not ExperimentState.PENDING_REVIEW:
-            raise TransitionGuardError(f"状态 {self.state.value} 下不能复核")
         if tube_no not in self.results:
             raise TransitionGuardError(f"管号 {tube_no} 没有结果")
         reviewed = self.results[tube_no].with_review(
@@ -534,6 +547,14 @@ class Experiment:
         self.signed_at = signed_at
         self.state = target
         return target
+
+    def revise_signature(self, signed_by: str, signed_at: datetime) -> None:
+        """对已签署试验的修订内容更新当前签名指针；原签署报告保留在报告库。"""
+        if self.state is not ExperimentState.SIGNED:
+            raise TransitionGuardError("只有已签署试验可以生成签署修订版")
+        _require_aware(signed_at, "signed_at")
+        self.signed_by = signed_by
+        self.signed_at = signed_at
 
 
 @dataclass(frozen=True, slots=True)

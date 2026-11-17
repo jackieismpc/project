@@ -1,4 +1,4 @@
-"""单批次报告和批量导出。"""
+"""批量导出独立实验报告。"""
 
 from __future__ import annotations
 
@@ -11,11 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from gelinspect.domain.enums import (
-    AuditAction,
-    BatchKind,
-    ReportScope,
-)
+from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import ReportRecord
 from gelinspect.services.auth import PermissionDeniedError
@@ -23,11 +19,14 @@ from gelinspect.services.encrypted_zip import read_encrypted_zip
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.export_service import ExportPolicy
 from gelinspect.services.reporting.report_service import ExportResult, ReportService
-from gelinspect.services.reporting.verify import verify_pdf_bytes
 from tests.services.conftest import PASSWORDS, Stack
 
 from .conftest import SIGN_TIME, make_completed, make_service
-from .pdftext import flat_text, has_text
+
+
+def read_manifest(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
 
 
 def sign_one(
@@ -38,140 +37,6 @@ def sign_one(
 
 
 # ---------------------------------------------------------------------------- 单批次报告
-
-
-def test_batch_report_summarises_experiments_of_the_same_lal_batch_and_is_signed(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    service, keystore = make_service(stack, tmp_path)
-    analyst = stack.login("analyst")
-    sign_one(stack, service, "EXP-A", sample_batch="SB-1")
-    sign_one(stack, service, "EXP-B", sample_batch="SB-2")
-
-    assert service.batch_numbers(analyst, BatchKind.LAL_REAGENT) == ["LAL2606A"]
-    assert service.batch_numbers(analyst, BatchKind.SAMPLE) == ["SB-1", "SB-2"]
-    preview = service.batch_preview(analyst, BatchKind.LAL_REAGENT, "LAL2606A")
-    assert preview.scope is ReportScope.BATCH and preview.can_sign
-    assert [s.experiment_id for s in preview.document.sections] == ["EXP-A", "EXP-B"]
-
-    signed = service.sign_batch(analyst, BatchKind.LAL_REAGENT, "LAL2606A", PASSWORDS["analyst"])
-    record = signed.record
-    assert record.scope is ReportScope.BATCH and record.experiment_id is None
-    assert record.batch_kind is BatchKind.LAL_REAGENT and record.batch_no == "LAL2606A"
-    assert record.experiment_ids == ("EXP-A", "EXP-B")
-    assert "reports/_batch/" in record.path
-    data = signed.path.read_bytes()
-    assert hashlib.sha256(data).hexdigest() == record.sha256
-    assert verify_pdf_bytes(data, keystore.trusted_certificate(), expected_sha256=record.sha256).ok
-    for expected in ("单批次汇总报告", "LAL2606A", "共 2 个试验", "EXP-A", "EXP-B", "李工"):
-        assert has_text(data, expected), expected
-    assert flat_text(data).count("文件名（试验编号）") == 2  # 每个试验一节
-    assert stack.database.reports.list_for_batch(BatchKind.LAL_REAGENT, "LAL2606A") == [record]
-    assert service.batch_reports(analyst, BatchKind.LAL_REAGENT, "LAL2606A") == [record]
-    assert any("单批次" in d for d in stack.audit(AuditAction.REPORT_SIGNED))
-    # 单批次报告不改变任何试验的状态
-    for experiment_id in ("EXP-A", "EXP-B"):
-        stored = stack.database.experiments.get(experiment_id)
-        assert stored is not None and stored.state is ExperimentState.SIGNED
-
-
-def test_batch_report_by_sample_batch_only_includes_that_batch(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    service, _ = make_service(stack, tmp_path)
-    analyst = stack.login("analyst")
-    sign_one(stack, service, "EXP-A", sample_batch="SB-1")
-    sign_one(stack, service, "EXP-B", sample_batch="SB-2")
-    preview = service.batch_preview(analyst, BatchKind.SAMPLE, "SB-2")
-    assert [s.experiment_id for s in preview.document.sections] == ["EXP-B"]
-
-
-def test_batch_cannot_be_signed_while_an_experiment_in_it_is_unsigned(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    service, _ = make_service(stack, tmp_path)
-    analyst = stack.login("analyst")
-    sign_one(stack, service, "EXP-A")
-    make_completed(stack, experiment_id="EXP-B")  # 已完成，还没签
-    preview = service.batch_preview(analyst, BatchKind.LAL_REAGENT, "LAL2606A")
-    assert not preview.can_sign  # 预览和打印仍然可以
-    assert len(preview.document.sections) == 2
-    with pytest.raises(ServiceError) as caught:
-        service.sign_batch(analyst, BatchKind.LAL_REAGENT, "LAL2606A", PASSWORDS["analyst"])
-    assert caught.value.code is ServiceErrorCode.BATCH_NOT_SIGNABLE
-    assert stack.database.reports.list_for_batch(BatchKind.LAL_REAGENT, "LAL2606A") == []
-
-
-def test_batch_with_no_completed_experiment_is_an_empty_state(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    service, _ = make_service(stack, tmp_path)
-    analyst = stack.login("analyst")
-    assert service.batch_numbers(analyst, BatchKind.LAL_REAGENT) == []
-    for call in (
-        lambda: service.batch_preview(analyst, BatchKind.LAL_REAGENT, "NOPE"),
-        lambda: service.sign_batch(analyst, BatchKind.LAL_REAGENT, "NOPE", PASSWORDS["analyst"]),
-    ):
-        with pytest.raises(ServiceError) as caught:
-            call()
-        assert caught.value.code is ServiceErrorCode.BATCH_EMPTY
-
-
-def test_batch_permissions_and_password(signing_stack: Stack, tmp_path: Path) -> None:
-    from gelinspect.domain.enums import PermissionGroup
-    from gelinspect.services.auth import InvalidCredentialsError
-
-    stack = signing_stack
-    service, _ = make_service(stack, tmp_path)
-    sign_one(stack, service, "EXP-A")
-    admin = stack.login("admin")
-    user = stack.database.users.get_by_username("experimenter")
-    assert user is not None
-    from gelinspect.services.user_service import UserService
-
-    UserService(stack.auth, stack.database).set_permission_groups(
-        admin, user.user_id, frozenset({PermissionGroup.VIEW})
-    )
-    experimenter = stack.login("experimenter")
-    # 只读用户可以预览，不能签署。
-    service.batch_preview(experimenter, BatchKind.LAL_REAGENT, "LAL2606A")
-    with pytest.raises(PermissionDeniedError):
-        service.sign_batch(
-            experimenter, BatchKind.LAL_REAGENT, "LAL2606A", PASSWORDS["experimenter"]
-        )
-    with pytest.raises(InvalidCredentialsError):
-        service.sign_batch(
-            stack.login("analyst"), BatchKind.LAL_REAGENT, "LAL2606A", "wrong-password"
-        )
-    assert stack.database.reports.list_for_batch(BatchKind.LAL_REAGENT, "LAL2606A") == []
-
-
-def test_unusual_batch_numbers_cannot_escape_the_reports_directory(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    service, _ = make_service(stack, tmp_path)
-    sign_one(stack, service, "EXP-A", sample_batch="../../etc/批 号")
-    signed = service.sign_batch(
-        stack.login("analyst"),
-        BatchKind.SAMPLE,
-        "../../etc/批 号",
-        PASSWORDS["analyst"],
-    )
-    reports = (tmp_path / "data" / "reports").resolve()
-    assert signed.path.resolve().is_relative_to(reports)
-
-
-# ---------------------------------------------------------------------------- 导出
-
-
-def read_manifest(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        return list(csv.DictReader(handle))
 
 
 def test_batch_export_copies_signed_files_and_writes_a_manifest(
@@ -287,7 +152,6 @@ def test_exporting_100_signed_reports_takes_under_10_seconds(
             signed=True,
             signed_by="analyst",
             signed_at=SIGN_TIME,
-            experiment_ids=(experiment_id,),
         )
         stack.database.reports.add(record)
         ids.append(record.report_id)
@@ -300,7 +164,7 @@ def test_exporting_100_signed_reports_takes_under_10_seconds(
     assert result.elapsed_s < 10.0
 
 
-def test_encrypted_batch_report_export(signing_stack: Stack, tmp_path: Path) -> None:
+def test_encrypted_report_export(signing_stack: Stack, tmp_path: Path) -> None:
     stack = signing_stack
     service, _ = make_service(stack, tmp_path, export_policy=ExportPolicy(True))
     analyst = stack.login("analyst")

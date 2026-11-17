@@ -16,7 +16,6 @@ class S(StrEnum):
     """报告文字的键。"""
 
     TITLE = "title"
-    BATCH_TITLE = "batch_title"
     FILE_NAME = "file_name"
     INSTRUMENT_NO = "instrument_no"
     TEST_DATE = "test_date"
@@ -63,11 +62,6 @@ class S(StrEnum):
     BEFORE = "before"
     AFTER = "after"
     NO_IMAGE = "no_image"
-    COL_EXPERIMENT = "col_experiment"
-    COL_COUNT = "col_count"
-    COL_STATE = "col_state"
-    EXPERIMENT = "experiment"
-    EXPERIMENT_COUNT = "experiment_count"
     FOOT_SIGNED = "foot_signed"
     FOOT_UNSIGNED = "foot_unsigned"
     FOOT_COPYRIGHT = "foot_copyright"
@@ -82,7 +76,6 @@ class S(StrEnum):
 
 SOURCES: dict[S, str] = {
     S.TITLE: str(QT_TRANSLATE_NOOP("Report", "自动凝胶检测报告")),
-    S.BATCH_TITLE: str(QT_TRANSLATE_NOOP("Report", "单批次汇总报告")),
     S.FILE_NAME: str(QT_TRANSLATE_NOOP("Report", "文件名（试验编号）")),
     S.INSTRUMENT_NO: str(QT_TRANSLATE_NOOP("Report", "仪器编号")),
     S.TEST_DATE: str(QT_TRANSLATE_NOOP("Report", "检测日期")),
@@ -133,11 +126,6 @@ SOURCES: dict[S, str] = {
     S.BEFORE: str(QT_TRANSLATE_NOOP("Report", "翻转前")),
     S.AFTER: str(QT_TRANSLATE_NOOP("Report", "翻转后")),
     S.NO_IMAGE: str(QT_TRANSLATE_NOOP("Report", "没有图像")),
-    S.COL_EXPERIMENT: str(QT_TRANSLATE_NOOP("Report", "试验编号")),
-    S.COL_COUNT: str(QT_TRANSLATE_NOOP("Report", "试管数")),
-    S.COL_STATE: str(QT_TRANSLATE_NOOP("Report", "状态")),
-    S.EXPERIMENT: str(QT_TRANSLATE_NOOP("Report", "试验")),
-    S.EXPERIMENT_COUNT: str(QT_TRANSLATE_NOOP("Report", "共 {n} 个试验")),
     S.FOOT_SIGNED: str(
         QT_TRANSLATE_NOOP("Report", "本报告已使用数字签名，任何修改都会导致验签失败。")
     ),

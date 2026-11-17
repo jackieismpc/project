@@ -134,12 +134,6 @@ class ReviewService:
                 f"管号 {tube_no} 没有结果", ServiceErrorCode.TUBE_NOT_FOUND, tube=tube_no
             )
         before = experiment.state
-        if before is ExperimentState.SIGNED:
-            raise ServiceError(
-                "试验已签署，结果和复核已锁定，不能再修改",
-                ServiceErrorCode.EXPERIMENT_SIGNED,
-                id=experiment_id,
-            )
         now = self._clock()
         auto = experiment.results[tube_no]
         try:
@@ -164,7 +158,13 @@ class ReviewService:
                 now,
             )
         ]
-        completed_now = not experiment.pending_review_tubes
+        completed_now = (
+            before is ExperimentState.PENDING_REVIEW and not experiment.pending_review_tubes
+        )
+        recalculated_existing = (
+            before in {ExperimentState.COMPLETED, ExperimentState.SIGNED}
+            and self._conclusions_enabled
+        )
         if completed_now:
             current = experiment.apply(ExperimentEvent.REVIEW_COMPLETED)
             events.append(
@@ -190,12 +190,28 @@ class ReviewService:
                         now,
                     )
                 )
+        elif recalculated_existing:
+            completed_at = experiment.completed_at
+            experiment.state = ExperimentState.COMPLETED
+            concluded = finalize_completion(experiment, now, conclusions_enabled=True)
+            experiment.state = before
+            experiment.completed_at = completed_at
+            if concluded is not None:
+                events.append(
+                    audit_event(
+                        user,
+                        AuditAction.CONCLUSION_RECORDED,
+                        concluded.summary_text(),
+                        experiment_id,
+                        now,
+                    )
+                )
         try:
             with self._storage.unit_of_work() as uow:
                 # 总是带上“预期状态”写一次：别处改过试验状态时在这里发现，整个事务回滚。
                 uow.experiments.update_state(experiment_id, experiment.state, expected=before)
                 uow.experiments.save_results(experiment_id, [reviewed])
-                if completed_now and experiment.completed_at is not None:
+                if (completed_now or recalculated_existing) and experiment.completed_at is not None:
                     uow.experiments.record_completion(
                         experiment_id,
                         completed_at=experiment.completed_at,

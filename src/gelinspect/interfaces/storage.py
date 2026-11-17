@@ -22,7 +22,6 @@ from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
-    BatchKind,
     ExperimentType,
     ReagentCheckStatus,
     ReagentKind,
@@ -311,21 +310,18 @@ class ReportRecord:
 
     Attributes:
         report_id: 报告标识。
-        experiment_id: 所属试验；单批次报告汇总多个试验，此处为 None，成员见 ``experiment_ids``。
+        experiment_id: 所属试验。
         path: 报告文件路径（相对数据目录，或绝对路径）。
         sha256: 报告文件的 SHA-256。
         created_by: 生成者用户名。
         created_at: 生成时间。
         signed: 是否已签名。
-        scope: 单个试验或单批次。
-        batch_kind: 单批次报告按哪种批号汇总。
-        batch_no: 单批次报告的批号。
+        scope: 报告范围；新建报告均对应单个试验。
         language: 报告语言（``zh_CN`` 或 ``en``）。
         signed_by: 签署人用户名。
         signed_at: 签署时间。
         certificate_sha256: 签名证书的 SHA-256 指纹（DER）。
         content_sha256: 页脚显示的“内容摘要”：报告数据的 SHA-256，不是文件哈希。
-        experiment_ids: 报告包含的试验。
     """
 
     report_id: str
@@ -335,15 +331,14 @@ class ReportRecord:
     created_by: str
     created_at: datetime
     signed: bool = False
-    scope: ReportScope = ReportScope.EXPERIMENT
-    batch_kind: BatchKind | None = None
-    batch_no: str | None = None
+    scope: ReportScope | str = ReportScope.EXPERIMENT
     language: str = "zh_CN"
     signed_by: str | None = None
     signed_at: datetime | None = None
     certificate_sha256: str | None = None
     content_sha256: str | None = None
-    experiment_ids: tuple[str, ...] = ()
+    revision: int = 1
+    supersedes_report_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -659,16 +654,6 @@ class ExperimentRepository(Protocol):
         """最新试验的创建时间，没有试验时为 None，用来固定一次历史查询的范围。"""
         ...
 
-    def batch_numbers(self, kind: BatchKind, states: Sequence[ExperimentState]) -> list[str]:
-        """处于给定状态的试验用到的批号（去重，升序），用于单批次报告选批次。"""
-        ...
-
-    def experiment_ids_for_batch(
-        self, kind: BatchKind, batch_no: str, states: Sequence[ExperimentState]
-    ) -> list[str]:
-        """用到某批号、且处于给定状态的试验标识，按创建时间升序。"""
-        ...
-
 
 class AuditRepository(Protocol):
     """审计仓储。只追加，不提供更新和删除。"""
@@ -761,10 +746,6 @@ class ReportRepository(Protocol):
         limit: int = 200,
     ) -> list[ReportRecord]:
         """最近生成的报告，新的在前。"""
-        ...
-
-    def list_for_batch(self, kind: BatchKind, batch_no: str) -> list[ReportRecord]:
-        """某批号的单批次报告，按生成时间排序。"""
         ...
 
 

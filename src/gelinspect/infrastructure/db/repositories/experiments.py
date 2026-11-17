@@ -30,9 +30,9 @@ from gelinspect.domain.entities import (
     Sample,
     TubeAssignment,
     TubeResult,
+    TubeReview,
 )
 from gelinspect.domain.enums import (
-    BatchKind,
     ConclusionVerdict,
     ExperimentType,
     GelState,
@@ -97,6 +97,15 @@ def _result_row(experiment_id: str, result: TubeResult) -> TubeResultRow:
         reviewed_by=result.reviewed_by,
         reviewed_at=result.reviewed_at,
         review_note=result.review_note,
+        review_history=[
+            {
+                "interpretation": item.interpretation.value,
+                "reviewed_by": item.reviewed_by,
+                "reviewed_at": item.reviewed_at.isoformat(),
+                "reason": item.reason,
+            }
+            for item in result.review_history
+        ],
     )
 
 
@@ -122,6 +131,15 @@ def _to_result(row: TubeResultRow) -> TubeResult:
         reviewed_by=row.reviewed_by,
         reviewed_at=row.reviewed_at,
         review_note=row.review_note,
+        review_history=tuple(
+            TubeReview(
+                Interpretation(item["interpretation"]),
+                str(item["reviewed_by"]),
+                datetime.fromisoformat(str(item["reviewed_at"])),
+                str(item["reason"]),
+            )
+            for item in (row.review_history or [])
+        ),
         elapsed_ms=row.elapsed_ms,
     )
 
@@ -543,83 +561,3 @@ class SqlExperimentRepository(ExperimentRepository):
                 for row, count in session.execute(statement)
             )
         return Page(items=items, total=total, request=page)
-
-    def _batch_filter(self, kind: BatchKind, batch_no: str | None) -> ColumnElement[bool]:
-        """某种批号的存在性条件（``batch_no`` 为 None 时不限定批号，只要有批号）。"""
-        if kind is BatchKind.LAL_REAGENT:
-            conditions: list[ColumnElement[bool]] = [
-                ReagentBatchRow.experiment_id == ExperimentRow.experiment_id,
-                ReagentBatchRow.kind == ReagentKind.LAL_REAGENT.value,
-            ]
-            if batch_no is not None:
-                conditions.append(ReagentBatchRow.batch_no == batch_no)
-            return exists().where(*conditions)
-        conditions = [
-            TubeAssignmentRow.experiment_id == ExperimentRow.experiment_id,
-            TubeAssignmentRow.sample_batch_no.is_not(None),
-            TubeAssignmentRow.sample_batch_no != "",
-        ]
-        if batch_no is not None:
-            conditions.append(TubeAssignmentRow.sample_batch_no == batch_no)
-        return exists().where(*conditions)
-
-    def batch_numbers(self, kind: BatchKind, states: Sequence[ExperimentState]) -> list[str]:
-        """处于给定状态的试验用到的批号（去重，升序）。
-
-        Args:
-            kind: 批号种类。
-            states: 试验状态。
-
-        Returns:
-            批号列表。
-        """
-        values = [state.value for state in states]
-        with self._sessions() as session:
-            if kind is BatchKind.LAL_REAGENT:
-                lal = session.execute(
-                    select(ReagentBatchRow.batch_no)
-                    .join(
-                        ExperimentRow, ExperimentRow.experiment_id == ReagentBatchRow.experiment_id
-                    )
-                    .where(
-                        ReagentBatchRow.kind == ReagentKind.LAL_REAGENT.value,
-                        ExperimentRow.state.in_(values),
-                    )
-                    .distinct()
-                ).scalars()
-                return sorted({str(no) for no in lal})
-            sample = session.execute(
-                select(TubeAssignmentRow.sample_batch_no)
-                .join(ExperimentRow, ExperimentRow.experiment_id == TubeAssignmentRow.experiment_id)
-                .where(
-                    TubeAssignmentRow.sample_batch_no.is_not(None),
-                    TubeAssignmentRow.sample_batch_no != "",
-                    ExperimentRow.state.in_(values),
-                )
-                .distinct()
-            ).scalars()
-            return sorted({str(no) for no in sample})
-
-    def experiment_ids_for_batch(
-        self, kind: BatchKind, batch_no: str, states: Sequence[ExperimentState]
-    ) -> list[str]:
-        """用到某批号、且处于给定状态的试验标识，按创建时间升序。
-
-        Args:
-            kind: 批号种类。
-            batch_no: 批号。
-            states: 试验状态。
-
-        Returns:
-            试验标识列表。
-        """
-        statement = (
-            select(ExperimentRow.experiment_id)
-            .where(
-                ExperimentRow.state.in_([state.value for state in states]),
-                self._batch_filter(kind, batch_no),
-            )
-            .order_by(ExperimentRow.created_at, ExperimentRow.experiment_id)
-        )
-        with self._sessions() as session:
-            return list(session.execute(statement).scalars())

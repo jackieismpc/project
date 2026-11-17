@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import stat
+from datetime import timedelta
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from pyhanko.pdf_utils.reader import PdfFileReader
 
 from gelinspect.domain.enums import AuditAction, PermissionGroup, ReportScope
 from gelinspect.domain.permissions import Permission
@@ -15,7 +19,7 @@ from gelinspect.services.auth import InvalidCredentialsError, PermissionDeniedEr
 from gelinspect.services.reporting.report_service import SigningNotAllowedError
 from gelinspect.services.reporting.texts import ReportLanguage
 from gelinspect.services.reporting.verify import VerifyFailure, verify_pdf_bytes
-from tests.services.conftest import NOW, PASSWORDS, Stack
+from tests.services.conftest import PASSWORDS, Stack
 
 from .conftest import SIGN_TIME, make_completed, make_service
 from .pdftext import flat_text, pdf_font_report
@@ -47,6 +51,31 @@ def test_sign_generates_a_valid_pades_pdf_and_records_everything(
     )
     assert verification.ok and verification.signature_intact
     assert verification.certificate_sha256 == record.certificate_sha256
+    imported = service.verify_imported_file(analyst, path)
+    assert imported.signature_status == "valid"
+    assert imported.matched_report_id == record.report_id
+    assert imported.experiment_id == record.experiment_id
+    assert imported.hash_match
+    embedded = list(PdfFileReader(BytesIO(data)).embedded_regular_signatures)[0]
+    reason_obj = embedded.sig_object.get("/Reason")
+    assert f"GI-REPORT:{record.report_id}:{record.experiment_id}:{record.content_sha256}" in str(
+        reason_obj
+    )
+    raw_reason = reason_obj.original_bytes
+    escaped_reason = b"".join(
+        bytes([value])
+        if bytes([value]).isalnum() or value == 0x20
+        else f"\\{value:03o}".encode("ascii")
+        for value in raw_reason
+    )
+    reason_offset = data.index(escaped_reason) + len(escaped_reason) - 1
+    tampered = bytearray(data)
+    tampered[reason_offset] = ord("0") if tampered[reason_offset] != ord("0") else ord("1")
+    tampered_path = tmp_path / "tampered-reason.pdf"
+    tampered_path.write_bytes(tampered)
+    rejected = service.verify_imported_file(analyst, tampered_path)
+    assert rejected.signature_status == "invalid"
+    assert rejected.matched_report_id is None and rejected.experiment_id is None
     # 状态、签署人和时间、审计在同一个工作单元里生效
     stored = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert stored is not None
@@ -212,11 +241,10 @@ def test_read_only_user_cannot_paint_to_pdf_printer(signing_stack: Stack, tmp_pa
     assert not output.exists()
 
 
-def test_signed_experiment_is_locked_and_the_same_file_can_be_exported_again(
+def test_signed_experiment_can_be_re_reviewed_and_revision_keeps_original_file(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
     from gelinspect.domain.enums import Interpretation
-    from gelinspect.services.errors import ServiceError, ServiceErrorCode
     from gelinspect.services.review_service import ReviewService
 
     stack = signing_stack
@@ -224,24 +252,29 @@ def test_signed_experiment_is_locked_and_the_same_file_can_be_exported_again(
     service, _ = make_service(stack, tmp_path)
     analyst = stack.login("analyst")
     result = service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
-    # 已签署：复核被拒绝（服务层），状态不变
-    with pytest.raises(ServiceError) as caught:
-        ReviewService(stack.auth, stack.database, clock=lambda: NOW).review_tube(
-            analyst, "EXP-SAMPLE-0001", 7, Interpretation.NEGATIVE, "想改"
-        )
-    assert caught.value.code is ServiceErrorCode.EXPERIMENT_SIGNED
+    ReviewService(
+        stack.auth, stack.database, clock=lambda: SIGN_TIME + timedelta(days=1)
+    ).review_tube(analyst, "EXP-SAMPLE-0001", 7, Interpretation.NEGATIVE, "复核后更正")
     stored = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert stored is not None
     assert stored.state is ExperimentState.SIGNED
-    assert stored.results[7].final_interpretation is Interpretation.POSITIVE
-    # 不能再签第二次
-    with pytest.raises(SigningNotAllowedError) as blocked:
+    assert stored.results[7].final_interpretation is Interpretation.NEGATIVE
+    with pytest.raises(SigningNotAllowedError):
         service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
-    assert [b.blocker.value for b in blocked.value.blocks] == ["already_signed"]
+    revised_service, _ = make_service(stack, tmp_path, clock=lambda: SIGN_TIME + timedelta(days=2))
+    revised = revised_service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+    assert revised.record.revision == 2
+    assert revised.record.supersedes_report_id == result.record.report_id
+    assert result.path.exists() and result.path.read_bytes().startswith(b"%PDF")
+    assert revised.path != result.path and revised.path.exists()
     # 同一个文件可以反复导出，内容逐字节相同
-    first = service.export_report_file(analyst, result.record.report_id, tmp_path / "out1.pdf")
-    second = service.export_report_file(analyst, result.record.report_id, tmp_path / "out2.pdf")
-    assert first.read_bytes() == second.read_bytes() == result.path.read_bytes()
+    first = revised_service.export_report_file(
+        analyst, revised.record.report_id, tmp_path / "out1.pdf"
+    )
+    second = revised_service.export_report_file(
+        analyst, revised.record.report_id, tmp_path / "out2.pdf"
+    )
+    assert first.read_bytes() == second.read_bytes() == revised.path.read_bytes()
     assert len(stack.audit(AuditAction.REPORT_EXPORTED)) == 2
 
 
@@ -275,8 +308,15 @@ def test_key_file_is_private_and_nothing_secret_is_logged_or_audited(
     key_pem = keystore.key_path.read_bytes()
     body = key_pem.decode().split("\n")[1]
     assert key_pem.startswith(b"-----BEGIN PRIVATE KEY-----")
-    assert stat.S_IMODE(keystore.key_path.stat().st_mode) == 0o600
-    assert stat.S_IMODE(keystore.key_path.parent.stat().st_mode) == 0o700
+    if os.name == "posix":
+        assert stat.S_IMODE(keystore.key_path.stat().st_mode) == 0o600
+        assert stat.S_IMODE(keystore.key_path.parent.stat().st_mode) == 0o700
+    else:
+        from gelinspect.infrastructure.security.protectors import DpapiKeyProtector
+
+        protected = DpapiKeyProtector().protect(key_pem)
+        assert key_pem not in protected
+        assert DpapiKeyProtector().unprotect(protected) == key_pem
     assert body not in caplog.text
     assert "PRIVATE KEY" not in caplog.text
     everything = "\n".join(stack.audit(a) and "\n".join(stack.audit(a)) or "" for a in AuditAction)
@@ -295,20 +335,32 @@ def test_tampering_with_one_byte_fails_verification_with_a_clear_reason(
 
     original = result.path.read_bytes()
     trusted = keystore.trusted_certificate()
-    # 在文件的不同位置各翻转一个字节：每一处都必须验签失败
-    for offset in (20, 700, len(original) // 3, len(original) // 2, len(original) - 5000):
+    # ByteRange 指定的PDF内容都受签名保护；签名值的预留填充不在摘要范围内。
+    from io import BytesIO
+
+    from pyhanko.pdf_utils.reader import PdfFileReader
+
+    embedded = list(PdfFileReader(BytesIO(original)).embedded_regular_signatures)[0]
+    start1, length1, start2, length2 = map(int, embedded.sig_object.get("/ByteRange"))
+    signed_offsets = (start1 + 20, start1 + 700, start2 + 100, start2 + length2 // 2)
+    for offset in (*signed_offsets, len(original) - 5000):
         broken = bytearray(original)
         broken[offset] ^= 0x01
         outcome = verify_pdf_bytes(bytes(broken), trusted, expected_sha256=result.record.sha256)
         assert not outcome.ok, offset
         assert VerifyFailure.FILE_HASH_MISMATCH in outcome.failures, offset
-    # 只看 pyHanko 的签名校验（不借助库里的文件哈希）：改一个字节同样验不过
-    for offset in (20, 700, len(original) // 3, len(original) // 2, len(original) - 5000):
+    # 不依赖整文件 SHA-256，改动签名覆盖的任意内容都应失败。
+    for offset in signed_offsets:
         broken = bytearray(original)
         broken[offset] ^= 0x01
         by_signature_alone = verify_pdf_bytes(bytes(broken), trusted)
         assert not by_signature_alone.ok, offset
         assert not by_signature_alone.signature_intact, offset
+    # 预留的签名容器填充不在PDF ByteRange内；只有数据库整文件哈希能发现其改变。
+    padding = bytearray(original)
+    padding[len(original) - 5000] ^= 0x01
+    assert verify_pdf_bytes(bytes(padding), trusted).ok
+    assert not verify_pdf_bytes(bytes(padding), trusted, expected_sha256=result.record.sha256).ok
     # 签名本身（/Contents 里的十六进制）被改一个字符
     start = original.rindex(b"/Contents <") + len(b"/Contents <") + 20
     broken = bytearray(original)

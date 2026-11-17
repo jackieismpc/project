@@ -63,7 +63,7 @@ SIGNABLE_VERDICTS = frozenset(
 
 
 def signing_blocks(
-    experiment: Experiment, *, conclusions_enabled: bool
+    experiment: Experiment, *, conclusions_enabled: bool, allow_signed_revision: bool = False
 ) -> tuple[SigningBlock, ...]:
     """列出试验当前不能签署的全部原因。
 
@@ -73,12 +73,17 @@ def signing_blocks(
 
     Returns:
         原因列表；空表示可以签署。已签署的试验只有 ``ALREADY_SIGNED``。
+
+    Args:
+        experiment: 试验聚合。
+        conclusions_enabled: 是否校验试验结论。
+        allow_signed_revision: 是否允许复核后的已签署版本重新签署。
     """
-    if experiment.state is ExperimentState.SIGNED:
+    if experiment.state is ExperimentState.SIGNED and not allow_signed_revision:
         return (SigningBlock(SigningBlocker.ALREADY_SIGNED),)
     if experiment.state is ExperimentState.PENDING_REVIEW:
         return (SigningBlock(SigningBlocker.PENDING_REVIEW, tubes=experiment.pending_review_tubes),)
-    if experiment.state is not ExperimentState.COMPLETED:
+    if experiment.state not in {ExperimentState.COMPLETED, ExperimentState.SIGNED}:
         return (SigningBlock(SigningBlocker.NOT_COMPLETED, state=experiment.state),)
     blocks: list[SigningBlock] = []
     expected = {assignment.tube_no for assignment in experiment.assignments}

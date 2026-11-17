@@ -22,7 +22,6 @@ from gelinspect.domain.enums import (
     ConclusionVerdict,
     ExperimentType,
     Interpretation,
-    ReportScope,
     TubeRole,
 )
 from gelinspect.domain.state_machine import ExperimentState
@@ -425,91 +424,13 @@ class _Builder:
             + self.images(section, width_px)
         )
 
-    def summary(self) -> str:
-        """单批次报告的汇总表：每个试验一行。"""
-        t = self.t
-        top = f"border-top:{self.px(2)}px solid {INK};border-bottom:{self.px(1)}px solid {INK};"
-        cell = f"border-bottom:{self.px(1)}px solid {HAIRLINE};"
-        with_verdict = any(section.conclusions_enabled for section in self.doc.sections)
-        heads = [
-            (self.s(S.COL_EXPERIMENT), "26%" if with_verdict else "30%"),
-            (self.s(S.EXPERIMENT_TYPE), "16%" if with_verdict else "20%"),
-            (self.s(S.TEST_DATE), "20%" if with_verdict else "24%"),
-            (self.s(S.COL_COUNT), "10%" if with_verdict else "12%"),
-        ]
-        if with_verdict:
-            heads.append((self.s(S.CONCLUSION), "14%"))
-        heads.append((self.s(S.COL_STATE), "14%"))
-        head = "".join(
-            f'<th width="{w}" align="left" style="{top}font-weight:500">{_e(h)}</th>'
-            for h, w in heads
-        )
-        body = []
-        for section in self.doc.sections:
-            conclusion = section.conclusion
-            verdict = self.s(S.NONE) if conclusion is None else verdict_text(t, conclusion.verdict)
-            state_source = _STATE_SOURCES.get(section.state)
-            state = (
-                self.s(S.UNSIGNED)
-                if state_source is None
-                else t.tr(state_source, "ExperimentState")
-            )
-            verdict_cell = f'<td style="{cell}">{_e(verdict)}</td>' if with_verdict else ""
-            body.append(
-                "<tr>"
-                f'<td style="{cell}">{_mono(section.experiment_id)}</td>'
-                f'<td style="{cell}">{_e(self.type_name(section.experiment_type))}</td>'
-                f'<td style="{cell}">{_mono(_stamp(section.started_at, self.zone))}</td>'
-                f'<td style="{cell}">{_mono(str(len(section.rows)))}</td>'
-                f"{verdict_cell}"
-                f'<td style="{cell}">{_e(state)}</td>'
-                "</tr>"
-            )
-        return (
-            f'<table width="100%" cellspacing="0" cellpadding="{self.px(2)}" '
-            'style="font-size:8.5pt;border-collapse:collapse">'
-            f"<thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
-        )
-
     def build(self, width_px: int) -> str:
-        doc = self.doc
-        parts: list[str] = []
-        if doc.scope is ReportScope.EXPERIMENT:
-            parts.append(self.title(self.s(S.TITLE)))
-            parts.append(self.subtitle(_e(self.type_name(doc.sections[0].experiment_type))))
-            parts.append(self.section_body(doc.sections[0], width_px))
-        else:
-            parts.append(self.title(self.s(S.BATCH_TITLE)))
-            kind = (
-                self.s(S.LAL_BATCH)
-                if doc.batch_kind is not None and doc.batch_kind.value == "lal_reagent"
-                else self.s(S.SAMPLE_BATCH)
-            )
-            signed = (
-                _e(self.s(S.SIGNED_BY_DATE))
-                + "："
-                + (
-                    f"{_e(doc.signed_by)} / {_mono(_stamp(doc.signed_at, self.zone))}"
-                    if doc.signed_by
-                    else _e(self.s(S.UNSIGNED))
-                )
-            )
-            parts.append(
-                self.subtitle(
-                    f"{_e(kind)}：{_mono(doc.batch_no or _BLANK)} · "
-                    f"{_e(self.s(S.EXPERIMENT_COUNT).format(n=len(doc.sections)))} · {signed}"
-                )
-            )
-            parts.append(self.summary())
-            for section in doc.sections:
-                parts.append(
-                    self.heading(
-                        f"{_e(self.s(S.EXPERIMENT))} {_mono(section.experiment_id)}",
-                        page_break=True,
-                    )
-                )
-                parts.append(self.section_body(section, width_px))
-        body = "".join(parts)
+        section = self.doc.sections[0]
+        body = (
+            self.title(self.s(S.TITLE))
+            + self.subtitle(_e(self.type_name(section.experiment_type)))
+            + self.section_body(section, width_px)
+        )
         return (
             "<html><head><meta charset='utf-8'></head>"
             f"<body style=\"font-family:'{SANS}';font-size:9pt;color:{INK}\">{body}</body></html>"

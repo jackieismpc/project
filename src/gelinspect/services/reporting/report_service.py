@@ -1,4 +1,4 @@
-"""报告中心的服务：预览、签署、验签、导出和单批次报告。
+"""报告中心的服务：预览、签署、验签和导出。
 
 * 每个入口先校验权限：预览和验签需要 ``report_view``，打印需要 ``report_print``，
   签署需要 ``experiment_sign``，导出需要 ``data_export``。UI 不碰数据库，只通过这里取数据。
@@ -22,18 +22,20 @@ from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, tzinfo
+from io import BytesIO
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 from numpy.typing import NDArray
+from pyhanko.pdf_utils.reader import PdfFileReader
 from PySide6.QtGui import QImage, QPagedPaintDevice, QPaintEngine
 
 from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, User
 from gelinspect.domain.enums import (
     AuditAction,
-    BatchKind,
+    ReagentKind,
     ReportScope,
 )
 from gelinspect.domain.permissions import Permission
@@ -86,8 +88,6 @@ _log = logging.getLogger(__name__)
 
 _STARTED_MARK = f"{ExperimentState.READY.value} → {ExperimentState.INCUBATING.value}"
 """审计里“开始孵育”那条状态变化的开头，与监控页取开始时间的方式一致。"""
-_BATCH_DIR = "_batch"
-"""单批次报告放在 ``reports/_batch/``；以下划线开头，不会与试验标识的目录重名。"""
 THUMBNAIL_LONG_SIDE = 900
 """8 连图缩略图的长边（像素）。"""
 _SAFE = re.compile(r"[^A-Za-z0-9_.-]")
@@ -166,10 +166,10 @@ class ReportPreview:
     Attributes:
         document: 报告内容。
         texts: 报告语言的文字。
-        scope: 单个试验或单批次。
-        experiment_id: 试验标识；单批次报告为 None。
+        scope: 单个试验。
+        experiment_id: 试验标识。
         blocks: 不能签署的原因，空表示可以签署。
-        conclusion: 单个试验的结论；单批次报告和结论功能关闭时为 None。
+        conclusion: 试验结论；结论功能关闭时为 None。
         record: 已签署的报告记录（最新一份），没有为 None。
         digest: 页脚的内容摘要。
         conclusions_enabled: 结论功能是否打开；关闭时界面不提试验结论。
@@ -194,6 +194,33 @@ class ReportPreview:
     def language(self) -> ReportLanguage:
         """报告语言。"""
         return self.texts.language
+
+
+@dataclass(frozen=True, slots=True)
+class ReportListItem:
+    """报告中心按实验展示的一行安全视图。"""
+
+    experiment_id: str
+    experiment_type: str
+    created_at: datetime
+    state: ExperimentState
+    sample_batch_nos: tuple[str, ...]
+    lal_batch_no: str | None
+    endotoxin_batch_no: str | None
+    water_batch_no: str | None
+    latest_report: ReportRecord | None
+
+
+@dataclass(frozen=True, slots=True)
+class ImportedReportVerification:
+    """外部PDF的签名结果及其对应的本地报告记录。"""
+
+    signature_status: str
+    message: str
+    experiment_id: str | None = None
+    matched_report_id: str | None = None
+    hash_match: bool = False
+    file_sha256: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -384,6 +411,48 @@ class ReportService:
         items.sort(key=lambda item: (item.created_at, item.experiment_id), reverse=True)
         return items[:limit]
 
+    def report_list(self, session: Session | None, limit: int = 200) -> tuple[ReportListItem, ...]:
+        """返回报告中心所需的实验及批号筛选字段。"""
+        self._auth.authorize(session, Permission.REPORT_VIEW)
+        items: list[ReportListItem] = []
+        for summary in self.report_experiments(session, limit):
+            experiment = self._load(summary.experiment_id)
+            items.append(
+                ReportListItem(
+                    experiment_id=experiment.experiment_id,
+                    experiment_type=experiment.experiment_type.value,
+                    created_at=experiment.created_at,
+                    state=experiment.state,
+                    sample_batch_nos=tuple(
+                        sorted(
+                            {a.sample.batch_no for a in experiment.assignments if a.sample.batch_no}
+                        )
+                    ),
+                    lal_batch_no=next(
+                        (
+                            r.batch_no
+                            for r in experiment.reagents
+                            if r.kind is ReagentKind.LAL_REAGENT
+                        ),
+                        None,
+                    ),
+                    endotoxin_batch_no=next(
+                        (
+                            r.batch_no
+                            for r in experiment.reagents
+                            if r.kind is ReagentKind.ENDOTOXIN
+                        ),
+                        None,
+                    ),
+                    water_batch_no=next(
+                        (r.batch_no for r in experiment.reagents if r.kind is ReagentKind.WATER),
+                        None,
+                    ),
+                    latest_report=self._latest_signed(experiment.experiment_id),
+                )
+            )
+        return tuple(items)
+
     def signed_reports(self, session: Session | None, *, limit: int = 200) -> list[ReportRecord]:
         """已签署的报告，新的在前。
 
@@ -399,41 +468,6 @@ class ReportService:
         """
         self._auth.authorize(session, Permission.REPORT_VIEW)
         return self._storage.reports.list_recent(signed_only=True, limit=limit)
-
-    def batch_numbers(self, session: Session | None, kind: BatchKind) -> list[str]:
-        """有已完成试验的批号，用于选批次。
-
-        Args:
-            session: 调用者的会话，需要 ``report_view`` 权限。
-            kind: 鲎试剂批号或样品批号。
-
-        Returns:
-            批号，升序。
-
-        Raises:
-            PermissionDeniedError: 没有权限。
-        """
-        self._auth.authorize(session, Permission.REPORT_VIEW)
-        return self._storage.experiments.batch_numbers(kind, _REPORTABLE)
-
-    def batch_reports(
-        self, session: Session | None, kind: BatchKind, batch_no: str
-    ) -> list[ReportRecord]:
-        """某批号已生成的单批次报告。
-
-        Args:
-            session: 调用者的会话，需要 ``report_view`` 权限。
-            kind: 批号种类。
-            batch_no: 批号。
-
-        Returns:
-            报告记录，按生成时间排序。
-
-        Raises:
-            PermissionDeniedError: 没有权限。
-        """
-        self._auth.authorize(session, Permission.REPORT_VIEW)
-        return self._storage.reports.list_for_batch(kind, batch_no)
 
     # ------------------------------------------------------------------ 预览
 
@@ -491,58 +525,6 @@ class ReportService:
             conclusions_enabled=self._conclusions_enabled,
         )
 
-    def batch_preview(
-        self,
-        session: Session | None,
-        kind: BatchKind,
-        batch_no: str,
-        language: ReportLanguage = ReportLanguage.ZH_CN,
-    ) -> ReportPreview:
-        """单批次报告预览：汇总该批号下全部已完成的试验。
-
-        Args:
-            session: 调用者的会话，需要 ``report_view`` 权限。
-            kind: 批号种类。
-            batch_no: 批号。
-            language: 报告语言。
-
-        Returns:
-            预览；其中有试验还没有签署时 ``blocks`` 说明不能签署。
-
-        Raises:
-            PermissionDeniedError: 没有权限。
-            ServiceError: 这个批号下没有已完成的试验。
-        """
-        self._auth.authorize(session, Permission.REPORT_VIEW)
-        experiments = self._batch_members(kind, batch_no)
-        sections = tuple(self._section(experiment) for experiment in experiments)
-        document = ReportDocument(
-            scope=ReportScope.BATCH,
-            sections=sections,
-            copyright_holder=self._holder,
-            batch_kind=kind,
-            batch_no=batch_no,
-        )
-        unsigned = tuple(
-            e.experiment_id for e in experiments if e.state is not ExperimentState.SIGNED
-        )
-        blocks = (
-            (SigningBlock(SigningBlocker.NOT_COMPLETED, state=ExperimentState.COMPLETED),)
-            if unsigned
-            else ()
-        )
-        return ReportPreview(
-            document=document,
-            texts=ReportTexts(language),
-            scope=ReportScope.BATCH,
-            experiment_id=None,
-            blocks=blocks,
-            conclusion=None,
-            record=None,
-            digest=document.content_digest(),
-            conclusions_enabled=self._conclusions_enabled,
-        )
-
     def paint(
         self, session: Session | None, preview: ReportPreview, device: QPagedPaintDevice
     ) -> int:
@@ -576,7 +558,7 @@ class ReportService:
             PermissionDeniedError: 没有权限。
         """
         user = self._auth.authorize(session, Permission.REPORT_PRINT)
-        target = preview.experiment_id or f"{preview.document.batch_no}"
+        target = preview.experiment_id or "未知实验"
         self._audit_best_effort(
             AuditEvent(
                 occurred_at=self._clock(),
@@ -630,7 +612,25 @@ class ReportService:
         user = self._auth.authorize(session, Permission.EXPERIMENT_SIGN)
         assert session is not None
         experiment = self._load(experiment_id)
-        blocks = signing_blocks(experiment, conclusions_enabled=self._conclusions_enabled)
+        latest = self._latest_signed(experiment_id)
+        is_revision = experiment.state is ExperimentState.SIGNED
+        if is_revision:
+            last_signed_at = latest.signed_at if latest is not None else experiment.signed_at
+            has_new_review = last_signed_at is not None and any(
+                entry.reviewed_at > last_signed_at
+                for result in experiment.results.values()
+                for entry in result.review_history
+            )
+            if latest is None or not has_new_review:
+                raise SigningNotAllowedError(
+                    (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
+                    experiment.conclusion if self._conclusions_enabled else None,
+                )
+        blocks = signing_blocks(
+            experiment,
+            conclusions_enabled=self._conclusions_enabled,
+            allow_signed_revision=is_revision,
+        )
         if blocks:
             raise SigningNotAllowedError(
                 blocks, experiment.conclusion if self._conclusions_enabled else None
@@ -638,8 +638,21 @@ class ReportService:
         self._auth.confirm_password(session, password, purpose="签署")
         before = experiment.state
         now = self._clock()
-        experiment.sign(user.username, now)
+        if is_revision and any(
+            entry.reviewed_at >= now
+            for result in experiment.results.values()
+            for entry in result.review_history
+        ):
+            raise SigningNotAllowedError(
+                (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
+                experiment.conclusion if self._conclusions_enabled else None,
+            )
+        if is_revision:
+            experiment.revise_signature(user.username, now)
+        else:
+            experiment.sign(user.username, now)
         images: dict[str, tuple[RowImagePair, ...]] = {}
+        report_id = uuid.uuid4().hex
         final: Path | None = None
         staged: Path | None = None
         try:
@@ -656,9 +669,13 @@ class ReportService:
             )
             texts = ReportTexts(language)
             directory = experiment_dir(self._data_dir, "reports", experiment_id)
-            name = f"{experiment_id}.pdf"
+            revision = (latest.revision + 1) if is_revision and latest is not None else 1
+            name = f"{experiment_id}_rev{revision}.pdf" if is_revision else f"{experiment_id}.pdf"
             signed, pages, identity = self._render_and_sign(
-                document, texts, signer_name=user.display_name, reason_id=experiment_id
+                document,
+                texts,
+                signer_name=user.display_name,
+                reason_id=(f"GI-REPORT:{report_id}:{experiment_id}:{document.content_digest()}"),
             )
             final = directory / name
             if final.exists():
@@ -673,7 +690,7 @@ class ReportService:
                 reason=str(exc)[:200],
             ) from exc
         record = ReportRecord(
-            report_id=uuid.uuid4().hex,
+            report_id=report_id,
             experiment_id=experiment_id,
             path=self._relative(final),
             sha256=hashlib.sha256(signed).hexdigest(),
@@ -686,7 +703,8 @@ class ReportService:
             signed_at=now,
             certificate_sha256=identity.fingerprint,
             content_sha256=document.content_digest(),
-            experiment_ids=(experiment_id,),
+            revision=revision,
+            supersedes_report_id=latest.report_id if is_revision and latest is not None else None,
         )
         # 结论功能关闭时审计里不写任何结论内容。
         verdict_text = ""
@@ -704,7 +722,9 @@ class ReportService:
             audit_event(
                 user,
                 AuditAction.EXPERIMENT_SIGNED,
-                f"签署试验并生成报告 {name}{verdict_text}；语言 {language.value}；"
+                f"{'签署修订版' if is_revision else '签署试验'}并生成报告 {name}{verdict_text}；"
+                f"版本 {record.revision}；前版 {record.supersedes_report_id or '-'}；"
+                f"语言 {language.value}；"
                 f"文件 SHA-256 {record.sha256}；内容摘要 {record.content_sha256}；"
                 f"证书指纹 {record.certificate_sha256}",
                 experiment_id,
@@ -732,116 +752,119 @@ class ReportService:
         verification = verify_pdf_bytes(signed, identity.certificate, expected_sha256=record.sha256)
         return SignedReport(record=record, path=final, pages=pages, verification=verification)
 
-    def sign_batch(
-        self,
-        session: Session | None,
-        kind: BatchKind,
-        batch_no: str,
-        password: str,
-        language: ReportLanguage = ReportLanguage.ZH_CN,
-    ) -> SignedReport:
-        """签署单批次报告。只有批次里全部试验都已签署时才能签署。
-
-        单批次报告是已签署试验的汇总，本身不改变任何试验的状态。
-
-        Args:
-            session: 调用者的会话，需要 ``experiment_sign`` 权限。
-            kind: 批号种类。
-            batch_no: 批号。
-            password: 签署人再次输入的密码。
-            language: 报告语言。
-
-        Returns:
-            签署结果。
-
-        Raises:
-            PermissionDeniedError: 没有权限。
-            ServiceError: 批次里没有试验、有试验未签署（``BATCH_NOT_SIGNABLE``）或签署失败。
-            InvalidCredentialsError: 密码错误。
-            StorageBusyError: 数据库忙。
-        """
-        user = self._auth.authorize(session, Permission.EXPERIMENT_SIGN)
-        assert session is not None
-        experiments = self._batch_members(kind, batch_no)
-        if any(e.state is not ExperimentState.SIGNED for e in experiments):
-            raise ServiceError(
-                "单批次报告只能在其中全部试验都已签署后签署", ServiceErrorCode.BATCH_NOT_SIGNABLE
-            )
-        self._auth.confirm_password(session, password, purpose="签署单批次报告")
-        now = self._clock()
-        report_id = uuid.uuid4().hex
-        final: Path | None = None
-        staged: Path | None = None
-        try:
-            sections = tuple(self._section(experiment) for experiment in experiments)
-            document = ReportDocument(
-                scope=ReportScope.BATCH,
-                sections=sections,
-                copyright_holder=self._holder,
-                signed_by=user.display_name,
-                signed_at=now,
-                batch_kind=kind,
-                batch_no=batch_no,
-            )
-            signed, _pages, identity = self._render_and_sign(
-                document,
-                ReportTexts(language),
-                signer_name=user.display_name,
-                reason_id=f"{kind.value}:{batch_no}",
-            )
-            directory = self._batch_dir(kind, batch_no)
-            name = f"batch_{_safe_part(kind.value)}_{_safe_part(batch_no)}_{report_id[:8]}.pdf"
-            final = directory / name
-            staged = self._stage(directory, name, signed)
-        except Exception as exc:
-            self._discard(staged, final)
-            _log.exception("签署单批次报告 %s 失败", batch_no)
-            raise ServiceError(
-                f"签署失败，没有生成报告：{exc}",
-                ServiceErrorCode.SIGN_FAILED,
-                reason=str(exc)[:200],
-            ) from exc
-        record = ReportRecord(
-            report_id=report_id,
-            experiment_id=None,
-            path=self._relative(final),
-            sha256=hashlib.sha256(signed).hexdigest(),
-            created_by=user.username,
-            created_at=now,
-            signed=True,
-            scope=ReportScope.BATCH,
-            batch_kind=kind,
-            batch_no=batch_no,
-            language=language.value,
-            signed_by=user.username,
-            signed_at=now,
-            certificate_sha256=identity.fingerprint,
-            content_sha256=document.content_digest(),
-            experiment_ids=tuple(e.experiment_id for e in experiments),
-        )
-        event = AuditEvent(
-            occurred_at=now,
-            actor=user.username,
-            actor_role=user.role,
-            action=AuditAction.REPORT_SIGNED,
-            detail=(
-                f"签署单批次报告 {name}：{kind.value} {batch_no}，试验 "
-                f"{'、'.join(record.experiment_ids)}；文件 SHA-256 {record.sha256}；"
-                f"内容摘要 {record.content_sha256}；证书指纹 {record.certificate_sha256}"
-            ),
-        )
-        try:
-            with self._storage.unit_of_work() as uow:
-                uow.reports.add(record)
-                uow.audit.append(event)
-                os.replace(staged, final)
-        except BaseException:
-            self._discard(staged, final)
-            raise
-        verification = verify_pdf_bytes(signed, identity.certificate, expected_sha256=record.sha256)
-        return SignedReport(record=record, path=final, pages=_pages, verification=verification)
-
     # ------------------------------------------------------------------ 验签
+
+    def verify_imported_file(
+        self, session: Session | None, path: Path
+    ) -> ImportedReportVerification:
+        """验签并按签名内报告标识、实验标识、内容摘要和证书指纹关联本地报告。"""
+        user = self._auth.authorize(session, Permission.REPORT_VIEW)
+        try:
+            pdf = path.read_bytes()
+        except OSError as exc:
+            result = ImportedReportVerification("unknown", f"无法读取文件：{exc}")
+            self._audit_best_effort(
+                AuditEvent(
+                    occurred_at=self._clock(),
+                    actor=user.username,
+                    actor_role=user.role,
+                    action=AuditAction.REPORT_VERIFIED,
+                    detail=f"导入PDF校验：{path.name}，无法读取",
+                )
+            )
+            return result
+
+        file_sha = hashlib.sha256(pdf).hexdigest()
+        try:
+            reader = PdfFileReader(BytesIO(pdf))
+            signatures = list(reader.embedded_regular_signatures)
+        except Exception:
+            status = "corrupt"
+            reason = "PDF结构损坏，无法读取数字签名"
+            signatures = []
+        else:
+            status = "unknown"
+            reason = "未找到可验证的数字签名"
+
+        report_id: str | None = None
+        experiment_id: str | None = None
+        digest: str | None = None
+        verification = None
+        if not signatures:
+            if status != "corrupt":
+                status = "unsigned"
+                reason = "PDF没有数字签名"
+        elif len(signatures) != 1:
+            status = "invalid"
+            reason = "PDF包含多个签名，不能关联到单一报告版本"
+        else:
+            embedded = signatures[0]
+            verification = verify_pdf_bytes(pdf, None)
+            raw_reason = str(embedded.sig_object.get("/Reason", ""))
+            match = re.search(r"GI-REPORT:([0-9a-f]{32}):([^:|]+):([0-9a-f]{64})", raw_reason)
+            if match:
+                report_id, experiment_id, digest = match.groups()
+            if not verification.signature_intact:
+                status = "invalid"
+                reason = "数字签名无效或签署后PDF内容被改动"
+            elif report_id is None:
+                status = "external"
+                reason = "数字签名有效，但签名中没有本系统报告标识"
+            else:
+                record = self._storage.reports.get(report_id)
+                if record is None or record.experiment_id is None:
+                    status = "external"
+                    reason = "数字签名有效，但找不到对应的本系统报告"
+                elif (
+                    record.experiment_id != experiment_id
+                    or record.content_sha256 != digest
+                    or record.certificate_sha256 != verification.certificate_sha256
+                ):
+                    status = "invalid"
+                    reason = "签名标识、报告内容摘要或证书指纹与报告记录不一致"
+                else:
+                    trusted = self._keystore.trusted_certificate()
+                    local = verify_pdf_bytes(pdf, trusted)
+                    if local.ok:
+                        status = "valid"
+                        reason = (
+                            f"数字签名有效，对应实验 {record.experiment_id} 的报告"
+                            f"第 {record.revision} 版"
+                        )
+                    elif (
+                        local.signature_intact
+                        and trusted is not None
+                        and local.certificate_sha256 != certificate_fingerprint(trusted)
+                    ):
+                        status = "external"
+                        reason = "数字签名有效，但签署证书不属于本系统"
+                    else:
+                        status = "invalid"
+                        reason = "数字签名没有通过本机报告证书验证"
+
+        matched = self._storage.reports.get(report_id) if report_id else None
+        result = ImportedReportVerification(
+            signature_status=status,
+            message=reason,
+            experiment_id=matched.experiment_id if status == "valid" and matched else None,
+            matched_report_id=matched.report_id if status == "valid" and matched else None,
+            hash_match=matched is not None and matched.sha256 == file_sha,
+            file_sha256=file_sha,
+        )
+        self._audit_best_effort(
+            AuditEvent(
+                occurred_at=self._clock(),
+                actor=user.username,
+                actor_role=user.role,
+                action=AuditAction.REPORT_VERIFIED,
+                detail=(
+                    f"导入PDF签名校验：{path.name}；状态 {status}；"
+                    f"报告 {result.matched_report_id or '-'}；实验 {result.experiment_id or '-'}"
+                ),
+                experiment_id=result.experiment_id,
+            )
+        )
+        return result
 
     def verify_report(self, session: Session | None, report_id: str) -> SignatureVerification:
         """重新验签一份已入库的报告：签名、证书、是否覆盖整个文件，以及文件 SHA-256。
@@ -1018,9 +1041,7 @@ class ReportService:
             rows.append(
                 [
                     record.report_id,
-                    record.scope.value,
                     record.experiment_id or "",
-                    record.batch_no or "",
                     name if status == "ok" else "",
                     record.sha256,
                     record.signed_by or "",
@@ -1090,13 +1111,6 @@ class ReportService:
             if record.signed
         ]
         return signed[-1] if signed else None
-
-    def _batch_members(self, kind: BatchKind, batch_no: str) -> list[Experiment]:
-        ids = self._storage.experiments.experiment_ids_for_batch(kind, batch_no, _REPORTABLE)
-        experiments = [e for e in (self._storage.experiments.get(i) for i in ids) if e is not None]
-        if not experiments:
-            raise ServiceError("这个批号下没有已完成的试验", ServiceErrorCode.BATCH_EMPTY)
-        return experiments
 
     def _display_name(self, username: str | None) -> str | None:
         if username is None:
@@ -1189,17 +1203,6 @@ class ReportService:
         except ValueError:
             return str(path)
 
-    def _batch_dir(self, kind: BatchKind, batch_no: str) -> Path:
-        digest = hashlib.sha256(f"{kind.value}:{batch_no}".encode()).hexdigest()[:8]
-        directory = (
-            self._data_dir
-            / "reports"
-            / _BATCH_DIR
-            / (f"{_safe_part(kind.value)}_{_safe_part(batch_no)}_{digest}")
-        )
-        directory.mkdir(parents=True, exist_ok=True)
-        return directory
-
     def _read_checked(self, record: ReportRecord) -> bytes:
         """读报告文件并核对库里的 SHA-256；不符不放行。"""
         path = self.resolve(record)
@@ -1233,9 +1236,7 @@ class ReportService:
         writer.writerow(
             [
                 "report_id",
-                "scope",
                 "experiment_id",
-                "batch_no",
                 "file",
                 "sha256",
                 "signed_by",

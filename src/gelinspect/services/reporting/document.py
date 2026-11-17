@@ -20,7 +20,6 @@ from PySide6.QtGui import QImage
 from gelinspect.domain.conclusions import ExperimentConclusion, conclusion_payload
 from gelinspect.domain.entities import Experiment
 from gelinspect.domain.enums import (
-    BatchKind,
     ExperimentType,
     Interpretation,
     ReagentKind,
@@ -126,8 +125,6 @@ class ReportDocument:
         copyright_holder: 版权声明的权利人。
         signed_by: 签署人显示名；预览（还没有签署）为 None。
         signed_at: 签署时间。
-        batch_kind: 单批次报告按哪种批号汇总。
-        batch_no: 批号。
         images: 试验标识到 8 连图缩略页的映射，没有附图时为空。
     """
 
@@ -136,8 +133,6 @@ class ReportDocument:
     copyright_holder: str
     signed_by: str | None = None
     signed_at: datetime | None = None
-    batch_kind: BatchKind | None = None
-    batch_no: str | None = None
     images: Mapping[str, tuple[RowImagePair, ...]] = field(default_factory=dict)
 
     @property
@@ -153,8 +148,6 @@ class ReportDocument:
         """
         payload = {
             "scope": self.scope.value,
-            "batch_kind": None if self.batch_kind is None else self.batch_kind.value,
-            "batch_no": self.batch_no,
             "signed_by": self.signed_by,
             "signed_at": _utc(self.signed_at),
             "sections": [_section_payload(section) for section in self.sections],

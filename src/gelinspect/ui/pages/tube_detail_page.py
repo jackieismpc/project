@@ -839,8 +839,7 @@ class TubeDetailPage(QWidget):
     def _render_review(self) -> None:
         view, result = self._view, self._result()
         can_review = self._session is not None and self._session.can(Permission.RESULT_REVIEW)
-        open_state = view is not None and view.state is ExperimentState.PENDING_REVIEW
-        editable = can_review and open_state and result is not None
+        editable = can_review and result is not None
         for widget in (
             self.positive_button,
             self.negative_button,
@@ -853,14 +852,6 @@ class TubeDetailPage(QWidget):
             hint = self.tr("这支试管还没有分析结果，不能复核")
         elif not can_review:
             hint = self.tr("当前角色没有复核权限，只有分析员可以复核")
-        elif not open_state:
-            if view is not None and view.state in (
-                ExperimentState.COMPLETED,
-                ExperimentState.SIGNED,
-            ):
-                hint = self.tr("试验已无待复核的试管")
-            else:
-                hint = self.tr("全部排读数分析完成、试验进入待复核后才能复核")
         self.review_hint.setText(hint)
         self.review_hint.setVisible(bool(hint))
         shown = self._pick if editable else None
@@ -875,14 +866,22 @@ class TubeDetailPage(QWidget):
                 if result.reviewed_at
                 else ""
             )
-            self.reviewed_box.setText(
-                self.tr("已由 {who} 于 {when} 复核为{v}。意见：{note}").format(
-                    who=who,
-                    when=when,
-                    v=interpretation_label(result.reviewed_interpretation),
-                    note=result.review_note or "–",
-                )
+            latest = self.tr("已由 {who} 于 {when} 复核为{v}。原因：{note}").format(
+                who=who,
+                when=when,
+                v=interpretation_label(result.reviewed_interpretation),
+                note=result.review_note or "–",
             )
+            history = [
+                self.tr("{when} · {who} · {v} · {note}").format(
+                    when=entry.reviewed_at.astimezone().strftime("%Y-%m-%d %H:%M:%S"),
+                    who=entry.reviewed_by,
+                    v=interpretation_label(entry.interpretation),
+                    note=entry.reason,
+                )
+                for entry in result.review_history
+            ]
+            self.reviewed_box.setText("\n".join([latest, *history]))
             self.reviewed_box.setVisible(True)
         else:
             self.reviewed_box.setVisible(False)
