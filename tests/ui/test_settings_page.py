@@ -58,6 +58,8 @@ def test_shows_every_setting_with_the_effective_values(
     assert "自动删除" in page.fields["retention_days"].hint.text()
     assert not hasattr(page, "backend_card")
     assert page.runtime_card.isVisibleTo(page)
+    assert page.diagnostics_button.isEnabled()
+    assert "默认保留" in page.diagnostics_hint.text()
     assert page.runtime_paths["data_dir"].text().endswith("data")
     assert all(page.fields[n].edit.isEnabled() == (n != "copyright_holder") for n in page.fields)
 

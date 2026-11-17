@@ -23,7 +23,7 @@ from pathlib import Path
 import acceptance_support as support
 from PySide6.QtWidgets import QDialog, QScrollArea, QWidget
 
-from gelinspect.domain.enums import BatchKind, ReagentKind
+from gelinspect.domain.enums import ReagentKind
 from gelinspect.ui.i18n import Language
 from gelinspect.ui.pages.monitor_page import TAB_DATA, TAB_IMAGES, TAB_REPORT
 from gelinspect.ui.widgets.alert_stack import AlertStack
@@ -199,14 +199,6 @@ def main() -> int:
             records = rig.context.reports.signed_reports(window.session)
             export = BatchExportDialog(records, lambda *_: None, window)  # type: ignore[arg-type,return-value]
             show_dialog(rig, export, "batch-export-dialog")
-            stored = rig.context.database.experiments.get(experiment_id)
-            assert stored is not None
-            batch_no = next(
-                r.batch_no for r in stored.reagents if r.kind is ReagentKind.LAL_REAGENT
-            )
-            window.open_batch_report(BatchKind.LAL_REAGENT.value, batch_no)
-            shot(rig, "reports-batch")
-
             # 分析员：审计与历史
             assert window.navigate("history")
             shot(rig, "history")

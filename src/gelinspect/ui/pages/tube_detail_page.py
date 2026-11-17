@@ -1,7 +1,6 @@
-"""单管详情页：按 ``docs/design/TubeDetail.dc.html`` 实现。
+"""单管详情页：翻转前后图、默认展开的3帧序列、最终结果和人工复核。
 
-翻转前后的裁剪图（后台线程读盘）、可开关的算法掩码叠加、3 帧序列、ΔA / Δs / σ_A / σ_s / Score、
-三态、判读过程（评分分项、阈值、三态到阴阳性的换算，可打开“判读依据”）、判读来源，以及人工复核。
+算法掩码、评分分项、特征值、阈值及内部版本信息不显示。
 复核由 :class:`~gelinspect.services.review_service.ReviewService`
 校验权限和状态并写审计；算法的原始结果不被覆盖，界面同时显示“算法：部分凝固 → 人工：阳性”。
 """
@@ -29,7 +28,6 @@ from gelinspect.domain.enums import Interpretation, TubeAnalysisStatus
 from gelinspect.domain.judgment import JudgmentBasis, Thresholds, read_judgment
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import row_label, tube_to_position
-from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.errors import ServiceError
@@ -274,12 +272,14 @@ class TubeDetailPage(QWidget):
         work.setContentsMargins(0, 0, 0, 0)
         work.setSpacing(14)
         work.addWidget(self._build_compare(), 2)
+        self.judgment_card = self._build_judgment()
+        self.judgment_card.hide()
+        self.source_card = self._build_source()
+        self.source_card.hide()
         right = QVBoxLayout()
         right.setSpacing(14)
         right.addWidget(self._build_verdict())
-        right.addWidget(self._build_judgment())
         right.addWidget(self._build_review())
-        right.addWidget(self._build_source())
         right.addStretch(1)
         work.addLayout(right, 1)
         col.addWidget(self.body)
@@ -302,12 +302,15 @@ class TubeDetailPage(QWidget):
         self.compare_card = card
         assert card.header is not None
         self.mask_toggle = QCheckBox()
-        self.mask_toggle.setChecked(True)
+        self.mask_toggle.setChecked(False)
+        self.mask_toggle.setVisible(False)
         card.header.addWidget(self.mask_toggle)
         pair = QHBoxLayout()
         pair.setSpacing(12)
         self.before_view = TubeImageView()
         self.after_view = TubeImageView()
+        self.before_view.set_overlay_visible(False)
+        self.after_view.set_overlay_visible(False)
         self.before_caption = Label("", "meta", mono=True)
         self.after_caption = Label("", "meta", mono=True)
         for view, caption in (
@@ -341,7 +344,7 @@ class TubeDetailPage(QWidget):
             frame_view = VideoView(min_height=120)
             self.sequence_views.append(frame_view)
             grid.addWidget(frame_view, index // 3, index % 3)
-        self.sequence_box.setVisible(False)
+        self.sequence_box.setVisible(True)
         card.body.addWidget(self.sequence_box)
         card.body.addStretch(1)
         return card
@@ -365,19 +368,24 @@ class TubeDetailPage(QWidget):
         score_row = QHBoxLayout()
         self.score_label = Label("", "meta")
         self.score_value = Label("", "meta", mono=True)
+        self.score_label.setVisible(False)
+        self.score_value.setVisible(False)
         score_row.addWidget(self.score_label)
         score_row.addStretch(1)
         score_row.addWidget(self.score_value)
         card.body.addLayout(score_row)
         self.score_bar = ScoreBar()
+        self.score_bar.setVisible(False)
         card.body.addWidget(self.score_bar)
         self.zone_label = Label("", "meta")
+        self.zone_label.setVisible(False)
         self.zone_label.setWordWrap(True)
         card.body.addWidget(self.zone_label)
         grid = QGridLayout()
         grid.setSpacing(12)
         self.tiles = [MetricTile() for _ in range(4)]
         for index, tile in enumerate(self.tiles):
+            tile.setVisible(False)
             grid.addWidget(tile, index // 2, index % 2)
         card.body.addLayout(grid)
         self.status_note = Label("", "warn")
@@ -522,7 +530,8 @@ class TubeDetailPage(QWidget):
         self.note.clear()
         self.positive_button.setChecked(False)
         self.negative_button.setChecked(False)
-        self.sequence_box.setVisible(False)
+        self.sequence_box.setVisible(True)
+        self._retext_sequence_button()
         self.before_view.set_content(None)
         self.after_view.set_content(None)
         self._clear_error()
@@ -837,7 +846,7 @@ class TubeDetailPage(QWidget):
     # ------------------------------------------------------------------ 复核
 
     def _render_review(self) -> None:
-        view, result = self._view, self._result()
+        result = self._result()
         can_review = self._session is not None and self._session.can(Permission.RESULT_REVIEW)
         editable = can_review and result is not None
         for widget in (

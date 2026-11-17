@@ -1,0 +1,455 @@
+"""受维护权限保护的诊断包收集器。
+
+只导出结构化业务快照、登记媒体和轮转日志，不复制数据库、配置目录或密钥目录。
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import os
+import re
+import tempfile
+import threading
+import time
+import zipfile
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from dataclasses import asdict, dataclass, is_dataclass
+from datetime import UTC, datetime
+from enum import Enum
+from pathlib import Path
+from typing import Any, BinaryIO, Protocol, cast
+
+from gelinspect.domain.entities import AuditEvent, Experiment
+from gelinspect.domain.enums import AuditAction
+from gelinspect.domain.permissions import Permission
+from gelinspect.interfaces.storage import (
+    AuditQuery,
+    AuditRepository,
+    ExperimentQuery,
+    ExperimentRepository,
+    MediaRepository,
+    PageRequest,
+    TelemetryRepository,
+)
+from gelinspect.services.auth import AuthError, AuthService, Session
+from gelinspect.services.errors import ServiceError, ServiceErrorCode
+
+_log = logging.getLogger(__name__)
+_PAGE_SIZE = 500
+_CHUNK = 1024 * 1024
+_SECRET_KEY = re.compile(r"password|passwd|secret|token|private.?key|credential|api.?key", re.I)
+_SENSITIVE_TEXT = re.compile(
+    r"(?i)(password(?:[_ -]?hash)?|passwd|secret|token|private[_ -]?key|authorization|api[_ -]?key)"
+    r"['\"]?(\s*[:=]\s*)['\"]?(?:Bearer\s+)?([^'\"\s,;}]+)"
+)
+
+
+class DiagnosticStorage(Protocol):
+    @property
+    def experiments(self) -> ExperimentRepository: ...
+
+    @property
+    def audit(self) -> AuditRepository: ...
+
+    @property
+    def media(self) -> MediaRepository: ...
+
+    @property
+    def telemetry(self) -> TelemetryRepository: ...
+
+
+@dataclass(frozen=True, slots=True)
+class DiagnosticPackageResult:
+    """诊断包生成结果摘要。"""
+
+    path: Path
+    file_count: int
+    missing: tuple[str, ...]
+    size_bytes: int
+
+
+class DiagnosticCancelledError(Exception):
+    """诊断包生成被用户取消。"""
+
+
+class DiagnosticsService:
+    """生成不含凭据、私钥或数据库文件的诊断资料包。"""
+
+    def __init__(
+        self,
+        auth: AuthService,
+        storage: DiagnosticStorage,
+        *,
+        data_dir: Path,
+        log_dir: Path,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
+        """Create collector bound to application services and data roots."""
+        self._auth = auth
+        self._storage = storage
+        self._data_dir = data_dir
+        self._log_dir = log_dir
+        self._clock = clock or (lambda: datetime.now(UTC))
+
+    def create_package(
+        self,
+        session: Session | None,
+        destination: Path,
+        *,
+        progress: Callable[[int, int], None] | None = None,
+        cancel: threading.Event | None = None,
+    ) -> DiagnosticPackageResult:
+        """汇总诊断材料，成功后原子替换目标文件并追加导出审计。"""
+        user = self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+        destination = Path(destination)
+        if destination.suffix.lower() != ".zip" or not destination.name:
+            raise ServiceError("诊断包目标必须是 ZIP 文件", ServiceErrorCode.EXPORT_FAILED)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        now = self._clock().astimezone(UTC)
+        missing: list[str] = []
+        entries: list[tuple[str, bytes | Path]] = []
+        next_auth_check = [time.monotonic()]
+
+        def check_cancel() -> None:
+            if cancel is not None and cancel.is_set():
+                raise DiagnosticCancelledError()
+            now_monotonic = time.monotonic()
+            if now_monotonic >= next_auth_check[0]:
+                self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+                next_auth_check[0] = now_monotonic + 2.0
+
+        check_cancel()
+        experiments = self._load_experiments(check_cancel)
+        experiment_ids = [item.experiment_id for item in experiments]
+        audits = self._load_audits(check_cancel)
+        telemetry = self._load_telemetry(experiment_ids, check_cancel)
+        entries.append(
+            ("records/experiments.json", _json_bytes([_experiment_json(e) for e in experiments]))
+        )
+        entries.append(("records/audit.json", _json_bytes([_audit_json(a) for a in audits])))
+        entries.append(("records/telemetry.json", _json_bytes(telemetry)))
+
+        for experiment_id in experiment_ids:
+            check_cancel()
+            for media in self._storage.media.list_for_experiment(experiment_id):
+                safe_id = _safe_component(experiment_id)
+                original = Path(media.path)
+                try:
+                    source = _safe_media_path(self._data_dir, original)
+                    digest, _size = _hash_file(source, check_cancel)
+                    if digest.lower() != media.sha256.lower():
+                        missing.append(f"{safe_id}/{_safe_component(original.name)}: SHA-256不匹配")
+                        continue
+                except (OSError, ValueError) as exc:
+                    missing.append(
+                        f"{safe_id}/{_safe_component(original.name)}: {type(exc).__name__}"
+                    )
+                    continue
+                media_name = f"{_safe_component(media.file_id)}-{_safe_component(original.name)}"
+                entries.append((f"media/{safe_id}/{media_name}", source))
+
+        for path in self._log_files():
+            try:
+                entries.append(
+                    (f"logs/{_safe_component(path.name)}", _scrub_log(path, check_cancel))
+                )
+            except OSError as exc:
+                missing.append(f"logs/{_safe_component(path.name)}: {type(exc).__name__}")
+
+        total = max(1, len(entries))
+        checksums: list[dict[str, object]] = []
+        temporary: Path | None = None
+        done = 0
+        try:
+            with tempfile.NamedTemporaryFile(
+                prefix=".diagnostics-", suffix=".zip", dir=destination.parent, delete=False
+            ) as handle:
+                temporary = Path(handle.name)
+            with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for name, item in entries:
+                    check_cancel()
+                    file_digest = hashlib.sha256()
+                    size = 0
+                    with archive.open(name, "w") as target:
+                        if isinstance(item, bytes):
+                            chunks: Iterable[bytes] = (item,)
+                        else:
+                            source_handle = item.open("rb")
+                            chunks = _iter_chunks(source_handle, check_cancel)
+                        try:
+                            for chunk in chunks:
+                                check_cancel()
+                                file_digest.update(chunk)
+                                size += len(chunk)
+                                target.write(chunk)
+                        finally:
+                            if not isinstance(item, bytes):
+                                source_handle.close()
+                    checksums.append(
+                        {"path": name, "sha256": file_digest.hexdigest(), "size_bytes": size}
+                    )
+                    done += 1
+                    if progress is not None:
+                        progress(done, total)
+                manifest = {
+                    "created_at": now.isoformat(),
+                    "application": "GelInspect",
+                    "files": checksums,
+                    "missing_or_excluded": missing,
+                    "excluded": [
+                        "数据库文件",
+                        "密码及密码哈希",
+                        "令牌",
+                        "签名私钥",
+                        "审计密钥",
+                        "配置密钥目录",
+                    ],
+                }
+                archive.writestr("manifest.json", _json_bytes(manifest))
+            check_cancel()
+            os.replace(temporary, destination)
+            temporary = None
+        except (DiagnosticCancelledError, AuthError):
+            raise
+        except Exception as exc:
+            _log.exception("诊断包生成失败")
+            raise ServiceError(f"诊断包生成失败：{exc}", ServiceErrorCode.EXPORT_FAILED) from exc
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+        self._storage.audit.append(
+            AuditEvent(
+                occurred_at=now,
+                actor=user.username,
+                actor_role=user.role,
+                action=AuditAction.DATA_EXPORTED,
+                detail=(
+                    f"导出诊断包：{destination.name}，{len(checksums)} 个文件，"
+                    f"缺失/排除 {len(missing)} 项"
+                ),
+            )
+        )
+        return DiagnosticPackageResult(
+            destination, len(checksums), tuple(missing), destination.stat().st_size
+        )
+
+    def _load_experiments(self, check_cancel: Callable[[], None]) -> list[Experiment]:
+        result: list[Experiment] = []
+        offset = 0
+        total: int | None = None
+        query = ExperimentQuery(max_created_at=self._storage.experiments.latest_created_at())
+        while total is None or offset < total:
+            check_cancel()
+            page = self._storage.experiments.query(query, PageRequest(offset, _PAGE_SIZE))
+            total = page.total
+            for summary in page.items:
+                check_cancel()
+                experiment = self._storage.experiments.get(summary.experiment_id)
+                if experiment is not None:
+                    result.append(experiment)
+            offset += len(page.items)
+            if not page.items:
+                break
+        return result
+
+    def _load_audits(self, check_cancel: Callable[[], None]) -> list[object]:
+        result: list[object] = []
+        offset = 0
+        total: int | None = None
+        query = AuditQuery(max_seq=self._storage.audit.latest_seq())
+        while total is None or offset < total:
+            check_cancel()
+            page = self._storage.audit.query(query, PageRequest(offset, _PAGE_SIZE))
+            total = page.total
+            result.extend(page.items)
+            offset += len(page.items)
+            if not page.items:
+                break
+        return result
+
+    def _load_telemetry(
+        self, experiment_ids: list[str], check_cancel: Callable[[], None]
+    ) -> dict[str, list[object]]:
+        result: dict[str, list[object]] = {"temperatures": [], "device_logs": []}
+        for experiment_id in experiment_ids:
+            check_cancel()
+            offset = 0
+            while True:
+                check_cancel()
+                temperature_page = self._storage.telemetry.query_temperatures(
+                    experiment_id=experiment_id, page=PageRequest(offset, _PAGE_SIZE)
+                )
+                result["temperatures"].extend(
+                    _safe_value(asdict(item)) for item in temperature_page.items
+                )
+                offset += len(temperature_page.items)
+                if not temperature_page.items or offset >= temperature_page.total:
+                    break
+            offset = 0
+            while True:
+                check_cancel()
+                device_page = self._storage.telemetry.query_device_logs(
+                    experiment_id=experiment_id, page=PageRequest(offset, _PAGE_SIZE)
+                )
+                result["device_logs"].extend(
+                    _safe_value(asdict(item)) for item in device_page.items
+                )
+                offset += len(device_page.items)
+                if not device_page.items or offset >= device_page.total:
+                    break
+        return result
+
+    def _log_files(self) -> list[Path]:
+        if not self._log_dir.is_dir():
+            return []
+        return sorted(
+            (
+                path
+                for path in self._log_dir.glob("gelinspect.log*")
+                if path.is_file() and not path.is_symlink()
+            ),
+            key=lambda path: path.name,
+        )
+
+
+def _iter_chunks(handle: BinaryIO, check_cancel: Callable[[], None]) -> Iterator[bytes]:
+    while True:
+        check_cancel()
+        chunk = handle.read(_CHUNK)
+        if not chunk:
+            break
+        yield chunk
+
+
+def _safe_media_path(data_dir: Path, path: Path) -> Path:
+    root = data_dir.resolve(strict=True)
+    source = path.resolve(strict=True)
+    source.relative_to(root)
+    current = path
+    while current != root and current != current.parent:
+        if current.is_symlink():
+            raise ValueError("媒体路径包含符号链接")
+        current = current.parent
+    if not source.is_file():
+        raise ValueError("不是普通文件")
+    return source
+
+
+def _hash_file(path: Path, check_cancel: Callable[[], None]) -> tuple[str, int]:
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as handle:
+        for chunk in _iter_chunks(handle, check_cancel):
+            digest.update(chunk)
+            size += len(chunk)
+    return digest.hexdigest(), size
+
+
+def _safe_component(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", Path(value).name).strip("._")
+    return cleaned[:120] or "item"
+
+
+def _scrub_text(value: str) -> str:
+    return _SENSITIVE_TEXT.sub(r"\1\2[REDACTED]", value)
+
+
+def _scrub_log(path: Path, check_cancel: Callable[[], None]) -> bytes:
+    lines: list[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            check_cancel()
+            lines.append(_scrub_text(line))
+    return "".join(lines).encode("utf-8")
+
+
+def _json_bytes(value: object) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, indent=2, default=_json_default
+    ).encode("utf-8")
+
+
+def _json_default(value: object) -> object:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
+    if is_dataclass(value):
+        return asdict(cast(Any, value))
+    if isinstance(value, Path):
+        return value.name
+    raise TypeError(f"不能序列化：{type(value).__name__}")
+
+
+def _safe_mapping(value: Mapping[str, object]) -> dict[str, object]:
+    clean: dict[str, object] = {}
+    for key, item in value.items():
+        if _SECRET_KEY.search(str(key)):
+            continue
+        clean[str(key)] = _safe_value(item)
+    return clean
+
+
+def _safe_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return _safe_mapping(value)
+    if isinstance(value, list | tuple):
+        return [_safe_value(item) for item in value]
+    if isinstance(value, str):
+        return _scrub_text(value)
+    return value
+
+
+def _experiment_json(experiment: Experiment) -> dict[str, object]:
+    return {
+        "experiment_id": experiment.experiment_id,
+        "experiment_type": experiment.experiment_type.value,
+        "template_id": experiment.template_id,
+        "instrument_no": experiment.instrument_no,
+        "operator": experiment.operator,
+        "created_at": experiment.created_at.isoformat(),
+        "state": experiment.state.value,
+        "settings": {
+            "mvd": experiment.mvd,
+            "endotoxin_limit": experiment.endotoxin_limit,
+            "measured_sensitivity": experiment.measured_sensitivity,
+            "layout_confirmed": experiment.layout_confirmed,
+        },
+        "reagents": [_safe_mapping(asdict(batch)) for batch in experiment.reagents],
+        "assignments": [
+            {
+                "tube_no": item.tube_no,
+                "sample_id": item.sample.sample_id,
+                "sample_name": _scrub_text(item.sample.name),
+                "sample_batch_no": _scrub_text(item.sample.batch_no or ""),
+                "role": item.role.value,
+                "dilution_factor": item.dilution_factor,
+                "spiked_endotoxin": item.spiked_endotoxin,
+                "algorithm": _safe_mapping(asdict(experiment.results[item.tube_no]))
+                if item.tube_no in experiment.results
+                else None,
+            }
+            for item in experiment.assignments
+        ],
+    }
+
+
+def _audit_json(record: object) -> dict[str, object]:
+    event = record.event  # type: ignore[attr-defined]
+    return {
+        "seq": record.seq,  # type: ignore[attr-defined]
+        "occurred_at": event.occurred_at.isoformat(),
+        "actor": event.actor,
+        "actor_role": event.actor_role.value,
+        "action": event.action.value,
+        "detail": _scrub_text(event.detail),
+        "experiment_id": event.experiment_id,
+        "prev_hash": record.prev_hash,  # type: ignore[attr-defined]
+        "hash": record.hash,  # type: ignore[attr-defined]
+    }
+
+
+__all__ = ["DiagnosticCancelledError", "DiagnosticPackageResult", "DiagnosticsService"]

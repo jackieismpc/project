@@ -10,14 +10,19 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import threading
+from datetime import UTC, datetime
+from pathlib import Path
 
-from PySide6.QtCore import QEvent
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLineEdit,
+    QProgressDialog,
     QVBoxLayout,
     QWidget,
 )
@@ -26,6 +31,10 @@ from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
+from gelinspect.services.diagnostics_service import (
+    DiagnosticCancelledError,
+    DiagnosticPackageResult,
+)
 from gelinspect.services.errors import ServiceError
 from gelinspect.services.settings_service import SettingsError, SettingsView, VideoProbe
 from gelinspect.services.user_settings import (
@@ -65,6 +74,10 @@ _TEXT_FIELDS = (
     "retention_days",
     "copyright_holder",
 )
+
+
+class _DiagnosticProgress(QObject):
+    updated = Signal(int, int)
 
 
 class _Field(QWidget):
@@ -119,6 +132,11 @@ class SettingsPage(QWidget):
         self._preview_token: int | None = None
         self._previewing = False
         self._runner = BackgroundRunner(self)
+        self._diagnostic_cancel = threading.Event()
+        self._diagnostic_progress: QProgressDialog | None = None
+        self._diagnostic_relay = _DiagnosticProgress(self)
+        self._diagnostic_relay.updated.connect(self._update_diagnostic_progress)
+        self._diagnostic_token: int | None = None
         self.fields: dict[str, _Field] = {name: _Field(name) for name in _TEXT_FIELDS}
 
         column, _scroll = build_page_column(self)
@@ -223,6 +241,15 @@ class SettingsPage(QWidget):
         self.runtime_card.body.addWidget(self.runtime_save)
         self.runtime_save.clicked.connect(self.save_runtime_selection)
         right.addWidget(self.runtime_card)
+
+        self.diagnostics_card = Card(" ")
+        self.diagnostics_hint = Label("", "meta")
+        self.diagnostics_hint.setWordWrap(True)
+        self.diagnostics_button = Button("", ButtonVariant.SECONDARY)
+        self.diagnostics_card.body.addWidget(self.diagnostics_hint)
+        self.diagnostics_card.body.addWidget(self.diagnostics_button)
+        self.diagnostics_button.clicked.connect(self.export_diagnostics)
+        right.addWidget(self.diagnostics_card)
         right.addStretch(1)
 
         work.addLayout(left, 1)
@@ -387,6 +414,11 @@ class SettingsPage(QWidget):
         self.save_button.setEnabled(editable)
         self.revert_button.setEnabled(editable)
         self.runtime_save.setEnabled(editable and not self._locked)
+        self.diagnostics_button.setEnabled(
+            self._session is not None
+            and self._session.can(Permission.DIAGNOSTICS_EXPORT)
+            and self._diagnostic_token is None
+        )
         for edit in self.runtime_paths.values():
             edit.setEnabled(editable and not self._locked)
         for button in self.runtime_browse.values():
@@ -604,6 +636,81 @@ class SettingsPage(QWidget):
             return describe_storage_busy()
         return self.tr("操作失败：{reason}").format(reason=str(error))
 
+    def export_diagnostics(self) -> None:
+        """选择目标并在后台生成诊断 ZIP。"""
+        session = self._session
+        if session is None or not session.can(Permission.DIAGNOSTICS_EXPORT):
+            return
+        suggested = f"diagnostics-{datetime.now(UTC):%Y%m%d-%H%M%S}.zip"
+        chosen, _ = QFileDialog.getSaveFileName(
+            self, self.tr("导出诊断包"), str(Path.home() / suggested), self.tr("ZIP 文件 (*.zip)")
+        )
+        if not chosen:
+            return
+        if Path(chosen).suffix.lower() != ".zip":
+            chosen = f"{chosen}.zip"
+        self._diagnostic_cancel.clear()
+        dialog = QProgressDialog(self.tr("正在收集诊断资料…"), self.tr("取消"), 0, 0, self)
+        dialog.setWindowTitle(self.tr("生成诊断包"))
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setMinimumDuration(0)
+        dialog.setAutoClose(False)
+        dialog.setAutoReset(False)
+        dialog.canceled.connect(self._diagnostic_cancel.set)
+        self._diagnostic_progress = dialog
+        dialog.show()
+        self._diagnostic_token = self._runner.submit(
+            lambda: self._services.diagnostics.create_package(
+                session,
+                Path(chosen),
+                progress=lambda done, total: self._diagnostic_relay.updated.emit(done, total),
+                cancel=self._diagnostic_cancel,
+            ),
+            self._diagnostics_done,
+            self._diagnostics_failed,
+        )
+        self._apply_enabled()
+
+    def _update_diagnostic_progress(self, done: int, total: int) -> None:
+        dialog = self._diagnostic_progress
+        if dialog is None:
+            return
+        dialog.setRange(0, total)
+        dialog.setValue(done)
+        dialog.setLabelText(
+            self.tr("正在写入诊断文件 {done}/{total}…").format(done=done, total=total)
+        )
+
+    def _diagnostics_done(self, result: object) -> None:
+        self._finish_diagnostics()
+        if isinstance(result, DiagnosticPackageResult):
+            note = self.tr(
+                "诊断包已生成：{path}，{count} 个文件，{size} 字节。缺失/排除 {missing} 项。"
+            )
+            self.save_message.setText(
+                note.format(
+                    path=result.path,
+                    count=result.file_count,
+                    size=result.size_bytes,
+                    missing=len(result.missing),
+                )
+            )
+
+    def _diagnostics_failed(self, error: Exception) -> None:
+        self._finish_diagnostics()
+        if isinstance(error, DiagnosticCancelledError):
+            self.save_message.setText(self.tr("诊断包生成已取消；未留下部分 ZIP 文件。"))
+        else:
+            self.save_message.setText(self._error_text(error))
+
+    def _finish_diagnostics(self) -> None:
+        self._diagnostic_token = None
+        if self._diagnostic_progress is not None:
+            self._diagnostic_progress.close()
+            self._diagnostic_progress.deleteLater()
+            self._diagnostic_progress = None
+        self._apply_enabled()
+
     def _fail(self, error: Exception) -> None:
         _log.info("仪器设置操作失败：%s", error)
         Toast.show_message(self.window(), self._error_text(error), ToastKind.WARNING)
@@ -634,6 +741,29 @@ class SettingsPage(QWidget):
             )
         )
         self.runtime_save.setText(self.tr("保存启动配置"))
+        self.diagnostics_card.set_title(self.tr("诊断包"))
+        self._refresh_diagnostics_hint()
+        self.diagnostics_button.setText(self.tr("导出诊断包…"))
+
+    def _refresh_diagnostics_hint(self) -> None:
+        base = self.tr(
+            "收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。"
+            "不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。"
+        )
+        try:
+            log_dir = self._services.log_dir
+            log_bytes = sum(
+                path.stat().st_size
+                for path in log_dir.glob("gelinspect.log*")
+                if path.is_file() and not path.is_symlink()
+            )
+            free_bytes = shutil.disk_usage(self._services.data_dir).free
+            capacity = self.tr(
+                "日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。"
+            ).format(logs=log_bytes / 1_000_000, free=free_bytes / 1_000_000_000)
+        except OSError:
+            capacity = self.tr("日志默认保留，不自动删除。")
+        self.diagnostics_hint.setText(f"{base}\n{capacity}")
         for name, field in self.fields.items():
             field.label.setText(setting_label(name))
         self.fields["retention_days"].set_hint(

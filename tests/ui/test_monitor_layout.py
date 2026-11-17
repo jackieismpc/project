@@ -62,10 +62,9 @@ def test_monitor_tube_and_history_pages_fit_in_both_languages(
             assert wait_for(qapp, partial(has_images, detail), 30.0)
             detail.review_error.setText("复核意见必填" * 4)
             detail.review_error.setVisible(True)
-            detail.sequence_box.setVisible(True)
+            assert detail.sequence_box.isVisible()
             report = overflow_report(window)
             assert report == [], f"单管详情 / {lang.value} / {size}：{report}"
-            detail.sequence_box.setVisible(False)
             window.navigate("history")
             assert overflow_report(window) == [], f"历史 / {lang.value} / {size}"
             window.navigate("dashboard")
@@ -87,18 +86,18 @@ def test_new_pages_speak_english_when_switched(
     language.set_language(Language.EN, persist=False)
     settle(qapp, 8)
     assert monitor.stop_button.text() == "Stop experiment"
-    assert [monitor.tabs._bar.tabText(i) for i in range(4)] == [  # noqa: SLF001
+    assert [monitor.tabs._bar.tabText(i) for i in range(3)] == [  # noqa: SLF001
         "Experiment data",
         "Images",
         "Report preview",
-        "Lot report",
     ]
     assert monitor.badge.text().startswith("Pending review")
     assert monitor.table_card._title.text() == "Experiment data"  # type: ignore[union-attr]  # noqa: SLF001
     assert window.open_tube(experiment_id, 1)
     detail = window.page("tube")
     assert isinstance(detail, TubeDetailPage)
-    assert detail.mask_toggle.text() == "Show algorithm masks"
+    assert detail.mask_toggle.isHidden() and not detail.mask_overlay_visible()
+    assert detail.sequence_box.isVisible()
     assert detail.positive_button.text() == "Mark positive"
     assert detail.title.text() == "Tube 1"
     language.set_language(Language.ZH_CN, persist=False)

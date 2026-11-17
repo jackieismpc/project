@@ -20,3 +20,8 @@ uv run pytest tests/services/test_review_service.py tests/services/reporting/tes
 ```
 
 2026-11-17验证：`tests/services/test_review_service.py`、`tests/services/reporting/test_signing_flow.py`、`test_report_export.py`和`test_conclusions_off.py`共44项通过；涉及源码11个文件的mypy通过，目标代码与测试的ruff check通过。覆盖相同结论再次复核、复核历史与审计、已签署实验复核后生成独立新版、原件保留，以及本机签署PDF导出后重新导入并关联到正确实验。
+
+## 单管详情与报告语言
+
+- 单管详情默认展开翻转前后各3帧；默认不显示算法掩码、融合评分、评分分项、阈值、特征指标、模型和配置版本。异常原因和最终阴阳性保留。
+- 报告输出和签署使用点击操作时捕获的客户端语言，不提供独立的报告语言选择。已签署原件保留；切换客户端语言后签署会生成新的递增版本，并引用前一版记录。预览当前语言与最近已签署语言不同时显示新版可签署。

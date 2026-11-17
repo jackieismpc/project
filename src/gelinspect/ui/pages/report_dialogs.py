@@ -247,7 +247,7 @@ class BatchExportDialog(QDialog):
 
     @staticmethod
     def _label_of(record: ReportRecord) -> str:
-        what = record.experiment_id or f"{record.batch_no}"
+        what = record.experiment_id
         when = (
             ""
             if record.signed_at is None

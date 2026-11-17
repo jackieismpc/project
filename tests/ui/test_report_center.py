@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -12,13 +13,14 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction, BatchKind, Interpretation, PermissionGroup
+from gelinspect.domain.enums import AuditAction, Interpretation, PermissionGroup
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
+from gelinspect.services.reporting.report_service import ReportListItem
 from gelinspect.services.reporting.texts import ReportLanguage
 from gelinspect.ui.i18n import Language, LanguageManager
 from gelinspect.ui.main_window import MainWindow
-from gelinspect.ui.pages.monitor_page import TAB_BATCH, TAB_REPORT, MonitorPage
+from gelinspect.ui.pages.monitor_page import TAB_REPORT, MonitorPage
 from gelinspect.ui.pages.report_dialogs import BatchExportDialog, SignDialog
 from gelinspect.ui.pages.reports_page import ReportsPage
 from tests.services.reporting.pdftext import has_text
@@ -93,6 +95,7 @@ def test_end_to_end_sign_verify_tamper_export(
     sign_in(qapp, window, "experimenter")
     assert window.navigate("reports")
     page = reports_of(window)
+    assert page.open_experiment(experiment_id)
     assert page.experiment_id == experiment_id
     assert page.sign_button.isEnabled()
     assert page.print_button.isEnabled()
@@ -103,6 +106,7 @@ def test_end_to_end_sign_verify_tamper_export(
     sign_in(qapp, window, "experimenter")
     assert window.navigate("reports")
     page = reports_of(window)
+    assert page.open_experiment(experiment_id)
     assert page.preview_widget.pageCount() >= 1
     assert page.current_preview is not None and page.current_preview.can_sign
     assert page.sign_button.isEnabled()
@@ -124,7 +128,19 @@ def test_end_to_end_sign_verify_tamper_export(
     assert record is not None and record.signed
     assert page.status_text.text() == "已签署"
     assert not page.sign_button.isEnabled()
-    assert not page.language_box.isEnabled()
+    assert not hasattr(page, "language_box")
+    path = context.reports.resolve(record)
+
+    # 列表首页可直接导入任意外部 PDF；有效签名与数据库报告匹配后可打开对应实验。
+    page.show_report_list()
+    monkeypatch.setattr(
+        QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(path), ""))
+    )
+    click(qapp, page.import_pdf_button)
+    assert page.import_open.isVisible()
+    assert "签名有效" in page.import_result.text()
+    click(qapp, page.import_open)
+    assert page.experiment_id == experiment_id
 
     # 重新验签通过
     click(qapp, page.verify_button)
@@ -134,7 +150,6 @@ def test_end_to_end_sign_verify_tamper_export(
     assert "第三方 CA" in page.notice.text()
 
     # 篡改一个字节：界面显示明确原因
-    path = context.reports.resolve(record)
     original = path.read_bytes()
     broken = bytearray(original)
     broken[len(broken) // 2] ^= 0x01
@@ -171,8 +186,11 @@ def test_end_to_end_sign_verify_tamper_export(
         return int(QDialog.DialogCode.Accepted)
 
     monkeypatch.setattr(BatchExportDialog, "exec", batch_exec)
-    assert page.batch_export_button.isEnabled()
-    click(qapp, page.batch_export_button)
+    page.show_report_list()
+    page.report_table.set_rows(page.report_table.model.rows)
+    page.report_table.view.selectRow(0)
+    assert page.list_export.isEnabled()
+    click(qapp, page.list_export)
     assert (tmp_path / "bulk" / f"{experiment_id}.pdf").read_bytes() == original
     assert (tmp_path / "bulk" / "manifest.csv").is_file()
 
@@ -190,16 +208,13 @@ def test_end_to_end_sign_verify_tamper_export(
     assert any("打印报告" in r.event.detail for r in printed.items)
 
 
-def test_batch_report_from_the_ui_and_monitor_tabs(
-    qapp: QApplication,
-    fast_window: MainWindow,
-    fast_context: AppContext,
-    monkeypatch: pytest.MonkeyPatch,
+def test_monitor_report_tab_and_quick_action_open_report(
+    qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
 ) -> None:
     window, context = fast_window, fast_context
     experiment_id = finish_experiment(qapp, window, context)
     sign_in(qapp, window, "analyst")
-    # 监控页两个标签接到报告中心
+    # 监控页报告预览与快捷栏都定位到独立报告。
     assert window.open_experiment(experiment_id)
     monitor = window.page("monitor")
     assert isinstance(monitor, MonitorPage)
@@ -213,33 +228,6 @@ def test_batch_report_from_the_ui_and_monitor_tabs(
     window._on_quick_action("print_report")
     assert window.current_route == "reports" and reports_of(window).experiment_id == experiment_id
 
-    # 批次里的试验未签署：能预览，不能签署
-    assert window.open_experiment(experiment_id)
-    monitor.tabs.set_current(TAB_BATCH)
-    settle(qapp)
-    assert monitor.batch_buttons.count() >= 1
-    item = monitor.batch_buttons.itemAt(0)
-    assert item is not None
-    first = item.widget()
-    click(qapp, first)
-    page = reports_of(window)
-    assert window.current_route == "reports"
-    assert page.current_preview is not None and page.current_preview.scope.value == "batch"
-    assert not page.sign_button.isEnabled()
-    assert "批次里" in page.reasons_label.text()
-
-    # 先签试验，再签批次
-    auto_sign(monkeypatch, DEMO_PASSWORDS["analyst"])
-    page.open_experiment(experiment_id)
-    click(qapp, page.sign_button)
-    assert page.current_record is not None
-    assert page.open_batch(BatchKind.LAL_REAGENT, "LAL2606A")
-    assert page.current_preview is not None and page.current_preview.can_sign
-    click(qapp, page.sign_button)
-    record = page.current_record
-    assert record is not None and record.scope.value == "batch"
-    click(qapp, page.verify_button)
-    assert page.last_verification is not None and page.last_verification.ok
 
 
 def test_empty_state_and_language_follow(
@@ -250,13 +238,42 @@ def test_empty_state_and_language_follow(
     sign_in(qapp, window, "analyst")
     assert window.navigate("reports")
     page = reports_of(window)
-    assert page.empty_card.isVisible() and not page.content.isVisible()
-    assert "没有可出报告" in page.empty_title.text()
+    assert page.list_card.isVisible() and not page.content.isVisible()
+    assert page.report_table.row_count() == 0
+    page._report_items = [
+        ReportListItem(
+            experiment_id=f"EXP-{number:04d}",
+            experiment_type="sensitivity",
+            created_at=datetime(2026, 11, 17, tzinfo=UTC),
+            state=ExperimentState.COMPLETED,
+            sample_batch_nos=(f"SAMPLE-{number:04d}",),
+            lal_batch_no=f"LAL-{number:04d}",
+            endotoxin_batch_no=f"ENDO-{number:04d}",
+            water_batch_no=f"WATER-{number:04d}",
+            latest_report=None,
+        )
+        for number in range(201)
+    ]
+    page._refresh_report_list()
+    assert page.report_table.row_count() == 201
+    assert any(
+        row["experiment_id"] == "EXP-0200" for row in page.report_table.model.rows
+    )
+    for box, value in (
+        (page.sample_filter, "SAMPLE-0200"),
+        (page.lal_filter, "LAL-0200"),
+        (page.buffer_filter, "WATER-0200"),
+        (page.endotoxin_filter, "ENDO-0200"),
+    ):
+        index = box.findData(value)
+        assert index >= 0
+        box.setCurrentIndex(index)
+    assert page.report_table.row_count() == 1
+    assert page.report_table.model.rows[0]["experiment_id"] == "EXP-0200"
     language.set_language(Language.EN)
     settle(qapp)
-    assert page.empty_title.text() == "No experiments ready for a report"
-    assert page.empty_button.text() == "Open History"
     assert page.title.text() == "Report Center"
+    assert page._ui_language is ReportLanguage.EN
     language.set_language(Language.ZH_CN)
     assert ReportLanguage.EN.value == "en"
 

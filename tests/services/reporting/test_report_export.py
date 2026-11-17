@@ -36,7 +36,7 @@ def sign_one(
     return service.sign(stack.login("analyst"), experiment_id, PASSWORDS["analyst"]).record
 
 
-# ---------------------------------------------------------------------------- 单批次报告
+# ---------------------------------------------------------------------------- 独立报告批量导出
 
 
 def test_batch_export_copies_signed_files_and_writes_a_manifest(

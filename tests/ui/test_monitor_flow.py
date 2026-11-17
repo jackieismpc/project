@@ -87,12 +87,9 @@ def test_full_review_flow_from_wizard_to_signable(
     assert len(masks) == 4 and all(Path(m.path).is_file() for m in masks)
     assert images.after.gel and images.after.tube
     assert detail.before_view.has_overlay_data()
-    with_mask = detail.after_view.grab().toImage()
-    detail.mask_toggle.setChecked(False)
-    settle(qapp)
-    without_mask = detail.after_view.grab().toImage()
-    assert with_mask != without_mask
-    detail.mask_toggle.setChecked(True)
+    assert not detail.mask_overlay_visible()
+    assert detail.mask_toggle.isHidden()
+    assert detail.sequence_box.isVisible()
 
     # 实验与结果处理组可以复核，服务端与界面能力一致。
     assert detail.submit_button.isEnabled()
@@ -120,7 +117,8 @@ def test_full_review_flow_from_wizard_to_signable(
         assert result.reviewed_by == "experimenter" and result.review_note == f"复核意见 {number}"
         assert result.auto_interpretation is Interpretation.PENDING_REVIEW  # 算法结果不被覆盖
         assert (
-            "算法：" in detail.verdict_title.text() and "人工：阳性" in detail.verdict_title.text()
+            "检测结果：" in detail.verdict_title.text()
+            and "复核结论：阳性" in detail.verdict_title.text()
         )
         # 提交后按钮保持选中状态，显示复核结果
         assert detail.positive_button.isChecked() and not detail.negative_button.isChecked()

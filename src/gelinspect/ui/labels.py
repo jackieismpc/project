@@ -403,12 +403,6 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ServiceErrorCode.REPORT_HASH_MISMATCH: str(
         QT_TRANSLATE_NOOP("ServiceError", "报告文件与入库的 SHA-256 不符，可能已被改动：{name}")
     ),
-    ServiceErrorCode.BATCH_EMPTY: str(
-        QT_TRANSLATE_NOOP("ServiceError", "这个批号下没有已完成的试验")
-    ),
-    ServiceErrorCode.BATCH_NOT_SIGNABLE: str(
-        QT_TRANSLATE_NOOP("ServiceError", "单批次报告只能在其中全部试验都已签署后签署")
-    ),
     ServiceErrorCode.EXPORT_EMPTY: str(QT_TRANSLATE_NOOP("ServiceError", "没有可导出的报告")),
     ServiceErrorCode.EXPORT_FAILED: str(QT_TRANSLATE_NOOP("ServiceError", "导出失败：{reason}")),
     ServiceErrorCode.EXPORT_PASSWORD_REQUIRED: str(

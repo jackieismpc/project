@@ -1,6 +1,6 @@
-"""日志：滚动文件日志与未捕获异常的兜底。
+"""日志：滚动归档文件日志与未捕获异常的兜底。
 
-日志写到 ``<data_dir>/logs/gelinspect.log``，单个文件上限 1 MB，保留 5 份。
+日志写到 ``<data_dir>/logs/gelinspect.log``，单个文件上限 1 MB；滚动文件按时间戳归档且不自动删除。
 界面线程、工作线程里未捕获的异常，以及 Qt 自己的警告都会进入日志，
 不会只留在控制台。
 """
@@ -8,10 +8,12 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import threading
 import types
 from collections.abc import Callable
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -22,7 +24,7 @@ MAX_LOG_BYTES = 1_000_000
 """单个日志文件上限。"""
 
 BACKUP_COUNT = 5
-"""保留的历史日志份数。"""
+"""兼容标准handler属性；归档不按份数自动删除。"""
 
 _FORMAT = "%(asctime)s %(levelname)-7s %(threadName)s %(name)s: %(message)s"
 _HANDLER_TAG = "gelinspect-file-handler"
@@ -33,6 +35,26 @@ CrashReporter = Callable[[BaseException, Path], None]
 _log = logging.getLogger("gelinspect")
 _crash_reporter: CrashReporter | None = None
 _log_path: Path | None = None
+
+
+class _ArchiveRotatingFileHandler(RotatingFileHandler):
+    """按容量切分日志并永久保留归档文件。"""
+
+    def doRollover(self) -> None:  # noqa: N802
+        if self.stream is not None:
+            self.stream.close()
+            self.stream = None
+        source = Path(self.baseFilename)
+        if source.exists():
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            destination = source.with_name(f"{source.name}.{stamp}")
+            suffix = 1
+            while destination.exists():
+                destination = source.with_name(f"{source.name}.{stamp}-{suffix}")
+                suffix += 1
+            os.replace(source, destination)
+        if not self.delay:
+            self.stream = self._open()
 
 
 def configure_logging(log_dir: Path, *, level: int = logging.INFO) -> Path:
@@ -56,7 +78,7 @@ def configure_logging(log_dir: Path, *, level: int = logging.INFO) -> Path:
         if getattr(handler, "name", None) == _HANDLER_TAG:
             root.removeHandler(handler)
             handler.close()
-    file_handler = RotatingFileHandler(
+    file_handler = _ArchiveRotatingFileHandler(
         path, maxBytes=MAX_LOG_BYTES, backupCount=BACKUP_COUNT, encoding="utf-8"
     )
     file_handler.set_name(_HANDLER_TAG)

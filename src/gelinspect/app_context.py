@@ -57,6 +57,7 @@ from gelinspect.services.config import (
     load_config,
 )
 from gelinspect.services.dashboard_service import DashboardService
+from gelinspect.services.diagnostics_service import DiagnosticsService
 from gelinspect.services.engine_types import EngineEventListener, RecoveredExperiment
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.experiment_service import ExperimentService
@@ -177,6 +178,12 @@ class AppContext:
             audit=self.audit,
             exports=self.exports,
             settings=self.settings,
+            diagnostics=DiagnosticsService(
+                self.auth,
+                self.database,
+                data_dir=config.data_dir,
+                log_dir=log_dir or config.data_dir / "logs",
+            ),
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),

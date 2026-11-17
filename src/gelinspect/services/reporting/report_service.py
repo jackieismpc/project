@@ -387,13 +387,13 @@ class ReportService:
         return certificate_subject(certificate), certificate_fingerprint(certificate)
 
     def report_experiments(
-        self, session: Session | None, limit: int = 200
+        self, session: Session | None, limit: int | None = 200
     ) -> list[ExperimentSummary]:
         """可以出报告的试验：已完成和已签署的，新的在前。
 
         Args:
             session: 调用者的会话，需要 ``report_view`` 权限。
-            limit: 最多条数。
+            limit: 最多条数；None表示读取全部。
 
         Returns:
             试验摘要。
@@ -402,16 +402,29 @@ class ReportService:
             PermissionDeniedError: 没有权限。
         """
         self._auth.authorize(session, Permission.REPORT_VIEW)
+        if limit is not None and limit <= 0:
+            return []
         items: list[ExperimentSummary] = []
         for state in (ExperimentState.COMPLETED, ExperimentState.SIGNED):
-            page = self._storage.experiments.query(
-                ExperimentQuery(state=state), PageRequest(limit=limit)
-            )
-            items.extend(page.items)
+            offset = 0
+            while True:
+                page_limit = min(1000, limit - offset) if limit is not None else 1000
+                page = self._storage.experiments.query(
+                    ExperimentQuery(state=state),
+                    PageRequest(limit=page_limit, offset=offset),
+                )
+                items.extend(page.items)
+                offset += len(page.items)
+                if not page.items or offset >= page.total or (
+                    limit is not None and offset >= limit
+                ):
+                    break
         items.sort(key=lambda item: (item.created_at, item.experiment_id), reverse=True)
-        return items[:limit]
+        return items if limit is None else items[:limit]
 
-    def report_list(self, session: Session | None, limit: int = 200) -> tuple[ReportListItem, ...]:
+    def report_list(
+        self, session: Session | None, limit: int | None = None
+    ) -> tuple[ReportListItem, ...]:
         """返回报告中心所需的实验及批号筛选字段。"""
         self._auth.authorize(session, Permission.REPORT_VIEW)
         items: list[ReportListItem] = []
@@ -481,12 +494,13 @@ class ReportService:
     ) -> ReportPreview:
         """单个试验的报告预览。
 
-        已签署的试验始终用签署时的语言，和已签署的文件内容一致。
+        语言由调用方在本次预览开始时按客户端语言快照提供。已签署版本保留原件；
+        不同语言的输出需要生成并签署新的版本。
 
         Args:
             session: 调用者的会话，需要 ``report_view`` 权限。
             experiment_id: 试验标识。
-            language: 报告语言（未签署时有效）。
+            language: 本次操作开始时的客户端语言快照。
             with_images: 是否附 8 连图，默认取配置。
 
         Returns:
@@ -499,8 +513,14 @@ class ReportService:
         self._auth.authorize(session, Permission.REPORT_VIEW)
         experiment = self._load(experiment_id)
         record = self._latest_signed(experiment_id)
-        if record is not None:
-            language = ReportLanguage(record.language)
+        allow_revision = (
+            record is not None
+            and experiment.state is ExperimentState.SIGNED
+            and (
+                language.value != record.language
+                or self._has_reviews_after(experiment, record.signed_at)
+            )
+        )
         section = self._section(experiment)
         images: dict[str, tuple[RowImagePair, ...]] = {}
         if self._wants_images(with_images) and session is not None:
@@ -518,7 +538,11 @@ class ReportService:
             texts=ReportTexts(language),
             scope=ReportScope.EXPERIMENT,
             experiment_id=experiment_id,
-            blocks=signing_blocks(experiment, conclusions_enabled=self._conclusions_enabled),
+            blocks=signing_blocks(
+                experiment,
+                conclusions_enabled=self._conclusions_enabled,
+                allow_signed_revision=allow_revision,
+            ),
             conclusion=experiment.conclusion if self._conclusions_enabled else None,
             record=record,
             digest=document.content_digest(),
@@ -614,18 +638,15 @@ class ReportService:
         experiment = self._load(experiment_id)
         latest = self._latest_signed(experiment_id)
         is_revision = experiment.state is ExperimentState.SIGNED
-        if is_revision:
-            last_signed_at = latest.signed_at if latest is not None else experiment.signed_at
-            has_new_review = last_signed_at is not None and any(
-                entry.reviewed_at > last_signed_at
-                for result in experiment.results.values()
-                for entry in result.review_history
+        language_revision = latest is not None and language.value != latest.language
+        has_new_review = (
+            latest is not None and self._has_reviews_after(experiment, latest.signed_at)
+        )
+        if is_revision and (latest is None or not (has_new_review or language_revision)):
+            raise SigningNotAllowedError(
+                (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
+                experiment.conclusion if self._conclusions_enabled else None,
             )
-            if latest is None or not has_new_review:
-                raise SigningNotAllowedError(
-                    (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
-                    experiment.conclusion if self._conclusions_enabled else None,
-                )
         blocks = signing_blocks(
             experiment,
             conclusions_enabled=self._conclusions_enabled,
@@ -638,10 +659,18 @@ class ReportService:
         self._auth.confirm_password(session, password, purpose="签署")
         before = experiment.state
         now = self._clock()
-        if is_revision and any(
-            entry.reviewed_at >= now
-            for result in experiment.results.values()
-            for entry in result.review_history
+        latest_review_at = max(
+            (
+                entry.reviewed_at
+                for result in experiment.results.values()
+                for entry in result.review_history
+            ),
+            default=None,
+        )
+        if is_revision and (
+            latest is None
+            or (latest.signed_at is not None and now <= latest.signed_at)
+            or (has_new_review and latest_review_at is not None and now <= latest_review_at)
         ):
             raise SigningNotAllowedError(
                 (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
@@ -1111,6 +1140,16 @@ class ReportService:
             if record.signed
         ]
         return signed[-1] if signed else None
+
+    @staticmethod
+    def _has_reviews_after(experiment: Experiment, signed_at: datetime | None) -> bool:
+        if signed_at is None:
+            return False
+        return any(
+            entry.reviewed_at > signed_at
+            for result in experiment.results.values()
+            for entry in result.review_history
+        )
 
     def _display_name(self, username: str | None) -> str | None:
         if username is None:

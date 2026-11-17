@@ -41,16 +41,9 @@ _BLOCKS: dict[SigningBlocker, str] = {
     ),
 }
 
-_BATCH_UNSIGNED = str(
-    QT_TRANSLATE_NOOP("Signing", "批次里还有试验没有签署，全部签署后才能签署单批次报告。")
-)
-
-
 def describe_signing_blocks(
     blocks: tuple[SigningBlock, ...],
     conclusion: ExperimentConclusion | None = None,
-    *,
-    batch: bool = False,
 ) -> list[str]:
     """不能签署的原因，每条一行，当前语言。
 
@@ -59,14 +52,11 @@ def describe_signing_blocks(
     Args:
         blocks: 不能签署的原因。
         conclusion: 试验的结论（单个试验），用来说明无效或待定的原因。
-        batch: 是否单批次报告。
 
     Returns:
         文字行。
     """
     lines: list[str] = []
-    if batch:
-        return [QCoreApplication.translate("Signing", _BATCH_UNSIGNED)] if blocks else []
     for block in blocks:
         template = QCoreApplication.translate("Signing", _BLOCKS[block.blocker])
         state = "" if block.state is None else experiment_state_label(block.state)

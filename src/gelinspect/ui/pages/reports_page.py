@@ -1,11 +1,10 @@
-"""报告中心：左边纸面预览，右边签名状态和操作（对照 ``docs/design/Report.dc.html``）。
+"""报告中心：实验报告列表、独立报告预览和导出。
 
 页面不碰数据库和文件：预览、签署、验签、导出都走 ``ReportService``，权限由服务层再校验一遍。
 预览用 ``QPrintPreviewWidget``，画的是和 PDF 同一套排版（``ReportService.paint``）。
 
-* 单个试验的报告：选试验、选语言（已签署的固定为签署时的语言）、签署（再次输入密码）、
+* 单个试验的报告：按当前界面语言预览和签署、签署（再次输入密码）、
   重新验签、打印、导出已签名 PDF。
-* 单批次报告：选批号种类和批号，汇总该批号下已完成的试验；批次里的试验全部签署后才能签署。
 * 签名用本机自签证书：能防篡改，没有第三方 CA 的法律效力，界面常驻说明。
 """
 
@@ -33,7 +32,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gelinspect.domain.enums import BatchKind, ReportScope
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.signing import SigningBlocker
 from gelinspect.interfaces.storage import ExperimentSummary, ReportRecord, StorageBusyError
@@ -44,6 +42,7 @@ from gelinspect.services.export_service import suggested_filename
 from gelinspect.services.reporting.renderer import configure_printer
 from gelinspect.services.reporting.report_service import (
     ExportResult,
+    ReportListItem,
     ReportPreview,
     SignedReport,
 )
@@ -67,6 +66,7 @@ from gelinspect.ui.report_labels import (
 )
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
+from gelinspect.ui.widgets.data_table import Column, DataTable
 from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.toast import Toast, ToastKind
@@ -74,7 +74,7 @@ from gelinspect.ui.widgets.toast import Toast, ToastKind
 _log = logging.getLogger(__name__)
 
 MAX_EXPERIMENTS = 200
-"""下拉框里最多列出的试验数。"""
+"""单个实验快捷下拉框最多列出的试验数。报告中心列表单独全量查询。"""
 PANEL_WIDTH = 330
 """右侧操作栏宽度。"""
 _LANGUAGE_NAMES = {
@@ -116,10 +116,11 @@ class ReportsPage(QWidget):
         self._services = services
         self._session: Session | None = None
         self._experiments: list[ExperimentSummary] = []
+        self._report_items: list[ReportListItem] = []
+        self._list_mode = True
+        self._import_verification: object | None = None
         self._preview: ReportPreview | None = None
-        self._batch: tuple[BatchKind, str] | None = None
         self._ui_language = ReportLanguage.ZH_CN
-        self._language_chosen = False
         self._record: ReportRecord | None = None
         self._verification: tuple[SignatureVerification, str, bool] | None = None
         self._busy = False
@@ -143,10 +144,67 @@ class ReportsPage(QWidget):
 
         self._build_header()
         self._build_empty()
+        self._build_report_list()
         self._build_content()
         self._column.addStretch(1)
         self.retranslate()
         self._show_empty(True)
+
+    def _build_report_list(self) -> None:
+        """首页实验列表、批号筛选、批量导出和外部 PDF 导入。"""
+        self.list_card = Card()
+        column = QVBoxLayout()
+        column.setSpacing(10)
+        controls = QHBoxLayout()
+        self.sample_filter = QComboBox()
+        self.lal_filter = QComboBox()
+        self.buffer_filter = QComboBox()
+        self.endotoxin_filter = QComboBox()
+        self.list_refresh = Button("", ButtonVariant.SECONDARY, icon="rotate-ccw")
+        self.list_export = Button("", ButtonVariant.PRIMARY)
+        self.import_pdf_button = Button("", ButtonVariant.SECONDARY)
+        for widget in (
+            self.sample_filter,
+            self.lal_filter,
+            self.buffer_filter,
+            self.endotoxin_filter,
+        ):
+            widget.setMinimumWidth(130)
+            controls.addWidget(widget, 1)
+        controls.addWidget(self.list_refresh)
+        controls.addWidget(self.list_export)
+        controls.addWidget(self.import_pdf_button)
+        column.addLayout(controls)
+        self.report_table = DataTable(
+            [
+                Column("experiment_id", "实验", mono=True),
+                Column("created_at", "时间", mono=True),
+                Column("sample_batches", "样品批号", mono=True),
+                Column("reagent_batches", "试剂批号", mono=True),
+                Column("report_state", "报告状态"),
+            ],
+            empty_title="没有匹配的实验报告",
+        )
+        self.report_table.set_multi_select(True)
+        self.report_table.setMinimumHeight(400)
+        column.addWidget(self.report_table, 1)
+        result_row = QHBoxLayout()
+        self.import_result = Label("", "body")
+        self.import_result.setWordWrap(True)
+        self.import_open = Button("", ButtonVariant.SECONDARY)
+        self.import_open.setVisible(False)
+        result_row.addWidget(self.import_result, 1)
+        result_row.addWidget(self.import_open)
+        column.addLayout(result_row)
+        self.list_card.body.addLayout(column)
+        self._column.addWidget(self.list_card)
+        self.list_refresh.clicked.connect(self.refresh)
+        self.list_export.clicked.connect(self.request_batch_export)
+        self.import_pdf_button.clicked.connect(self.import_external_pdf)
+        self.import_open.clicked.connect(self.open_imported_match)
+        self.report_table.rowActivated.connect(self._open_list_row)
+        for box in (self.sample_filter, self.lal_filter, self.buffer_filter, self.endotoxin_filter):
+            box.currentIndexChanged.connect(self._apply_report_filters)
 
     # ------------------------------------------------------------------ 搭建
 
@@ -160,6 +218,9 @@ class ReportsPage(QWidget):
         self.experiment_box.setMinimumWidth(300)
         self.experiment_box.setMaximumWidth(460)
         self.refresh_button = Button("", ButtonVariant.SECONDARY, icon="rotate-ccw")
+        self.back_to_list = Button("", ButtonVariant.SECONDARY)
+        self.back_to_list.setVisible(False)
+        top.addWidget(self.back_to_list)
         top.addWidget(self.title)
         top.addWidget(self.meta)
         top.addStretch(1)
@@ -172,6 +233,7 @@ class ReportsPage(QWidget):
         self._column.addWidget(self.header)
         self.experiment_box.currentIndexChanged.connect(self._on_experiment_changed)
         self.refresh_button.clicked.connect(self.refresh)
+        self.back_to_list.clicked.connect(self.show_report_list)
 
     def _build_empty(self) -> None:
         self.empty_card = Card()
@@ -288,74 +350,34 @@ class ReportsPage(QWidget):
 
         # 签署和导出
         self.actions_card = Card(" ")
-        self.language_label = Label("", "lab")
-        self.language_box = QComboBox()
-        for language in ReportLanguage:
-            self.language_box.addItem(_LANGUAGE_NAMES[language], language.value)
-        self.language_note = Label("", "meta")
-        self.language_note.setWordWrap(True)
         self.sign_button = Button("", ButtonVariant.PRIMARY, icon="key-round")
         self.sign_hint = Label("", "meta")
         self.sign_hint.setWordWrap(True)
         self.print_button = Button("", ButtonVariant.SECONDARY, icon="printer")
         self.export_button = Button("", ButtonVariant.SECONDARY)
         self.excel_button = Button("", ButtonVariant.SECONDARY)
-        self.batch_export_button = Button("", ButtonVariant.SECONDARY)
         for action_widget in (
-            self.language_label,
-            self.language_box,
-            self.language_note,
             self.sign_button,
             self.sign_hint,
             self.print_button,
             self.export_button,
             self.excel_button,
-            self.batch_export_button,
         ):
             self.actions_card.body.addWidget(action_widget)
         column.addWidget(self.actions_card)
 
-        # 单批次报告
-        self.batch_card = Card(" ")
-        self.batch_hint = Label("", "meta")
-        self.batch_hint.setWordWrap(True)
-        self.batch_kind_box = QComboBox()
-        self.batch_kind_box.addItem("", BatchKind.LAL_REAGENT.value)
-        self.batch_kind_box.addItem("", BatchKind.SAMPLE.value)
-        self.batch_box = QComboBox()
-        self.batch_button = Button("", ButtonVariant.SECONDARY)
-        self.batch_empty = Label("", "warn")
-        self.batch_empty.setWordWrap(True)
-        self.batch_empty.setVisible(False)
-        self.batch_back = Button("", ButtonVariant.SECONDARY)
-        self.batch_back.setVisible(False)
-        for item_widget in (
-            self.batch_hint,
-            self.batch_kind_box,
-            self.batch_box,
-            self.batch_button,
-            self.batch_empty,
-            self.batch_back,
-        ):
-            self.batch_card.body.addWidget(item_widget)
-        column.addWidget(self.batch_card)
         column.addStretch(1)
 
         for wrapped in panel.findChildren(Label):
             if wrapped.wordWrap():
                 # 自动换行的文字要按宽度算高度，不能被“只取需要的高度”截断。
                 wrapped.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        self.language_box.currentIndexChanged.connect(self._on_language_changed)
         self.sign_button.clicked.connect(self.request_sign)
         self.verify_button.clicked.connect(self.verify_current)
         self.verify_file_button.clicked.connect(self.verify_external)
         self.print_button.clicked.connect(self.request_print)
         self.export_button.clicked.connect(self.export_current)
         self.excel_button.clicked.connect(self.export_excel)
-        self.batch_export_button.clicked.connect(self.request_batch_export)
-        self.batch_kind_box.currentIndexChanged.connect(self._fill_batches)
-        self.batch_button.clicked.connect(self.show_selected_batch)
-        self.batch_back.clicked.connect(self._back_to_experiment)
         return panel
 
     # ------------------------------------------------------------------ 公开接口
@@ -370,15 +392,15 @@ class ReportsPage(QWidget):
         self.refresh()
 
     def set_ui_language(self, code: str) -> None:
-        """界面语言变了：用户没有手动选过报告语言时，报告跟随界面语言。
+        """记录当前界面语言，报告操作使用该语言快照。
 
         Args:
             code: 语言代码（``zh_CN``、``zh_TW`` 或 ``en``）。
         """
-        self._ui_language = report_language_of(code)
-        if not self._language_chosen:
-            self._set_language_box(self._ui_language)
-            if self._preview is not None and not self._preview.document.signed:
+        language = report_language_of(code)
+        if language != self._ui_language:
+            self._ui_language = language
+            if self.experiment_id is not None:
                 self._reload_preview()
 
     @property
@@ -388,7 +410,7 @@ class ReportsPage(QWidget):
 
     @property
     def experiment_id(self) -> str | None:
-        """当前显示的试验标识；单批次报告或空状态为 None。"""
+        """当前显示的实验标识；空状态时为 None。"""
         return self._preview.experiment_id if self._preview is not None else None
 
     @property
@@ -412,6 +434,14 @@ class ReportsPage(QWidget):
                 )
             except (AuthError, ServiceError):
                 self._experiments = []
+        try:
+            self._report_items = (
+                list(self._services.reports.report_list(self._session))
+                if self._session is not None
+                else []
+            )
+        except (AuthError, ServiceError):
+            self._report_items = []
         self._loading = True
         try:
             self.experiment_box.clear()
@@ -419,18 +449,18 @@ class ReportsPage(QWidget):
                 self.experiment_box.addItem(self._item_text(item), item.experiment_id)
         finally:
             self._loading = False
-        self._fill_batches()
-        if not self._experiments and (keep is None or self._batch is None):
+        self._refresh_report_list()
+        if self._list_mode:
+            self.show_report_list()
+            return
+        if not self._experiments:
             self._preview = None
             self._record = None
             self._show_empty(True)
             return
         self._show_empty(False)
         target = keep or self._experiments[0].experiment_id
-        if self._batch is not None and keep is None:
-            self._show_batch(*self._batch)
-        else:
-            self.open_experiment(target)
+        self.open_experiment(target)
 
     def open_experiment(self, experiment_id: str) -> bool:
         """显示某个试验的报告（试验不在列表里时临时加上，例如还没完成的试验）。
@@ -443,7 +473,9 @@ class ReportsPage(QWidget):
         """
         if self._session is None:
             return False
-        self._batch = None
+        self._list_mode = False
+        self.list_card.setVisible(False)
+        self.back_to_list.setVisible(True)
         index = self.experiment_box.findData(experiment_id)
         self._loading = True
         try:
@@ -456,26 +488,123 @@ class ReportsPage(QWidget):
         self._show_empty(False)
         return self._load_experiment(experiment_id)
 
-    def open_batch(self, kind: BatchKind, batch_no: str) -> bool:
-        """显示某个批号的单批次报告。
+    def show_report_list(self) -> None:
+        """返回报告列表并保留当前筛选。"""
+        self._list_mode = True
+        self.list_card.setVisible(True)
+        self.content.setVisible(False)
+        self.header.setVisible(False)
+        self.empty_card.setVisible(False)
+        self.back_to_list.setVisible(False)
 
-        Args:
-            kind: 批号种类。
-            batch_no: 批号。
+    def _refresh_report_list(self) -> None:
+        sample_values = sorted(
+            {value for item in self._report_items for value in item.sample_batch_nos}
+        )
+        for box, values, label in (
+            (self.sample_filter, sample_values, self.tr("全部样品批号")),
+            (
+                self.lal_filter,
+                sorted({item.lal_batch_no for item in self._report_items if item.lal_batch_no}),
+                self.tr("全部鲎试剂批号"),
+            ),
+            (
+                self.buffer_filter,
+                sorted({item.water_batch_no for item in self._report_items if item.water_batch_no}),
+                self.tr("全部缓冲液批号"),
+            ),
+            (
+                self.endotoxin_filter,
+                sorted(
+                    item.endotoxin_batch_no
+                    for item in self._report_items
+                    if item.endotoxin_batch_no
+                ),
+                self.tr("全部内毒素试剂批号"),
+            ),
+        ):
+            keep = box.currentData()
+            box.blockSignals(True)
+            box.clear()
+            box.addItem(label, "")
+            for value in values:
+                box.addItem(value, value)
+            index = box.findData(keep)
+            box.setCurrentIndex(max(index, 0))
+            box.blockSignals(False)
+        self._apply_report_filters()
 
-        Returns:
-            成功显示时为 True。
-        """
+    def _apply_report_filters(self, _index: int = -1) -> None:
+        rows: list[dict[str, str]] = []
+        self._visible_report_items: list[ReportListItem] = []
+        sample = str(self.sample_filter.currentData() or "")
+        for item in self._report_items:
+            samples = item.sample_batch_nos
+            reagents = (
+                item.lal_batch_no or "",
+                item.water_batch_no or "",
+                item.endotoxin_batch_no or "",
+            )
+            if sample and sample not in samples:
+                continue
+            filters = (self.lal_filter, self.buffer_filter, self.endotoxin_filter)
+            if any(
+                box.currentData() and str(box.currentData()) != actual
+                for box, actual in zip(filters, reagents, strict=True)
+            ):
+                continue
+            record = getattr(item, "latest_report", None)
+            rows.append(
+                {
+                    "experiment_id": item.experiment_id,
+                    "created_at": item.created_at.astimezone().strftime("%Y-%m-%d %H:%M"),
+                    "sample_batches": "、".join(samples),
+                    "reagent_batches": "、".join(value for value in reagents if value),
+                    "report_state": self.tr("已签署") if record is not None else self.tr("待签署"),
+                }
+            )
+            self._visible_report_items.append(item)
+        self.report_table.set_rows(rows)
+        self.list_export.setEnabled(bool(rows) and self._can(Permission.DATA_EXPORT))
+
+    def _open_list_row(self, row: int) -> None:
+        if 0 <= row < len(self._visible_report_items):
+            self.open_experiment(str(self._visible_report_items[row].experiment_id))
+
+    def import_external_pdf(self) -> None:
+        """校验外部 PDF，并显示其签署状态及本库匹配的实验。"""
         if self._session is None:
-            return False
-        self._fill_batches()
-        self.batch_kind_box.setCurrentIndex(self.batch_kind_box.findData(kind.value))
-        self._fill_batches()
-        found = self.batch_box.findData(batch_no)
-        if found >= 0:
-            self.batch_box.setCurrentIndex(found)
-        self._show_empty(False)
-        return self._show_batch(kind, batch_no)
+            return
+        filename, _ = QFileDialog.getOpenFileName(
+            self, self.tr("导入外部 PDF"), "", self.tr("PDF 文件 (*.pdf)")
+        )
+        if not filename:
+            return
+        try:
+            result = self._services.reports.verify_imported_file(self._session, Path(filename))
+        except (AuthError, ServiceError) as error:
+            self.import_result.setText(self._error_text(error))
+            self.import_open.setVisible(False)
+            return
+        self._import_verification = result
+        status = str(result.signature_status)
+        status_text = {
+            "valid": self.tr("数字签名有效，报告内容和签署记录已匹配。"),
+            "invalid": self.tr("数字签名无效，文件不能作为可信报告。"),
+            "unsigned": self.tr("PDF 未签名。"),
+            "unknown": self.tr("无法识别签名或签署者，请检查文件权限并联系后台检查。"),
+            "corrupt": self.tr("PDF 损坏或无法读取，请检查文件权限并联系后台检查。"),
+            "external": self.tr("数字签名有效，但不是本系统已知报告。"),
+        }.get(status, self.tr("无法确认 PDF 状态，请检查文件权限并联系后台检查。"))
+        self.import_result.setText(f"{status_text}\n{result.message}")
+        self.import_open.setVisible(bool(result.experiment_id and status == "valid"))
+
+    def open_imported_match(self) -> None:
+        """打开有效签名匹配到的实验报告。"""
+        result = self._import_verification
+        experiment_id = None if result is None else getattr(result, "experiment_id", None)
+        if experiment_id:
+            self.open_experiment(str(experiment_id))
 
     # ------------------------------------------------------------------ 读取和显示
 
@@ -490,18 +619,14 @@ class ReportsPage(QWidget):
             return
         experiment_id = self.experiment_box.itemData(index)
         if experiment_id:
-            self._batch = None
             self._load_experiment(str(experiment_id))
-
-    def _chosen_language(self) -> ReportLanguage:
-        return report_language_of(str(self.language_box.currentData()))
 
     def _load_experiment(self, experiment_id: str) -> bool:
         if self._session is None:
             return False
         try:
             self._preview = self._services.reports.preview(
-                self._session, experiment_id, self._chosen_language()
+                self._session, experiment_id, self._ui_language
             )
         except (AuthError, ServiceError) as error:
             self._fail(error)
@@ -514,35 +639,11 @@ class ReportsPage(QWidget):
         self._after_preview()
         return True
 
-    def _show_batch(self, kind: BatchKind, batch_no: str) -> bool:
-        if self._session is None:
-            return False
-        try:
-            self._preview = self._services.reports.batch_preview(
-                self._session, kind, batch_no, self._chosen_language()
-            )
-            records = self._services.reports.batch_reports(self._session, kind, batch_no)
-        except (AuthError, ServiceError) as error:
-            self._preview = None
-            self.batch_empty.setText(self._error_text(error))
-            self.batch_empty.setVisible(True)
-            self._render()
-            return False
-        self._batch = (kind, batch_no)
-        self._record = records[-1] if records else None
-        self._verification = None
-        self.batch_empty.setVisible(False)
-        self._after_preview()
-        return True
-
     def _reload_preview(self) -> None:
-        if self._batch is not None:
-            self._show_batch(*self._batch)
-        elif self.experiment_id is not None:
+        if self.experiment_id is not None:
             self._load_experiment(self.experiment_id)
 
     def _after_preview(self) -> None:
-        self._set_language_for_preview()
         self._render()
         self.preview_widget.updatePreview()
 
@@ -576,37 +677,21 @@ class ReportsPage(QWidget):
 
     def _show_empty(self, empty: bool) -> None:
         self.empty_card.setVisible(empty)
-        self.content.setVisible(not empty)
-        self.experiment_box.setVisible(not empty)
-        self.experiment_label.setVisible(not empty)
-        self.refresh_button.setVisible(not empty)
+        self.content.setVisible(not empty and not self._list_mode)
+        self.list_card.setVisible(not empty and self._list_mode)
+        self.header.setVisible(not empty and not self._list_mode)
+        self.experiment_box.setVisible(not empty and not self._list_mode)
+        self.experiment_label.setVisible(not empty and not self._list_mode)
+        self.refresh_button.setVisible(not empty and not self._list_mode)
+        self.back_to_list.setVisible(not empty and not self._list_mode)
 
     # ------------------------------------------------------------------ 渲染右侧状态
 
     def _can(self, permission: Permission) -> bool:
         return self._session is not None and self._session.can(permission)
 
-    def _set_language_box(self, language: ReportLanguage) -> None:
-        self.language_box.blockSignals(True)
-        self.language_box.setCurrentIndex(self.language_box.findData(language.value))
-        self.language_box.blockSignals(False)
-
-    def _set_language_for_preview(self) -> None:
-        """已签署的报告语言固定为签署时的语言，下拉框显示它并禁用。"""
-        preview = self._preview
-        if preview is None:
-            return
-        self._set_language_box(preview.language)
-        self.language_box.setEnabled(not preview.document.signed)
-
-    def _on_language_changed(self, _index: int) -> None:
-        self._language_chosen = True
-        self._reload_preview()
-
     def _render(self) -> None:
         preview = self._preview
-        batch = preview is not None and preview.scope is ReportScope.BATCH
-        self.batch_back.setVisible(batch)
         if preview is None:
             self.meta.setText("")
             self.sign_button.setEnabled(False)
@@ -615,17 +700,12 @@ class ReportsPage(QWidget):
             self.excel_button.setEnabled(False)
             self.verify_button.setEnabled(False)
             return
-        if batch:
-            kind, number = self._batch or (BatchKind.LAL_REAGENT, "")
-            kind_name = self._kind_name(kind)
-            self.meta.setText(f"{kind_name} {number}")
-        else:
-            section = preview.document.sections[0]
-            self.meta.setText(
-                f"{section.experiment_id} · {experiment_type_label(section.experiment_type)}"
-            )
-        self._render_status(preview, batch)
-        self._render_actions(preview, batch)
+        section = preview.document.sections[0]
+        self.meta.setText(
+            f"{section.experiment_id} · {experiment_type_label(section.experiment_type)}"
+        )
+        self._render_status(preview)
+        self._render_actions(preview)
         self._update_pager()
 
     def _tone(self, tone: str, text: str) -> None:
@@ -641,7 +721,7 @@ class ReportsPage(QWidget):
         self.status_icon.setPixmap(IconLoader.pixmap(icon, 22, color))
         self.status_text.setText(text)
 
-    def _render_status(self, preview: ReportPreview, batch: bool) -> None:
+    def _render_status(self, preview: ReportPreview) -> None:
         record = self._record
         signed = record is not None
         verdict_text = ""
@@ -651,15 +731,13 @@ class ReportsPage(QWidget):
         if signed:
             self._tone("success", self.tr("已签署"))
         elif preview.can_sign:
-            if batch:
-                text = self.tr("可以签署：批次里的试验都已签署")
-            elif preview.conclusions_enabled:
+            if preview.conclusions_enabled:
                 text = self.tr("可以签署：试验结论为“{verdict}”").format(verdict=verdict_text)
             else:
                 text = self.tr("可以签署：全部待复核已处理，试验已完成")
             self._tone("info", text)
         else:
-            reasons = describe_signing_blocks(preview.blocks, preview.conclusion, batch=batch)
+            reasons = describe_signing_blocks(preview.blocks, preview.conclusion)
             danger = any(
                 b.blocker in (SigningBlocker.VERDICT_INVALID, SigningBlocker.VERDICT_PENDING)
                 for b in preview.blocks
@@ -711,7 +789,7 @@ class ReportsPage(QWidget):
         self.verify_result.setText(prefix + "\n".join(lines))
         self.verify_result.setVisible(True)
 
-    def _render_actions(self, preview: ReportPreview, batch: bool) -> None:
+    def _render_actions(self, preview: ReportPreview) -> None:
         can_sign_role = self._can(Permission.EXPERIMENT_SIGN)
         signed = self._record is not None
         self.sign_button.setEnabled(preview.can_sign and can_sign_role and not signed)
@@ -720,64 +798,14 @@ class ReportsPage(QWidget):
         elif signed:
             self.sign_hint.setText(self.tr("已经签署，可以重新验签或导出同一份文件。"))
         else:
-            self.sign_hint.setText(
-                self.tr("签署需要再次输入密码；签署后结果和复核被锁定。")
-                if not batch
-                else self.tr("单批次报告汇总已签署的试验，不改变试验状态。")
-            )
+            self.sign_hint.setText(self.tr("签署需要再次输入密码；签署后结果和复核被锁定。"))
         self.print_button.setEnabled(
             self._session is not None and self._session.can(Permission.REPORT_PRINT)
         )
         can_export = self._can(Permission.DATA_EXPORT)
         self.export_button.setEnabled(signed and can_export)
-        self.excel_button.setEnabled(not batch and can_export)
+        self.excel_button.setEnabled(can_export)
         self.excel_button.setToolTip("" if can_export else self.tr("当前角色无此权限"))
-        has_signed = False
-        if can_export and self._session is not None:
-            try:
-                has_signed = bool(self._services.reports.signed_reports(self._session, limit=1))
-            except (AuthError, ServiceError):
-                has_signed = False
-        self.batch_export_button.setEnabled(has_signed and can_export)
-        self.language_note.setText(
-            self.tr("已签署的报告语言固定为签署时的语言。")
-            if preview.document.signed
-            else self.tr("未签署时可以选择报告语言，签署时按所选语言生成。")
-        )
-
-    # ------------------------------------------------------------------ 批次
-
-    def _kind_name(self, kind: BatchKind) -> str:
-        return self.tr("鲎试剂批号") if kind is BatchKind.LAL_REAGENT else self.tr("样品批号")
-
-    def _selected_kind(self) -> BatchKind:
-        return BatchKind(str(self.batch_kind_box.currentData()))
-
-    def _fill_batches(self) -> None:
-        self.batch_box.clear()
-        numbers: list[str] = []
-        if self._session is not None:
-            try:
-                numbers = self._services.reports.batch_numbers(self._session, self._selected_kind())
-            except (AuthError, ServiceError):
-                numbers = []
-        for number in numbers:
-            self.batch_box.addItem(number, number)
-        self.batch_button.setEnabled(bool(numbers))
-        self.batch_empty.setText(self.tr("还没有已完成的试验，没有可汇总的批次。"))
-        self.batch_empty.setVisible(not numbers)
-
-    def show_selected_batch(self) -> None:
-        """预览下拉框里选中的批号的单批次报告。"""
-        number = self.batch_box.currentData()
-        if number:
-            self._show_batch(self._selected_kind(), str(number))
-
-    def _back_to_experiment(self) -> None:
-        self._batch = None
-        target = self.experiment_box.currentData()
-        if target:
-            self._load_experiment(str(target))
 
     # ------------------------------------------------------------------ 操作
 
@@ -787,29 +815,20 @@ class ReportsPage(QWidget):
         session = self._session
         if preview is None or session is None or not preview.can_sign:
             return
-        batch = preview.scope is ReportScope.BATCH
-        subject = (
-            f"{self._kind_name(self._batch[0])} {self._batch[1]}"
-            if batch and self._batch is not None
-            else str(preview.experiment_id)
-        )
-        language = self._chosen_language()
+        subject = str(preview.experiment_id)
+        # Snapshot language before the password dialog; subsequent UI changes
+        # cannot silently change this signing operation.
+        language = self._ui_language
         outcome: list[SignedReport] = []
 
         def apply(password: str) -> None:
             QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
             try:
-                if batch and self._batch is not None:
-                    kind, number = self._batch
-                    outcome.append(
-                        self._services.reports.sign_batch(session, kind, number, password, language)
+                outcome.append(
+                    self._services.reports.sign(
+                        session, str(preview.experiment_id), password, language
                     )
-                else:
-                    outcome.append(
-                        self._services.reports.sign(
-                            session, str(preview.experiment_id), password, language
-                        )
-                    )
+                )
             finally:
                 QApplication.restoreOverrideCursor()
 
@@ -822,9 +841,7 @@ class ReportsPage(QWidget):
         )
         record = outcome[0].record
         self.refresh()
-        if batch and self._batch is not None:
-            self.open_batch(*self._batch)
-        elif record.experiment_id is not None:
+        if record.experiment_id is not None:
             self.open_experiment(record.experiment_id)
             self.signedExperiment.emit(record.experiment_id)
 
@@ -960,14 +977,26 @@ class ReportsPage(QWidget):
         return True
 
     def request_batch_export(self) -> None:
-        """打开批量导出对话框。"""
+        """从列表中选择的实验打开批量导出对话框。"""
         session = self._session
         if session is None:
             return
-        try:
-            records = self._services.reports.signed_reports(session)
-        except (AuthError, ServiceError) as error:
-            self._fail(error)
+        selected = self.report_table.selected_rows()
+        if not selected:
+            self._toast(self.tr("请先选择要导出的实验。"), ToastKind.WARNING)
+            return
+        selected_experiment_ids = {
+            str(self._visible_report_items[row].experiment_id)
+            for row in selected
+            if 0 <= row < len(self._visible_report_items)
+        }
+        records = [
+            item.latest_report
+            for item in self._visible_report_items
+            if item.experiment_id in selected_experiment_ids and item.latest_report is not None
+        ]
+        if not records:
+            self._toast(self.tr("所选实验没有已签署报告可导出。"), ToastKind.WARNING)
             return
 
         def export(ids: Sequence[str], directory: str) -> ExportResult:
@@ -998,8 +1027,8 @@ class ReportsPage(QWidget):
         """清除失效预览并在原位置说明原因。"""
         self._preview = None
         self.preview_widget.hide()
-        self.batch_empty.setText(message)
-        self.batch_empty.setVisible(True)
+        self.status_text.setText(message)
+        self.status_text.setVisible(True)
         self._update_pager()
 
     def _fail(self, error: Exception) -> None:
@@ -1016,6 +1045,28 @@ class ReportsPage(QWidget):
         self.title.setText(self.tr("报告中心"))
         self.experiment_label.setText(self.tr("试验"))
         self.refresh_button.setText(self.tr("刷新"))
+        self.back_to_list.setText(self.tr("返回报告列表"))
+        self.list_refresh.setText(self.tr("刷新列表"))
+        self.list_export.setText(self.tr("批量导出…"))
+        self.import_pdf_button.setText(self.tr("导入外部 PDF…"))
+        self.import_open.setText(self.tr("打开匹配的报告"))
+        self.report_table.set_columns(
+            [
+                Column("experiment_id", self.tr("实验"), mono=True),
+                Column("created_at", self.tr("时间"), mono=True),
+                Column("sample_batches", self.tr("样品批号"), mono=True),
+                Column("reagent_batches", self.tr("试剂批号"), mono=True),
+                Column("report_state", self.tr("报告状态")),
+            ]
+        )
+        for box, label in (
+            (self.sample_filter, self.tr("全部样品批号")),
+            (self.lal_filter, self.tr("全部鲎试剂批号")),
+            (self.buffer_filter, self.tr("全部缓冲液批号")),
+            (self.endotoxin_filter, self.tr("全部内毒素试剂批号")),
+        ):
+            if box.count():
+                box.setItemText(0, label)
         self.empty_title.setText(self.tr("还没有可出报告的试验"))
         self.empty_hint.setText(
             self.tr(
@@ -1036,18 +1087,10 @@ class ReportsPage(QWidget):
         self.verify_file_button.setText(self.tr("验证外部 PDF…"))
         self.notice.setText(self_signed_notice())
         self.actions_card.set_title(self.tr("签署和导出"))
-        self.language_label.setText(self.tr("报告语言"))
         self.sign_button.setText(self.tr("签署并生成 PDF"))
         self.print_button.setText(self.tr("打印"))
         self.export_button.setText(self.tr("导出已签名 PDF"))
         self.excel_button.setText(self.tr("导出 Excel 数据…"))
-        self.batch_export_button.setText(self.tr("批量导出…"))
-        self.batch_card.set_title(self.tr("单批次报告"))
-        self.batch_hint.setText(self.tr("把同一批号的多次试验汇总到一份报告。"))
-        self.batch_kind_box.setItemText(0, self.tr("鲎试剂批号"))
-        self.batch_kind_box.setItemText(1, self.tr("样品批号"))
-        self.batch_button.setText(self.tr("预览单批次报告"))
-        self.batch_back.setText(self.tr("返回试验报告"))
         for index in range(self.experiment_box.count()):
             experiment_id = self.experiment_box.itemData(index)
             match = next((e for e in self._experiments if e.experiment_id == experiment_id), None)

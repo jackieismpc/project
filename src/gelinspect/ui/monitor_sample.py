@@ -100,7 +100,7 @@ class MonitorPage(QWidget):
         col.setSpacing(14)
         col.addLayout(self._top_row())
         col.addWidget(self._facts_card())
-        tabs = Tabs(["试验数据记录", "图像显示", "报告打印预览", "单批次报告"])
+        tabs = Tabs(["试验数据记录", "图像显示", "报告打印预览"])
         col.addWidget(tabs)
         work = QHBoxLayout()
         work.setSpacing(14)

@@ -366,7 +366,7 @@ class GalleryPage(QWidget):
         steps.body.addWidget(StepIndicator(names, 0))
         steps.body.addWidget(StepIndicator(names, 2))
         steps.body.addWidget(StepIndicator(names, 3))
-        steps.body.addWidget(Tabs(["试验数据记录", "图像显示", "报告打印预览", "单批次报告"]))
+        steps.body.addWidget(Tabs(["试验数据记录", "图像显示", "报告打印预览"]))
         col.addWidget(steps)
         return col
 

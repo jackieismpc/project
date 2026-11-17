@@ -47,8 +47,6 @@ class ServiceErrorCode(StrEnum):
     REPORT_NOT_FOUND = "report_not_found"
     REPORT_FILE_MISSING = "report_file_missing"
     REPORT_HASH_MISMATCH = "report_hash_mismatch"
-    BATCH_EMPTY = "batch_empty"
-    BATCH_NOT_SIGNABLE = "batch_not_signable"
     EXPORT_EMPTY = "export_empty"
     EXPORT_FAILED = "export_failed"
     EXPORT_PASSWORD_REQUIRED = "export_password_required"

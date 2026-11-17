@@ -278,7 +278,7 @@ def test_signed_experiment_can_be_re_reviewed_and_revision_keeps_original_file(
     assert len(stack.audit(AuditAction.REPORT_EXPORTED)) == 2
 
 
-def test_preview_of_a_signed_experiment_keeps_the_signing_language(
+def test_preview_uses_the_client_language_and_can_create_another_signed_language_version(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
     stack = signing_stack
@@ -290,9 +290,17 @@ def test_preview_of_a_signed_experiment_keeps_the_signing_language(
     )
     service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"], ReportLanguage.ZH_CN)
     preview = service.preview(analyst, "EXP-SAMPLE-0001", ReportLanguage.EN)
-    assert preview.language is ReportLanguage.ZH_CN  # 已签署的以签署时的语言为准
+    assert preview.language is ReportLanguage.EN
     assert preview.record is not None and preview.document.signed
-    assert preview.blocks and preview.blocks[0].blocker.value == "already_signed"
+    assert preview.can_sign
+    other_language, _ = make_service(
+        stack, tmp_path, clock=lambda: SIGN_TIME + timedelta(days=1)
+    )
+    revised = other_language.sign(
+        analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"], ReportLanguage.EN
+    )
+    assert revised.record.revision == 2 and revised.record.language == ReportLanguage.EN.value
+    assert stack.database.reports.get(preview.record.report_id) == preview.record
 
 
 def test_key_file_is_private_and_nothing_secret_is_logged_or_audited(

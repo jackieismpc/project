@@ -20,7 +20,6 @@ from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
-from gelinspect.domain.enums import BatchKind
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
@@ -486,7 +485,6 @@ class MainWindow(QMainWindow):
             monitor.tubeRequested.connect(self.open_tube)
             monitor.navigationRequested.connect(self.navigate)
             monitor.reportRequested.connect(self.open_report)
-            monitor.batchReportRequested.connect(self.open_batch_report)
             return monitor
         if route.key == "reports":
             reports = ReportsPage(self._services)
@@ -567,21 +565,6 @@ class MainWindow(QMainWindow):
             self._pending_report_experiment = None
             return False
         return True
-
-    def open_batch_report(self, kind: str, batch_no: str) -> bool:
-        """打开报告中心显示某个批号的单批次报告。
-
-        Args:
-            kind: 批号种类（``BatchKind`` 的值）。
-            batch_no: 批号。
-
-        Returns:
-            成功显示时为 True。
-        """
-        if not self.navigate("reports"):
-            return False
-        page = self._pages.get("reports")
-        return isinstance(page, ReportsPage) and page.open_batch(BatchKind(kind), batch_no)
 
     def open_tube(self, experiment_id: str, tube_no: int) -> bool:
         """打开单管详情页。
