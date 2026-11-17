@@ -1,6 +1,6 @@
 """模拟算法：``GelAnalyzer`` 的参考实现，严格遵守 ``interfaces/analysis.py``。
 
-默认的**测量模式**真的处理输入图像：
+**测量模式**会处理输入图像；当前默认配置使用下方的脚本化模式：
 
 1. 按合成器的已知布局定位试管（管位、管口方向），检查图像亮度、噪声和管壁是否存在；
 2. 在管内用阈值分割样品团（相对背光的透光率低于 ``GEL_VISIBLE_TRANSMITTANCE``），
@@ -13,8 +13,9 @@
    对应算法方案“阈值标定”和“支持 YAML 配置动态调整”。每支管返回评分分项 ``score_terms``，
    ``AnalyzerInfo`` 带出当前阈值，供界面逐项展示判读过程。
 
-**脚本化模式**（``scripted``）按 :class:`~simulation.scenario.Scenario` 给出状态，并生成与状态相符的
-特征，掩码仍按图像计算，用于没有合成图可用时的演示。
+**脚本化模式**（``scripted``）使用固定种子和管位，通过
+:class:`~simulation.scenario.Scenario` 给出状态，并生成相符特征，掩码仍按图像计算。
+相同输入和配置得到相同结果，只用于流程联调，不能作为真实检测结论。
 
 故障注入：按管号指定 ``low_quality``、``failed``、``tube_not_found``，整体故障
 （``fail_load``、``fail_all``），以及模拟耗时。全部可以通过 :meth:`MockAnalyzer.load` 的 YAML

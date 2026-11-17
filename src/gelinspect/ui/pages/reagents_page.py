@@ -1,8 +1,7 @@
-"""试剂溯源页：已录入的批次、校验记录、扫码查询，以及政府溯源码入口（接入预留）。
+"""试剂溯源页：已录入的批次、校验记录和扫码查询。
 
 所有角色可以查看和查询（查询只校验、不写记录）。批次和校验记录来自新试验向导里的扫码；
 过期的批次整行高亮并写明“已过期”，剩余天数不超过 30 天的提示“即将到期”。
-政府溯源平台按 ``interfaces/traceability.py`` 预留入口，目前没有真实实现。
 """
 
 from __future__ import annotations
@@ -27,7 +26,6 @@ from gelinspect.ui.labels import (
     describe_storage_busy,
     reagent_kind_label,
 )
-from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
@@ -94,11 +92,7 @@ class ReagentsPage(QWidget):
         self.query_card.body.addWidget(self.query_error)
         self.query_result = ReagentResultView()
         self.query_card.body.addWidget(self.query_result)
-        top_row = QHBoxLayout()
-        top_row.setSpacing(14)
-        top_row.addWidget(self.query_card, 3)
-        top_row.addWidget(self._build_government_card(), 2)
-        column.addLayout(top_row)
+        column.addWidget(self.query_card)
 
         tables = QHBoxLayout()
         tables.setSpacing(14)
@@ -116,28 +110,6 @@ class ReagentsPage(QWidget):
 
         column.addStretch(1)
         self.retranslate()
-
-    def _build_government_card(self) -> Card:
-        """政府溯源码入口（接入预留）：输入框和按钮禁用，只说明状态。"""
-        self.gov_card = Card(" ")
-        assert self.gov_card.header is not None
-        self.gov_badge = StatusBadge("", BadgeTone.NEUTRAL)
-        self.gov_card.header.addWidget(self.gov_badge)
-        gov_row = QHBoxLayout()
-        gov_row.setSpacing(8)
-        self.gov_input = QLineEdit()
-        self.gov_input.setMinimumHeight(44)
-        self.gov_input.setEnabled(False)
-        self.gov_button = Button("", ButtonVariant.SECONDARY)
-        self.gov_button.setEnabled(False)
-        gov_row.addWidget(self.gov_input, 1)
-        gov_row.addWidget(self.gov_button)
-        self.gov_card.body.addLayout(gov_row)
-        self.gov_text = Label("", "meta")
-        self.gov_text.setWordWrap(True)
-        self.gov_card.body.addWidget(self.gov_text)
-        self.gov_card.body.addStretch(1)
-        return self.gov_card
 
     # ------------------------------------------------------------------ 列定义
 
@@ -273,23 +245,6 @@ class ReagentsPage(QWidget):
             check_rows.append(check_row)
         self.check_table.set_rows(check_rows)
         self.check_table.set_empty_text(self.tr("还没有校验记录"))
-        self._render_government()
-
-    def _render_government(self) -> None:
-        status = self._services.reagents.government_status()
-        self.gov_badge.set_text(self.tr("接入预留"))
-        if status.enabled:
-            note = self.tr("政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。")
-        elif status.configured:
-            note = self.tr(
-                "政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。"
-            )
-        else:
-            note = self.tr(
-                "尚未配置政府溯源客户端。接口按 interfaces/traceability.py 预留，"
-                "平台规范明确后接入。"
-            )
-        self.gov_text.setText(note)
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
@@ -305,10 +260,6 @@ class ReagentsPage(QWidget):
         self.batch_table.set_columns(self._batch_columns())
         self.check_card.set_title(self.tr("校验记录"))
         self.check_table.set_columns(self._check_columns())
-        self.gov_card.set_title(self.tr("政府溯源码"))
-        self.gov_input.setPlaceholderText(self.tr("政府溯源码（接入预留）"))
-        self.gov_input.setAccessibleName(self.tr("政府溯源码"))
-        self.gov_button.setText(self.tr("上报"))
         self._render()
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802

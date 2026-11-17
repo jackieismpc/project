@@ -37,7 +37,7 @@ def audit_details(context: AppContext, action: AuditAction, actor: str) -> list[
 def test_starts_on_the_login_page_with_demo_accounts(window: MainWindow) -> None:
     assert screen_of(window) is Screen.LOGIN
     assert window.session is None
-    assert [r.account.username for r in window.login_page._demo_rows] == [
+    assert [r.account.username for r in window.login_page._account_rows] == [
         "admin",
         "experimenter",
         "analyst",
@@ -45,10 +45,10 @@ def test_starts_on_the_login_page_with_demo_accounts(window: MainWindow) -> None
     assert window.shell.toolbar.button("new_experiment").isEnabled() is False
 
 
-def test_demo_helpers_are_hidden_without_the_demo_option(
+def test_account_and_reagent_helpers_are_available_by_default(
     qapp: QApplication, app_context: AppContext, language: LanguageManager
 ) -> None:
-    """正式使用（不带 --demo）：登录页不显示演示账号，向导试剂卡不显示示例码。"""
+    """账号快捷填入和试剂示例在统一启动入口默认可用。"""
     from gelinspect.ui.pages.new_experiment import NewExperimentPage
 
     win = MainWindow(
@@ -60,20 +60,20 @@ def test_demo_helpers_are_hidden_without_the_demo_option(
     )
     win.show()
     try:
-        assert app_context.services().demo_accounts  # 账号仍然存在，只是不显示
-        assert win.login_page._demo_rows == []
+        assert app_context.services().demo_accounts
+        assert len(win.login_page._account_rows) == 3
         sign_in(qapp, win, "experimenter")
         win.navigate("new")
         settle(qapp)
         wizard = win.page("new")
         assert isinstance(wizard, NewExperimentPage)
-        assert all(not card._samples for card in wizard.reagent_cards.values())
+        assert all(card._samples for card in wizard.reagent_cards.values())
     finally:
         win.close()
 
 
-def test_demo_row_fills_the_form(window: MainWindow) -> None:
-    window.login_page._demo_rows[1].click()
+def test_account_quick_fill_fills_the_form(window: MainWindow) -> None:
+    window.login_page._account_rows[1].click()
     assert window.login_page.username.text() == "experimenter"
     assert window.login_page.password.text() == DEMO_PASSWORDS["experimenter"]
 
@@ -121,7 +121,6 @@ def test_lockout_disables_the_form_with_a_countdown(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
-        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.show()
@@ -441,7 +440,6 @@ def test_default_idle_timeout_is_fifteen_minutes(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
-        demo_helpers=True,
     )
     assert win.idle._timeout_s == 900
     win.bridge.close()
@@ -484,7 +482,6 @@ def test_setup_page_when_the_config_has_no_bootstrap_hook(
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
-        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.show()
@@ -493,7 +490,7 @@ def test_setup_page_when_the_config_has_no_bootstrap_hook(
         assert context.database.users.list_all() == []
         assert context.demo_accounts == ()
         assert screen_of(win) is Screen.SETUP
-        assert win.login_page._demo_rows == []
+        assert len(win.login_page._account_rows) == 3
         page = win.setup_page
         page.username.setText("root")
         page.password.setText("long-enough1")

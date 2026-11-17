@@ -16,7 +16,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import tempfile
 import threading
 from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager
@@ -27,6 +30,7 @@ from typing import Any, Protocol
 
 import cv2
 import numpy as np
+import yaml
 from numpy.typing import NDArray
 
 from gelinspect.domain.entities import AuditEvent
@@ -35,9 +39,10 @@ from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import ExperimentRepository, UnitOfWork
 from gelinspect.interfaces.video import VideoConfig, VideoError, VideoSource
 from gelinspect.services.auth import AuthService, Session
-from gelinspect.services.config import AppConfig, ConfigError
+from gelinspect.services.config import AppConfig, ConfigError, load_config
 from gelinspect.services.engine_types import EngineBusyError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
+from gelinspect.services.runtime_paths import runtime_selection_file
 from gelinspect.services.user_settings import (
     FIELD_NAMES,
     IMPACTING_FIELDS,
@@ -264,6 +269,152 @@ class InstrumentSettingsService:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._lock = threading.Lock()
         self._path = settings_file(base_config.data_dir)
+        self._runtime_selection_path = runtime_selection_file()
+
+    def runtime_selection(self) -> dict[str, str]:
+        """读取已暂存的启动路径；记录异常时回到当前生效配置。"""
+        try:
+            raw = json.loads(self._runtime_selection_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                raise ValueError("启动路径记录不是对象")
+            return {
+                key: str(raw.get(key, ""))
+                for key in ("config_path", "data_dir", "analysis_config_path")
+            }
+        except (OSError, ValueError, TypeError):
+            return {
+                "config_path": "",
+                "data_dir": str(self._effective.data_dir),
+                "analysis_config_path": str(self._effective.analysis.config_path or ""),
+            }
+
+    def save_runtime_selection(
+        self,
+        session: Session | None,
+        *,
+        config_path: str,
+        data_dir: str,
+        analysis_config_path: str = "",
+    ) -> None:
+        """校验并保存下次启动路径，不触碰现有数据。"""
+        user = self._auth.authorize(session, Permission.INSTRUMENT_CONFIGURE)
+        if self._engine.active_experiment_id is not None:
+            raise ServiceError("试验运行中不能切换配置或数据目录", ServiceErrorCode.SETTINGS_BUSY)
+        problems: list[str] = []
+        try:
+            config = Path(config_path).expanduser().resolve() if config_path.strip() else None
+            root = (
+                Path(data_dir).expanduser().resolve()
+                if data_dir.strip()
+                else self._effective.data_dir
+            )
+            analyzer = (
+                Path(analysis_config_path).expanduser().resolve()
+                if analysis_config_path.strip()
+                else None
+            )
+        except (OSError, RuntimeError) as error:
+            raise ServiceError(
+                f"启动路径无效：{error}", ServiceErrorCode.SETTINGS_INVALID
+            ) from error
+        if config is not None and not config.is_file():
+            problems.append("配置文件不存在或不是文件")
+        if not root.exists() or not root.is_dir():
+            problems.append("数据目录必须是已存在的文件夹")
+        else:
+            try:
+                with tempfile.NamedTemporaryFile(
+                    prefix=".gelinspect-check-", dir=root, delete=True
+                ):
+                    pass
+            except OSError:
+                problems.append("数据目录不可写，请检查文件夹权限")
+        if analyzer is not None and not analyzer.is_file():
+            problems.append("算法适配配置文件不存在或不是文件")
+        elif analyzer is not None:
+            try:
+                adapter_config = yaml.safe_load(analyzer.read_text(encoding="utf-8"))
+                if not isinstance(adapter_config, dict):
+                    problems.append("算法适配配置文件顶层必须是映射")
+            except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
+                problems.append(f"算法适配配置文件无法读取：{error}")
+        try:
+            candidate = load_config(config)
+            if analyzer is not None:
+                candidate = candidate.model_copy(
+                    update={
+                        "analysis": candidate.analysis.model_copy(update={"config_path": analyzer})
+                    }
+                )
+        except ConfigError as error:
+            problems.append(str(error))
+        if problems:
+            raise ServiceError("；".join(problems), ServiceErrorCode.SETTINGS_INVALID)
+        values = {
+            "config_path": str(config or ""),
+            "data_dir": str(root),
+            "analysis_config_path": str(analyzer or ""),
+        }
+        try:
+            self._runtime_selection_path.parent.mkdir(parents=True, exist_ok=True)
+            old = (
+                self._runtime_selection_path.read_bytes()
+                if self._runtime_selection_path.exists()
+                else None
+            )
+        except OSError as error:
+            raise ServiceError(
+                f"无法读取启动路径记录：{error}", ServiceErrorCode.SETTINGS_SAVE_FAILED
+            ) from error
+        try:
+            self._write_runtime_selection(values)
+            with self._storage.unit_of_work() as uow:
+                config_label = values["config_path"] or "默认"
+                adapter_label = values["analysis_config_path"] or "配置文件内"
+                uow.audit.append(
+                    AuditEvent(
+                        occurred_at=self._clock(),
+                        actor=user.username,
+                        actor_role=user.role,
+                        action=AuditAction.SETTINGS_CHANGED,
+                        detail=(
+                            f"修改启动配置路径：配置文件={config_label}；"
+                            f"数据目录={values['data_dir']}；算法适配配置={adapter_label}"
+                        ),
+                    )
+                )
+        except BaseException as error:
+            try:
+                if old is None:
+                    self._runtime_selection_path.unlink(missing_ok=True)
+                else:
+                    self._atomic_write(self._runtime_selection_path, old)
+            except OSError:
+                _log.exception("恢复启动路径记录失败：%s", self._runtime_selection_path)
+            if isinstance(error, OSError):
+                raise ServiceError(
+                    f"无法保存启动路径记录：{error}",
+                    ServiceErrorCode.SETTINGS_SAVE_FAILED,
+                ) from error
+            raise
+
+    def _write_runtime_selection(self, values: Mapping[str, str]) -> None:
+        self._atomic_write(
+            self._runtime_selection_path,
+            (json.dumps(values, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+        )
+
+    @staticmethod
+    def _atomic_write(path: Path, content: bytes) -> None:
+        fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
 
     # ------------------------------------------------------------------ 查看
 

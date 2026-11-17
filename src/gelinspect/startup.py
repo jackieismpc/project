@@ -1,7 +1,7 @@
 """图形界面的启动流程：日志、语言、主题、组装依赖、主窗口、有序退出。
 
-``uv run gelinspect`` 不带参数就走这里。首次启动自动创建 ``data/``（数据库、日志），
-运行迁移并初始化，默认加载 ``simulation/`` 后端。任何启动失败都弹出说明原因的对话框
+``uv run gelinspect`` 不带参数就走这里。首次启动自动创建数据目录，运行迁移并初始化。
+任何启动失败都弹出说明原因的对话框
 并写日志，不会只有 traceback。
 """
 
@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml
 from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
 from PySide6.QtWidgets import QApplication, QWidget
 from sqlalchemy.exc import SQLAlchemyError
@@ -53,6 +54,7 @@ from gelinspect.services.runtime_paths import (
     build_info,
     default_data_dir,
     run_mode,
+    runtime_selection_file,
 )
 
 EXIT_OK = 0
@@ -107,7 +109,7 @@ def describe_startup_error(error: BaseException, config: AppConfig | None = None
             QCoreApplication.translate("Startup", "配置有误，无法启动"),
             QCoreApplication.translate(
                 "Startup",
-                "{error}\n\n请修改配置文件后重新启动；不带 --config 参数启动会使用默认的模拟配置。",
+                "{error}\n\n请修改配置文件后重新启动。",
             ).format(error=error),
             details,
             EXIT_CONFIG,
@@ -225,6 +227,44 @@ def resolve_log_dir(config: AppConfig | None) -> Path:
     return base / "logs"
 
 
+def resolve_runtime_paths(
+    config_path: Path | None,
+    data_dir: Path | None,
+    *,
+    selection_file: Path | None = None,
+) -> tuple[Path | None, Path | None, Path | None]:
+    """解析 UI 暂存启动路径；命令行/环境传入值优先，坏记录整体忽略。"""
+    selected_analysis: Path | None = None
+    try:
+        selection = json.loads(
+            (selection_file or runtime_selection_file()).read_text(encoding="utf-8")
+        )
+        if not isinstance(selection, dict):
+            raise ValueError("启动路径记录不是对象")
+        selected_config = config_path or (
+            Path(selection["config_path"]) if selection.get("config_path") else None
+        )
+        selected_data = data_dir or (
+            Path(selection["data_dir"]) if selection.get("data_dir") else None
+        )
+        if selected_data is not None and not selected_data.is_dir():
+            raise ConfigError(f"数据目录不存在：{selected_data}")
+        candidate = load_config(selected_config)
+        if selected_data is not None:
+            candidate = candidate.model_copy(update={"data_dir": selected_data})
+        del candidate
+        if selection.get("analysis_config_path") and config_path is None:
+            selected_analysis = Path(selection["analysis_config_path"])
+            if not selected_analysis.is_file():
+                raise ConfigError(f"检测配置文件不存在：{selected_analysis}")
+            if not isinstance(yaml.safe_load(selected_analysis.read_text(encoding="utf-8")), dict):
+                raise ConfigError("检测配置文件顶层必须是映射")
+        return selected_config, selected_data, selected_analysis
+    except (OSError, ValueError, KeyError, TypeError, ConfigError, yaml.YAMLError) as error:
+        _log.warning("忽略无效的界面启动路径设置：%s", error)
+        return config_path, data_dir, None
+
+
 def _start_logging(log_dir: Path) -> Path | None:
     try:
         return configure_logging(log_dir)
@@ -242,19 +282,17 @@ def run_gui(
     config_path: Path | None = None,
     data_dir: Path | None = None,
     smoke_test: bool = False,
-    demo: bool = False,
     present_error: ErrorPresenter | None = None,
     app: QApplication | None = None,
 ) -> int:
     """启动图形界面并运行到退出。
 
     Args:
-        config_path: 配置文件，None 时仓库模式用默认的模拟配置，发布模式用数据目录里的
+        config_path: 配置文件，None 时读取当前启动配置或发布包内的
             ``config.yaml`` 或发布包内的默认配置。
         data_dir: 覆盖配置里的数据目录（``--data-dir``）；None 时看环境变量
             ``GELINSPECT_DATA_DIR``。
         smoke_test: 冒烟测试：完整启动、登录、切换语言、关窗退出，不进入事件循环。
-        demo: 显示演示账号和示例码（``--demo``），正式使用时不显示。
         present_error: 显示启动失败的函数，默认弹出错误对话框；冒烟测试不弹窗，只打印到 stderr。
         app: 已有的 ``QApplication``（测试传入）；None 时自己创建。
 
@@ -265,6 +303,7 @@ def run_gui(
     config_error: ConfigError | None = None
     if data_dir is None and os.environ.get(DATA_DIR_ENV):
         data_dir = Path(os.environ[DATA_DIR_ENV]).expanduser()
+    config_path, data_dir, selected_analysis_config = resolve_runtime_paths(config_path, data_dir)
     if run_mode() is RunMode.PACKAGED:
         # 发布包里 .py 迁移脚本由 Alembic 按文件加载：不要往程序目录写 __pycache__。
         sys.dont_write_bytecode = True
@@ -275,6 +314,16 @@ def run_gui(
         config = load_config(config_path)
         if data_dir is not None:
             config = config.model_copy(update={"data_dir": data_dir})
+        if selected_analysis_config is not None:
+            if not selected_analysis_config.is_file():
+                raise ConfigError(f"算法配置文件不存在：{selected_analysis_config}")
+            config = config.model_copy(
+                update={
+                    "analysis": config.analysis.model_copy(
+                        update={"config_path": selected_analysis_config}
+                    )
+                }
+            )
     except ConfigError as exc:
         config_error = exc
     log_dir = (
@@ -284,7 +333,7 @@ def run_gui(
     _log.info(
         "GelInspect 启动 mode=%s config=%s smoke=%s",
         run_mode().value,
-        config_path or default_config_file() or "<内置模拟配置>",
+        config_path or default_config_file() or "<默认配置>",
         smoke_test,
     )
 
@@ -344,7 +393,6 @@ def run_gui(
             language,
             shell_settings=MemoryShellSettings() if smoke_test else None,
             animations_enabled=not smoke_test,
-            demo_helpers=demo,
         )
         window.show()
         if smoke_test:
@@ -457,9 +505,7 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
     result: dict[str, object] = {
         "mode": run_mode().value,
         "app_root": str(app_root()),
-        "build": None
-        if info is None
-        else {"version": info.version, "build_id": info.build_id, "variant": info.variant},
+        "build": None if info is None else {"version": info.version, "build_id": info.build_id},
         "default_data_dir": str(default_data_dir()),
         "config_file": str(config_path or default_config_file() or "<DEFAULT_CONFIG>"),
         "simulation_importable": importlib.util.find_spec("simulation") is not None,
@@ -512,7 +558,7 @@ def _install_sigint(app: QApplication) -> None:
 
 
 def run_smoke_checks(app: QApplication, window: QWidget, language: object) -> None:
-    """冒烟检查：登录演示账号、浏览全部页面、切换语言。失败抛出 ``RuntimeError``。
+    """冒烟检查：登录初始化账号、浏览全部页面、切换语言。失败抛出 ``RuntimeError``。
 
     Args:
         app: 应用对象。
@@ -543,7 +589,7 @@ def run_smoke_checks(app: QApplication, window: QWidget, language: object) -> No
     login.password.setText(account.password)
     login.submit_button.click()
     app.processEvents()
-    check(window.current_screen is Screen.SHELL, "登录演示账号失败")
+    check(window.current_screen is Screen.SHELL, "登录初始化账号失败")
     check(window.session is not None, "登录后没有会话")
     for route in PAGE_ROUTES:
         window.navigate(route.key)

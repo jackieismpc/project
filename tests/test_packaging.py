@@ -1,4 +1,4 @@
-"""发布包相关：运行模式与路径、发布包默认配置（无模拟、无演示账号）、启动时完整性校验。"""
+"""发布包相关：运行模式与路径、单一发布包配置和运行时路径、启动时完整性校验。"""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ def test_packaged_mode_uses_the_platform_directory_and_can_be_overridden(tmp_pat
 
 
 def fake_packaged(monkeypatch: pytest.MonkeyPatch, app: Path, data: Path) -> None:
-    info = BuildInfo("0.1.0", "test", "release", "00" * 32)
+    info = BuildInfo("0.1.0", "test", "00" * 32)
     monkeypatch.setattr(runtime_paths, "build_info", lambda: info)
     monkeypatch.setattr(config_module, "run_mode", lambda: RunMode.PACKAGED)
     monkeypatch.setattr(config_module, "app_root", lambda mode=None: app)
@@ -120,10 +120,17 @@ def test_packaged_mode_reads_the_bundled_config_and_prefers_the_deployers_copy(
     app, data = tmp_path / "app", tmp_path / "AppData" / "GelInspect"
     (app / "config").mkdir(parents=True)
     (app / "config" / "gelinspect.yaml").write_text(RELEASE_CONFIG.read_text(encoding="utf-8"))
+    simulation = app / "simulation"
+    simulation.mkdir()
+    (simulation / "analyzer.example.yaml").write_text(
+        (ROOT / "simulation" / "analyzer.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
     fake_packaged(monkeypatch, app, data)
     bundled = load_config()
     assert bundled.data_dir == data  # 没写 data_dir：平台标准位置
-    assert bundled.bootstrap.hook is None and "simulation" not in bundled.device.backend
+    assert bundled.bootstrap.hook == "simulation.demo_accounts:DemoAccounts"
+    assert bundled.device.backend == "simulation.sim_device:SimDevice"
     data.mkdir(parents=True)
     custom = yaml.safe_load(RELEASE_CONFIG.read_text(encoding="utf-8"))
     custom["instrument_no"] = "GI-DEPLOYED"
@@ -134,33 +141,44 @@ def test_packaged_mode_reads_the_bundled_config_and_prefers_the_deployers_copy(
 def test_relative_data_dir_still_resolves_against_the_base_directory(tmp_path: Path) -> None:
     data = yaml.safe_load(RELEASE_CONFIG.read_text(encoding="utf-8"))
     data["data_dir"] = "mydata"
+    data["analysis"]["config_path"] = None
     assert parse_config(data, base_dir=tmp_path).data_dir == tmp_path / "mydata"
 
 
 # ---------------------------------------------------------------- 发布包默认配置
 
 
-def test_release_config_has_no_simulation_and_no_demo_accounts(tmp_path: Path) -> None:
+def test_default_config_has_fixed_backends_and_initial_accounts(tmp_path: Path) -> None:
     text = RELEASE_CONFIG.read_text(encoding="utf-8")
-    assert "simulation" not in yaml.safe_load(text).__repr__()
+    assert "simulation" in yaml.safe_load(text).__repr__()
     config = load_config(release_config(tmp_path))
-    assert config.bootstrap.hook is None
+    assert config.bootstrap.hook == "simulation.demo_accounts:DemoAccounts"
+    assert config.analysis.config_path is not None
+    assert (
+        yaml.safe_load(config.analysis.config_path.read_text(encoding="utf-8"))["scripted"] is True
+    )
     assert config.security.key_protection == "auto" and config.security.integrity_check
     assert not config.exports.encrypt and not config.license.enabled
     context = build_app_context(config)
     try:
-        assert context.demo_accounts == ()
-        assert context.database.users.list_all() == []  # 首次启动：创建管理员
+        assert len(context.demo_accounts) == 3
+        assert {user.username for user in context.database.users.list_all()} == {
+            "admin",
+            "experimenter",
+            "analyst",
+        }
         status = context.device.read_status()
-        assert not status.connected
+        assert not status.connected  # 启动流程后才连接设备接口
         assert context.license is not None and not context.license.enabled
     finally:
         context.close()
 
 
-def test_release_config_starts_into_create_admin(qapp: QApplication, tmp_path: Path) -> None:
+def test_default_config_starts_with_initialized_accounts(
+    qapp: QApplication, tmp_path: Path
+) -> None:
     code = startup.run_gui(config_path=release_config(tmp_path), smoke_test=True, app=qapp)
-    assert code == EXIT_OK  # 冒烟检查要求显示“创建管理员”页
+    assert code == EXIT_OK  # 冒烟检查使用初始化账号完成登录流程
 
 
 def test_unconfigured_backends_fail_clearly_instead_of_faking_results() -> None:
@@ -196,7 +214,7 @@ def make_release_dir(root: Path) -> str:
     (root / "translations").mkdir()
     (root / "translations" / "gelinspect_en.qm").write_bytes(b"qm")
     key = Ed25519PrivateKey.generate()
-    build_manifest(root, key, version="0.1.0", build_id="t", variant="release")
+    build_manifest(root, key, version="0.1.0", build_id="t")
     return (
         key.public_key()
         .public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
@@ -209,7 +227,7 @@ def test_packaged_integrity_failure_is_audited_and_shown(
 ) -> None:
     app = tmp_path / "app"
     public = make_release_dir(app)
-    info = BuildInfo("0.1.0", "t", "release", public)
+    info = BuildInfo("0.1.0", "t", public)
     monkeypatch.setattr(startup, "build_info", lambda: info)
     monkeypatch.setattr(startup, "app_root", lambda mode=None: app)
     config = load_config(release_config(tmp_path))

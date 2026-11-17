@@ -12,7 +12,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测的上位机软件：试验管理、视频采集、算法判读、复核与报告。</source>
+        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -45,18 +45,6 @@
     </message>
     <message>
         <source>日志目录</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>设备后端</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>视频源</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>算法后端</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -107,19 +95,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>算法分析失败，该排转人工复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>算法结果不符合接口约定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>恢复请求被拒绝</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>算法线程未在时限内退出，它会在算法返回后自行结束</source>
+        <source>检测未能完成，该排请进行人工复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测未能完成，请检查检测条件后重试；如问题持续，请联系管理员</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测任务仍在处理中，请稍后查看状态</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1813,7 +1801,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>演示账号（模拟配置，点击填入）</source>
+        <source>账号快捷填入</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2603,10 +2591,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>查看仪器设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>查看试剂记录</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2627,7 +2611,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>修改仪器设置</source>
+        <source>查看设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2820,7 +2808,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仪器设置</source>
+        <source>设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2907,7 +2895,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>点击填入并校验这个示例码</source>
+        <source>点击填入并校验此扫码内容</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3150,22 +3138,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>接入预留</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>尚未配置政府溯源客户端。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>试剂溯源</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3195,18 +3167,6 @@
     </message>
     <message>
         <source>校验记录</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>政府溯源码</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>政府溯源码（接入预留）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>上报</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3787,7 +3747,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仪器设置</source>
+        <source>设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4072,19 +4032,7 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <source>第一次试验后显示</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>配置文件里的视频源：{source}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>只读</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4132,6 +4080,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>选择数据目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择配置文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配置文件 (*.yaml *.yml);;所有文件 (*)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动配置无法保存：{reason}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>正在读取……</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4160,14 +4128,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>改动保存在数据目录的用户配置里，对之后启动的试验生效</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>仪器与数据</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4181,14 +4141,6 @@
     </message>
     <message>
         <source>视频输入</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>算法后端</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4220,23 +4172,43 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>运行参数改动对之后启动的试验生效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动配置与数据目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数据目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测配置文件（可选）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存启动配置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>预览</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>工业相机：型号确定后接入。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>后端</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>模型版本</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>配置版本</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4365,7 +4337,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仪器设置</source>
+        <source>设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4479,7 +4451,7 @@
     <message>
         <source>{error}
 
-请修改配置文件后重新启动；不带 --config 参数启动会使用默认的模拟配置。</source>
+请修改配置文件后重新启动。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4901,19 +4873,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>算法：{algo} → 人工：{human}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>已人工复核，以人工结论为准；算法原始结果保留</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>算法结果 · 需要人工复核后才能签署</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>算法结果 · {v}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5022,6 +4982,18 @@
     </message>
     <message>
         <source>融合评分 Score</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测结果：{algo} · 复核结论：{human}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测结果 · 需要人工复核后才能签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>检测结果 · {v}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5365,20 +5337,20 @@
     </message>
 </context>
 <context>
-    <name>_AuthFrame</name>
+    <name>_AccountRow</name>
     <message>
-        <source>凝胶智检系统</source>
+        <source>点击填入账号和密码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>账号 {user}，{role}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>_DemoRow</name>
+    <name>_AuthFrame</name>
     <message>
-        <source>点击填入登录框</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>演示账号 {user}，{role}</source>
+        <source>凝胶智检系统</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

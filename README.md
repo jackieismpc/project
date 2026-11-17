@@ -18,13 +18,7 @@ uv run gelinspect
 
 ### 启动方式
 
-| 模式 | 命令 | 说明 |
-|---|---|---|
-| 演示模式 | `uv run gelinspect --demo` | 模拟设备、模拟视频和模拟判读（时间加速 60 倍）；登录页列出演示账号，试剂卡有示例码，点一下即可填入 |
-| 模拟运行（正式界面） | `uv run gelinspect` | 与演示模式用同一套模拟后端和演示账号，但界面和正式软件一样：不列出演示账号，不显示示例码，账号密码和试剂码要手动输入 |
-| 正式模式 | `uv run gelinspect --config packaging/config/release.yaml --data-dir data-formal` | 正式配置：没有演示账号，首次启动要求“创建管理员”；设备、相机和判读算法是“未接入”占位，接入真实后端前能登录、管理数据，但不能启动试验 |
-
-演示账号（演示模式和模拟运行都有）：
+软件统一使用 `uv run gelinspect` 启动，账号快捷填入和试剂码示例默认可用。首次启动账号为：
 
 | 用户名 | 密码 | 角色 |
 |---|---|---|
@@ -34,11 +28,11 @@ uv run gelinspect
 
 权限已调整为开发人员、管理员、普通用户三类，普通用户由管理员在“用户管理”组合选择六组授权。实验与结果处理组包含配置、启动、停止、异常恢复、人工复核和报告签署。开发账号无默认密码，通过受控工具初始化；详见[三类账号与六组授权](docs/features/flexible-permissions.md)。本开发版本不迁移旧权限数据库，请使用空数据目录。
 
-账号定义在 `simulation/demo_accounts.py`，由配置里的 `bootstrap.hook` 引用，只在数据库里还没有账号时创建；已有的数据目录保留当时的密码。**正式配置不写这一项**：首次启动时界面会要求创建管理员并设置密码，数据库里不会有任何默认密码。
+账号只在数据目录首次初始化时创建，已有数据目录保留原有账号和密码。
 
 其他说明：
 
-- 首次启动自动创建数据目录（仓库里是 `./data`，正式模式是 `--data-dir` 指定的目录），运行数据库迁移并初始化。
+- 首次启动自动创建数据目录（仓库运行时是 `./data`，发布包使用平台标准位置或 `--data-dir` 指定的位置），运行数据库迁移并初始化。
 - **数据存储**：试验、单管结果、复核、结论、试剂校验、报告记录、审计追踪、温度和设备日志全部存在数据目录下的一个 SQLite 数据库（`gelinspect.db`）。图像、录像和签署的 PDF 是文件，数据库里登记路径和 SHA-256。仪器设置写在数据目录的 `config.yaml`，界面语言和侧栏偏好由系统保存。
 - 界面语言：简体中文、繁体中文（台湾用语）和英文，随时在顶部状态栏的语言菜单或登录页切换，立即生效并记住选择；系统语言是繁体中文时默认用繁体。报告（PDF）和 Excel 导出也支持三种语言。
 - 空闲 15 分钟自动锁屏（试验在后台继续），可在配置里改。切换账号不需要重启：点右上角用户名选“退出登录”，再用另一个账号登录。
@@ -51,7 +45,7 @@ uv run gelinspect --data-dir 目录    # 指定数据目录
 uv run gelinspect --version          # 只打印版本号
 ```
 
-启动失败（配置有误、`simulation/` 缺失、数据库被占用等）会弹出说明原因的对话框，并写入 `data/logs/gelinspect.log`（滚动，单个 1 MB，保留 5 份）。部署和配置细节见 [部署说明](docs/deployment.md)。
+启动失败（配置有误、必要资源缺失、数据库被占用等）会弹出说明原因的对话框，并写入 `data/logs/gelinspect.log`（滚动，单个 1 MB，保留 5 份）。部署和配置细节见 [部署说明](docs/deployment.md)。
 
 > 开发计划见 [docs/PLAN.md](docs/PLAN.md)；日常使用见 [用户手册](docs/user-manual.md)；Windows 和 macOS 发布包见下文“发布包”。
 
@@ -60,8 +54,7 @@ uv run gelinspect --version          # 只打印版本号
 不想装 uv 的使用者用发布包：Nuitka 编译、目录模式，不依赖仓库。
 
 ```bash
-uv run python scripts/build.py                    # 正式包：不含 simulation/，首次启动“创建管理员”
-uv run python scripts/build.py --with-simulation  # 演示包：模拟后端 + 演示账号
+uv run python scripts/build.py                    # Windows 或 macOS 单一发布包
 ```
 
 - macOS 生成 `dist/GelInspect.app` 和 `.dmg`（没有 Apple 签名，首次打开要右键“打开”放行）；Windows 生成 `dist\GelInspect\GelInspect.exe` 和 `.zip`，可选 Inno Setup 安装程序。Windows 包也可以用 GitHub Actions（`.github/workflows/build.yml`）构建。
@@ -102,7 +95,7 @@ uv sync --extra inference
 | 路径 | 说明 |
 |---|---|
 | `src/gelinspect/` | 应用源码，分为 ui、services、domain、interfaces、infrastructure 五层 |
-| `simulation/` | 模拟数据与模拟实现，与主代码隔离 |
+| `simulation/` | 固定可重复的内部试验结果实现 |
 | `tests/` | 自动化测试 |
 | `docs/` | 计划、架构、功能文档与用户手册 |
 | `translations/` | 界面翻译源文件（`.ts`）；`.qm` 在启动时自动生成，不纳入版本库 |

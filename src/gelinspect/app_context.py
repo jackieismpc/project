@@ -111,7 +111,7 @@ class AppContext:
         exports: Excel 导出服务。
         settings: 仪器设置服务。
         base_config: 没有叠加用户设置的默认配置。
-        demo_accounts: 初始化钩子提供的演示账号，没有钩子时为空。
+        demo_accounts: 初始化钩子提供的账号快捷填入信息，没有钩子时为空。
         first_run: 本次是否为首次启动（用户表原本为空）。
         key_protector: 签名私钥和审计链密钥的保护方式。
         audit_keys: 启动时启用审计链 HMAC 的结果。

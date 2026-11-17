@@ -671,7 +671,7 @@ class TubeDetailPage(QWidget):
         if reviewed is not None:
             self.mark.set_state(interpretation_state(reviewed))
             self.verdict_title.setText(
-                self.tr("算法：{algo} → 人工：{human}").format(
+                self.tr("检测结果：{algo} · 复核结论：{human}").format(
                     algo=algorithm, human=interpretation_label(reviewed)
                 )
             )
@@ -680,9 +680,9 @@ class TubeDetailPage(QWidget):
             self.mark.set_state(interpretation_state(result.auto_interpretation))
             self.verdict_title.setText(algorithm)
             if result.needs_review:
-                sub = self.tr("算法结果 · 需要人工复核后才能签署")
+                sub = self.tr("检测结果 · 需要人工复核后才能签署")
             else:
-                sub = self.tr("算法结果 · {v}").format(
+                sub = self.tr("检测结果 · {v}").format(
                     v=interpretation_label(result.auto_interpretation)
                 )
             self.verdict_sub.setText(sub)

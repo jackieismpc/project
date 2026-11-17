@@ -224,9 +224,7 @@ class UserService:
                 existing = uow.users.get_by_username(name)
                 if existing is not None:
                     if existing.role is Role.DEVELOPER:
-                        raise ServiceError(
-                            "登录名不可用", ServiceErrorCode.USER_NOT_FOUND
-                        )
+                        raise ServiceError("登录名不可用", ServiceErrorCode.USER_NOT_FOUND)
                     raise DuplicateError(name)
                 uow.users.add(
                     user, password_hash=self._auth.hash_password(initial), must_change_password=True

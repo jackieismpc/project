@@ -336,7 +336,7 @@ def test_window_texts_switch_to_traditional_chinese_immediately(
     assert page.submit_button.text() == "登入"
     assert page._user_label.text() == "使用者名稱"
     assert page._password_label.text() == "密碼"
-    assert page._demo_rows[0].role.text() == "管理員"
+    assert page._account_rows[0].role.text() == "管理員"
     assert window.windowTitle() == "凝膠智檢系統 GelInspect"
     sign_in(qapp, window, "experimenter")
     toolbar = window.shell.toolbar
@@ -383,6 +383,4 @@ def test_alerts_templates_and_dialogs_have_traditional_text(
     assert translate("Startup", "配置有误，无法启动") == "設定有誤，無法啟動"
     assert translate("Startup", "数据库被占用") == "資料庫被佔用"
     assert translate("ErrorDialog", "技术细节") == "技術細節"
-    assert (
-        translate("LoginPage", "演示账号（模拟配置，点击填入）") != "演示账号（模拟配置，点击填入）"
-    )
+    assert translate("LoginPage", "账号快捷填入") != "账号快捷填入"

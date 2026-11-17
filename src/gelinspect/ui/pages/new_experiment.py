@@ -109,8 +109,6 @@ class NewExperimentPage(QWidget):
         services: AppServices,
         bridge: EngineBridge,
         parent: QWidget | None = None,
-        *,
-        demo_helpers: bool = False,
     ) -> None:
         """创建向导页。
 
@@ -118,11 +116,9 @@ class NewExperimentPage(QWidget):
             services: 界面服务。
             bridge: 引擎事件桥，用来得知启动成功或失败。
             parent: 父控件。
-            demo_helpers: 是否在试剂卡上显示示例码（启动参数 ``--demo``）。
         """
         super().__init__(parent)
         self._services = services
-        self._demo_helpers = demo_helpers
         self._session: Session | None = None
         self._draft = ExperimentDraft()
         self._templates: list[TemplateInfo] = []
@@ -489,7 +485,7 @@ class NewExperimentPage(QWidget):
             return
         self._load_templates()
         for kind, card in self.reagent_cards.items():
-            samples = self._services.reagents.sample_codes(kind) if self._demo_helpers else []
+            samples = self._services.reagents.sample_codes(kind)
             card.set_samples(samples)
         self._render()
 

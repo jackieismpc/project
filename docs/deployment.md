@@ -17,8 +17,8 @@
 | 数据目录 | 仓库下的 `data/`（配置 `data_dir`、`--data-dir` 或环境变量 `GELINSPECT_DATA_DIR` 可改），首次启动自动创建 |
 | 数据库 | `data/gelinspect.db`（SQLite，WAL），启动时自动运行迁移；数据库比程序新则拒绝启动并说明 |
 | 日志 | `data/logs/gelinspect.log`，滚动，单个 1 MB，保留 5 份 |
-| 后端 | 加载 `simulation/` 下的模拟设备、视频和算法，时间加速 60 倍 |
-| 账号 | 首次启动创建三个演示账号，见 README |
+| 后端 | 依据当前配置运行流程 |
+| 账号 | 新数据目录使用 README 所列的快捷填入账号；已有数据目录保留原账号 |
 | 密钥 | `data/keys/`：签名证书和私钥、审计链密钥。macOS 能访问钥匙串时用钥匙串保护，否则用安装密钥（见 security.md） |
 | 完整性校验 | 开发模式没有清单，跳过并在日志里写明 |
 | 界面设置 | 语言和侧栏模式保存在 `QSettings`（macOS 在 `~/Library/Preferences`，Windows 在注册表 `HKEY_CURRENT_USER\Software\GelInspect`） |
@@ -29,18 +29,16 @@
 
 ```bash
 uv sync                                          # 含开发依赖组里的 Nuitka
-uv run python scripts/build.py                   # 正式包：不含 simulation/，无演示账号
-uv run python scripts/build.py --with-simulation # 演示包：带模拟后端和演示账号
+uv run python scripts/build.py                   # 当前唯一发布包
 ```
 
 | 选项 | 说明 |
 |---|---|
-| `--with-simulation` | 演示包。**正式包默认排除 `simulation/`**（不跟随导入，并检查编译报告里没有它的模块） |
 | `--manifest-key KEY.pem` | 文件清单的 Ed25519 签名私钥；默认每次构建临时生成、不落盘（也可用环境变量 `GELINSPECT_MANIFEST_KEY`） |
 | `--jobs N` | 并行编译数，默认 CPU 核数 |
 | `--no-archive` | 只生成 `.app` 或目录，不打 dmg/zip |
 
-构建过程：生成构建信息（版本、构建标识、清单公钥，编译进主程序）→ `lrelease` 生成 `.qm` → Nuitka 编译（约 5 分钟）→ 复制数据文件（迁移脚本、翻译、默认配置、演示包的模拟算法配置）→ 写第三方许可声明 → 检查变体 → 生成并签名文件清单 →（macOS）ad-hoc 签名 → 打包 → `dist/build-report-<变体>.json`（体积、耗时、SHA-256）。
+构建过程：生成构建信息（版本、构建标识、清单公钥，编译进主程序）→ `lrelease` 生成 `.qm` → Nuitka 编译（约 5 分钟）→ 复制数据文件（迁移脚本、翻译、默认配置及运行资源）→ 写第三方许可声明 → 检查构建资源 → 生成并签名文件清单 →（macOS）ad-hoc 签名 → 打包 → `dist/build-report.json`（体积、耗时、SHA-256）。
 
 发布包内容（程序目录）：
 
@@ -49,8 +47,8 @@ uv run python scripts/build.py --with-simulation # 演示包：带模拟后端�
 | 主程序 | macOS `GelInspect.app/Contents/MacOS/gelinspect-app`；Windows `GelInspect\GelInspect.exe` |
 | `gelinspect/` | 字体（OFL）、Lucide 图标（ISC）、数据库迁移脚本（`.py`，Alembic 按文件加载） |
 | `translations/` | `.ts` 和构建时生成的 `.qm` |
-| `config/gelinspect.yaml` | 默认配置：正式包是“未接入”占位后端；演示包是模拟后端 + 演示账号 |
-| `config/config.example.yaml` | 正式配置的样例 |
+| `config/gelinspect.yaml` | 发布包默认配置 |
+| `config/config.example.yaml` | 默认配置样例 |
 | `licenses/` | `THIRD_PARTY_NOTICES.txt`（全部运行时依赖的版本、许可证和许可文本）、`LGPL-3.0.txt`、`GPL-3.0.txt`、`LGPL-NOTICE.md`、字体 OFL、Lucide ISC、Nuitka 运行库例外、CPython 的 PSF 许可（`Python-LICENSE.txt`） |
 | `gelinspect-manifest.json` / `.sig` | 文件清单和签名，启动时校验 |
 | `PySide6/`、`cv2/`、`lib*.dylib` 等 | Qt、OpenCV（含 FFmpeg）等动态库，可替换 |
@@ -62,7 +60,6 @@ uv run python scripts/build.py --with-simulation # 演示包：带模拟后端�
 ```bash
 uv sync
 uv run python scripts/build.py                    # → dist/GelInspect.app、dist/GelInspect-<版本>-macos-arm64.dmg
-uv run python scripts/build.py --with-simulation  # → dist/GelInspect Demo.app、…-demo.dmg
 ```
 
 - 产物是 `.app`，再用 `hdiutil` 打成 `.dmg`（`hdiutil` 不可用时打 `.zip`）。只构建本机架构（Apple 芯片为 arm64）；Intel Mac 需要在 Intel Mac 上构建。
@@ -73,19 +70,7 @@ uv run python scripts/build.py --with-simulation  # → dist/GelInspect Demo.app
 - 需要正式分发时，用 Developer ID 证书签名并公证（Nuitka 的 `--macos-sign-identity`、`--macos-sign-notarization`），本仓库没有证书。
 - 在禁止写 `/var/folders` 的受限沙盒里构建会因为 `xcrun` 不能写缓存而失败，要在普通终端里运行。Nuitka 自动下载的 ccache 是 x86_64 版，在 Apple 芯片上会让 `xcrun` 失败，所以 PATH 里没有 `ccache` 时脚本会关掉它（`brew install ccache` 后可加快重复构建）。
 
-**macOS 实测**（2026-11-06，Apple 芯片 arm64，macOS 27，Nuitka 4.3.4，Python 3.11.15，`--jobs` 默认）：
-
-| 项 | 正式包 | 演示包 |
-|---|---|---|
-| 构建耗时（全部 / 其中 Nuitka 编译） | 304 s / 294 s | 298 s / 290 s |
-| `.app` 体积 | 387 MB（370 MiB） | 388 MB（370 MiB） |
-| `.dmg` 体积 | 149 MB | 150 MB |
-| 清单文件数、启动时校验耗时 | 245 个、0.10 s | 246 个、0.10 s |
-| `--smoke-test`（全新数据目录） | 返回 0，约 1.0 s；进入“创建管理员”，用户表为空 | 返回 0，约 1.6 s；三个演示账号，登录、浏览全部页面、切换英文 |
-| `--diagnose` | `simulation_importable: false`；编译报告里 0 个 `simulation` 模块 | `simulation_importable: true` |
-| 改动包内一个 `.qm` 后 | `--diagnose` 报 `mismatch` 并列出文件；`--smoke-test` 返回 1；审计里有 `integrity_checked` | — |
-| 钥匙串 | 普通终端：密钥以 `GIKP1:keychain:` 保存；受限沙盒里写钥匙串被拒，自动回退到安装密钥 | 同左 |
-
+此前的双制品构建测量属于历史记录，不代表当前单一路径的构建结果。
 ### 2.2 Windows
 
 **开发机只有 macOS，Windows 包没有在本机构建或运行过**，需要在 Windows 上按下面的步骤实测。也可以用 GitHub Actions（见 2.3）。
@@ -95,7 +80,6 @@ uv run python scripts/build.py --with-simulation  # → dist/GelInspect Demo.app
 ```powershell
 uv sync
 uv run python scripts/build.py                    # → dist\GelInspect\GelInspect.exe、dist\GelInspect-<版本>-windows-x64.zip
-uv run python scripts/build.py --with-simulation  # → dist\GelInspect-Demo\…
 dist\GelInspect\GelInspect.exe --diagnose          # 运行模式、数据目录、完整性校验
 dist\GelInspect\GelInspect.exe --smoke-test --data-dir %TEMP%\gi-smoke   # 返回码 0
 ```
@@ -108,26 +92,15 @@ dist\GelInspect\GelInspect.exe --smoke-test --data-dir %TEMP%\gi-smoke   # 返�
 
 生成 `dist\GelInspect-<版本>-windows-setup.exe`：按当前用户安装到 `%LOCALAPPDATA%\Programs\GelInspect`，不需要管理员权限；卸载不删除数据目录。没有代码签名证书，SmartScreen 会提示“Windows 已保护你的电脑”，点“更多信息 → 仍要运行”。
 
-Windows 验证清单：zip 解压后双击能打开；正式包首次显示“创建管理员”；演示包三个演示账号能登录；切换英文；`%LOCALAPPDATA%\GelInspect` 下有数据库、日志、`keys\`（私钥以 `GIKP1:dpapi:` 开头）；`uv run pytest tests/infrastructure/security` 在 Windows 上会运行 DPAPI 测试；改动程序目录里任一 `.dll` 后启动出现“程序文件校验未通过”。
+Windows 验证清单：zip 解压后双击能打开；测试账号能登录；切换英文；`%LOCALAPPDATA%\GelInspect` 下有数据库、日志、`keys\`（私钥以 `GIKP1:dpapi:` 开头）；`uv run pytest tests/infrastructure/security` 在 Windows 上会运行 DPAPI 测试；改动程序目录里任一 `.dll` 后启动出现“程序文件校验未通过”。
 
 ### 2.3 GitHub Actions
 
-`.github/workflows/build.yml`：在 `windows-latest` 和 `macos-latest` 上各构建正式包和演示包，先跑 ruff 和 mypy，构建后运行 `--diagnose` 和 `--smoke-test`，Windows 正式包另外尝试 Inno Setup，最后上传 `dist/` 里的 zip、dmg、安装程序和构建报告。手动触发（Actions → build → Run workflow）或推送 `v*` 标签时运行。仓库目前只在本地提交，推送到 GitHub 后才能使用。
+`.github/workflows/build.yml`：在 `windows-latest` 和 `macos-latest` 上各构建唯一发布包，先跑 ruff 和 mypy，构建后运行 `--diagnose` 和 `--smoke-test`，Windows 另外尝试 Inno Setup，最后上传 `dist/` 里的 zip、dmg、安装程序和构建报告。手动触发（Actions → build → Run workflow）或推送 `v*` 标签时运行。仓库目前只在本地提交，推送到 GitHub 后才能使用。
 
 ## 3. 首次运行
 
-| 包 | 首次启动 |
-|---|---|
-| 正式包 | 显示“**创建管理员**”页，由部署人员设置管理员密码；数据库里没有任何默认账号。设备、相机、算法尚未接入时用“未接入”占位后端：仪器状态显示未连接，启动试验会明确报错（不会产生假结果），用户、模板、历史、审计、设置都能用 |
-| 演示包 | 与 `uv run gelinspect` 相同：模拟后端、三个公开密码的演示账号。**不要用于真实检测** |
-
-接入真实后端：不要改程序目录里的 `config/gelinspect.yaml`（会触发完整性告警），而是把完整配置写到**数据目录下的 `config.yaml`**（格式见程序目录的 `config/config.example.yaml` 和 `simulation/config.example.yaml`），或启动时 `--config` 指定。配置要点：
-
-- `analysis.backend`、`video.source`、`device.backend` 改成真实实现的类路径；不要写 `bootstrap`（不要演示账号）。
-- `security`：`idle_lock_minutes`（15）、`max_login_attempts`（5）、`lockout_minutes`（5）、`key_protection`（`auto`/`os`/`file`）、`integrity_check`（true）。
-- `exports.encrypt`：敏感导出是否默认加密（也可在仪器设置里开）。
-- `license.enabled`：授权检查，默认 false（只留接口，见 security.md）。
-- 后端加载失败时报错并说明改哪一项，**不会回退到模拟实现**。
+首次运行会创建数据目录并初始化账号。快捷填入账号见 README；已有数据目录中的账号和密码保持不变。仪器、相机及分析服务部署参数由项目交付方按目标现场配置并验收。配置文件示例为 `config/config.example.yaml`；自定义配置可放在数据目录下的 `config.yaml`，或通过 `--config` 指定。
 
 ## 4. 数据目录
 
@@ -156,8 +129,7 @@ Windows 验证清单：zip 解压后双击能打开；正式包首次显示“�
 
 | 现象 | 处理 |
 |---|---|
-| 配置有误 | 按提示修改配置文件；仓库里不带 `--config` 启动会使用默认的模拟配置 |
-| 找不到 `simulation` | 仓库里恢复 `simulation/`；正式包本来就不含它，配置要指向真实后端或占位后端 |
+| 配置有误 | 按提示修改配置文件；确认配置文件路径及格式正确 |
 | 数据库被占用 | 关闭另一个正在运行的 GelInspect 或其他打开数据库文件的程序 |
 | 无法打开数据库或数据目录 | 检查数据目录是否存在、是否有读写权限、磁盘是否已满 |
 | “程序文件校验未通过” | 程序目录被改动或损坏（审计里列出了文件）：重新解压或安装；按 LGPL 有意替换了 Qt 库时可设 `security.integrity_check: false` |

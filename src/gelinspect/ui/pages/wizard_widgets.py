@@ -396,7 +396,7 @@ class ReagentCard(QFrame):
         self._refresh_state()
 
     def set_samples(self, samples: list[tuple[str, str]]) -> None:
-        """设置示例码（仅模拟配置有）。
+        """设置可用的快捷扫码示例。
 
         Args:
             samples: ``(显示名称, 扫码原文)``。
@@ -413,7 +413,7 @@ class ReagentCard(QFrame):
             button = Button(label, ButtonVariant.SECONDARY)
             button.setProperty("role", "link")
             button.setMinimumHeight(32)
-            button.setToolTip(self.tr("点击填入并校验这个示例码"))
+            button.setToolTip(self.tr("点击填入并校验此扫码内容"))
             button.clicked.connect(lambda _=False, text=raw: self._use_sample(text))
             self.samples_box.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
         self.samples_title.setVisible(bool(self._samples))

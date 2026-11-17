@@ -55,7 +55,7 @@ DEFAULT_NAV: tuple[NavEntry, ...] = (
     _nav("reports", str(QT_TRANSLATE_NOOP("SideNav", "报告中心")), "file-text"),
     _nav("audit", str(QT_TRANSLATE_NOOP("SideNav", "审计追踪")), "text-align-start"),
     _nav("users", str(QT_TRANSLATE_NOOP("SideNav", "用户与权限")), "user"),
-    _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "仪器设置")), "settings"),
+    _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "设置")), "settings"),
     _nav("about", str(QT_TRANSLATE_NOOP("SideNav", "关于")), "info"),
 )
 """设计稿中的 10 个主导航项，加上“关于”。label 是简体中文源文本，显示时经翻译。"""

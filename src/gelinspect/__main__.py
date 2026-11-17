@@ -1,8 +1,7 @@
 """命令行入口。
 
-* ``gelinspect``：不带任何参数，打开主窗口（默认加载 ``simulation/`` 后端）。
+* ``gelinspect``：打开主窗口。
 * ``gelinspect --config <yaml>``：使用指定配置。
-* ``gelinspect --simulate``：显式使用默认的模拟配置，与不带参数相同。
 * ``gelinspect --version``：只打印版本号。
 """
 
@@ -34,17 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         type=Path,
         metavar="YAML",
-        help="使用指定的配置文件（完整配置，不与默认值合并）；默认加载 simulation/ 的模拟后端",
-    )
-    parser.add_argument(
-        "--simulate",
-        action="store_true",
-        help="显式使用默认的模拟配置（与不带参数相同）",
-    )
-    parser.add_argument(
-        "--demo",
-        action="store_true",
-        help="开发和演示用：登录页显示演示账号，试剂卡显示示例码（正式使用不要加）",
+        help="使用指定的完整配置文件；不指定时读取当前启动配置",
     )
     # 隐藏参数：完整启动一遍后自动退出，用于干净克隆验证和 CI。
     parser.add_argument("--smoke-test", action="store_true", help=argparse.SUPPRESS)
@@ -70,8 +59,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.simulate and args.config is not None:
-        parser.error("--simulate 与 --config 不能同时使用")
     # 延迟导入：--version 和 --help 不需要加载 Qt。
     if args.diagnose:
         from gelinspect.startup import print_diagnosis
@@ -83,7 +70,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         config_path=args.config,
         data_dir=args.data_dir,
         smoke_test=args.smoke_test,
-        demo=args.demo,
     )
 
 

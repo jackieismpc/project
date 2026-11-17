@@ -714,13 +714,13 @@ def format_concentration(value: float) -> str:
 
 _PERMISSIONS: dict[Permission, str] = {
     Permission.COMPANY_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "公司与版权设置")),
-    Permission.SETTINGS_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看仪器设置")),
+    Permission.SETTINGS_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看设置")),
     Permission.REAGENT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看试剂记录")),
     Permission.REPORT_PRINT: str(QT_TRANSLATE_NOOP("Permission", "打印报告")),
     Permission.AUDIT_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出审计记录")),
     Permission.DIAGNOSTICS_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出诊断包")),
     Permission.USER_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "管理用户和角色")),
-    Permission.INSTRUMENT_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "修改仪器设置")),
+    Permission.INSTRUMENT_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "修改设置")),
     Permission.AUDIT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看审计追踪")),
     Permission.TEMPLATE_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看检测模板")),
     Permission.TEMPLATE_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "新建和修改检测模板")),
@@ -882,12 +882,12 @@ _ALERT_TEXTS: dict[AlertCode, str] = {
     AlertCode.TEMPERATURE_EXCURSION: str(QT_TRANSLATE_NOOP("Alert", "温度超出允许范围")),
     AlertCode.TEMPERATURE_RECOVERED: str(QT_TRANSLATE_NOOP("Alert", "温度回到范围内")),
     AlertCode.ANALYSIS_TIMEOUT: str(QT_TRANSLATE_NOOP("Alert", "分析超时，继续等待结果")),
-    AlertCode.ANALYSIS_FAILED: str(QT_TRANSLATE_NOOP("Alert", "算法分析失败，该排转人工复核")),
-    AlertCode.ANALYSIS_CONTRACT: str(QT_TRANSLATE_NOOP("Alert", "算法结果不符合接口约定")),
-    AlertCode.RESUME_REJECTED: str(QT_TRANSLATE_NOOP("Alert", "恢复请求被拒绝")),
-    AlertCode.WORKER_STUCK: str(
-        QT_TRANSLATE_NOOP("Alert", "算法线程未在时限内退出，它会在算法返回后自行结束")
+    AlertCode.ANALYSIS_FAILED: str(QT_TRANSLATE_NOOP("Alert", "检测未能完成，该排请进行人工复核")),
+    AlertCode.ANALYSIS_CONTRACT: str(
+        QT_TRANSLATE_NOOP("Alert", "检测未能完成，请检查检测条件后重试；如问题持续，请联系管理员")
     ),
+    AlertCode.RESUME_REJECTED: str(QT_TRANSLATE_NOOP("Alert", "恢复请求被拒绝")),
+    AlertCode.WORKER_STUCK: str(QT_TRANSLATE_NOOP("Alert", "检测任务仍在处理中，请稍后查看状态")),
     AlertCode.STORAGE_FAILED: str(QT_TRANSLATE_NOOP("Alert", "写入数据库失败")),
     AlertCode.STORAGE_BUSY: str(QT_TRANSLATE_NOOP("Alert", "数据库被其他操作占用，正在等待写入")),
     AlertCode.INTERNAL_ERROR: str(QT_TRANSLATE_NOOP("Alert", "程序内部错误")),

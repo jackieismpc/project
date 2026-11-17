@@ -1,4 +1,4 @@
-"""试剂溯源页：批次列表（过期高亮、剩余天数）、校验记录、扫码查询、政府溯源码占位。"""
+"""试剂溯源页：批次列表（过期高亮、剩余天数）、校验记录和扫码查询。"""
 
 from __future__ import annotations
 
@@ -35,9 +35,7 @@ def test_empty_page_explains_where_batches_come_from(
     page = open_reagents(qapp, window, "experimenter")
     assert page.batch_table.is_empty_state_visible() and page.check_table.is_empty_state_visible()
     assert page.batch_table._empty_title.text() == "还没有录入的试剂批次"
-    assert page.gov_badge.text() == "接入预留"
-    assert not page.gov_input.isEnabled() and not page.gov_button.isEnabled()
-    assert "interfaces/traceability.py" in page.gov_text.text()
+    assert not hasattr(page, "gov_card")
 
 
 def test_batches_and_checks_from_the_wizard_show_up_with_expiry_highlighting(

@@ -1,7 +1,7 @@
 """首次启动的初始化钩子接口。
 
 演示（模拟）配置通过 ``bootstrap.hook`` 引用一个实现了 :class:`BootstrapHook` 的类，
-由它在数据库里创建演示账号。主代码只持有类路径字符串，不导入 ``simulation/``；
+由它在数据库里创建初始化账号。主代码只持有类路径字符串，不导入可替换实现模块；
 真实配置不写这一项，因此不会有任何默认账号和默认密码。
 """
 
@@ -17,7 +17,7 @@ from gelinspect.domain.permissions import PermissionGroup
 
 @dataclass(frozen=True, slots=True)
 class DemoAccount:
-    """一个演示账号。
+    """一个可快捷填入的初始化账号。
 
     Attributes:
         username: 登录名。
@@ -67,10 +67,10 @@ class BootstrapHook(Protocol):
     """首次启动初始化钩子。"""
 
     def accounts(self) -> Sequence[DemoAccount]:
-        """列出演示账号，用于登录页的“演示账号”提示。
+        """列出登录页可快捷填入的账号。
 
         Returns:
-            演示账号，创建与否不影响返回内容。
+            可快捷填入的账号，创建与否不影响返回内容。
         """
         ...
 

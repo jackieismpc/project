@@ -87,7 +87,6 @@ class MainWindow(QMainWindow):
         shell_settings: ShellSettings | None = None,
         animations_enabled: bool = True,
         idle_timeout_s: float | None = None,
-        demo_helpers: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         """创建主窗口，显示登录页（或创建管理员页）。
@@ -98,13 +97,11 @@ class MainWindow(QMainWindow):
             shell_settings: 侧栏模式的持久化接口，默认 ``QSettings``。
             animations_enabled: 是否启用侧栏动画；测试和截图关闭。
             idle_timeout_s: 空闲锁屏秒数，默认取配置（分钟）；0 表示不自动锁屏。
-            demo_helpers: 是否显示演示账号和试剂示例码（启动参数 ``--demo``），默认不显示。
             parent: 父控件。
         """
         super().__init__(parent)
         self._services = services
         self._language = language
-        self._demo_helpers = demo_helpers
         self._session: Session | None = None
         self._screen = Screen.LOGIN
         self._pages: dict[str, QWidget] = {}
@@ -156,7 +153,7 @@ class MainWindow(QMainWindow):
         self.bridge.alertRaised.connect(self._on_alert)
         language.languageChanged.connect(self._on_language_changed)
 
-        self.login_page.set_demo_accounts(services.demo_accounts if demo_helpers else ())
+        self.login_page.set_accounts(services.demo_accounts)
         self._apply_language_widgets()
         toolbar.set_user("", "")
         toolbar.set_user_permissions(())
@@ -469,7 +466,7 @@ class MainWindow(QMainWindow):
         if route.key == "about":
             return AboutPage(self._services)
         if route.key == "new":
-            wizard = NewExperimentPage(self._services, self.bridge, demo_helpers=self._demo_helpers)
+            wizard = NewExperimentPage(self._services, self.bridge)
             wizard.set_session(self._session)
             wizard.started.connect(self._on_experiment_started)
             return wizard

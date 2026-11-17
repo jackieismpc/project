@@ -38,9 +38,7 @@ def release(tmp_path: Path) -> tuple[Path, Ed25519PrivateKey]:
     (root / "gelinspect" / "__pycache__").mkdir()
     (root / "gelinspect" / "__pycache__" / "x.pyc").write_bytes(b"cache")
     key = Ed25519PrivateKey.generate()
-    count = build_manifest(
-        root, key, version="0.1.0", build_id="b1", variant="release", exclude=["gelinspect-app"]
-    )
+    count = build_manifest(root, key, version="0.1.0", build_id="b1", exclude=["gelinspect-app"])
     assert count == 3  # 主程序被排除，__pycache__ 被忽略
     return root, key
 
@@ -50,7 +48,7 @@ def test_untouched_release_passes(release: tuple[Path, Ed25519PrivateKey]) -> No
     report = verify_manifest(root, public_hex(key))
     assert report.status is IntegrityStatus.OK and report.ok and report.checked == 3
     document = json.loads((root / MANIFEST_FILE).read_text(encoding="utf-8"))
-    assert document["variant"] == "release" and document["excluded"] == ["gelinspect-app"]
+    assert "variant" not in document and document["excluded"] == ["gelinspect-app"]
 
 
 def test_modified_missing_and_added_files_are_reported(
@@ -77,7 +75,7 @@ def test_a_rewritten_manifest_or_foreign_key_is_rejected(
     (root / "libpython3.11.dylib").write_bytes(b"patched")
     # 攻击者改了文件又重算清单，但没有构建私钥，只能自己签
     attacker = Ed25519PrivateKey.generate()
-    build_manifest(root, attacker, version="0.1.0", build_id="b1", variant="release")
+    build_manifest(root, attacker, version="0.1.0", build_id="b1")
     assert verify_manifest(root, public_hex(key)).status is IntegrityStatus.BAD_SIGNATURE
     # 只改清单内容不重签
     data = (root / MANIFEST_FILE).read_text(encoding="utf-8").replace("release", "demo")

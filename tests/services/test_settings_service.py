@@ -473,3 +473,61 @@ def test_admin_and_maintenance_user_cannot_change_company_settings(context: AppC
         assert context.settings.current(session).settings.copyright_holder != "Unauthorized"
     result = context.settings.save(ordinary, draft_of(context, instrument_no="GI-MAINT"))
     assert result.settings.instrument_no == "GI-MAINT"
+
+
+def test_runtime_path_selection_is_authorized_validated_and_persisted(
+    context: AppContext, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selection = tmp_path / "stable" / "runtime-selection.json"
+    monkeypatch.setattr(context.settings, "_runtime_selection_path", selection)
+    config_file = Path(__file__).parents[2] / "simulation" / "config.example.yaml"
+    adapter = Path(__file__).parents[2] / "simulation" / "analyzer.example.yaml"
+    target_data = tmp_path / "other-data"
+    target_data.mkdir()
+
+    regular = context.auth.login("experimenter", PASSWORDS["experimenter"])
+    with pytest.raises(PermissionDeniedError):
+        context.settings.save_runtime_selection(
+            regular,
+            config_path=str(config_file),
+            data_dir=str(target_data),
+        )
+    assert not selection.exists()
+
+    context.settings.save_runtime_selection(
+        admin(context),
+        config_path=str(config_file),
+        data_dir=str(target_data),
+        analysis_config_path=str(adapter),
+    )
+    persisted = json.loads(selection.read_text(encoding="utf-8"))
+    assert persisted == {
+        "config_path": str(config_file.resolve()),
+        "data_dir": str(target_data.resolve()),
+        "analysis_config_path": str(adapter.resolve()),
+    }
+    assert target_data.is_dir() and not any(target_data.iterdir())
+    assert "修改启动配置路径" in audit_lines(context)[-1]
+
+
+def test_runtime_path_selection_rejects_bad_paths_and_running_experiment(
+    context: AppContext, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selection = tmp_path / "runtime-selection.json"
+    monkeypatch.setattr(context.settings, "_runtime_selection_path", selection)
+    target_data = tmp_path / "target"
+    target_data.mkdir()
+    with pytest.raises(ServiceError) as caught:
+        context.settings.save_runtime_selection(
+            admin(context), config_path=str(tmp_path / "missing.yaml"), data_dir=str(target_data)
+        )
+    assert caught.value.code is ServiceErrorCode.SETTINGS_INVALID
+    assert not selection.exists()
+    monkeypatch.setattr(
+        ExperimentEngine, "active_experiment_id", property(lambda _self: "EXP-ACTIVE")
+    )
+    with pytest.raises(ServiceError) as caught:
+        context.settings.save_runtime_selection(
+            admin(context), config_path="", data_dir=str(target_data)
+        )
+    assert caught.value.code is ServiceErrorCode.SETTINGS_BUSY

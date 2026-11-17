@@ -52,13 +52,11 @@ class BuildInfo:
     Attributes:
         version: 版本号。
         build_id: 构建标识（时间和提交）。
-        variant: ``release``（不含模拟）或 ``demo``（含模拟和演示账号）。
         manifest_public_key: 校验文件清单签名的 Ed25519 公钥（十六进制）。
     """
 
     version: str
     build_id: str
-    variant: str
     manifest_public_key: str
 
 
@@ -81,7 +79,6 @@ def build_info() -> BuildInfo | None:
     return BuildInfo(
         version=str(module.VERSION),
         build_id=str(module.BUILD_ID),
-        variant=str(module.VARIANT),
         manifest_public_key=str(module.MANIFEST_PUBLIC_KEY),
     )
 
@@ -168,6 +165,13 @@ def default_data_dir(mode: RunMode | None = None, environ: Mapping[str, str] | N
     if (mode or run_mode()) is RunMode.PACKAGED:
         return platform_data_dir(environ=env)
     return project_root() / "data"
+
+
+def runtime_selection_file(mode: RunMode | None = None) -> Path:
+    """Stable location for UI-selected startup paths, outside the selectable data root."""
+    if (mode or run_mode()) is RunMode.PACKAGED:
+        return platform_data_dir() / "runtime-selection.json"
+    return project_root() / ".gelinspect-runtime-selection.json"
 
 
 def translations_dir() -> Path:

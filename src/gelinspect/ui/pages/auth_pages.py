@@ -197,14 +197,14 @@ class _AuthFrame(QWidget):
         super().changeEvent(event)
 
 
-class _DemoRow(QPushButton):
-    """演示账号的一行，点击把账号和密码填入登录框。"""
+class _AccountRow(QPushButton):
+    """账号快捷填入行，点击把账号和密码填入登录框。"""
 
     def __init__(self, account: DemoAccount, parent: QWidget | None = None) -> None:
         """创建一行。
 
         Args:
-            account: 演示账号。
+            account: 账号信息。
             parent: 父控件。
         """
         super().__init__(parent)
@@ -228,9 +228,9 @@ class _DemoRow(QPushButton):
         """刷新角色名和提示。"""
         role = role_label(self.account.role)
         self.role.setText(role)
-        self.setToolTip(self.tr("点击填入登录框"))
+        self.setToolTip(self.tr("点击填入账号和密码"))
         self.setAccessibleName(
-            self.tr("演示账号 {user}，{role}").format(user=self.account.username, role=role)
+            self.tr("账号 {user}，{role}").format(user=self.account.username, role=role)
         )
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802
@@ -266,8 +266,8 @@ class LoginPage(_AuthFrame):
         self._locked_user_label = ""
         self._error_factory: ErrorFactory | None = None
         self._lock_remaining = 0
-        self._demo_rows: list[_DemoRow] = []
-        self._demo_card: Card | None = None
+        self._account_rows: list[_AccountRow] = []
+        self._account_card: Card | None = None
 
         self._user_label = Label("", "lab")
         self.username = _field()
@@ -325,8 +325,8 @@ class LoginPage(_AuthFrame):
         self.username.setVisible(not locked)
         self._user_label.setVisible(not locked)
         self.logout_button.setVisible(locked)
-        if self._demo_card is not None:
-            self._demo_card.setVisible(not locked and bool(self._demo_rows))
+        if self._account_card is not None:
+            self._account_card.setVisible(not locked and bool(self._account_rows))
         self.clear_error()
         self.password.clear()
         self.retranslate()
@@ -339,31 +339,31 @@ class LoginPage(_AuthFrame):
         else:
             self.username.setFocus()
 
-    def set_demo_accounts(self, accounts: Sequence[DemoAccount]) -> None:
-        """显示“演示账号”提示；空序列表示不显示（真实配置）。
+    def set_accounts(self, accounts: Sequence[DemoAccount]) -> None:
+        """显示可用账号快捷填入行。
 
         Args:
-            accounts: 演示账号。
+            accounts: 可用账号。
         """
-        if self._demo_card is not None:
-            self.extras.removeWidget(self._demo_card)
-            self._demo_card.deleteLater()
-            self._demo_card = None
-        self._demo_rows = []
+        if self._account_card is not None:
+            self.extras.removeWidget(self._account_card)
+            self._account_card.deleteLater()
+            self._account_card = None
+        self._account_rows = []
         if not accounts:
             return
         card = Card(role="tile")
         card.setFixedWidth(CARD_WIDTH)
-        self._demo_title = Label("", "lab")
-        card.body.addWidget(self._demo_title)
+        self._account_title = Label("", "lab")
+        card.body.addWidget(self._account_title)
         card.body.setSpacing(6)
         for account in accounts:
-            row = _DemoRow(account)
+            row = _AccountRow(account)
             row.clicked.connect(lambda _=False, a=account: self._fill(a))
             card.body.addWidget(row)
-            self._demo_rows.append(row)
+            self._account_rows.append(row)
         self.extras.addWidget(card)
-        self._demo_card = card
+        self._account_card = card
         card.setVisible(self._mode is LoginMode.LOGIN)
         self.retranslate()
 
@@ -489,8 +489,8 @@ class LoginPage(_AuthFrame):
             self.password.setPlaceholderText("")
         self.submit_button.setAccessibleName(self.submit_button.text())
         self.logout_button.setAccessibleName(self.logout_button.text())
-        if self._demo_card is not None:
-            self._demo_title.setText(self.tr("演示账号（模拟配置，点击填入）"))
+        if self._account_card is not None:
+            self._account_title.setText(self.tr("账号快捷填入"))
         self._render_error()
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802

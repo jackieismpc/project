@@ -108,11 +108,11 @@ def test_login_page_texts_change(
     assert page._user_label.text() == "Username"
     assert page._password_label.text() == "Password"
     assert window.windowTitle() == "GelInspect"
-    assert page._demo_rows[0].role.text() == "Administrator"
+    assert page._account_rows[0].role.text() == "Administrator"
     language.set_language(Language.ZH_CN)
     settle(qapp)
     assert page.submit_button.text() == "登录"
-    assert page._demo_rows[0].role.text() == "管理员"
+    assert page._account_rows[0].role.text() == "管理员"
 
 
 def test_an_error_on_screen_changes_language_too(
@@ -259,7 +259,7 @@ def test_translation_script_is_importable_as_a_module() -> None:
 
 
 def test_qm_files_are_ignored_by_git() -> None:
-    gitignore = (ROOT / ".gitignore").read_text()
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
     assert re.search(r"^\*\.qm$", gitignore, re.MULTILINE)
 
 

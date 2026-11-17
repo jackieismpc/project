@@ -12,8 +12,8 @@
         <translation>凝膠智檢系統（GelInspect）</translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测的上位机软件：试验管理、视频采集、算法判读、复核与报告。</source>
-        <translation>凝膠法細菌內毒素檢測的主機端軟體：試驗管理、影片擷取、演算法判讀、複核與報告。</translation>
+        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
+        <translation>凝膠法細菌內毒素檢測軟體：試驗管理、影像擷取、檢測判讀、複核與報告。</translation>
     </message>
     <message>
         <source>版本 {version}</source>
@@ -46,18 +46,6 @@
     <message>
         <source>日志目录</source>
         <translation>日誌目錄</translation>
-    </message>
-    <message>
-        <source>设备后端</source>
-        <translation>裝置後端</translation>
-    </message>
-    <message>
-        <source>视频源</source>
-        <translation>影片來源</translation>
-    </message>
-    <message>
-        <source>算法后端</source>
-        <translation>演算法後端</translation>
     </message>
 </context>
 <context>
@@ -107,20 +95,20 @@
         <translation>分析超時，繼續等待結果</translation>
     </message>
     <message>
-        <source>算法分析失败，该排转人工复核</source>
-        <translation>演算法分析失敗，該排轉人工複核</translation>
-    </message>
-    <message>
-        <source>算法结果不符合接口约定</source>
-        <translation>演算法結果不符合介面約定</translation>
-    </message>
-    <message>
         <source>恢复请求被拒绝</source>
         <translation>恢復請求被拒絕</translation>
     </message>
     <message>
-        <source>算法线程未在时限内退出，它会在算法返回后自行结束</source>
-        <translation>演算法執行緒未在時限內結束，它會在演算法回傳後自行結束</translation>
+        <source>检测未能完成，该排请进行人工复核</source>
+        <translation>檢測未能完成，請人工複核此排</translation>
+    </message>
+    <message>
+        <source>检测未能完成，请检查检测条件后重试；如问题持续，请联系管理员</source>
+        <translation>檢測未能完成，請檢查檢測條件後重試；若問題持續，請聯絡管理員。</translation>
+    </message>
+    <message>
+        <source>检测任务仍在处理中，请稍后查看状态</source>
+        <translation>檢測工作仍在處理中，請稍後查看狀態。</translation>
     </message>
     <message>
         <source>写入数据库失败</source>
@@ -1813,8 +1801,8 @@
         <translation>登入</translation>
     </message>
     <message>
-        <source>演示账号（模拟配置，点击填入）</source>
-        <translation>示範帳號（模擬設定，點選填入）</translation>
+        <source>账号快捷填入</source>
+        <translation>快速填入帳號</translation>
     </message>
 </context>
 <context>
@@ -2603,10 +2591,6 @@
         <translation>公司與版權設定</translation>
     </message>
     <message>
-        <source>查看仪器设置</source>
-        <translation>查看儀器設定</translation>
-    </message>
-    <message>
         <source>查看试剂记录</source>
         <translation>查看試劑紀錄</translation>
     </message>
@@ -2627,8 +2611,12 @@
         <translation>管理使用者和角色</translation>
     </message>
     <message>
-        <source>修改仪器设置</source>
-        <translation>修改儀器設定</translation>
+        <source>查看设置</source>
+        <translation>檢視設定</translation>
+    </message>
+    <message>
+        <source>修改设置</source>
+        <translation>修改設定</translation>
     </message>
     <message>
         <source>查看审计追踪</source>
@@ -2820,8 +2808,8 @@
         <translation>稽核軌跡</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>儀器設定</translation>
+        <source>设置</source>
+        <translation>設定</translation>
     </message>
     <message>
         <source>快捷操作栏</source>
@@ -2907,8 +2895,8 @@
         <translation>標示靈敏度 λ（僅鱟試劑）</translation>
     </message>
     <message>
-        <source>点击填入并校验这个示例码</source>
-        <translation>點選填入並驗證這個範例碼</translation>
+        <source>点击填入并校验此扫码内容</source>
+        <translation>點擊填入並校驗此掃碼內容</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -3150,22 +3138,6 @@
         <translation>還沒有驗證紀錄</translation>
     </message>
     <message>
-        <source>接入预留</source>
-        <translation>串接預留</translation>
-    </message>
-    <message>
-        <source>政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。</source>
-        <translation>政府溯源平台已啟用，但本軟體尚未實作上報，請等待介面規範。</translation>
-    </message>
-    <message>
-        <source>政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation>政府溯源平台未啟用。介面按 interfaces/traceability.py 預留，平台規範明確後串接。</translation>
-    </message>
-    <message>
-        <source>尚未配置政府溯源客户端。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation>尚未設定政府溯源客戶端。介面按 interfaces/traceability.py 預留，平台規範明確後串接。</translation>
-    </message>
-    <message>
         <source>试剂溯源</source>
         <translation>試劑溯源</translation>
     </message>
@@ -3196,18 +3168,6 @@
     <message>
         <source>校验记录</source>
         <translation>驗證紀錄</translation>
-    </message>
-    <message>
-        <source>政府溯源码</source>
-        <translation>政府溯源碼</translation>
-    </message>
-    <message>
-        <source>政府溯源码（接入预留）</source>
-        <translation>政府溯源碼（串接預留）</translation>
-    </message>
-    <message>
-        <source>上报</source>
-        <translation>上報</translation>
     </message>
 </context>
 <context>
@@ -3787,8 +3747,8 @@
         <translation>使用者管理</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>儀器設定</translation>
+        <source>设置</source>
+        <translation>設定</translation>
     </message>
     <message>
         <source>关于</source>
@@ -4072,20 +4032,8 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <source>第一次试验后显示</source>
-        <translation>第一次試驗後顯示</translation>
-    </message>
-    <message>
-        <source>配置文件里的视频源：{source}</source>
-        <translation>設定檔裡的影片來源：{source}</translation>
-    </message>
-    <message>
         <source>只读</source>
         <translation>唯讀</translation>
-    </message>
-    <message>
-        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
-        <translation>目前帳號只能查看儀器設定，修改需要儀器與維護權限。</translation>
     </message>
     <message>
         <source>试验 {id} 正在运行</source>
@@ -4132,6 +4080,26 @@
         <translation>選擇圖片資料夾</translation>
     </message>
     <message>
+        <source>选择数据目录</source>
+        <translation>選擇資料目錄</translation>
+    </message>
+    <message>
+        <source>选择配置文件</source>
+        <translation>選擇設定檔</translation>
+    </message>
+    <message>
+        <source>配置文件 (*.yaml *.yml);;所有文件 (*)</source>
+        <translation>設定檔 (*.yaml *.yml);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>启动配置无法保存：{reason}</source>
+        <translation>無法儲存啟動設定：{reason}</translation>
+    </message>
+    <message>
+        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
+        <translation>已儲存啟動設定，關閉並重新啟動後生效。現有資料不會移動或刪除。</translation>
+    </message>
+    <message>
         <source>正在读取……</source>
         <translation>正在讀取……</translation>
     </message>
@@ -4160,14 +4128,6 @@
         <translation>操作失敗：{reason}</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>儀器設定</translation>
-    </message>
-    <message>
-        <source>改动保存在数据目录的用户配置里，对之后启动的试验生效</source>
-        <translation>改動儲存在資料目錄的使用者設定裡，對之後啟動的試驗生效</translation>
-    </message>
-    <message>
         <source>仪器与数据</source>
         <translation>儀器與資料</translation>
     </message>
@@ -4182,14 +4142,6 @@
     <message>
         <source>视频输入</source>
         <translation>影片輸入</translation>
-    </message>
-    <message>
-        <source>算法后端</source>
-        <translation>演算法後端</translation>
-    </message>
-    <message>
-        <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
-        <translation>留空表示不自動刪除（預設）。到期清理尚未啟用，目前不會刪除任何檔案。</translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4220,24 +4172,44 @@
         <translation>瀏覽…</translation>
     </message>
     <message>
+        <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
+        <translation>目前帳號僅能檢視設定；修改需要儀器與維護權限。</translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation>設定</translation>
+    </message>
+    <message>
+        <source>运行参数改动对之后启动的试验生效。</source>
+        <translation>執行參數的變更會套用至之後啟動的試驗。</translation>
+    </message>
+    <message>
+        <source>启动配置与数据目录</source>
+        <translation>啟動設定與資料目錄</translation>
+    </message>
+    <message>
+        <source>数据目录</source>
+        <translation>資料目錄</translation>
+    </message>
+    <message>
+        <source>检测配置文件（可选）</source>
+        <translation>檢測設定檔（選填）</translation>
+    </message>
+    <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
+        <translation>僅可選擇檔案與目錄；設定會先經過驗證，儲存後重新啟動生效。切換資料目錄不會搬動或刪除現有資料；原目錄會保留。試驗進行中無法切換。</translation>
+    </message>
+    <message>
+        <source>保存启动配置</source>
+        <translation>儲存啟動設定</translation>
+    </message>
+    <message>
+        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
+        <translation>留白表示不自動刪除（預設）。目前版本不會自動刪除資料。</translation>
+    </message>
+    <message>
         <source>预览</source>
         <translation>預覽</translation>
-    </message>
-    <message>
-        <source>工业相机：型号确定后接入。</source>
-        <translation>工業相機：型號確定後串接。</translation>
-    </message>
-    <message>
-        <source>后端</source>
-        <translation>後端</translation>
-    </message>
-    <message>
-        <source>模型版本</source>
-        <translation>模型版本</translation>
-    </message>
-    <message>
-        <source>配置版本</source>
-        <translation>設定版本</translation>
     </message>
     <message>
         <source>配置文件</source>
@@ -4365,8 +4337,8 @@
         <translation>使用者與權限</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>儀器設定</translation>
+        <source>设置</source>
+        <translation>設定</translation>
     </message>
     <message>
         <source>关于</source>
@@ -4479,10 +4451,10 @@
     <message>
         <source>{error}
 
-请修改配置文件后重新启动；不带 --config 参数启动会使用默认的模拟配置。</source>
+请修改配置文件后重新启动。</source>
         <translation>{error}
 
-請修改設定檔後重新啟動；不帶 --config 引數啟動會使用預設的模擬設定。</translation>
+請修正設定檔後重新啟動應用程式。</translation>
     </message>
     <message>
         <source>数据库版本不兼容</source>
@@ -4903,20 +4875,8 @@
         <translation>這支試管還沒有分析結果</translation>
     </message>
     <message>
-        <source>算法：{algo} → 人工：{human}</source>
-        <translation>演算法：{algo} → 人工：{human}</translation>
-    </message>
-    <message>
         <source>已人工复核，以人工结论为准；算法原始结果保留</source>
         <translation>已人工複核，以人工結論為準；演算法原始結果保留</translation>
-    </message>
-    <message>
-        <source>算法结果 · 需要人工复核后才能签署</source>
-        <translation>演算法結果 · 需要人工複核後才能簽署</translation>
-    </message>
-    <message>
-        <source>算法结果 · {v}</source>
-        <translation>演算法結果 · {v}</translation>
     </message>
     <message>
         <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
@@ -5025,6 +4985,18 @@
     <message>
         <source>融合评分 Score</source>
         <translation>融合評分 Score</translation>
+    </message>
+    <message>
+        <source>检测结果：{algo} · 复核结论：{human}</source>
+        <translation>檢測結果：{algo} · 複核結論：{human}</translation>
+    </message>
+    <message>
+        <source>检测结果 · 需要人工复核后才能签署</source>
+        <translation>檢測結果 · 需經人工複核後才能簽署</translation>
+    </message>
+    <message>
+        <source>检测结果 · {v}</source>
+        <translation>檢測結果 · {v}</translation>
     </message>
     <message>
         <source>判读过程</source>
@@ -5367,21 +5339,21 @@
     </message>
 </context>
 <context>
+    <name>_AccountRow</name>
+    <message>
+        <source>点击填入账号和密码</source>
+        <translation>點擊填入帳號與密碼</translation>
+    </message>
+    <message>
+        <source>账号 {user}，{role}</source>
+        <translation>帳號 {user}，{role}</translation>
+    </message>
+</context>
+<context>
     <name>_AuthFrame</name>
     <message>
         <source>凝胶智检系统</source>
         <translation>凝膠智檢系統</translation>
-    </message>
-</context>
-<context>
-    <name>_DemoRow</name>
-    <message>
-        <source>点击填入登录框</source>
-        <translation>點選填入登入框</translation>
-    </message>
-    <message>
-        <source>演示账号 {user}，{role}</source>
-        <translation>示範帳號 {user}，{role}</translation>
     </message>
 </context>
 <context>

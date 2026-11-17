@@ -73,7 +73,6 @@ def open_window(app: QApplication, context: AppContext, language: LanguageManage
         language,
         shell_settings=MemoryShellSettings(),
         animations_enabled=False,
-        demo_helpers=True,
         idle_timeout_s=0,
     )
     win.resize(1280, 800)

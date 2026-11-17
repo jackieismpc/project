@@ -72,8 +72,7 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
         "government": {"backend": "simulation.reagents:SimTraceabilityClient"},
     },
 }
-"""默认配置：模拟后端，时间加速 60 倍，首次启动创建演示账号，试剂码和备案清单用模拟白名单，
-试验结论默认关闭。"""
+"""默认运行配置：固定种子的可重复流程结果、默认初始化账号和内置试剂示例。"""
 
 
 class ConfigError(Exception):

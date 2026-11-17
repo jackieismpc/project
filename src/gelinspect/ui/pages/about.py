@@ -1,4 +1,4 @@
-"""关于页：版本、运行环境、已加载的后端和开源许可。"""
+"""关于页：版本、运行环境和开源许可。"""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class AboutPage(QWidget):
         """创建页面。
 
         Args:
-            services: 界面服务，提供目录和后端信息。
+            services: 界面服务，提供运行目录信息。
             parent: 父控件。
         """
         super().__init__(parent)
@@ -65,7 +65,7 @@ class AboutPage(QWidget):
         self.env_grid.setColumnStretch(1, 1)
         self.env_card.body.addLayout(self.env_grid)
         self._env_labels: list[tuple[Label, Label]] = []
-        for _ in range(8):
+        for _ in range(5):
             name, value = Label("", "lab"), Label("", "body", mono=True)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             value.setWordWrap(True)
@@ -90,7 +90,7 @@ class AboutPage(QWidget):
         self.title.setText(self.tr("关于"))
         self.product_name.setText(self.tr("凝胶智检系统（GelInspect）"))
         self.product_desc.setText(
-            self.tr("凝胶法细菌内毒素检测的上位机软件：试验管理、视频采集、算法判读、复核与报告。")
+            self.tr("凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。")
         )
         self.product_version.setText(self.tr("版本 {version}").format(version=__version__))
         self.env_card.set_title(self.tr("运行环境"))
@@ -102,9 +102,6 @@ class AboutPage(QWidget):
             (self.tr("Qt / PySide6"), PySide6.__version__),
             (self.tr("数据目录"), str(s.data_dir)),
             (self.tr("日志目录"), str(s.log_dir)),
-            (self.tr("设备后端"), s.backends.get("device", "-")),
-            (self.tr("视频源"), s.backends.get("video", "-")),
-            (self.tr("算法后端"), s.backends.get("analysis", "-")),
         ]
         for i, ((label, value), (text, content)) in enumerate(
             zip(self._env_labels, rows, strict=True)

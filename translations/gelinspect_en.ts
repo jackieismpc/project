@@ -12,8 +12,8 @@
         <translation>GelInspect</translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测的上位机软件：试验管理、视频采集、算法判读、复核与报告。</source>
-        <translation>Host software for gel-clot bacterial endotoxin testing: experiment management, video capture, algorithmic reading, review and reports.</translation>
+        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
+        <translation>Gel-clot bacterial endotoxin testing software for experiment management, image capture, result interpretation, review, and reporting.</translation>
     </message>
     <message>
         <source>版本 {version}</source>
@@ -46,18 +46,6 @@
     <message>
         <source>日志目录</source>
         <translation>Log folder</translation>
-    </message>
-    <message>
-        <source>设备后端</source>
-        <translation>Device backend</translation>
-    </message>
-    <message>
-        <source>视频源</source>
-        <translation>Video source</translation>
-    </message>
-    <message>
-        <source>算法后端</source>
-        <translation>Analysis backend</translation>
     </message>
 </context>
 <context>
@@ -107,20 +95,20 @@
         <translation>Analysis timed out; still waiting for the result</translation>
     </message>
     <message>
-        <source>算法分析失败，该排转人工复核</source>
-        <translation>Analysis failed; the row goes to manual review</translation>
-    </message>
-    <message>
-        <source>算法结果不符合接口约定</source>
-        <translation>Analysis result violates the interface contract</translation>
-    </message>
-    <message>
         <source>恢复请求被拒绝</source>
         <translation>Resume request rejected</translation>
     </message>
     <message>
-        <source>算法线程未在时限内退出，它会在算法返回后自行结束</source>
-        <translation>The analysis thread did not exit in time; it ends when the analysis returns</translation>
+        <source>检测未能完成，该排请进行人工复核</source>
+        <translation>Testing could not be completed; manually review this row</translation>
+    </message>
+    <message>
+        <source>检测未能完成，请检查检测条件后重试；如问题持续，请联系管理员</source>
+        <translation>Testing could not be completed. Check the test conditions and retry; if the problem continues, contact your administrator.</translation>
+    </message>
+    <message>
+        <source>检测任务仍在处理中，请稍后查看状态</source>
+        <translation>The analysis task is still processing. Check its status again shortly.</translation>
     </message>
     <message>
         <source>写入数据库失败</source>
@@ -1813,8 +1801,8 @@
         <translation>Sign in</translation>
     </message>
     <message>
-        <source>演示账号（模拟配置，点击填入）</source>
-        <translation>Demo accounts (simulation, click to fill in)</translation>
+        <source>账号快捷填入</source>
+        <translation>Quick account sign-in</translation>
     </message>
 </context>
 <context>
@@ -2603,10 +2591,6 @@
         <translation>Company and copyright settings</translation>
     </message>
     <message>
-        <source>查看仪器设置</source>
-        <translation>View instrument settings</translation>
-    </message>
-    <message>
         <source>查看试剂记录</source>
         <translation>View reagent records</translation>
     </message>
@@ -2627,8 +2611,12 @@
         <translation>Manage users and roles</translation>
     </message>
     <message>
-        <source>修改仪器设置</source>
-        <translation>Change instrument settings</translation>
+        <source>查看设置</source>
+        <translation>View settings</translation>
+    </message>
+    <message>
+        <source>修改设置</source>
+        <translation>Change settings</translation>
     </message>
     <message>
         <source>查看审计追踪</source>
@@ -2820,7 +2808,7 @@
         <translation>Audit trail</translation>
     </message>
     <message>
-        <source>仪器设置</source>
+        <source>设置</source>
         <translation>Settings</translation>
     </message>
     <message>
@@ -2907,8 +2895,8 @@
         <translation>Labeled sensitivity λ (LAL reagent only)</translation>
     </message>
     <message>
-        <source>点击填入并校验这个示例码</source>
-        <translation>Click to fill in and verify this sample code</translation>
+        <source>点击填入并校验此扫码内容</source>
+        <translation>Click to fill in and validate this code</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -3150,22 +3138,6 @@
         <translation>No checks yet</translation>
     </message>
     <message>
-        <source>接入预留</source>
-        <translation>Reserved</translation>
-    </message>
-    <message>
-        <source>政府溯源平台已启用，但本软件尚未实现上报，请等待接口规范。</source>
-        <translation>The government platform is enabled, but reporting is not implemented yet. Waiting for the interface specification.</translation>
-    </message>
-    <message>
-        <source>政府溯源平台未启用。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation>The government platform is not enabled. The interface is reserved in interfaces/traceability.py and will be connected once the specification is known.</translation>
-    </message>
-    <message>
-        <source>尚未配置政府溯源客户端。接口按 interfaces/traceability.py 预留，平台规范明确后接入。</source>
-        <translation>No government traceability client is configured. The interface is reserved in interfaces/traceability.py and will be connected once the specification is known.</translation>
-    </message>
-    <message>
         <source>试剂溯源</source>
         <translation>Reagent traceability</translation>
     </message>
@@ -3196,18 +3168,6 @@
     <message>
         <source>校验记录</source>
         <translation>Check log</translation>
-    </message>
-    <message>
-        <source>政府溯源码</source>
-        <translation>Government traceability code</translation>
-    </message>
-    <message>
-        <source>政府溯源码（接入预留）</source>
-        <translation>Government traceability code (reserved)</translation>
-    </message>
-    <message>
-        <source>上报</source>
-        <translation>Submit</translation>
     </message>
 </context>
 <context>
@@ -3787,8 +3747,8 @@
         <translation>User management</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>Instrument settings</translation>
+        <source>设置</source>
+        <translation>Settings</translation>
     </message>
     <message>
         <source>关于</source>
@@ -4072,20 +4032,8 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <source>第一次试验后显示</source>
-        <translation>Shown after the first experiment</translation>
-    </message>
-    <message>
-        <source>配置文件里的视频源：{source}</source>
-        <translation>Video source in the configuration file: {source}</translation>
-    </message>
-    <message>
         <source>只读</source>
         <translation>Read-only</translation>
-    </message>
-    <message>
-        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
-        <translation>This account can only view settings. Instrument and maintenance access is required to edit them.</translation>
     </message>
     <message>
         <source>试验 {id} 正在运行</source>
@@ -4132,6 +4080,26 @@
         <translation>Choose an image folder</translation>
     </message>
     <message>
+        <source>选择数据目录</source>
+        <translation>Choose data folder</translation>
+    </message>
+    <message>
+        <source>选择配置文件</source>
+        <translation>Choose configuration file</translation>
+    </message>
+    <message>
+        <source>配置文件 (*.yaml *.yml);;所有文件 (*)</source>
+        <translation>Configuration files (*.yaml *.yml);;All files (*)</translation>
+    </message>
+    <message>
+        <source>启动配置无法保存：{reason}</source>
+        <translation>Could not save startup settings: {reason}</translation>
+    </message>
+    <message>
+        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
+        <translation>Startup settings saved. Close and restart the application to apply them. Existing data will not be moved or deleted.</translation>
+    </message>
+    <message>
         <source>正在读取……</source>
         <translation>Reading…</translation>
     </message>
@@ -4160,14 +4128,6 @@
         <translation>Operation failed: {reason}</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>Instrument Settings</translation>
-    </message>
-    <message>
-        <source>改动保存在数据目录的用户配置里，对之后启动的试验生效</source>
-        <translation>Changes are saved in the user configuration in the data folder and apply to experiments started afterwards</translation>
-    </message>
-    <message>
         <source>仪器与数据</source>
         <translation>Instrument and data</translation>
     </message>
@@ -4182,14 +4142,6 @@
     <message>
         <source>视频输入</source>
         <translation>Video input</translation>
-    </message>
-    <message>
-        <source>算法后端</source>
-        <translation>Analysis backend</translation>
-    </message>
-    <message>
-        <source>留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。</source>
-        <translation>Leave empty for no automatic deletion (default). Expiry cleanup is not enabled yet, so no files are deleted for now.</translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4220,24 +4172,44 @@
         <translation>Browse…</translation>
     </message>
     <message>
+        <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
+        <translation>Your account can view settings only. Instrument maintenance permission is required to make changes.</translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation>Settings</translation>
+    </message>
+    <message>
+        <source>运行参数改动对之后启动的试验生效。</source>
+        <translation>Changes to run parameters apply to experiments started afterward.</translation>
+    </message>
+    <message>
+        <source>启动配置与数据目录</source>
+        <translation>Startup settings and data folder</translation>
+    </message>
+    <message>
+        <source>数据目录</source>
+        <translation>Data folder</translation>
+    </message>
+    <message>
+        <source>检测配置文件（可选）</source>
+        <translation>Detection configuration file (optional)</translation>
+    </message>
+    <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
+        <translation>Select files and folders only. Settings are validated before saving and take effect after restart. Changing the data folder does not move or delete existing data; the original folder is kept. The folder cannot be changed while an experiment is running.</translation>
+    </message>
+    <message>
+        <source>保存启动配置</source>
+        <translation>Save startup settings</translation>
+    </message>
+    <message>
+        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
+        <translation>Leave blank to keep the default. Data is not automatically deleted in this version.</translation>
+    </message>
+    <message>
         <source>预览</source>
         <translation>Preview</translation>
-    </message>
-    <message>
-        <source>工业相机：型号确定后接入。</source>
-        <translation>Industrial camera: to be connected once the model is decided.</translation>
-    </message>
-    <message>
-        <source>后端</source>
-        <translation>Backend</translation>
-    </message>
-    <message>
-        <source>模型版本</source>
-        <translation>Model version</translation>
-    </message>
-    <message>
-        <source>配置版本</source>
-        <translation>Config version</translation>
     </message>
     <message>
         <source>配置文件</source>
@@ -4365,8 +4337,8 @@
         <translation>Users &amp; permissions</translation>
     </message>
     <message>
-        <source>仪器设置</source>
-        <translation>Instrument settings</translation>
+        <source>设置</source>
+        <translation>Settings</translation>
     </message>
     <message>
         <source>关于</source>
@@ -4479,10 +4451,10 @@
     <message>
         <source>{error}
 
-请修改配置文件后重新启动；不带 --config 参数启动会使用默认的模拟配置。</source>
+请修改配置文件后重新启动。</source>
         <translation>{error}
 
-Fix the configuration file and start again. Starting without --config uses the default simulation configuration.</translation>
+Correct the configuration file and restart the application.</translation>
     </message>
     <message>
         <source>数据库版本不兼容</source>
@@ -4903,20 +4875,8 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>This tube has no analysis result yet</translation>
     </message>
     <message>
-        <source>算法：{algo} → 人工：{human}</source>
-        <translation>Algorithm: {algo} → Manual: {human}</translation>
-    </message>
-    <message>
         <source>已人工复核，以人工结论为准；算法原始结果保留</source>
         <translation>Manually reviewed; the manual conclusion applies and the algorithm result is kept</translation>
-    </message>
-    <message>
-        <source>算法结果 · 需要人工复核后才能签署</source>
-        <translation>Algorithm result · must be reviewed before signing</translation>
-    </message>
-    <message>
-        <source>算法结果 · {v}</source>
-        <translation>Algorithm result · {v}</translation>
     </message>
     <message>
         <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
@@ -5025,6 +4985,18 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>融合评分 Score</source>
         <translation>Fused score</translation>
+    </message>
+    <message>
+        <source>检测结果：{algo} · 复核结论：{human}</source>
+        <translation>Detection result: {algo} · Review conclusion: {human}</translation>
+    </message>
+    <message>
+        <source>检测结果 · 需要人工复核后才能签署</source>
+        <translation>Detection result · Requires manual review before signing</translation>
+    </message>
+    <message>
+        <source>检测结果 · {v}</source>
+        <translation>Detection result · {v}</translation>
     </message>
     <message>
         <source>判读过程</source>
@@ -5367,21 +5339,21 @@ Fix the configuration file and start again. Starting without --config uses the d
     </message>
 </context>
 <context>
+    <name>_AccountRow</name>
+    <message>
+        <source>点击填入账号和密码</source>
+        <translation>Click to fill in the account and password</translation>
+    </message>
+    <message>
+        <source>账号 {user}，{role}</source>
+        <translation>Account {user}, {role}</translation>
+    </message>
+</context>
+<context>
     <name>_AuthFrame</name>
     <message>
         <source>凝胶智检系统</source>
         <translation>GelInspect</translation>
-    </message>
-</context>
-<context>
-    <name>_DemoRow</name>
-    <message>
-        <source>点击填入登录框</source>
-        <translation>Click to fill in the sign-in form</translation>
-    </message>
-    <message>
-        <source>演示账号 {user}，{role}</source>
-        <translation>Demo account {user}, {role}</translation>
     </message>
 </context>
 <context>

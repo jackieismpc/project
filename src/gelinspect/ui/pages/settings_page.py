@@ -1,17 +1,17 @@
-"""仪器设置页：仪器编号、孵育和读数参数、温度、算法后端信息、视频输入、数据保留和版权方。
+"""设置页：运行参数、视频输入和受维护权限保护的启动路径。
 
 所有角色可以查看；修改需要 ``instrument_configure``（管理员），其他角色看到置灰的输入框和“只读”
 标记。试验进行中，影响运行的项（孵育、读数、温度、视频输入）置灰，其余项仍可改。
 校验和保存都在服务层：非法值逐项提示原因，一项都不会写；保存后写审计（旧值和新值），
 改动保存在数据目录的用户配置文件里，不改仓库里的默认配置，对之后启动的试验生效。
-视频输入只有“视频文件”和“图片文件夹”；实时摄像头尚未实现，工业相机型号确定后接入。
+视频输入支持视频文件和图片文件夹。
 """
 
 from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -200,27 +200,29 @@ class SettingsPage(QWidget):
         self.video_card.body.addLayout(probe_row)
         self.preview_view = VideoView(min_height=220, max_height=300)
         self.video_card.body.addWidget(self.preview_view)
-        self.source_label = Label("", "meta")
-        self.source_label.setWordWrap(True)
-        self.camera_note = Label("", "meta")
-        self.camera_note.setWordWrap(True)
-        for widget in (self.source_label, self.camera_note):
-            self.video_card.body.addWidget(widget)
         right.addWidget(self.video_card)
 
-        self.backend_card = Card(" ")
-        self.backend_labels: dict[str, tuple[Label, Label]] = {}
-        for key in ("backend", "model", "config", "config_file"):
-            row = QVBoxLayout()
-            row.setSpacing(2)
-            name_label, value_label = Label("", "lab"), Label("", "body", mono=True)
-            value_label.setWordWrap(True)
-            value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            row.addWidget(name_label)
-            row.addWidget(value_label)
-            self.backend_card.body.addLayout(row)
-            self.backend_labels[key] = (name_label, value_label)
-        right.addWidget(self.backend_card)
+        self.runtime_card = Card(" ")
+        self.runtime_paths: dict[str, QLineEdit] = {}
+        self.runtime_browse: dict[str, Button] = {}
+        for key in ("config_path", "data_dir", "analysis_config_path"):
+            row = QHBoxLayout()
+            edit = QLineEdit()
+            edit.setMinimumHeight(40)
+            button = Button("")
+            row.addWidget(edit, 1)
+            row.addWidget(button)
+            self.runtime_card.body.addLayout(row)
+            self.runtime_paths[key] = edit
+            self.runtime_browse[key] = button
+            button.clicked.connect(lambda _checked=False, name=key: self.browse_runtime_path(name))
+        self.runtime_hint = Label("", "meta")
+        self.runtime_hint.setWordWrap(True)
+        self.runtime_card.body.addWidget(self.runtime_hint)
+        self.runtime_save = Button("", ButtonVariant.PRIMARY)
+        self.runtime_card.body.addWidget(self.runtime_save)
+        self.runtime_save.clicked.connect(self.save_runtime_selection)
+        right.addWidget(self.runtime_card)
         right.addStretch(1)
 
         work.addLayout(left, 1)
@@ -301,7 +303,7 @@ class SettingsPage(QWidget):
         self._fill(SettingsDraft.from_settings(view.settings))
         self._clear_errors()
         self.save_message.setText("")
-        self._render_backend(view)
+        self._fill_runtime_selection()
         self._apply_enabled()
         self.preview_current()
 
@@ -356,20 +358,10 @@ class SettingsPage(QWidget):
         self._on_type_changed()
         self._update_range()
 
-    def _render_backend(self, view: SettingsView) -> None:
-        info = view.backend
-        pending = self.tr("第一次试验后显示")
-        values = {
-            "backend": info.analysis_backend,
-            "model": info.model_version or pending,
-            "config": info.config_version or pending,
-            "config_file": info.analysis_config_path or "–",
-        }
-        for key, (_name, value) in self.backend_labels.items():
-            value.setText(values[key])
-        self.source_label.setText(
-            self.tr("配置文件里的视频源：{source}").format(source=info.video_source)
-        )
+    def _fill_runtime_selection(self) -> None:
+        selection = self._services.settings.runtime_selection()
+        for key, edit in self.runtime_paths.items():
+            edit.setText(selection[key])
 
     def _apply_enabled(self) -> None:
         editable = self._editable
@@ -394,6 +386,11 @@ class SettingsPage(QWidget):
         self.preview_button.setEnabled(editable and not self._previewing)
         self.save_button.setEnabled(editable)
         self.revert_button.setEnabled(editable)
+        self.runtime_save.setEnabled(editable and not self._locked)
+        for edit in self.runtime_paths.values():
+            edit.setEnabled(editable and not self._locked)
+        for button in self.runtime_browse.values():
+            button.setEnabled(editable and not self._locked)
         self.readonly_badge.setVisible(not editable)
         view = self._view
         if not editable:
@@ -401,7 +398,7 @@ class SettingsPage(QWidget):
                 "info",
                 "info",
                 self.tr("只读"),
-                self.tr("当前账号只能查看仪器设置，修改需要仪器与维护权限。"),
+                self.tr("当前账号只能查看设置，修改需要仪器与维护权限。"),
             )
         elif self._locked and view is not None:
             self.banner.show_message(
@@ -508,6 +505,38 @@ class SettingsPage(QWidget):
             self.path_edit.setText(chosen)
             self.preview()
 
+    def browse_runtime_path(self, key: str) -> None:
+        """选择启动配置文件或数据目录。"""
+        current = self.runtime_paths[key].text()
+        if key == "data_dir":
+            chosen = QFileDialog.getExistingDirectory(self, self.tr("选择数据目录"), current)
+        else:
+            chosen, _ = QFileDialog.getOpenFileName(
+                self,
+                self.tr("选择配置文件"),
+                current,
+                self.tr("配置文件 (*.yaml *.yml);;所有文件 (*)"),
+            )
+        if chosen:
+            self.runtime_paths[key].setText(chosen)
+
+    def save_runtime_selection(self) -> None:
+        """校验并暂存启动路径。"""
+        session = self._session
+        if session is None:
+            return
+        try:
+            self._services.settings.save_runtime_selection(
+                session, **{key: edit.text() for key, edit in self.runtime_paths.items()}
+            )
+        except (AuthError, ServiceError, StorageBusyError) as error:
+            detail = str(error) if isinstance(error, ServiceError) else self._error_text(error)
+            self.save_message.setText(self.tr("启动配置无法保存：{reason}").format(reason=detail))
+            return
+        self.save_message.setText(
+            self.tr("已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。")
+        )
+
     def preview_current(self) -> None:
         """预览当前生效的视频源（进入页面时）。"""
         self._start_preview(None, "")
@@ -583,18 +612,32 @@ class SettingsPage(QWidget):
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.title.setText(self.tr("仪器设置"))
+        self.title.setText(self.tr("设置"))
         self.readonly_badge.set_text(self.tr("只读"))
-        self.hint.setText(self.tr("改动保存在数据目录的用户配置里，对之后启动的试验生效"))
+        self.hint.setText(self.tr("运行参数改动对之后启动的试验生效。"))
         self.instrument_card.set_title(self.tr("仪器与数据"))
         self.run_card.set_title(self.tr("孵育与读数"))
         self.temperature_card.set_title(self.tr("温度"))
         self.video_card.set_title(self.tr("视频输入"))
-        self.backend_card.set_title(self.tr("算法后端"))
+        self.runtime_card.set_title(self.tr("启动配置与数据目录"))
+        labels = {
+            "config_path": self.tr("配置文件"),
+            "data_dir": self.tr("数据目录"),
+            "analysis_config_path": self.tr("检测配置文件（可选）"),
+        }
+        for key, edit in self.runtime_paths.items():
+            edit.setPlaceholderText(labels[key])
+            self.runtime_browse[key].setText(self.tr("浏览…"))
+        self.runtime_hint.setText(
+            self.tr(
+                "仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。"
+            )
+        )
+        self.runtime_save.setText(self.tr("保存启动配置"))
         for name, field in self.fields.items():
             field.label.setText(setting_label(name))
         self.fields["retention_days"].set_hint(
-            self.tr("留空表示不自动删除（默认）。到期清理尚未启用，目前不会删除任何文件。")
+            self.tr("留空表示不自动删除（默认）。当前版本不会自动删除数据。")
         )
         self.encrypt_box.setText(self.tr("敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）"))
         self.encrypt_hint.setText(
@@ -612,21 +655,11 @@ class SettingsPage(QWidget):
             self.type_box.setItemText(index, text)
         self.browse_button.setText(self.tr("浏览…"))
         self.preview_button.setText(self.tr("预览"))
-        self.camera_note.setText(self.tr("工业相机：型号确定后接入。"))
-        names = {
-            "backend": self.tr("后端"),
-            "model": self.tr("模型版本"),
-            "config": self.tr("配置版本"),
-            "config_file": self.tr("配置文件"),
-        }
-        for key, (name_label, _value) in self.backend_labels.items():
-            name_label.setText(names[key])
         self.revert_button.setText(self.tr("还原"))
         self.save_button.setText(self.tr("保存设置"))
         self._on_type_changed()
         self._update_range()
         if self._view is not None:
-            self._render_backend(self._view)
             self._apply_enabled()
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802

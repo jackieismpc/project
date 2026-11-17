@@ -403,9 +403,7 @@ class UsersPage(QWidget):
         self.users_table.set_empty_text(self.tr("还没有账号"))
         self.matrix_card.set_title(self.tr("权限组说明"))
         self.matrix_note.setText(
-            self.tr(
-                "普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。"
-            )
+            self.tr("普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。")
         )
         self.matrix_table.set_columns(self._matrix_columns())
         self._render()

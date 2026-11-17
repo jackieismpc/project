@@ -67,7 +67,7 @@ PAGE_ROUTES: tuple[Route, ...] = (
         Permission.USER_MANAGE,
     ),
     # 所有角色可以查看；修改需要 instrument_configure，由页面和服务层判断。
-    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "仪器设置")), Permission.SETTINGS_VIEW),
+    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "设置")), Permission.SETTINGS_VIEW),
     Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
 )
 """外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，“关于”属于仪器设置和关于页。"""

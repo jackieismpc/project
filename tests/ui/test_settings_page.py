@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 from PySide6.QtWidgets import QApplication, QFileDialog
@@ -13,6 +12,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog
 from gelinspect.app_context import AppContext
 from gelinspect.domain.entities import User
 from gelinspect.domain.enums import AuditAction, Role
+from gelinspect.infrastructure.video.image_io import write_image
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.experiment_engine import ExperimentEngine
@@ -39,7 +39,7 @@ def make_images(folder: Path, count: int = 3) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     for i in range(count):
         image = np.full((360, 640, 3), 90 + i * 20, np.uint8)
-        assert cv2.imwrite(str(folder / f"f{i}.png"), image)
+        write_image(folder / f"f{i}.png", image)
     return folder
 
 
@@ -56,10 +56,9 @@ def test_shows_every_setting_with_the_effective_values(
     assert text["copyright_holder"] == "厦门鲎试剂生物科技股份有限公司"
     assert page.range_label.text() == "有效温度范围 36 – 38 ℃"
     assert "自动删除" in page.fields["retention_days"].hint.text()
-    # 算法后端信息只读展示
-    backend = {k: v.text() for k, (_n, v) in page.backend_labels.items()}
-    assert backend["backend"].endswith("MockAnalyzer")
-    assert backend["model"] == "第一次试验后显示" and backend["config"] == "第一次试验后显示"
+    assert not hasattr(page, "backend_card")
+    assert page.runtime_card.isVisibleTo(page)
+    assert page.runtime_paths["data_dir"].text().endswith("data")
     assert all(page.fields[n].edit.isEnabled() == (n != "copyright_holder") for n in page.fields)
 
 
@@ -70,7 +69,6 @@ def test_the_video_card_offers_only_real_inputs_and_mentions_the_industrial_came
     options = [page.type_box.itemText(i) for i in range(page.type_box.count())]
     assert options == ["沿用配置文件", "视频文件", "图片文件夹"]  # 没有实时摄像头
     assert "摄像头" not in " ".join(options)
-    assert page.camera_note.text() == "工业相机：型号确定后接入。"
     # 当前生效的视频源已经预览：分辨率和帧率
     assert page.probe_label.text().startswith("1920×1080") and "15 帧/秒" in page.probe_label.text()
     assert page.preview_view.image() is not None

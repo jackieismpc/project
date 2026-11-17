@@ -2,8 +2,7 @@
 
 用法::
 
-    uv run python scripts/build.py                    # 正式包：不含 simulation/，无演示账号
-    uv run python scripts/build.py --with-simulation  # 演示包：带模拟后端和演示账号
+    uv run python scripts/build.py                    # 单一发布包：固定替代后端
 
 产物放在 ``dist/``（已被 git 忽略），中间文件在 ``build/``：
 
@@ -16,8 +15,8 @@
 文件清单（SHA-256，Ed25519 签名，启动时校验）和第三方许可声明（``licenses/``）。
 
 构建步骤：生成 ``gelinspect/_build_info.py``（版本、构建标识、清单公钥；构建完删除）→
-``lrelease`` → Nuitka → 复制数据文件 → 许可声明 → 检查（正式包不得含 simulation）→
-清单签名 →（macOS）重新 ad-hoc 签名 → 打包 → ``dist/build-report-<变体>.json``。
+``lrelease`` → Nuitka → 复制数据文件 → 许可声明 → 检查固定替代后端已包含→
+清单签名 →（macOS）重新 ad-hoc 签名 → 打包 → ``dist/build-report.json``。
 """
 
 from __future__ import annotations
@@ -137,13 +136,12 @@ def manifest_key(path: str | None) -> tuple[object, str]:
     return key, public.hex()
 
 
-def write_build_info(variant: str, build_id: str, public_key: str) -> None:
+def write_build_info(build_id: str, public_key: str) -> None:
     """生成编译进程序的构建信息模块。"""
     BUILD_INFO.write_text(
         '"""构建信息（由 scripts/build.py 生成，构建结束后删除，不入库）。"""\n\n'
         f"VERSION = {json.dumps(__version__)}\n"
         f"BUILD_ID = {json.dumps(build_id)}\n"
-        f"VARIANT = {json.dumps(variant)}\n"
         f"MANIFEST_PUBLIC_KEY = {json.dumps(public_key)}\n",
         encoding="utf-8",
     )
@@ -177,7 +175,7 @@ def build_translations(target: Path) -> None:
 # ---------------------------------------------------------------------- 许可声明
 
 
-def runtime_distributions(with_simulation: bool) -> list[metadata.Distribution]:
+def runtime_distributions() -> list[metadata.Distribution]:
     """运行时依赖的闭包（不含开发依赖和可选依赖）。"""
     from packaging.requirements import Requirement
 
@@ -234,7 +232,7 @@ def license_name(dist: metadata.Distribution) -> str:
     return "、".join(classifiers) or "见下方许可文件"
 
 
-def write_notices(target: Path, with_simulation: bool) -> int:
+def write_notices(target: Path) -> int:
     """写第三方许可声明目录 ``licenses/``。
 
     Returns:
@@ -267,7 +265,7 @@ def write_notices(target: Path, with_simulation: bool) -> int:
             shutil.copy2(
                 Path(str(nuitka_dist.locate_file(file))), target / "Nuitka-LICENSE-RUNTIME.txt"
             )
-    dists = runtime_distributions(with_simulation)
+    dists = runtime_distributions()
     lines = [
         "GelInspect 第三方组件许可声明 / Third-party notices",
         "=" * 60,
@@ -303,7 +301,7 @@ def executable_name() -> str:
     return "GelInspect" if sys.platform == "win32" else "gelinspect-app"
 
 
-def nuitka_command(work: Path, variant: str, jobs: int, report: Path) -> list[str]:
+def nuitka_command(work: Path, jobs: int, report: Path) -> list[str]:
     """Nuitka 命令行。"""
     command = [
         sys.executable,
@@ -330,10 +328,7 @@ def nuitka_command(work: Path, variant: str, jobs: int, report: Path) -> list[st
         "--macos-signed-app-name=com.gelinspect.app",
     ]
     nofollow = list(NOFOLLOW)
-    if variant == "demo":
-        command.append("--include-package=simulation")
-    else:
-        nofollow.append("simulation")
+    command.append("--include-package=simulation")
     command.append("--nofollow-import-to=" + ",".join(nofollow))
     if shutil.which("ccache") is None:
         # Nuitka 自动下载的 macOS ccache 是 x86_64 版，在 Apple 芯片上会让 xcrun 失败。
@@ -369,7 +364,7 @@ def copy_tree(source: Path, target: Path, patterns: Iterable[str]) -> None:
             shutil.copy2(path, destination)
 
 
-def install_data(app_dir: Path, variant: str, staging: Path) -> None:
+def install_data(app_dir: Path, staging: Path) -> None:
     """复制 Nuitka 不会自动带上的数据：迁移脚本、翻译、配置、模拟算法配置、许可声明。"""
     # Alembic 运行时按文件加载 env.py 和 versions/*.py，只编译进主程序不够。
     copy_tree(
@@ -380,37 +375,25 @@ def install_data(app_dir: Path, variant: str, staging: Path) -> None:
     shutil.copytree(staging / "translations", app_dir / "translations", dirs_exist_ok=True)
     config_dir = app_dir / "config"
     config_dir.mkdir(exist_ok=True)
-    if variant == "demo":
-        demo = {key: value for key, value in DEFAULT_CONFIG.items() if key != "data_dir"}
-        demo["security"] = {"key_protection": "auto", "integrity_check": True}
-        import yaml
+    config = {key: value for key, value in DEFAULT_CONFIG.items() if key != "data_dir"}
+    config["security"] = {"key_protection": "auto", "integrity_check": True}
+    import yaml
 
-        text = (
-            "# GelInspect 演示包的默认配置：模拟设备、视频和算法，时间加速 60 倍，\n"
-            "# 首次启动创建演示账号（密码公开）。不要用于真实检测。\n"
-            + yaml.safe_dump(demo, allow_unicode=True, sort_keys=False)
-        )
-        (config_dir / "gelinspect.yaml").write_text(text, encoding="utf-8")
-        simulation_dir = app_dir / "simulation"
-        simulation_dir.mkdir(exist_ok=True)
-        shutil.copy2(ROOT / "simulation" / "analyzer.example.yaml", simulation_dir)
-    else:
-        shutil.copy2(PACKAGING / "config" / "release.yaml", config_dir / "gelinspect.yaml")
-    shutil.copy2(PACKAGING / "config" / "release.yaml", config_dir / "config.example.yaml")
+    text = yaml.safe_dump(config, allow_unicode=True, sort_keys=False)
+    (config_dir / "gelinspect.yaml").write_text(text, encoding="utf-8")
+    (config_dir / "config.example.yaml").write_text(text, encoding="utf-8")
+    simulation_dir = app_dir / "simulation"
+    simulation_dir.mkdir(exist_ok=True)
+    shutil.copy2(ROOT / "simulation" / "analyzer.example.yaml", simulation_dir)
 
 
-def check_variant(app_dir: Path, report: Path, variant: str) -> None:
-    """正式包里不能有 simulation：编译报告里没有它的模块，目录里也没有它的文件。"""
+def check_backend_included(app_dir: Path, report: Path) -> None:
+    """确认单一发布包内包含固定替代后端。"""
     text = report.read_text(encoding="utf-8")
-    compiled = 'name="simulation' in text or "name='simulation" in text
-    if variant == "release":
-        if compiled:
-            raise SystemExit("正式包的编译报告里出现了 simulation 模块")
-        leftovers = [p for p in app_dir.rglob("*") if "simulation" in p.relative_to(app_dir).parts]
-        if leftovers:
-            raise SystemExit(f"正式包里有 simulation 文件：{leftovers[:3]}")
-    elif not compiled:
-        raise SystemExit("演示包的编译报告里没有 simulation 模块")
+    if not ('name="simulation' in text or "name='simulation" in text):
+        raise SystemExit("编译报告里没有固定替代后端模块")
+    if not (app_dir / "simulation").exists():
+        raise SystemExit("发布包缺少固定替代后端资源")
 
 
 # ---------------------------------------------------------------------- 签名与打包
@@ -485,11 +468,9 @@ def sha256(path: Path) -> str:
 def build(args: argparse.Namespace) -> dict[str, object]:
     """执行一次构建，返回构建报告。"""
     started = time.monotonic()
-    variant = "demo" if args.with_simulation else "release"
     tag = platform_tag()
-    suffix = "-demo" if variant == "demo" else ""
-    base_name = f"GelInspect-{__version__}-{tag}{suffix}"
-    work = ROOT / "build" / variant
+    base_name = f"GelInspect-{__version__}-{tag}"
+    work = ROOT / "build" / "release"
     dist_dir = ROOT / "dist"
     if work.exists():
         shutil.rmtree(work)
@@ -500,29 +481,26 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         args.manifest_key or os.environ.get("GELINSPECT_MANIFEST_KEY")
     )
     staging = work / "staging"
-    log(f"变体 {variant}，平台 {tag}，构建 {build_id}")
+    log(f"单一构建，平台 {tag}，构建 {build_id}")
     build_translations(staging / "translations")
-    write_build_info(variant, build_id, public_hex)
+    write_build_info(build_id, public_hex)
     report = work / "compilation-report.xml"
     env = dict(os.environ)
     env.setdefault("NUITKA_CACHE_DIR", str(ROOT / "build" / "nuitka-cache"))
     try:
         compile_started = time.monotonic()
-        run(nuitka_command(work / "nuitka", variant, args.jobs, report), env=env)
+        run(nuitka_command(work / "nuitka", args.jobs, report), env=env)
         compile_s = time.monotonic() - compile_started
     finally:
         BUILD_INFO.unlink(missing_ok=True)
     app_dir, app_bundle = locate_dist(work / "nuitka")
     nuitka_files = regular_files(app_dir)
-    install_data(app_dir, variant, staging)
-    components = write_notices(app_dir / "licenses", args.with_simulation)
-    check_variant(app_dir, report, variant)
+    install_data(app_dir, staging)
+    components = write_notices(app_dir / "licenses")
+    check_backend_included(app_dir, report)
 
     # 产物改名并移到 dist/
-    if app_bundle is not None:
-        bundle = dist_dir / ("GelInspect Demo.app" if variant == "demo" else "GelInspect.app")
-    else:
-        bundle = dist_dir / ("GelInspect-Demo" if variant == "demo" else "GelInspect")
+    bundle = dist_dir / "GelInspect.app" if app_bundle is not None else dist_dir / "GelInspect"
     if bundle.exists():
         shutil.rmtree(bundle)
     shutil.move(str(app_bundle or app_dir), str(bundle))
@@ -536,7 +514,6 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         private_key,  # type: ignore[arg-type]
         version=__version__,
         build_id=build_id,
-        variant=variant,
         exclude=exclude,
     )
     if sys.platform == "darwin":
@@ -547,7 +524,6 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     archive = None if args.no_archive else make_archive(dist_dir, bundle, base_name)
     elapsed = time.monotonic() - started
     result: dict[str, object] = {
-        "variant": variant,
         "platform": tag,
         "version": __version__,
         "build_id": build_id,
@@ -563,7 +539,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "total_seconds": round(elapsed, 1),
         "python": platform.python_version(),
     }
-    (dist_dir / f"build-report-{variant}.json").write_text(
+    (dist_dir / "build-report.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     log(json.dumps(result, ensure_ascii=False, indent=2))
@@ -573,11 +549,6 @@ def build(args: argparse.Namespace) -> dict[str, object]:
 def main(argv: Sequence[str] | None = None) -> int:
     """命令行入口。"""
     parser = argparse.ArgumentParser(description="构建 GelInspect 当前平台的发布包")
-    parser.add_argument(
-        "--with-simulation",
-        action="store_true",
-        help="构建演示包：带 simulation/ 模拟后端和演示账号（正式包默认排除）",
-    )
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 4, help="并行编译数")
     parser.add_argument(
         "--manifest-key",

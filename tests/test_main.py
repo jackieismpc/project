@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import subprocess
@@ -36,6 +37,7 @@ from gelinspect.startup import (
     EXIT_OK,
     StartupFailure,
     describe_startup_error,
+    resolve_runtime_paths,
     run_gui,
 )
 from tests.keyed_db import open_keyed
@@ -94,7 +96,7 @@ def test_version_does_not_import_qt() -> None:
     assert result.stdout.strip().splitlines()[-1] == "False"
 
 
-def test_no_arguments_opens_the_window_with_the_default_simulation_config(
+def test_no_arguments_opens_the_window_with_the_default_configuration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[dict[str, Any]] = []
@@ -105,10 +107,12 @@ def test_no_arguments_opens_the_window_with_the_default_simulation_config(
 
     monkeypatch.setattr(startup, "run_gui", fake_run)
     assert main([]) == 0
-    assert calls == [{"config_path": None, "data_dir": None, "smoke_test": False, "demo": False}]
+    assert calls == [{"config_path": None, "data_dir": None, "smoke_test": False}]
 
 
-def test_config_option_and_simulate_alias(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_config_option_and_removed_mode_flags(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     calls: list[dict[str, Any]] = []
 
     def fake_run(**kwargs: Any) -> int:
@@ -118,16 +122,59 @@ def test_config_option_and_simulate_alias(monkeypatch: pytest.MonkeyPatch, tmp_p
     monkeypatch.setattr(startup, "run_gui", fake_run)
     assert main(["--config", str(tmp_path / "x.yaml")]) == 7
     assert calls[-1]["config_path"] == tmp_path / "x.yaml"
-    assert main(["--simulate"]) == 7
-    assert calls[-1]["config_path"] is None
-    with pytest.raises(SystemExit):
-        main(["--simulate", "--config", "x.yaml"])
+    for removed_flag in ("--simulate", "--demo"):
+        with pytest.raises(SystemExit):
+            main([removed_flag])
 
 
 def test_smoke_flags_are_hidden_from_help() -> None:
     help_text = build_parser().format_help()
-    assert "--smoke-test" not in help_text and "--diagnose" not in help_text
-    assert "--config" in help_text and "--simulate" in help_text
+    assert (
+        "--smoke-test" not in help_text
+        and "--diagnose" not in help_text
+        and "--config" in help_text
+        and "--simulate" not in help_text
+        and "--demo" not in help_text
+    )
+
+
+def test_ui_runtime_selection_is_loaded_and_explicit_paths_take_precedence(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "selected").mkdir()
+    config = write_config(tmp_path / "selected")
+    selected_data = tmp_path / "selected-data"
+    selected_data.mkdir()
+    adapter = ROOT / "simulation" / "analyzer.example.yaml"
+    selector = tmp_path / "runtime-selection.json"
+    selector.write_text(
+        json.dumps(
+            {
+                "config_path": str(config),
+                "data_dir": str(selected_data),
+                "analysis_config_path": str(adapter),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert resolve_runtime_paths(None, None, selection_file=selector) == (
+        config,
+        selected_data,
+        adapter,
+    )
+    (tmp_path / "cli").mkdir()
+    cli_config = write_config(tmp_path / "cli")
+    cli_data = tmp_path / "cli-data"
+    cli_data.mkdir()
+    assert resolve_runtime_paths(cli_config, cli_data, selection_file=selector) == (
+        cli_config,
+        cli_data,
+        None,
+    )
+
+    selector.write_text("[]", encoding="utf-8")
+    assert resolve_runtime_paths(None, None, selection_file=selector) == (None, None, None)
 
 
 # ---------------------------------------------------------------- 首次启动与再次启动

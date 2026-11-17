@@ -94,7 +94,7 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
     ),
     QuickAction(
         "instrument_settings",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "仪器设置")),
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "设置")),
         "settings",
         "Ctrl+,",
         Permission.SETTINGS_VIEW,

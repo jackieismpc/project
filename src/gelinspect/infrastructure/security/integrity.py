@@ -142,7 +142,6 @@ def build_manifest(
     *,
     version: str,
     build_id: str,
-    variant: str,
     exclude: Iterable[str] = (),
 ) -> int:
     """生成清单和签名，写到 ``root`` 下。
@@ -152,7 +151,6 @@ def build_manifest(
         private_key: 签名私钥。
         version: 版本号。
         build_id: 构建标识。
-        variant: ``release`` 或 ``demo``。
         exclude: 不进清单的相对路径（如 macOS 上会被重新签名的主程序），也可以是目录前缀。
 
     Returns:
@@ -172,7 +170,6 @@ def build_manifest(
         "format": MANIFEST_FORMAT,
         "version": version,
         "build_id": build_id,
-        "variant": variant,
         "algorithm": "sha256",
         "excluded": sorted(excluded - {MANIFEST_FILE, SIGNATURE_FILE}),
         "files": files,

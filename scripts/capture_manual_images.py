@@ -9,7 +9,7 @@
 做法与组件展示页 ``gelinspect.ui.gallery`` 一致：真实窗口、真实数据，``QWidget.grab()`` 离屏截图。
 所有数据都由真实流程产生：实验员走向导启动试验，引擎、模拟视频和算法跑完，分析员复核并签署。
 试验结论功能（``conclusions.enabled``）默认关闭，配图都是默认配置下的样子，没有结论卡和 λc。
-登录页隐藏演示账号提示（真实部署没有它）。全部图片约 1280×800，以最高压缩比存成 PNG。
+登录页保留账号快捷填入区。全部图片约 1280×800，以最高压缩比存成 PNG。
 """
 
 from __future__ import annotations
@@ -113,8 +113,7 @@ def main() -> int:
         rig = support.open_rig(root / "main", incubation_minutes=10)
         app, window = rig.app, rig.window
         try:
-            # 登录页：真实部署没有演示账号提示
-            window.login_page.set_demo_accounts(())
+            # 登录页展示账号快捷填入区。
             shot(rig, "login")
 
             # 实验员：向导四步
@@ -122,8 +121,6 @@ def main() -> int:
             choose_template(app, page, TEMPLATE)
             shot(rig, "wizard-1-template")
             click(app, page.template_next)
-            for card in page.reagent_cards.values():  # 示例码只有模拟配置才有，截图时去掉
-                card.set_samples([])
             scan(app, page, ReagentKind.LAL_REAGENT, SAMPLE_CODES["lal_expired"])
             shot(rig, "wizard-2-reagent-locked")
             pass_reagents(app, page)

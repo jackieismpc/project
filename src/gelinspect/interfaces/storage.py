@@ -518,15 +518,23 @@ class TemplateRepository(Protocol):
         ...
 
     def list_all(
-        self, experiment_type: ExperimentType | None = None, *, include_hidden: bool = False,
+        self,
+        experiment_type: ExperimentType | None = None,
+        *,
+        include_hidden: bool = False,
         include_deleted: bool = False,
     ) -> list[ExperimentTemplate]:
         """列出模板，可按试验类型过滤，按标识排序。"""
         ...
 
     def set_visibility(
-        self, template_id: str, *, hidden: bool | None = None,
-        deleted: bool = False, deleted_at: datetime | None = None, deleted_by: str | None = None,
+        self,
+        template_id: str,
+        *,
+        hidden: bool | None = None,
+        deleted: bool = False,
+        deleted_at: datetime | None = None,
+        deleted_by: str | None = None,
     ) -> None:
         """更新隐藏或软删除状态。"""
         ...
