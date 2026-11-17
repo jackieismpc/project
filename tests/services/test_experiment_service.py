@@ -86,6 +86,38 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert stack.engine.started == []  # 创建不启动
 
 
+def test_create_recalculates_an_overridden_lambda_multiple_from_trusted_sensitivity(
+    stack: Stack,
+) -> None:
+    request = request_for(template=LIMIT)
+    assignments = list(request.assignments)
+    assignments[0] = dataclasses.replace(
+        assignments[0], lambda_multiple=0.5, lambda_multiple_overridden=True, spiked_endotoxin=999
+    )
+    request = dataclasses.replace(request, assignments=assignments)
+
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None
+    assert experiment.assignments[0].spiked_endotoxin == 0.125
+
+
+def test_create_rejects_negative_lambda_multiple_override(stack: Stack) -> None:
+    request = request_for(template=LIMIT)
+    assignments = list(request.assignments)
+    assignments[0] = dataclasses.replace(
+        assignments[0], lambda_multiple=-0.1, lambda_multiple_overridden=True
+    )
+
+    with pytest.raises(ServiceError) as caught:
+        stack.experiments.create_experiment(
+            stack.login("experimenter"), dataclasses.replace(request, assignments=assignments)
+        )
+
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_VALUE_INVALID
+
+
 def test_manual_reagent_input_creates_and_starts_after_server_recheck(stack: Stack) -> None:
     request = request_for(
         codes={

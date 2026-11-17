@@ -22,8 +22,8 @@ from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageReque
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.new_experiment import (
     COL_BATCH,
+    COL_LAMBDA,
     COL_NAME,
-    COL_SPIKE,
     COL_TUBE,
     NewExperimentPage,
 )
@@ -380,9 +380,9 @@ def test_editing_samples_and_blank_names_block_the_next_step(
     assert "第 2 行的样品名称为空" in page.sample_problem.text()
     assert not page.sample_next.isEnabled()
     table.cell_item(1, COL_NAME).setText("样品二")
-    table.cell_item(1, COL_SPIKE).setText("0.25")
+    table.cell_item(1, COL_LAMBDA).setText("0.5")
     assert not page.sample_problem.isVisibleTo(page) and page.sample_next.isEnabled()
-    assert page.draft().rows[1].name == "样品二" and page.draft().rows[1].spiked_endotoxin == 0.25
+    assert page.draft().rows[1].name == "样品二" and page.draft().rows[1].lambda_multiple == 0.5
     assert page._draft.rows[1].batch_no == ""
 
 
@@ -413,6 +413,38 @@ def test_going_back_keeps_everything_that_was_entered(
     click(qapp, page.sample_next)
     click(qapp, page.confirm_back)
     assert page.current_step() == STEP_SAMPLES and page.draft().selected == list(range(20, 38))
+
+
+def test_sample_sort_lambda_edit_and_batch_scanner_fill_selected_rows(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    page._draft.set_labeled_sensitivity(0.5)
+    page._sync_samples()
+    page.sample_table.cell_item(0, COL_NAME).setText("Z sample")
+    page.sample_table.cell_item(1, COL_NAME).setText("A sample")
+    page._draft.sort_rows("name")
+    page._sync_samples()
+    assert page.sample_table.cell_text(0, COL_NAME) == "A sample"
+    tube_by_id = {row.row_id: row.tube_no for row in page._draft.rows}
+    page._draft.sort_rows("tube_no", reverse=True)
+    page._draft.sort_rows("name")
+    assert {row.row_id: row.tube_no for row in page._draft.rows} == tube_by_id
+    page._sync_samples()
+
+    page.sample_table.cell_item(0, COL_LAMBDA).setText("0.5")
+    assert page._draft.rows[0].spiked_endotoxin == 0.25
+    page.sample_table.selectRow(0)
+    page.batch_fill.setText("LOT-SCAN-1")
+    page._fill_selected_batches()
+    assert page._draft.rows[0].batch_no == "LOT-SCAN-1"
+    assert page._draft.rows[1].batch_no == ""
+    page.sample_table.clearSelection()
+    page.batch_fill.setText("LOT-SCAN-2")
+    page._fill_selected_batches()
+    assert page._draft.rows[1].batch_no == "LOT-SCAN-2"
+    assert page.sample_table.currentRow() == 2
 
 
 def test_changing_the_template_asks_before_discarding_entered_samples(

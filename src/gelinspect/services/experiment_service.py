@@ -33,6 +33,7 @@ from gelinspect.domain.errors import InvalidPlatePositionError
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
+from gelinspect.domain.templates import spike_from_lambda
 from gelinspect.interfaces.storage import (
     ExperimentRepository,
     NotFoundError,
@@ -242,6 +243,14 @@ class ExperimentService:
                     ServiceErrorCode.DRAFT_SAMPLE_NAME_REQUIRED,
                     index=index,
                 )
+            if assignment.lambda_multiple is not None and (
+                not math.isfinite(assignment.lambda_multiple) or assignment.lambda_multiple < 0
+            ):
+                raise ServiceError(
+                    f"第 {index} 行的 λ 倍数必须是有限非负数",
+                    ServiceErrorCode.TEMPLATE_VALUE_INVALID,
+                    index=index,
+                )
 
         scans = (
             {
@@ -301,8 +310,15 @@ class ExperimentService:
                     dilution_factor=a.dilution_factor,
                     # 按倍数的管位由这里按 λ 算出并固化，不信任界面传来的值。
                     spiked_endotoxin=(
-                        a.spiked_endotoxin
-                        if item.lambda_multiple is None
+                        None
+                        if a.lambda_multiple_overridden and a.lambda_multiple is None
+                        else spike_from_lambda(labeled, a.lambda_multiple)
+                        if a.lambda_multiple_overridden
+                        and a.lambda_multiple is not None
+                        and labeled is not None
+                        and labeled > 0
+                        else a.spiked_endotoxin
+                        if item.lambda_multiple is None and not a.lambda_multiple_overridden
                         else item.spike_for(labeled)
                     ),
                 )

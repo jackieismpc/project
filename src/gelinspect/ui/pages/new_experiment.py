@@ -80,7 +80,7 @@ STEP_TEMPLATE, STEP_REAGENTS, STEP_SAMPLES, STEP_CONFIRM = range(4)
 TABLE_MAX_HEIGHT = 420
 """样品表的最大高度（设计稿 ``.tw``），超出时表内滚动。"""
 
-COL_INDEX, COL_NAME, COL_BATCH, COL_SPIKE, COL_TUBE = range(5)
+COL_INDEX, COL_NAME, COL_BATCH, COL_LAMBDA, COL_SPIKE, COL_TUBE = range(6)
 """样品表的列。"""
 
 
@@ -130,6 +130,7 @@ class NewExperimentPage(QWidget):
         self._start_error: str | None = None
         self._confirm_error: Callable[[], str] | None = None
         self._syncing = False
+        self._batch_scan_row = 0
 
         self.setProperty("role", "root")
         outer = QVBoxLayout(self)
@@ -282,10 +283,19 @@ class NewExperimentPage(QWidget):
         work.setSpacing(14)
         self.sample_card = Card(" ")
         self.sample_table = EditTable(self._sample_columns())
+        self.sample_table.horizontalHeader().setSectionsClickable(True)
         self.sample_table.setMaximumHeight(TABLE_MAX_HEIGHT)
         self.sample_table.setMinimumHeight(200)
+        self.sample_table.setSelectionMode(self.sample_table.SelectionMode.ExtendedSelection)
+        self.sample_table.setSelectionBehavior(self.sample_table.SelectionBehavior.SelectRows)
         self.sample_table.cellEdited.connect(self._on_cell_edited)
+        self.sample_table.horizontalHeader().sectionClicked.connect(self._on_sample_header_clicked)
         self.sample_card.body.addWidget(self.sample_table, 1)
+        self.batch_fill = QLineEdit()
+        self.batch_fill.setMinimumHeight(40)
+        self.batch_fill.setPlaceholderText(self.tr("扫码或输入样品批号，回车填入选中行"))
+        self.batch_fill.returnPressed.connect(self._fill_selected_batches)
+        self.sample_card.body.addWidget(self.batch_fill)
         self.sample_problem = Label("", "warn")
         self.sample_problem.setWordWrap(True)
         self.sample_problem.setVisible(False)
@@ -386,7 +396,8 @@ class NewExperimentPage(QWidget):
             EditColumn(self.tr("序号"), "readonly", mono=True),
             EditColumn(self.tr("样品名称"), "text"),
             EditColumn(self.tr("样品批号"), "text", mono=True, placeholder=self.tr("点击录入")),
-            EditColumn(self.tr("外加内毒素"), "number", mono=True),
+            EditColumn(self.tr("λ倍数"), "number", mono=True),
+            EditColumn(self.tr("外加内毒素"), "readonly", mono=True),
             EditColumn(self.tr("管号"), "readonly", mono=True),
         ]
 
@@ -436,6 +447,7 @@ class NewExperimentPage(QWidget):
         self.limit_edit.setPlaceholderText(self.tr("留空则报告里不填"))
         self.limit_hint.setText(self.tr("录入后写入试验记录并显示在报告里；试验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
+        self.batch_fill.setPlaceholderText(self.tr("扫码或输入样品批号，回车填入选中行"))
         self.plate_card.set_title(self.tr("管位"))
         self.plate.setAccessibleName(
             self.tr("{rows} 排 × {holes} 支管位").format(rows=ROW_COUNT, holes=HOLES_PER_ROW)
@@ -555,6 +567,7 @@ class NewExperimentPage(QWidget):
         """丢弃向导里的全部内容回到第一步；已创建但没启动的试验一并放弃。"""
         self._discard_created()
         self._draft = ExperimentDraft()
+        self._batch_scan_row = 0
         self._scans.clear()
         self._start_error = None
         self._confirm_error = None
@@ -626,6 +639,7 @@ class NewExperimentPage(QWidget):
         ):
             return
         self._draft.choose_template(info.template)
+        self._batch_scan_row = 0
         for option in self._options:
             option.set_selected(option.template.template_id == template_id)
         self._sync_lambda()
@@ -681,6 +695,7 @@ class NewExperimentPage(QWidget):
                     else None
                 ),
             )
+            self._batch_scan_row = 0
             self._sync_samples()
             self._render()
 
@@ -899,16 +914,17 @@ class NewExperimentPage(QWidget):
                         str(i),
                         row.name,
                         row.batch_no,
+                        _format_number(row.lambda_multiple),
                         _format_number(row.spiked_endotoxin),
                         self._tube_text(i - 1),
                     ]
                     for i, row in enumerate(rows, start=1)
                 ]
             )
-            for i, row in enumerate(rows):
-                if row.lambda_multiple is not None:  # 由 λ 算出，不能手工改
-                    item = self.sample_table.cell_item(i, COL_SPIKE)
-                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            for i, _row in enumerate(rows):
+                self.sample_table.cell_item(i, COL_SPIKE).setFlags(
+                    self.sample_table.cell_item(i, COL_SPIKE).flags() & ~Qt.ItemFlag.ItemIsEditable
+                )
             self.plate.set_selected(self._draft.selected)
             for edit, text in (
                 (self.mvd_edit, self._draft.mvd_text),
@@ -927,7 +943,7 @@ class NewExperimentPage(QWidget):
         self._render()
 
     def _tube_text(self, index: int) -> str:
-        tube = self._draft.tube_of_row(index)
+        tube = self._draft.rows[index].tube_no
         return "–" if tube is None else str(tube)
 
     @Slot(int, int)
@@ -936,14 +952,73 @@ class NewExperimentPage(QWidget):
             return
         sample = self._draft.rows[row]
         text = self.sample_table.cell_text(row, col)
-        if col == COL_SPIKE and sample.lambda_multiple is not None:
+        if col == COL_SPIKE:
             return
         if col == COL_NAME:
             sample.name = text
         elif col == COL_BATCH:
             sample.batch_no = text
-        elif col == COL_SPIKE:
-            sample.spiked_endotoxin = _parse_number(text)
+        elif col == COL_LAMBDA:
+            multiple = _parse_number(text)
+            if text.strip() and (multiple is None or multiple < 0):
+                sample.lambda_multiple = None
+                sample.spiked_endotoxin = None
+                self.sample_table.set_cell_text(row, COL_LAMBDA, "")
+            elif not text.strip():
+                sample.lambda_multiple = None
+                sample.lambda_multiple_overridden = True
+                sample.spiked_endotoxin = None
+            else:
+                assert multiple is not None
+                sample.lambda_multiple = multiple
+                sample.lambda_multiple_overridden = True
+                sample.spiked_endotoxin = (
+                    None
+                    if self._draft.labeled_sensitivity is None
+                    else self._draft.labeled_sensitivity * multiple
+                )
+                self.sample_table.set_cell_text(
+                    row, COL_SPIKE, _format_number(sample.spiked_endotoxin)
+                )
+        self._render()
+
+    @Slot(int)
+    def _on_sample_header_clicked(self, column: int) -> None:
+        keys = {
+            COL_NAME: "name",
+            COL_BATCH: "batch_no",
+            COL_TUBE: "tube_no",
+            COL_LAMBDA: "lambda_multiple",
+        }
+        key = keys.get(column)
+        if key is not None:
+            self._draft.sort_rows(key)
+            self._sync_samples()
+            self._render()
+
+    @Slot()
+    def _fill_selected_batches(self) -> None:
+        value = self.batch_fill.text().strip()
+        if not value:
+            return
+        selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
+        if selected:
+            targets = selected
+        elif self._batch_scan_row < len(self._draft.rows):
+            targets = [self._batch_scan_row]
+        else:
+            self.batch_fill.clear()
+            return
+        for row_index in targets:
+            if 0 <= row_index < len(self._draft.rows):
+                self._draft.rows[row_index].batch_no = value
+                self.sample_table.set_cell_text(row_index, COL_BATCH, value)
+        self.batch_fill.clear()
+        self._batch_scan_row = max(targets) + 1
+        self.sample_table.clearSelection()
+        if self._batch_scan_row < len(self._draft.rows):
+            self.sample_table.setCurrentCell(self._batch_scan_row, COL_BATCH)
+        self.batch_fill.setFocus()
         self._render()
 
     @Slot(list)
@@ -1012,6 +1087,20 @@ class NewExperimentPage(QWidget):
             else ""
         )
         self.limit_problem.setVisible(bool(bad_limits))
+        missing_basis = any(row.lambda_multiple is not None for row in draft.rows) and (
+            draft.labeled_sensitivity is None or draft.labeled_sensitivity <= 0
+        )
+        problems = []
+        if empty:
+            problems.append(
+                self.tr("第 {rows} 行的样品名称为空，请填写").format(rows=join_items(empty))
+            )
+        if missing_basis:
+            problems.append(
+                self.tr("缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。")
+            )
+        self.sample_problem.setText("\n".join(problems))
+        self.sample_problem.setVisible(bool(problems))
         self.sample_next.setEnabled(draft.tubes_match and not empty and not bad_limits)
         if not self.sample_next.isEnabled():
             self.sample_next.setToolTip(self.tr("管位数量要与模板一致，样品名称不能为空"))
@@ -1089,10 +1178,10 @@ class NewExperimentPage(QWidget):
                     "name": row.name,
                     "batch": row.batch_no,
                     "spike": _format_number(row.spiked_endotoxin),
-                    "tube": tube if (tube := draft.tube_of_row(i - 1)) is not None else "",
+                    "tube": tube if (tube := row.tube_no) is not None else "",
                     "row": (
                         row_label(tube_to_position(tube).row_index)
-                        if (tube := draft.tube_of_row(i - 1)) is not None
+                        if (tube := row.tube_no) is not None
                         else ""
                     ),
                 }

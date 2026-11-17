@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import math
+import uuid
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
@@ -38,6 +39,9 @@ class SampleRow:
     dilution_factor: float | None = None
     role: TubeRole = TubeRole.TEST
     lambda_multiple: float | None = None
+    tube_no: int | None = None
+    row_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    lambda_multiple_overridden: bool = False
 
     def snapshot(self) -> tuple[str, str, float | None, float | None]:
         """用于判断是否被编辑过的快照（按 λ 算出的值不算编辑）。
@@ -45,8 +49,7 @@ class SampleRow:
         Returns:
             可比较的元组。
         """
-        spike = None if self.lambda_multiple is not None else self.spiked_endotoxin
-        return (self.name, self.batch_no, spike, self.dilution_factor)
+        return (self.name, self.batch_no, self.spiked_endotoxin, self.dilution_factor)
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +69,8 @@ class SampleAssignmentInput:
     batch_no: str = ""
     spiked_endotoxin: float | None = None
     dilution_factor: float | None = None
+    lambda_multiple: float | None = None
+    lambda_multiple_overridden: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,6 +184,9 @@ class ExperimentDraft:
             )
             for item in sorted(template.items, key=lambda i: i.tube_no)
         ]
+        ordered_items = sorted(template.items, key=lambda i: i.tube_no)
+        for row, item in zip(self._rows, ordered_items, strict=True):
+            row.tube_no = item.tube_no
         self._baseline = [row.snapshot() for row in self._rows]
         self._selected = []
 
@@ -193,6 +201,22 @@ class ExperimentDraft:
     def rows(self) -> list[SampleRow]:
         """样品行（可直接修改行内容）。"""
         return self._rows
+
+    def sort_rows(self, key: str, *, reverse: bool = False) -> None:
+        """按指定字段排序；整行移动以保留样品、参数和管位绑定。"""
+        if key not in {"name", "batch_no", "tube_no", "lambda_multiple"}:
+            raise ValueError(f"不支持的样品排序字段：{key}")
+        indexed = list(enumerate(self._rows))
+        if key == "tube_no":
+            indexed.sort(key=lambda pair: pair[1].tube_no or 10_000, reverse=reverse)
+        elif key == "lambda_multiple":
+            indexed.sort(key=lambda pair: pair[1].lambda_multiple or 0, reverse=reverse)
+        else:
+            indexed.sort(
+                key=lambda pair: (getattr(pair[1], key) is None, getattr(pair[1], key) or ""),
+                reverse=reverse,
+            )
+        self._rows = [row for _, row in indexed]
 
     # ------------------------------------------------------------------ 管位
 
@@ -234,6 +258,14 @@ class ExperimentDraft:
         for tube_no in unique:
             tube_to_position(tube_no)
         self._selected = unique
+        existing = {row.tube_no for row in self._rows}
+        if len(unique) == len(self._rows) and existing == set(unique):
+            return
+        for row in self._rows:
+            row.tube_no = None
+        if len(unique) == len(self._rows):
+            for row, tube_no in zip(self._rows, unique, strict=True):
+                row.tube_no = tube_no
 
     def auto_select(self) -> list[int]:
         """自动选择：选中模板默认的管号。
@@ -245,11 +277,15 @@ class ExperimentDraft:
             self._selected = []
         else:
             self._selected = sorted(item.tube_no for item in self._template.items)
+            for row, tube_no in zip(self._rows, self._selected, strict=True):
+                row.tube_no = tube_no
         return self.selected
 
     def clear_selection(self) -> None:
         """清除全部已选管位。"""
         self._selected = []
+        for row in self._rows:
+            row.tube_no = None
 
     def tube_of_row(self, index: int) -> int | None:
         """第 ``index`` 行（从 0 起）对应的管号。
@@ -260,7 +296,7 @@ class ExperimentDraft:
         Returns:
             管号；选中的管数不够时为 None。
         """
-        return self._selected[index] if 0 <= index < len(self._selected) else None
+        return self._rows[index].tube_no if 0 <= index < len(self._rows) else None
 
     # ------------------------------------------------------------------ 试剂
 
@@ -289,9 +325,12 @@ class ExperimentDraft:
         if self._template is None:
             return
         items = sorted(self._template.items, key=lambda i: i.tube_no)
-        for row, item in zip(self._rows, items, strict=True):
-            if item.lambda_multiple is not None:
-                row.spiked_endotoxin = item.spike_for(value)
+        for row in self._rows:
+            if row.lambda_multiple is not None:
+                item = next(
+                    (candidate for candidate in items if candidate.tube_no == row.tube_no), None
+                )
+                row.spiked_endotoxin = item.spike_for(value) if item is not None else None
 
     @property
     def lambda_missing(self) -> bool:
@@ -350,9 +389,13 @@ class ExperimentDraft:
                 batch_no=row.batch_no.strip(),
                 spiked_endotoxin=row.spiked_endotoxin,
                 dilution_factor=row.dilution_factor,
+                lambda_multiple=row.lambda_multiple,
+                lambda_multiple_overridden=row.lambda_multiple_overridden,
             )
-            for row, tube_no in zip(self._rows, self._selected, strict=False)
+            for row in self._rows
+            if (tube_no := row.tube_no) is not None
         ]
+        assignments.sort(key=lambda assignment: assignment.tube_no)
         return NewExperimentRequest(
             template_id=self._template.template_id,
             assignments=assignments,
