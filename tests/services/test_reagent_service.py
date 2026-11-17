@@ -49,7 +49,8 @@ def test_manual_fields_use_registry_and_record_original_input_and_mode(stack: St
         ReagentInput(mode="manual", product_code="GL-LAL-0.25", batch_no="LAL2606A"),
         expected_kind=ReagentKind.LAL_REAGENT,
     )
-    assert scan.valid and scan.expiry_date.isoformat() == "2027-06-30"
+    assert scan.valid and scan.expiry_date is not None
+    assert scan.expiry_date.isoformat() == "2027-06-30"
     assert scan.labeled_sensitivity == 0.25  # 来自备案记录，不采信手输值
     record = stack.database.reagent_checks.query(PageRequest()).items[0]
     assert record.input_mode == "manual"

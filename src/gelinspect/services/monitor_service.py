@@ -7,10 +7,11 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Protocol
 
 from gelinspect.domain.conclusions import ExperimentConclusion, provisional_conclusion
@@ -35,7 +36,7 @@ from gelinspect.interfaces.storage import (
     TemplateRepository,
 )
 from gelinspect.interfaces.video import VideoInfo
-from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.auth import AuthError, AuthService, Session
 from gelinspect.services.engine_run import FLIP_ANGLE_KEY
 from gelinspect.services.engine_types import (
     EngineError,
@@ -55,6 +56,7 @@ STOPPABLE_STATES = frozenset(
         ExperimentState.FAULTED,
     }
 )
+_log = logging.getLogger(__name__)
 """可以停止的试验状态。"""
 
 LIVE_STATES = STOPPABLE_STATES | {ExperimentState.READY}
@@ -351,6 +353,7 @@ class MonitorService:
         pipeline: MonitorPipeline | None = None,
         *,
         conclusions_enabled: bool = False,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         """创建服务。
 
@@ -360,12 +363,14 @@ class MonitorService:
             engine: 试验引擎。
             pipeline: 视频管线；为 None 时没有实时视频。
             conclusions_enabled: 是否显示试验结论，默认关闭；关闭时视图里没有结论和实测灵敏度。
+            clock: 可注入时钟，用于记录查看审计时间。
         """
         self._conclusions_enabled = conclusions_enabled
         self._auth = auth
         self._storage = storage
         self._engine = engine
         self._pipeline = pipeline
+        self._clock = clock or (lambda: datetime.now(UTC))
         self._lock = threading.Lock()
         self._preview_listeners: list[Callable[[PreviewFrame], None]] = []
         if pipeline is not None:
@@ -400,12 +405,19 @@ class MonitorService:
         page = self._storage.experiments.query(ExperimentQuery(), PageRequest(limit=1))
         return page.items[0].experiment_id if page.items else None
 
-    def view(self, session: Session | None, experiment_id: str) -> ExperimentView:
+    def view(
+        self,
+        session: Session | None,
+        experiment_id: str,
+        *,
+        audit_access: bool = False,
+    ) -> ExperimentView:
         """读取试验的完整视图（数据库加引擎快照）。
 
         Args:
             session: 调用者的会话，需要 ``experiment_view`` 权限。
             experiment_id: 试验标识。
+            audit_access: 是否记录这次明确发起的查看操作；自动刷新应保持默认值。
 
         Returns:
             试验视图。
@@ -414,24 +426,68 @@ class MonitorService:
             PermissionDeniedError: 没有权限。
             ServiceError: 试验不存在（``EXPERIMENT_NOT_FOUND``）。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
-        experiment = self._storage.experiments.get(experiment_id)
-        if experiment is None:
-            raise ServiceError(
-                f"试验不存在：{experiment_id}",
-                ServiceErrorCode.EXPERIMENT_NOT_FOUND,
-                id=experiment_id,
+        user = None
+        try:
+            user = self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        except AuthError as error:
+            if audit_access:
+                self._audit_experiment_view(session, None, experiment_id, "denied", error)
+            raise
+        try:
+            experiment = self._storage.experiments.get(experiment_id)
+            if experiment is None:
+                raise ServiceError(
+                    f"试验不存在：{experiment_id}",
+                    ServiceErrorCode.EXPERIMENT_NOT_FOUND,
+                    id=experiment_id,
+                )
+            snapshot = self._engine.snapshot()
+            # 引擎线程在状态到达终点之后还要收尾（退出滑台、停视频），收尾期间界面已按只读显示。
+            if snapshot is not None and snapshot.experiment_id != experiment_id:
+                snapshot = None
+            active = self._engine.active_experiment_id == experiment_id
+            # 离线重试不碰设备和视频，没有实时画面可看，按只读显示。
+            offline = snapshot is not None and snapshot.offline_retry
+            live = active and not offline and experiment.state in LIVE_STATES
+            view = self._build_view(experiment, snapshot if live else None, live)
+            view = self._with_recovery(view, snapshot if active else None, active)
+        except Exception as error:
+            if audit_access:
+                self._audit_experiment_view(session, user, experiment_id, "failed", error)
+            raise
+        if audit_access:
+            self._audit_experiment_view(session, user, experiment_id, "success")
+        return view
+
+    def _audit_experiment_view(
+        self,
+        session: Session | None,
+        user: User | None,
+        experiment_id: str,
+        outcome: str,
+        error: Exception | None = None,
+    ) -> None:
+        session_user = getattr(session, "user", None)
+        actor = (
+            user.username if user is not None else getattr(session_user, "username", "anonymous")
+        )
+        role = user.role if user is not None else getattr(session_user, "role", None)
+        detail = f"打开试验数据，结果={outcome}"
+        if error is not None:
+            detail += f"，原因={getattr(error, 'code', type(error).__name__)}"
+        try:
+            self._storage.audit.append(
+                AuditEvent(
+                    occurred_at=self._clock(),
+                    actor=actor,
+                    actor_role=role,
+                    action=AuditAction.EXPERIMENT_VIEWED,
+                    detail=detail,
+                    experiment_id=experiment_id,
+                )
             )
-        snapshot = self._engine.snapshot()
-        # 引擎线程在状态到达终点之后还要收尾（退出滑台、停视频），收尾期间界面已按只读显示。
-        if snapshot is not None and snapshot.experiment_id != experiment_id:
-            snapshot = None
-        active = self._engine.active_experiment_id == experiment_id
-        # 离线重试不碰设备和视频，没有实时画面可看，按只读显示。
-        offline = snapshot is not None and snapshot.offline_retry
-        live = active and not offline and experiment.state in LIVE_STATES
-        view = self._build_view(experiment, snapshot if live else None, live)
-        return self._with_recovery(view, snapshot if active else None, active)
+        except Exception:
+            _log.exception("记录试验数据查看审计失败")
 
     def _with_recovery(
         self, view: ExperimentView, snapshot: EngineSnapshot | None, active: bool

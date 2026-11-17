@@ -172,6 +172,7 @@ def test_only_template_manager_can_retain_deleted_template_snapshot(stack: Stack
 
 def test_ad_hoc_configuration_runs_without_persisting_a_template(stack: Stack) -> None:
     source = request_for()
+    assert source.template_snapshot is not None
     snapshot = dataclasses.replace(source.template_snapshot, template_id="draft.one")
     request = dataclasses.replace(
         source, template_id="draft.one", template_snapshot=snapshot, source_template_id=None
@@ -218,6 +219,7 @@ def test_ad_hoc_configuration_keeps_source_revocation_guard(stack: Stack) -> Non
         TemplateDraft("來源模板", ExperimentType.LIMIT, [TemplateItemInput("供試品")]),
     )
     source = request_for(source_template)
+    assert source.template_snapshot is not None
     snapshot = dataclasses.replace(source.template_snapshot, template_id="draft.two")
     request = dataclasses.replace(
         source,

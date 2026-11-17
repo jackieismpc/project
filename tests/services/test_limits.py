@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from pathlib import Path
 
@@ -83,11 +84,10 @@ def test_the_service_rejects_bad_limits_even_if_the_ui_is_bypassed(
 ) -> None:
     base = request()
     for field in ("mvd", "endotoxin_limit"):
-        crafted = NewExperimentRequest(
-            base.template_id,
-            base.assignments,
-            GOOD_CODES,
-            **{field: bad},
+        crafted = (
+            dataclasses.replace(base, mvd=bad)
+            if field == "mvd"
+            else dataclasses.replace(base, endotoxin_limit=bad)
         )
         with pytest.raises(ServiceError) as caught:
             stack.experiments.create_experiment(stack.login("experimenter"), crafted)

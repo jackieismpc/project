@@ -13,8 +13,10 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Protocol
@@ -23,10 +25,12 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
+from gelinspect.domain.entities import AuditEvent, User
+from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import HOLES_PER_ROW, tube_to_position
-from gelinspect.interfaces.storage import MediaFile, MediaKind, MediaRepository
-from gelinspect.services.auth import AuthService, Session
+from gelinspect.interfaces.storage import AuditRepository, MediaFile, MediaKind, MediaRepository
+from gelinspect.services.auth import AuthError, AuthService, Session
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.mask_archive import MaskKind, MaskPhase, latest_masks
 from gelinspect.services.replay import ReplayError, VideoClip
@@ -42,6 +46,7 @@ MIN_SIDE_PADDING = 0.06
 
 Image = NDArray[np.uint8]
 Polygons = tuple[NDArray[np.int32], ...]
+_log = logging.getLogger(__name__)
 
 
 class ImageWarning(StrEnum):
@@ -61,6 +66,11 @@ class MediaStorage(Protocol):
     @property
     def media(self) -> MediaRepository:
         """媒体文件记录仓储。"""
+        ...
+
+    @property
+    def audit(self) -> AuditRepository:
+        """追加-only audit repository."""
         ...
 
 
@@ -226,15 +236,23 @@ def _crop_mask(mask: Image | None, box: tuple[int, int, int, int], size: tuple[i
 class MediaService:
     """读取原图、掩码和录像，供监控页和单管详情使用。"""
 
-    def __init__(self, auth: AuthService, storage: MediaStorage) -> None:
+    def __init__(
+        self,
+        auth: AuthService,
+        storage: MediaStorage,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         """创建服务。
 
         Args:
             auth: 认证服务，用于校验权限。
             storage: 存储。
+            clock: 可注入时钟，用于记录媒体访问审计时间。
         """
         self._auth = auth
         self._storage = storage
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     # ------------------------------------------------------------------ 录像
 
@@ -276,20 +294,83 @@ class MediaService:
             ServiceError: 这一排没有录像（``MEDIA_MISSING``），或文件被改动、无法解码
                 （``MEDIA_TAMPERED`` / ``MEDIA_MISSING``）。
         """
-        recording = self.recordings(session, experiment_id).get(row_index)
+        try:
+            user = self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        except AuthError as error:
+            self._audit_video_access(
+                session, None, experiment_id, row_index, outcome="denied", error=error
+            )
+            raise
+        try:
+            items = self._storage.media.list_for_experiment(experiment_id, kind=MediaKind.VIDEO)
+            recording = next(
+                (
+                    Recording(item.row_index, Path(item.path), item.sha256, item.size_bytes)
+                    for item in reversed(items)
+                    if item.row_index == row_index
+                ),
+                None,
+            )
+        except Exception as storage_error:
+            self._audit_video_access(
+                session, user, experiment_id, row_index, outcome="failed", error=storage_error
+            )
+            raise
         if recording is None:
-            raise ServiceError(
+            missing_error = ServiceError(
                 f"第 {row_index} 排没有录像", ServiceErrorCode.MEDIA_MISSING, row=row_index
             )
+            self._audit_video_access(
+                session, user, experiment_id, row_index, outcome="failed", error=missing_error
+            )
+            raise missing_error
         try:
-            return VideoClip(recording.path, sha256=recording.sha256)
+            clip = VideoClip(recording.path, sha256=recording.sha256)
         except ReplayError as exc:
             code = (
                 ServiceErrorCode.MEDIA_TAMPERED
                 if "SHA-256" in str(exc)
                 else ServiceErrorCode.MEDIA_MISSING
             )
-            raise ServiceError(str(exc), code, row=row_index) from exc
+            replay_error = ServiceError(str(exc), code, row=row_index)
+            self._audit_video_access(
+                session, user, experiment_id, row_index, outcome="failed", error=replay_error
+            )
+            raise replay_error from exc
+        self._audit_video_access(session, user, experiment_id, row_index, outcome="success")
+        return clip
+
+    def _audit_video_access(
+        self,
+        session: Session | None,
+        user: User | None,
+        experiment_id: str,
+        row_index: int,
+        *,
+        outcome: str,
+        error: Exception | None = None,
+    ) -> None:
+        session_user = getattr(session, "user", None)
+        actor = (
+            user.username if user is not None else getattr(session_user, "username", "anonymous")
+        )
+        role = user.role if user is not None else getattr(session_user, "role", None)
+        detail = f"打开录像：Row{row_index:02d}，结果={outcome}"
+        if error is not None:
+            detail += f"，原因={getattr(error, 'code', type(error).__name__)}"
+        try:
+            self._storage.audit.append(
+                AuditEvent(
+                    occurred_at=self._clock(),
+                    actor=actor,
+                    actor_role=role,
+                    action=AuditAction.VIDEO_ACCESSED,
+                    detail=detail,
+                    experiment_id=experiment_id,
+                )
+            )
+        except Exception:
+            _log.exception("记录录像访问审计失败")
 
     # ------------------------------------------------------------------ 图像
 
@@ -336,17 +417,30 @@ class MediaService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
-        files = self._storage.media.list_for_experiment(
-            experiment_id, kind=MediaKind.IMAGE, row_index=row_index
+        user = self._authorize_media_view(session, experiment_id, f"Row{row_index:02d}縮略圖")
+        try:
+            files = self._storage.media.list_for_experiment(
+                experiment_id, kind=MediaKind.IMAGE, row_index=row_index
+            )
+            raw = latest_raw_images(files)
+            reader = _Reader()
+            sides: dict[str, Image | None] = {}
+            for phase in ("before", "after"):
+                image = reader.read(raw[phase][-1], cv2.IMREAD_COLOR) if raw[phase] else None
+                sides[phase] = None if image is None else resize_to_long_side(image, long_side)
+            result = RowThumbnails(
+                row_index, sides["before"], sides["after"], tuple(reader.warnings)
+            )
+        except Exception as error:
+            self._audit_image_access(
+                session, user, experiment_id, f"Row{row_index:02d}", "failed", error
+            )
+            raise
+        outcome = "partial" if result.warnings else "success"
+        self._audit_image_access(
+            session, user, experiment_id, f"Row{row_index:02d}", outcome, warnings=result.warnings
         )
-        raw = latest_raw_images(files)
-        reader = _Reader()
-        sides: dict[str, Image | None] = {}
-        for phase in ("before", "after"):
-            image = reader.read(raw[phase][-1], cv2.IMREAD_COLOR) if raw[phase] else None
-            sides[phase] = None if image is None else resize_to_long_side(image, long_side)
-        return RowThumbnails(row_index, sides["before"], sides["after"], tuple(reader.warnings))
+        return result
 
     def tube_images(self, session: Session | None, experiment_id: str, tube_no: int) -> TubeImages:
         """单管详情的图像：翻转前后的代表帧裁剪、掩码轮廓和 3 帧序列。
@@ -363,11 +457,17 @@ class MediaService:
             PermissionDeniedError: 没有权限。
             InvalidPlatePositionError: 管号超出范围。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        user = self._authorize_media_view(session, experiment_id, f"管{tube_no:02d}图像")
         position = tube_to_position(tube_no)
-        files = self._storage.media.list_for_experiment(
-            experiment_id, kind=MediaKind.IMAGE, row_index=position.row_index
-        )
+        try:
+            files = self._storage.media.list_for_experiment(
+                experiment_id, kind=MediaKind.IMAGE, row_index=position.row_index
+            )
+        except Exception as error:
+            self._audit_image_access(
+                session, user, experiment_id, f"管{tube_no:02d}", "failed", error
+            )
+            raise
         raw = latest_raw_images(files)
         masks = {k: v for k, v in latest_masks(files).items() if k[0] == tube_no}
         reader = _Reader()
@@ -418,7 +518,7 @@ class MediaService:
                 if frame is not None:
                     thumb, _, _ = _crop(frame, box, SEQUENCE_LONG_SIDE)
                     sequences[phase_name].append(thumb)
-        return TubeImages(
+        result = TubeImages(
             experiment_id=experiment_id,
             tube_no=tube_no,
             row_index=position.row_index,
@@ -428,6 +528,58 @@ class MediaService:
             sequence_after=tuple(sequences["after"]),
             warnings=tuple(reader.warnings),
         )
+        outcome = "partial" if result.warnings else "success"
+        self._audit_image_access(
+            session, user, experiment_id, f"管{tube_no:02d}", outcome, warnings=result.warnings
+        )
+        return result
+
+    def _authorize_media_view(
+        self, session: Session | None, experiment_id: str, target: str
+    ) -> User:
+        try:
+            return self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        except AuthError as error:
+            self._audit_image_access(session, None, experiment_id, target, "denied", error)
+            raise
+
+    def _audit_image_access(
+        self,
+        session: Session | None,
+        user: User | None,
+        experiment_id: str,
+        target: str,
+        outcome: str,
+        error: Exception | None = None,
+        *,
+        warnings: tuple[ImageWarning, ...] = (),
+    ) -> None:
+        session_user = getattr(session, "user", None)
+        actor = (
+            user.username if user is not None else getattr(session_user, "username", "anonymous")
+        )
+        role = user.role if user is not None else getattr(session_user, "role", None)
+        detail = f"查看图像：{target}，结果={outcome}"
+        if warnings:
+            detail += f"，提示={','.join(warning.value for warning in warnings)}"
+        if error is not None:
+            detail += f"，原因={getattr(error, 'code', type(error).__name__)}"
+        self._append_audit(
+            AuditEvent(
+                occurred_at=self._clock(),
+                actor=actor,
+                actor_role=role,
+                action=AuditAction.IMAGE_ACCESSED,
+                detail=detail,
+                experiment_id=experiment_id,
+            )
+        )
+
+    def _append_audit(self, event: AuditEvent) -> None:
+        try:
+            self._storage.audit.append(event)
+        except Exception:
+            _log.exception("记录媒体访问审计失败")
 
 
 __all__ = [

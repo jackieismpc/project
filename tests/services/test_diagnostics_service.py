@@ -10,14 +10,16 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
-from gelinspect.domain.entities import Experiment
+from gelinspect.domain.entities import Experiment, User
 from gelinspect.domain.enums import AuditAction, ExperimentType, Role
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import ExperimentQuery, MediaFile, MediaKind, PageRequest
 from gelinspect.logging_setup import configure_logging, shutdown_logging
+from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.diagnostics_service import DiagnosticCancelledError, DiagnosticsService
 
 
@@ -28,13 +30,13 @@ class _Auth:
     def authorize(self, _session: object, permission: Permission) -> object:
         assert permission is Permission.DIAGNOSTICS_EXPORT
         if not self.allowed:
-            raise PermissionError
-        return SimpleNamespace(username="maintenance", role=Role.ADMIN)
+            raise PermissionDeniedError("denied")
+        return User("u1", "maintenance", "Maintenance", Role.ADMIN)
 
 
 class _Storage:
     def __init__(self, media: list[MediaFile] | None = None) -> None:
-        self.events: list[object] = []
+        self.events: list[Any] = []
         self.media_items = media or []
         self.telemetry = self
         self.experiment = Experiment(
@@ -86,8 +88,8 @@ def _service(tmp_path: Path, storage: _Storage, *, allowed: bool = True) -> Diag
     log_dir = data_dir / "logs"
     log_dir.mkdir()
     return DiagnosticsService(
-        _Auth(allowed),
-        storage,
+        cast(Any, _Auth(allowed)),
+        cast(Any, storage),
         data_dir=data_dir,
         log_dir=log_dir,
         clock=lambda: datetime(2026, 11, 17, tzinfo=UTC),
@@ -107,7 +109,7 @@ def test_exports_manifest_and_redacted_rotating_logs_without_database(tmp_path: 
     )
     destination = tmp_path / "out.zip"
 
-    result = service.create_package(object(), destination)
+    result = service.create_package(cast(Any, object()), destination)
 
     assert result.path == destination and result.file_count == 4
     assert len(storage.events) == 1
@@ -143,7 +145,7 @@ def test_excludes_media_outside_data_root_and_reports_it(tmp_path: Path) -> None
     storage = _Storage([media])
     service = _service(tmp_path, storage)
 
-    result = service.create_package(object(), tmp_path / "safe.zip")
+    result = service.create_package(cast(Any, object()), tmp_path / "safe.zip")
 
     assert result.missing and "ValueError" in result.missing[0]
     with zipfile.ZipFile(result.path) as archive:
@@ -168,7 +170,7 @@ def test_includes_only_registered_media_with_matching_checksum(tmp_path: Path) -
     )
     service = _service(tmp_path, _Storage([record]))
 
-    result = service.create_package(object(), tmp_path / "media.zip")
+    result = service.create_package(cast(Any, object()), tmp_path / "media.zip")
 
     assert not result.missing
     with zipfile.ZipFile(result.path) as archive:
@@ -191,7 +193,7 @@ def test_reports_media_checksum_mismatch_without_exporting_file(tmp_path: Path) 
     )
     service = _service(tmp_path, _Storage([record]))
 
-    result = service.create_package(object(), tmp_path / "bad-media.zip")
+    result = service.create_package(cast(Any, object()), tmp_path / "bad-media.zip")
 
     assert result.missing and "不匹配" in result.missing[0]
     with zipfile.ZipFile(result.path) as archive:
@@ -206,17 +208,20 @@ def test_cancellation_removes_partial_zip_and_does_not_write_export_audit(tmp_pa
     destination = tmp_path / "cancelled.zip"
 
     with pytest.raises(DiagnosticCancelledError):
-        service.create_package(object(), destination, cancel=cancel)
+        service.create_package(cast(Any, object()), destination, cancel=cancel)
 
     assert not destination.exists()
     assert not list(tmp_path.glob(".diagnostics-*.zip"))
-    assert storage.events == []
+    assert len(storage.events) == 1
+    assert "结果=cancelled" in storage.events[0].detail
 
 
 def test_requires_diagnostics_export_permission(tmp_path: Path) -> None:
-    service = _service(tmp_path, _Storage(), allowed=False)
-    with pytest.raises(PermissionError):
-        service.create_package(object(), tmp_path / "denied.zip")
+    storage = _Storage()
+    service = _service(tmp_path, storage, allowed=False)
+    with pytest.raises(PermissionDeniedError):
+        service.create_package(cast(Any, object()), tmp_path / "denied.zip")
+    assert len(storage.events) == 1
 
 
 def test_log_rollover_keeps_previous_files_without_automatic_deletion(tmp_path: Path) -> None:
@@ -232,7 +237,7 @@ def test_log_rollover_keeps_previous_files_without_automatic_deletion(tmp_path: 
     try:
         logger.warning("first")
         logger.warning("second")
-        handler.flush()  # type: ignore[attr-defined]
+        handler.flush()
         assert log_path.exists()
         archived = list(log_dir.glob("gelinspect.log.*"))
         assert archived and any("first" in path.read_text(encoding="utf-8") for path in archived)

@@ -14,6 +14,7 @@ import threading
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pytest
@@ -82,9 +83,47 @@ def rss_mb() -> float:
         libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
         if libc.proc_pidinfo(os.getpid(), 4, 0, info, ctypes.sizeof(info)) > 0:
             return float(info[1]) / 1e6
+    if sys.platform == "win32":
+        import ctypes
+        from ctypes import wintypes
+
+        class ProcessMemoryCounters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+                ("PrivateUsage", ctypes.c_size_t),
+            ]
+
+        counters = ProcessMemoryCounters()
+        counters.cb = ctypes.sizeof(counters)
+        psapi = ctypes.WinDLL("Psapi.dll")
+        get_process_memory_info = psapi.GetProcessMemoryInfo
+        get_process_memory_info.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(ProcessMemoryCounters),
+            wintypes.DWORD,
+        ]
+        get_process_memory_info.restype = wintypes.BOOL
+        if not get_process_memory_info(
+            ctypes.windll.kernel32.GetCurrentProcess(),
+            ctypes.byref(counters),
+            counters.cb,
+        ):
+            raise OSError("GetProcessMemoryInfo failed")
+        return cast(float, counters.WorkingSetSize) / 1e6
+
     import resource
 
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+    peak_rss = cast(float, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return peak_rss / 1024
 
 
 def check_snapshot(snap: SnapshotResult) -> None:
@@ -182,3 +221,4 @@ def test_4000x3000_10fps_preview_record_and_snapshots(tmp_path: Path) -> None:
     assert preview_shapes == {(720, 960, 3)}
     assert record.frame_count >= 0.5 * stats.frames_captured
     assert not record.interrupted
+

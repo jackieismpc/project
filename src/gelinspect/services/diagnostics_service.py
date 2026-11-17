@@ -21,7 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol, cast
 
-from gelinspect.domain.entities import AuditEvent, Experiment
+from gelinspect.domain.entities import AuditEvent, Experiment, User
 from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import (
@@ -102,11 +102,23 @@ class DiagnosticsService:
         cancel: threading.Event | None = None,
     ) -> DiagnosticPackageResult:
         """汇总诊断材料，成功后原子替换目标文件并追加导出审计。"""
-        user = self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
         destination = Path(destination)
+        try:
+            user = self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+        except AuthError as error:
+            self._audit_outcome(session, None, destination.name, "denied", error)
+            raise
         if destination.suffix.lower() != ".zip" or not destination.name:
-            raise ServiceError("诊断包目标必须是 ZIP 文件", ServiceErrorCode.EXPORT_FAILED)
-        destination.parent.mkdir(parents=True, exist_ok=True)
+            target_error = ServiceError("诊断包目标必须是 ZIP 文件", ServiceErrorCode.EXPORT_FAILED)
+            self._audit_outcome(session, user, destination.name, "failed", target_error)
+            raise target_error
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            self._audit_outcome(session, user, destination.name, "failed", error)
+            raise ServiceError(
+                f"诊断包目标不可写：{error}", ServiceErrorCode.EXPORT_FAILED
+            ) from error
         now = self._clock().astimezone(UTC)
         missing: list[str] = []
         entries: list[tuple[str, bytes | Path]] = []
@@ -114,10 +126,16 @@ class DiagnosticsService:
 
         def check_cancel() -> None:
             if cancel is not None and cancel.is_set():
-                raise DiagnosticCancelledError()
+                error = DiagnosticCancelledError()
+                self._audit_outcome(session, user, destination.name, "cancelled", error)
+                raise error
             now_monotonic = time.monotonic()
             if now_monotonic >= next_auth_check[0]:
-                self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+                try:
+                    self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+                except AuthError as error:
+                    self._audit_outcome(session, user, destination.name, "denied", error)
+                    raise
                 next_auth_check[0] = now_monotonic + 2.0
 
         check_cancel()
@@ -214,27 +232,56 @@ class DiagnosticsService:
         except (DiagnosticCancelledError, AuthError):
             raise
         except Exception as exc:
+            self._audit_outcome(session, user, destination.name, "failed", exc)
             _log.exception("诊断包生成失败")
             raise ServiceError(f"诊断包生成失败：{exc}", ServiceErrorCode.EXPORT_FAILED) from exc
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
 
-        self._storage.audit.append(
-            AuditEvent(
-                occurred_at=now,
-                actor=user.username,
-                actor_role=user.role,
-                action=AuditAction.DATA_EXPORTED,
-                detail=(
-                    f"导出诊断包：{destination.name}，{len(checksums)} 个文件，"
-                    f"缺失/排除 {len(missing)} 项"
-                ),
-            )
+        self._audit_outcome(
+            session,
+            user,
+            destination.name,
+            "success",
+            detail=f"{len(checksums)} 个文件，缺失/排除 {len(missing)} 项",
         )
         return DiagnosticPackageResult(
             destination, len(checksums), tuple(missing), destination.stat().st_size
         )
+
+    def _audit_outcome(
+        self,
+        session: Session | None,
+        user: User | None,
+        filename: str,
+        outcome: str,
+        error: Exception | None = None,
+        *,
+        detail: str = "",
+    ) -> None:
+        session_user = getattr(session, "user", None)
+        actor = (
+            user.username if user is not None else getattr(session_user, "username", "anonymous")
+        )
+        role = user.role if user is not None else getattr(session_user, "role", None)
+        message = f"导出诊断包：{filename}，结果={outcome}"
+        if detail:
+            message += f"，{detail}"
+        if error is not None:
+            message += f"，原因={getattr(error, 'code', type(error).__name__)}"
+        try:
+            self._storage.audit.append(
+                AuditEvent(
+                    occurred_at=self._clock().astimezone(UTC),
+                    actor=actor,
+                    actor_role=role,
+                    action=AuditAction.DATA_EXPORTED,
+                    detail=message,
+                )
+            )
+        except Exception:
+            _log.exception("记录诊断包操作审计失败")
 
     def _load_experiments(self, check_cancel: Callable[[], None]) -> list[Experiment]:
         result: list[Experiment] = []

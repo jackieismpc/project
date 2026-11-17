@@ -14,6 +14,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """添加单管人工复核历史表。"""
     op.add_column(
         "tube_results",
         sa.Column("review_history", sa.JSON(), nullable=False, server_default="[]"),
@@ -29,7 +30,7 @@ def upgrade() -> None:
     bind = op.get_bind()
     bind.execute(
         sa.text(
-            "UPDATE tube_results SET review_history = json_array(json_object(" 
+            "UPDATE tube_results SET review_history = json_array(json_object("
             "'interpretation', reviewed_interpretation, 'reviewed_by', reviewed_by, "
             "'reviewed_at', reviewed_at, 'reason', review_note)) "
             "WHERE reviewed_interpretation IS NOT NULL"
@@ -38,6 +39,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """移除单管人工复核历史表。"""
     op.drop_column("reports", "supersedes_report_id")
     op.drop_column("reports", "revision")
     op.drop_column("tube_results", "review_history")

@@ -6,9 +6,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import logging
+from collections.abc import Callable
+from dataclasses import fields
+from datetime import UTC, datetime
+from enum import Enum
 from typing import Protocol
 
+from gelinspect.domain.entities import AuditEvent, User
+from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import (
@@ -22,7 +28,9 @@ from gelinspect.interfaces.storage import (
     PageRequest,
     UserRepository,
 )
-from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.auth import AuthError, AuthService, Session
+
+_log = logging.getLogger(__name__)
 
 
 class QueryStorage(Protocol):
@@ -47,15 +55,23 @@ class QueryStorage(Protocol):
 class QueryService:
     """工作台等页面的只读查询。"""
 
-    def __init__(self, auth: AuthService, storage: QueryStorage) -> None:
+    def __init__(
+        self,
+        auth: AuthService,
+        storage: QueryStorage,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         """创建服务。
 
         Args:
             auth: 认证服务，用来校验权限。
             storage: 存储。
+            clock: 可注入时钟，用于记录查询审计时间。
         """
         self._auth = auth
         self._storage = storage
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def recent_experiments(
         self, session: Session | None, limit: int = 8
@@ -127,8 +143,61 @@ class QueryService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
-        return self._storage.experiments.query(query, page)
+        try:
+            user = self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        except AuthError as error:
+            self._audit_query(session, None, query, page, outcome="拒绝", error=error)
+            raise
+        try:
+            result = self._storage.experiments.query(query, page)
+        except Exception as error:
+            self._audit_query(session, user, query, page, outcome="失败", error=error)
+            raise
+        self._audit_query(session, user, query, page, outcome="成功", count=len(result.items))
+        return result
+
+    def _audit_query(
+        self,
+        session: Session | None,
+        user: User | None,
+        query: ExperimentQuery,
+        page: PageRequest,
+        *,
+        outcome: str,
+        count: int | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        session_user = getattr(session, "user", None)
+        actor = (
+            user.username if user is not None else getattr(session_user, "username", "anonymous")
+        )
+        role = user.role if user is not None else getattr(session_user, "role", None)
+        filters = {
+            field_info.name: value.isoformat()
+            if isinstance(value, datetime)
+            else value.value
+            if isinstance(value, Enum)
+            else value
+            for field_info in fields(query)
+            if (value := getattr(query, field_info.name)) is not None
+        }
+        detail = f"结果={outcome}，筛选={filters}，偏移={page.offset}，页大小={page.limit}"
+        if count is not None:
+            detail += f"，返回={count}"
+        if error is not None:
+            detail += f"，原因={getattr(error, 'code', type(error).__name__)}"
+        try:
+            self._storage.audit.append(
+                AuditEvent(
+                    occurred_at=self._clock(),
+                    actor=actor,
+                    actor_role=role,
+                    action=AuditAction.EXPERIMENT_QUERIED,
+                    detail=detail,
+                )
+            )
+        except Exception:
+            _log.exception("记录历史试验查询审计失败")
 
     def latest_experiment_time(self, session: Session | None) -> datetime | None:
         """最新试验的创建时间，用来固定一次历史查询的范围。

@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import ReagentKind
+from gelinspect.domain.enums import AuditAction, ReagentKind
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.engine_types import RowPhase, WellStatus
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
@@ -26,7 +27,7 @@ def test_view_of_a_stored_experiment_is_read_only_and_complete(real_app: AppCont
         experimenter, request_for_tubes(list(range(1, 19)))
     )
     monitor = real_app.monitor
-    view = monitor.view(session, experiment_id)
+    view = monitor.view(session, experiment_id, audit_access=True)
     assert view.state is ExperimentState.READY and not view.live and not view.can_stop
     assert len(view.tubes) == 18 and [r.row_index for r in view.rows] == [1, 2, 3]
     assert view.reagent_batches[ReagentKind.LAL_REAGENT] == "LAL2606A"
@@ -35,6 +36,11 @@ def test_view_of_a_stored_experiment_is_read_only_and_complete(real_app: AppCont
     assert view.template_builtin and view.started_at is None
     assert all(t.status is None and t.result is None for t in view.tubes)
     assert all(r.phase is None for r in view.rows)
+    viewed = real_app.database.audit.query(
+        AuditQuery(action=AuditAction.EXPERIMENT_VIEWED, experiment_id=experiment_id),
+        PageRequest(limit=20),
+    )
+    assert viewed.total == 1 and "结果=success" in viewed.items[0].event.detail
     assert monitor.view(session, experiment_id).tube(19) is None
     with pytest.raises(ServiceError) as missing:
         monitor.view(session, "NOPE")
