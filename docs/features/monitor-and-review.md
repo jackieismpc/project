@@ -99,8 +99,8 @@
 | 操作 | 权限 | 当前授权 |
 |---|---|---|
 | 进入监控、单管详情、历史；读取试验视图、图像、录像 | `experiment_view` | 查看记录或依赖查看的业务组 |
-| 停止试验、恢复试验、重试分析 | `experiment_stop` / `experiment_run` | 实验与结果处理组，或管理员／开发人员固定能力 |
-| 复核单管 | `result_review` | 实验与结果处理组，或管理员／开发人员固定能力 |
+| 停止试验、恢复试验、重试分析 | `experiment_stop` / `experiment_run` | 实验与结果处理组，或管理员固定能力 |
+| 复核单管 | `result_review` | 实验与结果处理组，或管理员固定能力 |
 
 界面按 `session.can(...)` 禁用入口；服务层 `MonitorService`、`MediaService`、`ReviewService`、`DashboardService` 每个入口先调用 `AuthService.authorize`，拒绝时写 `permission_denied` 审计。
 

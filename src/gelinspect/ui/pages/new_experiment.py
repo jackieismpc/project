@@ -35,6 +35,7 @@ from gelinspect.domain.plate import HOLES_PER_ROW, ROW_COUNT, row_label, tube_to
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.interfaces.storage import StorageBusyError
+from gelinspect.interfaces.traceability import ReagentInput
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.engine_types import AlertCode, EngineAlert, StateChanged
@@ -235,6 +236,7 @@ class NewExperimentPage(QWidget):
         for index, kind in enumerate(ReagentKind):
             card = ReagentCard(kind)
             card.scanRequested.connect(self._on_scan_requested)
+            card.inputChanged.connect(self._on_reagent_input_changed)
             self.reagent_cards[kind] = card
             grid.addWidget(card, 0, index)
             grid.setColumnStretch(index, 1)
@@ -736,7 +738,10 @@ class NewExperimentPage(QWidget):
         kind = ReagentKind(kind_value)
         card = self.reagent_cards[kind]
         try:
-            scan = self._services.reagents.scan(self._session, raw, expected_kind=kind)
+            payload = card.input_payload()
+            if card.input_payload().mode == "scan":
+                payload = ReagentInput(mode="scan", raw_code=raw)
+            scan = self._services.reagents.check_input(self._session, payload, expected_kind=kind)
         except AuthError as exc:
             self._show_banner_error(describe_auth_error(exc))
             return
@@ -749,9 +754,14 @@ class NewExperimentPage(QWidget):
         else:
             self._scans.pop(kind, None)  # 种类放错、读不出码：不算这一种的批次
         if scan.valid:
-            self._draft.reagent_codes[kind] = scan.raw
+            self._draft.reagent_inputs[kind] = payload
+            if payload.mode == "scan":
+                self._draft.reagent_codes[kind] = payload.raw_code
+            else:
+                self._draft.reagent_codes.pop(kind, None)
         else:
             self._draft.reagent_codes.pop(kind, None)
+            self._draft.reagent_inputs.pop(kind, None)
         self._sync_lambda()
         self._render()
         if scan.valid:
@@ -760,6 +770,15 @@ class NewExperimentPage(QWidget):
             card.focus_input()
         if scan.locks:
             self._popup_lock({kind: scan})
+
+    @Slot(str)
+    def _on_reagent_input_changed(self, kind_value: str) -> None:
+        kind = ReagentKind(kind_value)
+        self._scans.pop(kind, None)
+        self._draft.reagent_codes.pop(kind, None)
+        self._draft.reagent_inputs.pop(kind, None)
+        self._sync_lambda()
+        self._render()
 
     def _popup_lock(self, locked: Mapping[ReagentKind, ReagentScan]) -> None:
         """试剂锁定流程时弹窗提示（不阻塞），页面上的红色横幅同时保留。"""

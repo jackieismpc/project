@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from gelinspect.domain.enums import ReagentKind, TubeRole
 from gelinspect.domain.plate import tube_to_position
 from gelinspect.domain.templates import ExperimentTemplate
+from gelinspect.interfaces.traceability import ReagentInput
 
 
 @dataclass(slots=True)
@@ -82,6 +83,7 @@ class NewExperimentRequest:
     template_id: str
     assignments: Sequence[SampleAssignmentInput]
     reagent_codes: Mapping[ReagentKind, str] = field(default_factory=dict)
+    reagent_inputs: Mapping[ReagentKind, ReagentInput] = field(default_factory=dict)
     mvd: float | None = None
     endotoxin_limit: float | None = None
     template_snapshot: ExperimentTemplate | None = None
@@ -115,6 +117,7 @@ class ExperimentDraft:
         self._baseline: list[tuple[str, str, float | None, float | None]] = []
         self._selected: list[int] = []
         self._reagent_codes: dict[ReagentKind, str] = {}
+        self._reagent_inputs: dict[ReagentKind, ReagentInput] = {}
         self._labeled_sensitivity: float | None = None
         self.mvd_text = ""
         self.limit_text = ""
@@ -267,6 +270,11 @@ class ExperimentDraft:
         return self._reagent_codes
 
     @property
+    def reagent_inputs(self) -> dict[ReagentKind, ReagentInput]:
+        """最近一次校验成功的结构化试剂输入。"""
+        return self._reagent_inputs
+
+    @property
     def labeled_sensitivity(self) -> float | None:
         """当前鲎试剂的标示灵敏度 λ。"""
         return self._labeled_sensitivity
@@ -349,6 +357,7 @@ class ExperimentDraft:
             template_id=self._template.template_id,
             assignments=assignments,
             reagent_codes=dict(self._reagent_codes),
+            reagent_inputs=dict(self._reagent_inputs),
             mvd=self.mvd,
             endotoxin_limit=self.endotoxin_limit,
             template_snapshot=self._template,

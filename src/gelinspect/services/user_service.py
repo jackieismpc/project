@@ -147,6 +147,9 @@ class UserService:
         repo = self._storage.users
         records: list[UserRecord] = []
         for user in repo.list_all():
+            # 内部维护账号不出现在普通账号管理服务的任何返回结果中。
+            if user.role is Role.DEVELOPER:
+                continue
             credentials = repo.get_credentials(user.username)
             records.append(
                 UserRecord(user, credentials is not None and credentials.must_change_password)
@@ -218,7 +221,12 @@ class UserService:
         try:
             with self._storage.unit_of_work() as uow:
                 self._check_actor(uow.users, actor, session)
-                if uow.users.get_by_username(name) is not None:
+                existing = uow.users.get_by_username(name)
+                if existing is not None:
+                    if existing.role is Role.DEVELOPER:
+                        raise ServiceError(
+                            "登录名不可用", ServiceErrorCode.USER_NOT_FOUND
+                        )
                     raise DuplicateError(name)
                 uow.users.add(
                     user, password_hash=self._auth.hash_password(initial), must_change_password=True
@@ -288,7 +296,7 @@ class UserService:
         """
         actor = self._auth.authorize(session, Permission.USER_MANAGE)
         if actor.role is not Role.DEVELOPER or role not in (Role.USER, Role.ADMIN):
-            raise ServiceError("只有开发人员可以调整管理员类别", ServiceErrorCode.USER_PROTECTED)
+            raise ServiceError("无权调整该账号类别", ServiceErrorCode.USER_PROTECTED)
         with self._storage.unit_of_work() as uow:
             self._check_actor(uow.users, actor, session)
             target = self._require(uow.users, user_id)
@@ -428,7 +436,10 @@ class UserService:
         except NotFoundError:
             user = None
         if user is None:
-            raise ServiceError(f"用户不存在：{user_id}", ServiceErrorCode.USER_NOT_FOUND)
+            raise ServiceError("用户不存在或不可操作", ServiceErrorCode.USER_NOT_FOUND)
+        # 将内部账号与未知目标统一处理，避免通过管理操作探测账号是否存在。
+        if user.role is Role.DEVELOPER:
+            raise ServiceError("用户不存在或不可操作", ServiceErrorCode.USER_NOT_FOUND)
         return user
 
     @staticmethod

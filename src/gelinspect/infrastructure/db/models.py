@@ -195,6 +195,9 @@ class ReagentCheckRow(Base):
     labeled_sensitivity: Mapped[float | None] = mapped_column(Float, nullable=True)
     message: Mapped[str] = mapped_column(Text)
     raw_code: Mapped[str] = mapped_column(Text)
+    input_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="scan", server_default="scan"
+    )
     experiment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 

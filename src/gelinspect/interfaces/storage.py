@@ -413,6 +413,7 @@ class ReagentCheckRecord:
     labeled_sensitivity: float | None = None
     message: str = ""
     raw_code: str = ""
+    input_mode: str = "scan"
     experiment_id: str | None = None
     record_id: int | None = None
 

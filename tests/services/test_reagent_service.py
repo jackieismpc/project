@@ -9,6 +9,7 @@ import pytest
 
 from gelinspect.domain.enums import AuditAction, ReagentCheckStatus, ReagentKind
 from gelinspect.interfaces.storage import PageRequest
+from gelinspect.interfaces.traceability import ReagentInput
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.reagent_service import ReagentService, ScanOutcome
 from simulation.reagents import SAMPLE_CODES, SimReagentRegistry, SimTraceabilityClient
@@ -40,6 +41,50 @@ def test_water_code_without_an_expiry_uses_the_registry_expiry(stack: Stack) -> 
     scan = stack.reagents.evaluate(SAMPLE_CODES["water_valid"], ReagentKind.WATER)
     assert scan.valid and scan.expiry_date is not None
     assert scan.expiry_date.isoformat() == "2028-07-31"
+
+
+def test_manual_fields_use_registry_and_record_original_input_and_mode(stack: Stack) -> None:
+    scan = stack.reagents.check_input(
+        stack.login("experimenter"),
+        ReagentInput(mode="manual", product_code="GL-LAL-0.25", batch_no="LAL2606A"),
+        expected_kind=ReagentKind.LAL_REAGENT,
+    )
+    assert scan.valid and scan.expiry_date.isoformat() == "2027-06-30"
+    assert scan.labeled_sensitivity == 0.25  # 来自备案记录，不采信手输值
+    record = stack.database.reagent_checks.query(PageRequest()).items[0]
+    assert record.input_mode == "manual"
+    assert '"batch_no": "LAL2606A"' in record.raw_code
+    assert '"expiry_date": ""' in record.raw_code
+    assert "manual" in stack.audit(AuditAction.REAGENT_CHECKED)[0]
+
+
+def test_manual_fields_report_missing_inputs_and_keep_attempt_in_audit(stack: Stack) -> None:
+    scan = stack.reagents.check_input(
+        stack.login("experimenter"),
+        ReagentInput(mode="manual", batch_no="LAL2606A"),
+        expected_kind=ReagentKind.LAL_REAGENT,
+    )
+    assert scan.outcome is ScanOutcome.UNREADABLE
+    assert scan.message == "缺少必填字段：产品编码"
+    audit = stack.audit(AuditAction.REAGENT_CHECKED)[0]
+    assert "product_code" in audit and "LAL2606A" in audit
+
+
+def test_scanner_original_text_is_preserved_and_invalid_modes_are_rejected(stack: Stack) -> None:
+    raw = f"  {SAMPLE_CODES['lal_valid']}  "
+    scan = stack.reagents.check_input(
+        stack.login("experimenter"),
+        ReagentInput(mode="scan", raw_code=raw),
+        expected_kind=ReagentKind.LAL_REAGENT,
+    )
+    assert scan.valid and scan.raw == raw
+    record = stack.database.reagent_checks.query(PageRequest()).items[0]
+    assert record.raw_code == raw and record.input_mode == "scan"
+    invalid = stack.reagents.evaluate_input(
+        ReagentInput(mode="other", raw_code=raw), ReagentKind.LAL_REAGENT
+    )
+    assert invalid.outcome is ScanOutcome.UNREADABLE
+    assert "录入方式无效" in invalid.message
 
 
 @pytest.mark.parametrize(

@@ -404,7 +404,7 @@ class UsersPage(QWidget):
         self.matrix_card.set_title(self.tr("权限组说明"))
         self.matrix_note.setText(
             self.tr(
-                "普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。"
+                "普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。"
             )
         )
         self.matrix_table.set_columns(self._matrix_columns())

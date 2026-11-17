@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import math
+
 from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from gelinspect.domain.enums import ReagentKind
 from gelinspect.domain.templates import ExperimentTemplate
+from gelinspect.interfaces.traceability import ReagentInput
 from gelinspect.services.reagent_service import ReagentScan
 from gelinspect.ui.labels import (
     builtin_name_text,
@@ -202,6 +205,7 @@ class ReagentCard(QFrame):
     """
 
     scanRequested = Signal(str, str)  # noqa: N815
+    inputChanged = Signal(str)  # noqa: N815
 
     def __init__(self, kind: ReagentKind, parent: QWidget | None = None) -> None:
         """创建卡片。
@@ -216,6 +220,8 @@ class ReagentCard(QFrame):
         self.setProperty("state", "idle")
         self._scan: ReagentScan | None = None
         self._samples: list[tuple[str, str]] = []
+        self._mode = "scan"
+        self._updating = False
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(8)
@@ -233,6 +239,40 @@ class ReagentCard(QFrame):
         self.input.setMinimumHeight(44)
         self.input.setClearButtonEnabled(False)
         self.input.returnPressed.connect(self._emit_scan)
+        self.input.textChanged.connect(self._edited)
+        self.scan_mode_button = Button("", ButtonVariant.SECONDARY)
+        self.manual_mode_button = Button("", ButtonVariant.SECONDARY)
+        self.scan_mode_button.setCheckable(True)
+        self.manual_mode_button.setCheckable(True)
+        self.scan_mode_button.setChecked(True)
+        self.scan_mode_button.clicked.connect(lambda: self.set_mode("scan"))
+        self.manual_mode_button.clicked.connect(lambda: self.set_mode("manual"))
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(self.scan_mode_button)
+        mode_row.addWidget(self.manual_mode_button)
+        mode_row.addStretch(1)
+        layout.addLayout(mode_row)
+        self.product_input = QLineEdit()
+        self.batch_input = QLineEdit()
+        self.expiry_input = QLineEdit()
+        self.sensitivity_input = QLineEdit()
+        self.sensitivity_input.setReadOnly(True)
+        self.product_input.setPlaceholderText(self.tr("产品编码"))
+        self.batch_input.setPlaceholderText(self.tr("批号"))
+        self.expiry_input.setPlaceholderText(self.tr("有效期 YYYY-MM-DD（可由备案记录补全）"))
+        self.sensitivity_input.setPlaceholderText(self.tr("标示灵敏度 λ（仅鲎试剂）"))
+        self.manual_fields = [
+            self.product_input,
+            self.batch_input,
+            self.expiry_input,
+            self.sensitivity_input,
+        ]
+        for field in self.manual_fields:
+            field.textChanged.connect(self._edited)
+        self.manual_fields_box = QVBoxLayout()
+        for field in self.manual_fields:
+            self.manual_fields_box.addWidget(field)
+        layout.addLayout(self.manual_fields_box)
         self.scan_button = Button("", ButtonVariant.SECONDARY)
         self.scan_button.clicked.connect(self._emit_scan)
         row.addWidget(self.input, 1)
@@ -262,6 +302,73 @@ class ReagentCard(QFrame):
         """
         return self._scan
 
+    def input_payload(self) -> ReagentInput:
+        """读取卡片当前输入，字段由服务层统一解析校验。"""
+        from datetime import date
+
+        expiry_text = self.expiry_input.text().strip()
+        try:
+            expiry = date.fromisoformat(expiry_text) if expiry_text else None
+        except ValueError:
+            expiry = None
+        try:
+            sensitivity = (
+                float(self.sensitivity_input.text().strip())
+                if self.sensitivity_input.text().strip()
+                else None
+            )
+        except ValueError:
+            sensitivity = None
+        error = (
+            "有效期格式应为 YYYY-MM-DD"
+            if self._mode == "manual" and expiry_text and expiry is None
+            else ""
+        )
+        if (
+            self._mode == "manual"
+            and sensitivity is not None
+            and (not math.isfinite(sensitivity) or sensitivity <= 0)
+        ):
+            error = "标示灵敏度必须是大于 0 的有限数"
+        return ReagentInput(
+            mode=self._mode,
+            raw_code=self.input.text(),
+            product_code=self.product_input.text(),
+            batch_no=self.batch_input.text(),
+            expiry_date=expiry,
+            labeled_sensitivity=sensitivity,
+            validation_error=error,
+            raw_fields={
+                "product_code": self.product_input.text(),
+                "batch_no": self.batch_input.text(),
+                "expiry_date": expiry_text,
+                "labeled_sensitivity": self.sensitivity_input.text(),
+            },
+        )
+
+    def set_mode(self, mode: str) -> None:
+        """切换扫码与手动录入并使旧校验失效。"""
+        self._mode = mode
+        self.scan_mode_button.setChecked(mode == "scan")
+        self.manual_mode_button.setChecked(mode == "manual")
+        self.input.setVisible(mode == "scan")
+        self.scan_button.setVisible(True)
+        for field in self.manual_fields:
+            field.setVisible(
+                mode == "manual"
+                and (field is not self.sensitivity_input or self.kind is ReagentKind.LAL_REAGENT)
+            )
+        self._invalidate()
+
+    def _edited(self, _text: str = "") -> None:
+        if not self._updating:
+            self._invalidate()
+
+    def _invalidate(self) -> None:
+        if self._scan is not None:
+            self.set_scan(None)
+            self.inputChanged.emit(self.kind.value)
+
     def set_scan(self, scan: ReagentScan | None) -> None:
         """显示校验结果并更新卡片状态。
 
@@ -269,11 +376,15 @@ class ReagentCard(QFrame):
             scan: 校验结果；None 表示清空。
         """
         self._scan = scan
+        self._updating = True
         if scan is None:
             self.result.clear()
             self.message.setVisible(False)
         else:
             self.input.setText(scan.raw)
+            self.sensitivity_input.setText(
+                "" if scan.labeled_sensitivity is None else str(scan.labeled_sensitivity)
+            )
             if scan.batch_no is not None and scan.kind is self.kind:
                 self.result.set_scan(scan, self.kind)
                 self.message.setVisible(False)
@@ -281,6 +392,7 @@ class ReagentCard(QFrame):
                 self.result.clear()
                 self.message.setText(describe_scan(scan, self.kind))
                 self.message.setVisible(True)
+        self._updating = False
         self._refresh_state()
 
     def set_samples(self, samples: list[tuple[str, str]]) -> None:
@@ -324,11 +436,12 @@ class ReagentCard(QFrame):
     # ------------------------------------------------------------------ 内部
 
     def _emit_scan(self) -> None:
-        text = self.input.text().strip()
-        if text:
+        text = self.input.text() if self._mode == "scan" else "manual"
+        if text.strip():
             self.scanRequested.emit(self.kind.value, text)
 
     def _use_sample(self, raw: str) -> None:
+        self.set_mode("scan")
         self.input.setText(raw)
         self._emit_scan()
 
@@ -351,6 +464,8 @@ class ReagentCard(QFrame):
         """按当前语言刷新文字。"""
         name = reagent_kind_label(self.kind)
         self.title.setText(name)
+        self.scan_mode_button.setText(self.tr("扫码"))
+        self.manual_mode_button.setText(self.tr("手动录入"))
         self.input.setPlaceholderText(self.tr("扫码或输入试剂码，按回车确认"))
         self.input.setAccessibleName(self.tr("{name}试剂码").format(name=name))
         self.scan_button.setText(self.tr("校验"))

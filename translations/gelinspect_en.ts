@@ -2891,6 +2891,22 @@
 <context>
     <name>ReagentCard</name>
     <message>
+        <source>产品编码</source>
+        <translation>Product code</translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation>Batch number</translation>
+    </message>
+    <message>
+        <source>有效期 YYYY-MM-DD（可由备案记录补全）</source>
+        <translation>Expiry date YYYY-MM-DD (may be completed from registry)</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ（仅鲎试剂）</source>
+        <translation>Labeled sensitivity λ (LAL reagent only)</translation>
+    </message>
+    <message>
         <source>点击填入并校验这个示例码</source>
         <translation>Click to fill in and verify this sample code</translation>
     </message>
@@ -2913,6 +2929,14 @@
     <message>
         <source>待扫码</source>
         <translation>Waiting</translation>
+    </message>
+    <message>
+        <source>扫码</source>
+        <translation>Scan</translation>
+    </message>
+    <message>
+        <source>手动录入</source>
+        <translation>Enter manually</translation>
     </message>
     <message>
         <source>扫码或输入试剂码，按回车确认</source>
@@ -2994,6 +3018,14 @@
     <message>
         <source>未配置试剂码解析或备案清单，无法确认试剂合格</source>
         <translation>No code parser or registry configured; cannot confirm the reagent is valid</translation>
+    </message>
+    <message>
+        <source>缺少必填字段：{fields}</source>
+        <translation>Missing required field(s): {fields}</translation>
+    </message>
+    <message>
+        <source>有效期格式应为 YYYY-MM-DD</source>
+        <translation>Expiry date must use YYYY-MM-DD</translation>
     </message>
     <message>
         <source>效期至 {date}</source>
@@ -3677,8 +3709,8 @@
         <translation>Standard user</translation>
     </message>
     <message>
-        <source>开发人员</source>
-        <translation>Developer</translation>
+        <source>管理身份</source>
+        <translation>Management role</translation>
     </message>
 </context>
 <context>
@@ -5216,8 +5248,8 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Permission groups</translation>
     </message>
     <message>
-        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
-        <translation>Ordinary users can combine six permission groups; administrators have administrative access, and developers also have company and copyright settings.</translation>
+        <source>普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。</source>
+        <translation>Ordinary users can combine six permission groups; administrators have user management and other administrative capabilities.</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>

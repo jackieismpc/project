@@ -34,7 +34,7 @@ from gelinspect.services.video.events import VideoEventCode
 _ROLES: dict[Role, str] = {
     Role.ADMIN: str(QT_TRANSLATE_NOOP("Role", "管理员")),
     Role.USER: str(QT_TRANSLATE_NOOP("Role", "普通用户")),
-    Role.DEVELOPER: str(QT_TRANSLATE_NOOP("Role", "开发人员")),
+    Role.DEVELOPER: str(QT_TRANSLATE_NOOP("Role", "管理身份")),
 }
 
 _EXPERIMENT_TYPES: dict[ExperimentType, str] = {
@@ -229,6 +229,11 @@ _SCAN_MESSAGES: dict[ScanOutcome, str] = {
     ),
 }
 
+_MANUAL_REAGENT_MESSAGES = {
+    "missing": str(QT_TRANSLATE_NOOP("ReagentScan", "缺少必填字段：{fields}")),
+    "expiry": str(QT_TRANSLATE_NOOP("ReagentScan", "有效期格式应为 YYYY-MM-DD")),
+}
+
 
 def describe_scan(scan: ReagentScan, expected: ReagentKind | None = None) -> str:
     """一次扫码校验结论的当前语言说明。
@@ -240,6 +245,15 @@ def describe_scan(scan: ReagentScan, expected: ReagentKind | None = None) -> str
     Returns:
         例如“已备案 · 效期至 2027-06-30”“已于 2026-01-31 过期”。
     """
+    if scan.input_mode == "manual" and scan.outcome is ScanOutcome.UNREADABLE:
+        if scan.message.startswith("缺少必填字段："):
+            fields = scan.message.removeprefix("缺少必填字段：")
+            return QCoreApplication.translate(
+                "ReagentScan", _MANUAL_REAGENT_MESSAGES["missing"]
+            ).format(fields=fields)
+        if scan.message == "有效期格式应为 YYYY-MM-DD":
+            return QCoreApplication.translate("ReagentScan", _MANUAL_REAGENT_MESSAGES["expiry"])
+        return scan.message
     template = QCoreApplication.translate("ReagentScan", _SCAN_MESSAGES[scan.outcome])
     if scan.outcome is ScanOutcome.VALID:
         if scan.expiry_date is None:

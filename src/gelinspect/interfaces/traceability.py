@@ -52,6 +52,19 @@ class ReagentCode(ContractModel):
     serial_no: str | None = None
 
 
+class ReagentInput(ContractModel):
+    """步骤 2 的原始试剂输入；不包含任何推断或信任标记。"""
+
+    mode: str = "scan"
+    raw_code: str = ""
+    product_code: str = ""
+    batch_no: str = ""
+    expiry_date: date | None = None
+    labeled_sensitivity: float | None = None
+    validation_error: str = ""
+    raw_fields: dict[str, str] = Field(default_factory=dict)
+
+
 class ReagentVerification(ContractModel):
     """一次备案校验的结果。
 

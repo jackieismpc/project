@@ -2891,6 +2891,22 @@
 <context>
     <name>ReagentCard</name>
     <message>
+        <source>产品编码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效期 YYYY-MM-DD（可由备案记录补全）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ（仅鲎试剂）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>点击填入并校验这个示例码</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2912,6 +2928,14 @@
     </message>
     <message>
         <source>待扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>手动录入</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2993,6 +3017,14 @@
     </message>
     <message>
         <source>未配置试剂码解析或备案清单，无法确认试剂合格</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>缺少必填字段：{fields}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有效期格式应为 YYYY-MM-DD</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3677,8 +3709,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>开发人员</source>
-        <translation type="unfinished"></translation>
+        <source>管理身份</source>
+        <translation>管理权限</translation>
     </message>
 </context>
 <context>
@@ -5214,8 +5246,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
-        <translation>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</translation>
+        <source>普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。</source>
+        <translation>普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>

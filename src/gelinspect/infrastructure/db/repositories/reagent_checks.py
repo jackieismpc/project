@@ -35,6 +35,7 @@ def _to_record(row: ReagentCheckRow) -> ReagentCheckRecord:
         labeled_sensitivity=row.labeled_sensitivity,
         message=row.message,
         raw_code=row.raw_code,
+        input_mode=row.input_mode,
         experiment_id=row.experiment_id,
         record_id=row.id,
     )
@@ -74,6 +75,7 @@ class SqlReagentCheckRepository(ReagentCheckRepository):
                     labeled_sensitivity=record.labeled_sensitivity,
                     message=record.message,
                     raw_code=record.raw_code,
+                    input_mode=record.input_mode,
                     experiment_id=record.experiment_id,
                 )
             )

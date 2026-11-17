@@ -40,6 +40,7 @@ from gelinspect.interfaces.storage import (
     TemplateRepository,
     UnitOfWork,
 )
+from gelinspect.interfaces.traceability import ReagentInput
 from gelinspect.services.auth import AuthService, PermissionDeniedError, Session
 from gelinspect.services.engine_types import EngineBusyError, EngineError, EngineStateError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
@@ -242,7 +243,25 @@ class ExperimentService:
                     index=index,
                 )
 
-        scans = self._reagents.evaluate_all(request.reagent_codes)
+        scans = (
+            {
+                kind: self._reagents.evaluate_input(
+                    request.reagent_inputs[kind]
+                    if kind in request.reagent_inputs
+                    and request.reagent_inputs[kind].mode == "manual"
+                    else ReagentInput(
+                        mode="scan",
+                        raw_code=request.reagent_codes.get(
+                            kind, request.reagent_inputs.get(kind, ReagentInput()).raw_code
+                        ),
+                    ),
+                    kind,
+                )
+                for kind in ReagentKind
+            }
+            if request.reagent_inputs
+            else self._reagents.evaluate_all(request.reagent_codes)
+        )
         now = self._clock()
         experiment_id = self._new_id(now)
         if any(not scan.valid for scan in scans.values()):

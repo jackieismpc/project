@@ -11,10 +11,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Protocol
@@ -36,6 +37,7 @@ from gelinspect.interfaces.traceability import (
     ReagentCode,
     ReagentCodeFormatError,
     ReagentCodeParser,
+    ReagentInput,
     ReagentRegistry,
     ReagentRegistryUnavailableError,
     SampleCodeProvider,
@@ -116,6 +118,7 @@ class ReagentScan:
     days_remaining: int | None = None
     labeled_sensitivity: float | None = None
     registered: bool = False
+    input_mode: str = "scan"
 
     @property
     def valid(self) -> bool:
@@ -252,10 +255,11 @@ class ReagentService:
         Returns:
             校验结果。不抛出解析和备案方面的异常，都表达在结论里。
         """
+        original = raw
         text = raw.strip()
         if self._parser is None or self._registry is None:
             return ReagentScan(
-                raw=text,
+                raw=original,
                 outcome=ScanOutcome.NOT_CONFIGURED,
                 message="未配置试剂码解析器或备案清单，无法确认试剂合格",
                 kind=expected_kind,
@@ -264,12 +268,15 @@ class ReagentService:
             code = self._parser.parse(text)
         except ReagentCodeFormatError as error:
             return ReagentScan(
-                raw=text, outcome=ScanOutcome.UNREADABLE, message=str(error), kind=expected_kind
+                raw=original,
+                outcome=ScanOutcome.UNREADABLE,
+                message=str(error),
+                kind=expected_kind,
             )
         kind = code.kind or expected_kind
         if kind is None:
             return ReagentScan(
-                raw=text,
+                raw=original,
                 outcome=ScanOutcome.UNREADABLE,
                 message="试剂码里没有试剂种类",
                 batch_no=code.batch_no,
@@ -277,14 +284,14 @@ class ReagentService:
             )
         if expected_kind is not None and kind is not expected_kind:
             return ReagentScan(
-                raw=text,
+                raw=original,
                 outcome=ScanOutcome.KIND_MISMATCH,
                 message=f"这是{KIND_NAMES[kind]}，不是{KIND_NAMES[expected_kind]}",
                 kind=kind,
                 batch_no=code.batch_no,
                 product_code=code.product_code,
             )
-        return self._verify(text, code, kind)
+        return self._verify(original, code, kind)
 
     def _verify(self, raw: str, code: ReagentCode, kind: ReagentKind) -> ReagentScan:
         assert self._registry is not None
@@ -397,6 +404,73 @@ class ReagentService:
             )
         return results
 
+    def evaluate_input(
+        self, reagent_input: ReagentInput, expected_kind: ReagentKind
+    ) -> ReagentScan:
+        """将扫码或字段输入转换为同一试剂码结构后走统一备案校验。"""
+        if reagent_input.mode not in {"scan", "manual"}:
+            return ReagentScan(
+                reagent_input.raw_code,
+                ScanOutcome.UNREADABLE,
+                "录入方式无效，请选择扫码或手动录入",
+                expected_kind,
+                input_mode="invalid",
+            )
+        if reagent_input.validation_error:
+            raw_error = json.dumps(reagent_input.raw_fields, ensure_ascii=False, sort_keys=True)
+            return ReagentScan(
+                raw_error,
+                ScanOutcome.UNREADABLE,
+                reagent_input.validation_error,
+                expected_kind,
+                input_mode=reagent_input.mode,
+            )
+        if reagent_input.mode == "scan":
+            result = self.evaluate(reagent_input.raw_code, expected_kind)
+            return replace(result, input_mode="scan")
+        raw_fields = reagent_input.raw_fields or {
+            "product_code": reagent_input.product_code,
+            "batch_no": reagent_input.batch_no,
+            "expiry_date": reagent_input.expiry_date.isoformat()
+            if reagent_input.expiry_date
+            else "",
+            "labeled_sensitivity": (
+                ""
+                if reagent_input.labeled_sensitivity is None
+                else str(reagent_input.labeled_sensitivity)
+            ),
+        }
+        raw = json.dumps(raw_fields, ensure_ascii=False, sort_keys=True)
+        product, batch = reagent_input.product_code.strip(), reagent_input.batch_no.strip()
+        if not product or not batch:
+            missing = "、".join(
+                name for name, value in (("产品编码", product), ("批号", batch)) if not value
+            )
+            return ReagentScan(
+                raw,
+                ScanOutcome.UNREADABLE,
+                f"缺少必填字段：{missing}",
+                expected_kind,
+                input_mode="manual",
+            )
+        code = ReagentCode(
+            raw=raw,
+            product_code=product,
+            batch_no=batch,
+            kind=expected_kind,
+            expiry_date=reagent_input.expiry_date,
+        )
+        if self._registry is None:
+            return ReagentScan(
+                raw,
+                ScanOutcome.NOT_CONFIGURED,
+                "未配置备案清单，无法确认试剂合格",
+                expected_kind,
+                input_mode="manual",
+            )
+        result = self._verify(raw, code, expected_kind)
+        return replace(result, input_mode="manual")
+
     # ------------------------------------------------------------------ 界面入口
 
     def scan(
@@ -425,6 +499,15 @@ class ReagentService:
         user = self._auth.authorize(session, Permission.REAGENT_MANAGE)
         scan = self.evaluate(raw, expected_kind)
         self._record(user, scan, experiment_id)
+        return scan
+
+    def check_input(
+        self, session: Session | None, reagent_input: ReagentInput, *, expected_kind: ReagentKind
+    ) -> ReagentScan:
+        """记录一次扫码或手动字段校验，并审计完整原始输入与方式。"""
+        user = self._auth.authorize(session, Permission.REAGENT_MANAGE)
+        scan = self.evaluate_input(reagent_input, expected_kind)
+        self._record(user, scan, None)
         return scan
 
     def lookup(self, session: Session | None, raw: str) -> ReagentScan:
@@ -470,7 +553,8 @@ class ReagentService:
             actor_role=user.role,
             action=AuditAction.REAGENT_CHECKED,
             detail=(
-                f"扫码校验{kind_name}批号 {batch}：{scan.outcome.value}（{scan.message}）{suffix}"
+                f"{scan.input_mode}校验{kind_name}批号 {batch}：{scan.outcome.value}"
+                f"（{scan.message}）；原始输入={scan.raw}{suffix}"
             ),
             experiment_id=experiment_id,
         )
@@ -504,6 +588,7 @@ class ReagentService:
             labeled_sensitivity=scan.labeled_sensitivity,
             message=scan.message,
             raw_code=scan.raw,
+            input_mode=scan.input_mode,
             experiment_id=experiment_id,
         )
 

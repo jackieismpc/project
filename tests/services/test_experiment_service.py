@@ -20,6 +20,7 @@ from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
 from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageRequest
+from gelinspect.interfaces.traceability import ReagentInput
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.engine_types import EngineBusyError, EngineStateError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
@@ -83,6 +84,31 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert {b.kind for b in experiment.reagents} == set(ReagentKind)
     assert all(b.registered and b.expiry_date is not None for b in experiment.reagents)
     assert stack.engine.started == []  # 创建不启动
+
+
+def test_manual_reagent_input_creates_and_starts_after_server_recheck(stack: Stack) -> None:
+    request = request_for(
+        codes={
+            ReagentKind.ENDOTOXIN: GOOD_CODES[ReagentKind.ENDOTOXIN],
+            ReagentKind.WATER: GOOD_CODES[ReagentKind.WATER],
+        }
+    )
+    request = dataclasses.replace(
+        request,
+        reagent_inputs={
+            ReagentKind.LAL_REAGENT: ReagentInput(
+                mode="manual", product_code="GL-LAL-0.25", batch_no="LAL2606A"
+            )
+        },
+    )
+    session = stack.login("experimenter")
+    experiment_id = stack.experiments.create_experiment(session, request)
+    saved = stack.database.experiments.get(experiment_id)
+    assert saved is not None
+    lal = next(batch for batch in saved.reagents if batch.kind is ReagentKind.LAL_REAGENT)
+    assert lal.batch_no == "LAL2606A" and lal.labeled_sensitivity == 0.25
+    stack.experiments.start_experiment(session, experiment_id)
+    assert stack.engine.started == [(experiment_id, "experimenter")]
 
 
 def test_only_template_manager_can_retain_deleted_template_snapshot(stack: Stack) -> None:

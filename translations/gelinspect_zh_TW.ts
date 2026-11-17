@@ -2891,6 +2891,22 @@
 <context>
     <name>ReagentCard</name>
     <message>
+        <source>产品编码</source>
+        <translation>產品編碼</translation>
+    </message>
+    <message>
+        <source>批号</source>
+        <translation>批號</translation>
+    </message>
+    <message>
+        <source>有效期 YYYY-MM-DD（可由备案记录补全）</source>
+        <translation>有效期 YYYY-MM-DD（可由備案記錄補全）</translation>
+    </message>
+    <message>
+        <source>标示灵敏度 λ（仅鲎试剂）</source>
+        <translation>標示靈敏度 λ（僅鱟試劑）</translation>
+    </message>
+    <message>
         <source>点击填入并校验这个示例码</source>
         <translation>點選填入並驗證這個範例碼</translation>
     </message>
@@ -2913,6 +2929,14 @@
     <message>
         <source>待扫码</source>
         <translation>待掃描</translation>
+    </message>
+    <message>
+        <source>扫码</source>
+        <translation>掃碼</translation>
+    </message>
+    <message>
+        <source>手动录入</source>
+        <translation>手動輸入</translation>
     </message>
     <message>
         <source>扫码或输入试剂码，按回车确认</source>
@@ -2994,6 +3018,14 @@
     <message>
         <source>未配置试剂码解析或备案清单，无法确认试剂合格</source>
         <translation>未設定試劑碼解析或備案清單，無法確認試劑合格</translation>
+    </message>
+    <message>
+        <source>缺少必填字段：{fields}</source>
+        <translation>缺少必填欄位：{fields}</translation>
+    </message>
+    <message>
+        <source>有效期格式应为 YYYY-MM-DD</source>
+        <translation>有效期格式應為 YYYY-MM-DD</translation>
     </message>
     <message>
         <source>效期至 {date}</source>
@@ -3677,8 +3709,8 @@
         <translation>一般使用者</translation>
     </message>
     <message>
-        <source>开发人员</source>
-        <translation>開發人員</translation>
+        <source>管理身份</source>
+        <translation>管理權限</translation>
     </message>
 </context>
 <context>
@@ -5216,8 +5248,8 @@
         <translation>權限群組說明</translation>
     </message>
     <message>
-        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
-        <translation>一般使用者可組合獲得六組權限；管理員具備管理權限，開發人員另可設定公司與版權。</translation>
+        <source>普通用户可组合获得六组权限；管理员拥有用户管理及其他管理能力。</source>
+        <translation>一般使用者可組合獲得六組權限；管理員可管理使用者及其他管理項目。</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>

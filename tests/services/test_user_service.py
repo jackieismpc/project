@@ -41,6 +41,38 @@ def test_only_admins_can_manage_users(stack: Stack, users: UserService) -> None:
         users.list_users(None)
 
 
+def test_internal_account_is_hidden_and_indistinguishable_from_missing_target(
+    stack: Stack, users: UserService
+) -> None:
+    from gelinspect.domain.entities import User
+
+    stack.database.users.add(
+        User("internal-id", "maintenance", "维护账号", Role.DEVELOPER),
+        password_hash=stack.auth.hash_password("Internal-Test1"),
+        must_change_password=False,
+    )
+    admin = stack.login("admin")
+    assert "maintenance" not in {record.user.username for record in users.list_users(admin)}
+
+    for target_id in ("internal-id", "missing-id"):
+        with pytest.raises(ServiceError) as caught:
+            users.reset_password(admin, target_id)
+        assert caught.value.code is ServiceErrorCode.USER_NOT_FOUND
+        assert str(caught.value) == "用户不存在或不可操作"
+
+    with pytest.raises(ServiceError) as caught:
+        users.create_user(admin, username="maintenance", display_name="x", role=Role.USER)
+    assert caught.value.code is ServiceErrorCode.USER_NOT_FOUND
+    assert str(caught.value) == "登录名不可用"
+
+    for target_id in ("internal-id", "missing-id"):
+        with pytest.raises(ServiceError) as caught:
+            users.change_role(admin, target_id, Role.USER)
+        assert caught.value.code is ServiceErrorCode.USER_PROTECTED
+        assert str(caught.value) == "无权调整该账号类别"
+        assert "开发人员" not in str(caught.value)
+
+
 def test_create_user_issues_a_temporary_password_and_forces_a_change(
     stack: Stack, users: UserService
 ) -> None:
