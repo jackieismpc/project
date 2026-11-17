@@ -173,7 +173,7 @@ class MonitorReportPreview(QWidget):
         if self.current_preview is None:
             return
         try:
-            self._reports.paint(self.current_preview, printer)
+            self._reports.paint(self._session, self.current_preview, printer)
         except Exception:
             self._paint_failed = True
             _log.exception("REPORT_PREVIEW_PAINT_FAILED experiment=%s", self._experiment_id)

@@ -83,9 +83,9 @@ def test_successful_login_shows_dashboard_and_user(
 ) -> None:
     sign_in(qapp, window, "experimenter")
     assert screen_of(window) is Screen.SHELL
-    assert window.session is not None and window.session.role is Role.EXPERIMENTER
+    assert window.session is not None and window.session.role is Role.USER
     assert isinstance(window.page("dashboard"), DashboardPage)
-    assert window.shell.toolbar._user.text() == "Jordan Li · 实验员"
+    assert window.shell.toolbar._user.text() == "Jordan Li · 普通用户"
     assert audit_details(app_context, AuditAction.LOGIN, "experimenter") == ["登录成功"]
 
 
@@ -163,8 +163,18 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
     [
         (
             "admin",
-            {"dashboard", "templates", "audit", "users", "settings", "reports", "history", "about"},
-            {"new"},
+            {
+                "dashboard",
+                "new",
+                "templates",
+                "audit",
+                "users",
+                "settings",
+                "reports",
+                "history",
+                "about",
+            },
+            set(),
         ),
         (
             "experimenter",
@@ -175,15 +185,23 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
                 "reports",
                 "history",
                 "reagents",
-                "settings",
                 "about",
             },
-            {"audit", "users"},
+            {"audit", "users", "settings"},
         ),
         (
             "analyst",
-            {"dashboard", "audit", "history", "reports", "templates", "settings"},
-            {"new", "users"},
+            {
+                "dashboard",
+                "audit",
+                "history",
+                "reports",
+                "templates",
+                "new",
+                "reagents",
+                "about",
+            },
+            {"users", "settings"},
         ),
     ],
 )
@@ -203,7 +221,7 @@ def test_entries_follow_the_role(
     for action_id, permission in {
         "new_experiment": Permission.EXPERIMENT_CREATE,
         "audit_trail": Permission.AUDIT_VIEW,
-        "instrument_settings": Permission.EXPERIMENT_VIEW,  # 所有角色可查看，修改需管理员
+        "instrument_settings": Permission.SETTINGS_VIEW,  # 所有角色可查看，修改需管理员
     }.items():
         assert toolbar.action(action_id).isEnabled() is (
             window.session is not None and window.session.can(permission)

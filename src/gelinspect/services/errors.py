@@ -53,6 +53,8 @@ class ServiceErrorCode(StrEnum):
     EXPORT_FAILED = "export_failed"
     EXPORT_PASSWORD_REQUIRED = "export_password_required"
     EXPORT_PASSWORD_WEAK = "export_password_weak"
+    USER_PROTECTED = "user_protected"
+    USER_PERMISSION_INVALID = "user_permission_invalid"
     USER_NOT_FOUND = "user_not_found"
     USER_DUPLICATE = "user_duplicate"
     USER_LAST_ADMIN = "user_last_admin"

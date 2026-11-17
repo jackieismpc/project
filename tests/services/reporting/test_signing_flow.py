@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from gelinspect.domain.enums import AuditAction, ReportScope
+from gelinspect.domain.enums import AuditAction, PermissionGroup, ReportScope
+from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.auth import InvalidCredentialsError, PermissionDeniedError
 from gelinspect.services.reporting.report_service import SigningNotAllowedError
@@ -144,18 +145,71 @@ def test_wrong_password_cannot_sign_and_leaves_no_trace(
     assert any("密码错误" in d for d in stack.audit(AuditAction.LOGIN_FAILED))
 
 
-def test_experimenter_and_admin_cannot_sign(signing_stack: Stack, tmp_path: Path) -> None:
+def test_read_only_user_cannot_sign(signing_stack: Stack, tmp_path: Path) -> None:
     stack = signing_stack
     make_completed(stack)
     service, _ = make_service(stack, tmp_path)
-    for username in ("experimenter", "admin"):
-        with pytest.raises(PermissionDeniedError):
-            service.sign(stack.login(username), "EXP-SAMPLE-0001", PASSWORDS[username])
+    admin = stack.login("admin")
+    experimenter = stack.database.users.get_by_username("experimenter")
+    assert experimenter is not None
+    from gelinspect.services.user_service import UserService
+
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, experimenter.user_id, frozenset({PermissionGroup.VIEW})
+    )
+    with pytest.raises(PermissionDeniedError):
+        service.sign(stack.login("experimenter"), "EXP-SAMPLE-0001", PASSWORDS["experimenter"])
     assert any("experiment_sign" in d for d in stack.audit(AuditAction.PERMISSION_DENIED))
     stored = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert stored is not None and stored.state is ExperimentState.COMPLETED
     with pytest.raises(PermissionDeniedError):
         service.sign(None, "EXP-SAMPLE-0001", "x")
+
+
+def test_experiment_group_user_can_review_then_sign(signing_stack: Stack, tmp_path: Path) -> None:
+    stack = signing_stack
+    make_completed(stack, reviewer="experimenter")
+    service, _ = make_service(stack, tmp_path)
+    experimenter = stack.login("experimenter")
+    assert experimenter.can(Permission.RESULT_REVIEW)
+    assert experimenter.can(Permission.EXPERIMENT_SIGN)
+    result = service.sign(experimenter, "EXP-SAMPLE-0001", PASSWORDS["experimenter"])
+    assert result.record.signed_by == "experimenter"
+    from PySide6.QtPrintSupport import QPrinter
+
+    printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+    printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+    printer.setOutputFileName(str(tmp_path / "experimenter-print.pdf"))
+    preview = service.preview(experimenter, "EXP-SAMPLE-0001")
+    with pytest.raises(PermissionDeniedError):
+        service.paint(experimenter, preview, printer)
+    with pytest.raises(PermissionDeniedError):
+        service.export_report_file(experimenter, result.record.report_id, tmp_path / "export.pdf")
+
+
+def test_read_only_user_cannot_paint_to_pdf_printer(signing_stack: Stack, tmp_path: Path) -> None:
+    from PySide6.QtPrintSupport import QPrinter
+
+    stack = signing_stack
+    make_completed(stack)
+    service, _ = make_service(stack, tmp_path)
+    admin = stack.login("admin")
+    experimenter = stack.database.users.get_by_username("experimenter")
+    assert experimenter is not None
+    from gelinspect.services.user_service import UserService
+
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, experimenter.user_id, frozenset({PermissionGroup.VIEW})
+    )
+    reader = stack.login("experimenter")
+    preview = service.preview(reader, "EXP-SAMPLE-0001")
+    printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+    printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+    output = tmp_path / "unauthorized-service-output.pdf"
+    printer.setOutputFileName(str(output))
+    with pytest.raises(PermissionDeniedError):
+        service.paint(reader, preview, printer)
+    assert not output.exists()
 
 
 def test_signed_experiment_is_locked_and_the_same_file_can_be_exported_again(

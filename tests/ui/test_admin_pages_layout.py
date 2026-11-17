@@ -110,9 +110,6 @@ def test_users_and_settings_pages_fit_in_every_state(
 
     window.logout(confirm=False)
     sign_in(qapp, window, "analyst")
-    window.navigate("settings")
-    readonly = window.page("settings")
-    assert isinstance(readonly, SettingsPage)
-    assert wait_for(qapp, lambda: not readonly.previewing)
-    assert not readonly.editable
-    assert overflow_report(window) == [], "设置（只读角色）"
+    assert not window.navigate("settings")
+    assert window.page("settings") is None
+    assert overflow_report(window) == []

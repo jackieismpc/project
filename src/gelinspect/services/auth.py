@@ -22,7 +22,12 @@ from typing import NoReturn, Protocol
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, Role
 from gelinspect.domain.permissions import Permission, has_permission, permissions_of
-from gelinspect.interfaces.storage import AuditRepository, StorageBusyError, UserRepository
+from gelinspect.interfaces.storage import (
+    AuditRepository,
+    StateConflictError,
+    StorageBusyError,
+    UserRepository,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -237,6 +242,7 @@ class Session:
     started_at: datetime
     session_id: str
     locked: bool = False
+    valid: bool = True
 
     @property
     def role(self) -> Role:
@@ -249,9 +255,9 @@ class Session:
         Returns:
             权限集合。
         """
-        if self.locked or self.must_change_password:
+        if not self.valid or not self.user.active or self.locked or self.must_change_password:
             return frozenset()
-        return permissions_of(self.user.role)
+        return permissions_of(self.user.role, self.user.permission_groups)
 
     def can(self, permission: Permission) -> bool:
         """界面用来决定入口是否可用；真正的拒绝在 :meth:`AuthService.authorize`。
@@ -346,7 +352,12 @@ class AuthService:
             session: 会话。
         """
         with self._lock:
-            known = self._sessions.pop(session.session_id, None)
+            known = self._sessions.get(session.session_id)
+            if known is session:
+                del self._sessions[session.session_id]
+            else:
+                known = None
+        session.valid = False
         if known is not None:
             self._audit_best_effort(session.user, AuditAction.LOGOUT, "退出登录")
 
@@ -357,7 +368,7 @@ class AuthService:
             session: 会话。
         """
         with self._lock:
-            if session.session_id not in self._sessions or session.locked:
+            if self._sessions.get(session.session_id) is not session or session.locked:
                 return
             session.locked = True
         # 锁屏是保护动作：数据库忙时也要锁住，审计缺失只记日志。
@@ -378,11 +389,13 @@ class AuthService:
             AuthStorageBusyError: 数据库正忙，仍保持锁定，稍后重试。
         """
         with self._lock:
-            if session.session_id not in self._sessions:
+            if self._sessions.get(session.session_id) is not session:
                 raise PermissionDeniedError("会话已失效，请重新登录", AuthErrorCode.SESSION_INVALID)
-        self._verify(session.user.username, password, purpose="解锁")
+        user, must_change = self._verify(session.user.username, password, purpose="解锁")
         self._audit(session.user, AuditAction.SCREEN_UNLOCKED, "解锁屏幕")  # 写不进去就保持锁定
         with self._lock:
+            session.user = user
+            session.must_change_password = must_change
             session.locked = False
 
     def change_password(self, session: Session, old_password: str, new_password: str) -> None:
@@ -401,18 +414,32 @@ class AuthService:
             AuthStorageBusyError: 数据库正忙，密码没有修改，稍后重试。
         """
         with self._lock:
-            if session.session_id not in self._sessions or session.locked:
+            if self._sessions.get(session.session_id) is not session or session.locked:
                 raise PermissionDeniedError("会话已失效或已锁屏", AuthErrorCode.SESSION_INVALID)
         self._check_new_password(new_password, old_password, session.user.username)
-        self._verify(session.user.username, old_password, purpose="修改密码")
+        verified, _ = self._verify(session.user.username, old_password, purpose="修改密码")
         try:
             self._storage.users.set_password_hash(
                 session.user.user_id,
                 self._hasher.hash(new_password),
                 must_change_password=False,
+                expected_version=verified.auth_version,
             )
+        except StateConflictError as error:
+            self.revoke_sessions(session.user.user_id)
+            raise PermissionDeniedError(
+                "凭据已变更，请重新登录", AuthErrorCode.SESSION_INVALID
+            ) from error
         except StorageBusyError as error:
             raise AuthStorageBusyError("数据库正忙，密码没有修改") from error
+        current = self._storage.users.get(session.user.user_id)
+        assert current is not None
+        with self._lock:
+            for other in list(self._sessions.values()):
+                if other.user.user_id == current.user_id and other is not session:
+                    other.valid = False
+                    self._sessions.pop(other.session_id, None)
+        session.user = current
         session.must_change_password = False
         # 密码已经改了，无法回滚；审计缺失只记日志，不让用户以为没改成。
         self._audit_best_effort(session.user, AuditAction.PASSWORD_CHANGED, "修改密码")
@@ -447,6 +474,24 @@ class AuthService:
 
     # ------------------------------------------------------------------ 用户管理的配合
 
+    def sync_session(self, session: Session) -> bool:
+        """刷新界面会话快照；被停用、重置或注销时立即清空界面权限。"""
+        with self._lock:
+            if self._sessions.get(session.session_id) is not session:
+                session.valid = False
+                return False
+        credentials = self._storage.users.get_credentials(session.user.username)
+        if (
+            credentials is None
+            or not credentials.user.active
+            or credentials.user.auth_version != session.user.auth_version
+        ):
+            self.revoke_sessions(session.user.user_id)
+            return False
+        session.user = credentials.user
+        session.must_change_password = credentials.must_change_password
+        return True
+
     def refresh_sessions(self, user: User) -> None:
         """账号的角色或显示名被改动后，让它已登录的会话立即采用新值。
 
@@ -470,6 +515,7 @@ class AuthService:
         with self._lock:
             ids = [sid for sid, s in self._sessions.items() if s.user.user_id == user_id]
             for sid in ids:
+                self._sessions[sid].valid = False
                 del self._sessions[sid]
         return len(ids)
 
@@ -515,7 +561,11 @@ class AuthService:
         user = self._storage.users.get(session.user.user_id)
         if user is None or not user.active:
             self._deny(session.user, permission, "账号已停用")
-        if not has_permission(user.role, permission):
+        if user.auth_version != session.user.auth_version:
+            self.revoke_sessions(user.user_id)
+            raise PermissionDeniedError("密码已变更，请重新登录", AuthErrorCode.SESSION_INVALID)
+        session.user = user
+        if not has_permission(user.role, permission, user.permission_groups):
             self._deny(user, permission, "角色无此权限")
         return user
 
@@ -619,16 +669,27 @@ class AuthService:
                 credentials.user, AuditAction.LOGIN_FAILED, f"{purpose}被拒绝：账号已停用"
             )
             raise AccountDisabledError("账号已停用，请联系管理员")
+        expected_hash = credentials.password_hash
         if self._hasher.needs_rehash(credentials.password_hash):
             try:
+                upgraded = self._hasher.hash(password)
                 self._storage.users.set_password_hash(
                     credentials.user.user_id,
-                    self._hasher.hash(password),
+                    upgraded,
                     must_change_password=credentials.must_change_password,
+                    expected_version=credentials.user.auth_version,
                 )
+                expected_hash = upgraded
+            except StateConflictError as error:
+                raise PermissionDeniedError(
+                    "凭据已变更，请重新登录", AuthErrorCode.SESSION_INVALID
+                ) from error
             except StorageBusyError:
                 _log.warning("数据库正忙，暂不升级 %s 的密码哈希参数，下次登录再试", name)
-        return credentials.user, credentials.must_change_password
+        latest = self._storage.users.get_credentials(name)
+        if latest is None or not latest.user.active or latest.password_hash != expected_hash:
+            raise PermissionDeniedError("凭据已变更，请重新登录", AuthErrorCode.SESSION_INVALID)
+        return latest.user, latest.must_change_password
 
     def _fail(self, name: str, user: User | None, purpose: str, why: str) -> NoReturn:
         """记一次失败；达到上限则锁定。总是抛出异常。"""

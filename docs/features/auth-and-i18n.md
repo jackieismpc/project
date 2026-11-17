@@ -1,5 +1,7 @@
 # 一键启动、登录权限与多语言
 
+> 2026-11-17权限模型已更新：当前行为以[三类账号与六组授权](flexible-permissions.md)为准，下文P7阶段的固定岗位矩阵仅为历史说明。
+
 对应阶段：P7（外壳与权限），繁体中文于 2026-11-07 补充。代码：`src/gelinspect/startup.py`、`bootstrap.py`、`logging_setup.py`、`services/auth.py`、`services/queries.py`、`ui/main_window.py`、`ui/pages/`、`ui/bridge.py`、`ui/i18n.py`。
 
 ## 目的

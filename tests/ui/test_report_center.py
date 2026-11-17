@@ -12,7 +12,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction, BatchKind, Interpretation
+from gelinspect.domain.enums import AuditAction, BatchKind, Interpretation, PermissionGroup
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.reporting.texts import ReportLanguage
@@ -33,17 +33,17 @@ def reports_of(window: MainWindow) -> ReportsPage:
 
 
 def finish_experiment(app: QApplication, window: MainWindow, context: AppContext) -> str:
-    """走真实向导跑完模拟灵敏度试验，并由分析员复核到“已完成”。返回试验标识。"""
+    """走真实向导跑完模拟灵敏度试验，并由实验与结果处理用户复核到“已完成”。"""
     monitor = start_sensitivity(app, window)
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
     wait_finished(app, context)
-    analyst = context.auth.login("analyst", DEMO_PASSWORDS["analyst"])
+    operator = context.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     stored = context.database.experiments.get(experiment_id)
     assert stored is not None
     for tube in stored.pending_review_tubes:
         context.reviews.review_tube(
-            analyst, experiment_id, tube, Interpretation.POSITIVE, "人工判阳性"
+            operator, experiment_id, tube, Interpretation.POSITIVE, "人工判阳性"
         )
     window.logout(confirm=False)
     settle(app)
@@ -79,21 +79,28 @@ def test_end_to_end_sign_verify_tamper_export(
     tmp_path: Path,
 ) -> None:
     window, context = fast_window, fast_context
+    admin = context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    experimenter = context.database.users.get_by_username("experimenter")
+    assert experimenter is not None
+    context.users.set_permission_groups(
+        admin,
+        experimenter.user_id,
+        frozenset({PermissionGroup.EXPERIMENT, PermissionGroup.OUTPUT}),
+    )
     experiment_id = finish_experiment(qapp, window, context)
 
-    # 实验员只能预览：不能签署，原因写在界面上
+    # 实验与结果处理用户可以签署。
     sign_in(qapp, window, "experimenter")
     assert window.navigate("reports")
     page = reports_of(window)
     assert page.experiment_id == experiment_id
-    assert not page.sign_button.isEnabled()
-    assert "签署权限" in page.sign_hint.text()
+    assert page.sign_button.isEnabled()
     assert page.print_button.isEnabled()
     window.logout(confirm=False)
     settle(qapp)
 
-    # 分析员：密码错误不能签署，对话框保持打开并说明
-    sign_in(qapp, window, "analyst")
+    # 同一用户再次确认密码；密码错误时对话框保持打开并说明。
+    sign_in(qapp, window, "experimenter")
     assert window.navigate("reports")
     page = reports_of(window)
     assert page.preview_widget.pageCount() >= 1
@@ -106,7 +113,7 @@ def test_end_to_end_sign_verify_tamper_export(
     assert stored is not None and stored.state is ExperimentState.COMPLETED
 
     # 正确密码：签署成功，界面显示已签署，状态被锁定
-    auto_sign(monkeypatch, DEMO_PASSWORDS["analyst"])
+    auto_sign(monkeypatch, DEMO_PASSWORDS["experimenter"])
     signed: list[str] = []
     page.signedExperiment.connect(signed.append)
     click(qapp, page.sign_button)

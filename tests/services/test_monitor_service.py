@@ -60,7 +60,13 @@ def test_live_view_shows_row_phases_start_time_and_stop_rules(real_app: AppConte
     assert {t.status for t in view.tubes} == {WellStatus.INCUBATING}
     assert all(r.remaining_s is not None and r.remaining_s > 0 for r in view.rows)
 
-    with pytest.raises(PermissionDeniedError):  # 分析员不能停止试验
+    from gelinspect.domain.enums import PermissionGroup
+
+    admin = real_app.auth.login("admin", PASSWORDS["admin"])
+    user = real_app.database.users.get_by_username("analyst")
+    assert user is not None
+    real_app.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
+    with pytest.raises(PermissionDeniedError):  # 没有实验与结果处理组不能停止
         monitor.stop(analyst, experiment_id, "x")
     assert real_app.engine.active_experiment_id == experiment_id
     monitor.stop(experimenter, experiment_id, "测试")

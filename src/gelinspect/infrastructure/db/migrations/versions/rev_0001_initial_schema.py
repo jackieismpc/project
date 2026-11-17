@@ -104,6 +104,8 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=128), nullable=False),
         sa.Column("role", sa.String(length=32), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False),
+        sa.Column("permission_groups", sa.JSON(), nullable=False),
+        sa.Column("auth_version", sa.Integer(), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("must_change_password", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.String(length=27), nullable=False),

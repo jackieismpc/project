@@ -11,8 +11,10 @@ import pytest
 from PySide6.QtWidgets import QApplication, QFileDialog
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction
+from gelinspect.domain.entities import User
+from gelinspect.domain.enums import AuditAction, Role
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
+from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.user_settings import VideoInput, settings_file
 from gelinspect.ui.main_window import MainWindow
@@ -58,7 +60,7 @@ def test_shows_every_setting_with_the_effective_values(
     backend = {k: v.text() for k, (_n, v) in page.backend_labels.items()}
     assert backend["backend"].endswith("MockAnalyzer")
     assert backend["model"] == "第一次试验后显示" and backend["config"] == "第一次试验后显示"
-    assert all(page.fields[n].edit.isEnabled() for n in page.fields)
+    assert all(page.fields[n].edit.isEnabled() == (n != "copyright_holder") for n in page.fields)
 
 
 def test_the_video_card_offers_only_real_inputs_and_mentions_the_industrial_camera(
@@ -84,20 +86,10 @@ def test_the_video_card_offers_only_real_inputs_and_mentions_the_industrial_came
 def test_other_roles_see_a_read_only_page(
     qapp: QApplication, window: MainWindow, app_context: AppContext, who: str
 ) -> None:
-    page = open_settings(qapp, window, who)
-    assert not page.editable and page.readonly_badge.isVisibleTo(page)
-    assert page.readonly_badge.text() == "只读"
-    assert all(not f.edit.isEnabled() for f in page.fields.values())
-    assert not page.type_box.isEnabled() and not page.save_button.isEnabled()
-    assert not page.browse_button.isEnabled() and not page.preview_button.isEnabled()
-    assert page.banner.isVisibleTo(page) and "管理员" in page.banner.detail.text()
-    assert page.fields["instrument_no"].edit.text() == "GI-001"  # 仍能看到当前值
-    # 服务层也拒绝（界面被绕过时）
-    assert page.save() is False
-    assert not settings_file(app_context.config.data_dir).exists()
-    assert not app_context.database.audit.query(
-        AuditQuery(action=AuditAction.SETTINGS_CHANGED), PageRequest()
-    ).total
+    sign_in(qapp, window, who)
+    assert not window.navigate("settings")
+    with pytest.raises(PermissionDeniedError):
+        app_context.settings.current(window.session)
 
 
 def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
@@ -149,7 +141,16 @@ def test_a_bad_video_path_is_explained_next_to_the_path(
 def test_save_persists_audits_and_applies_to_the_runtime(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
-    page = open_settings(qapp, window)
+    app_context.database.users.add(
+        User("dev", "developer", "开发人员", Role.DEVELOPER),
+        password_hash=app_context.auth.hash_password("Developer-Test1"),
+        must_change_password=False,
+    )
+    window._on_login_submitted("developer", "Developer-Test1")
+    assert window.navigate("settings")
+    page = window.page("settings")
+    assert isinstance(page, SettingsPage)
+    assert wait_for(qapp, lambda: not page.previewing)
     set_text(page, "instrument_no", "GI-042")
     set_text(page, "incubation_minutes", "45")
     set_text(page, "temperature_hold_s", "120")
@@ -194,7 +195,9 @@ def test_while_an_experiment_runs_only_the_non_impacting_fields_can_be_edited(
     impacting = {"incubation_minutes", "frames_per_side", "settle_s", "temperature_target_c",
                  "temperature_tolerance_c", "temperature_hold_s"}  # fmt: skip
     for name, field in page.fields.items():
-        assert field.edit.isEnabled() is (name not in impacting), name
+        assert field.edit.isEnabled() is (name not in impacting and name != "copyright_holder"), (
+            name
+        )
     assert not page.type_box.isEnabled() and not page.path_edit.isEnabled()
     set_text(page, "retention_days", "30")
     assert page.save() is True  # 不影响运行的项仍可保存

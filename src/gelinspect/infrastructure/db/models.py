@@ -54,6 +54,8 @@ class UserRow(Base):
     display_name: Mapped[str] = mapped_column(String(128))
     role: Mapped[str] = mapped_column(String(32))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    permission_groups: Mapped[list[str]] = mapped_column(JSON, default=list)
+    auth_version: Mapped[int] = mapped_column(Integer, default=0)
     password_hash: Mapped[str] = mapped_column(String(255))
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime)

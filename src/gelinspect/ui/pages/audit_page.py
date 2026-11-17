@@ -383,7 +383,7 @@ class AuditPage(QWidget):
         self.verify_button.setEnabled(not self._verifying)
         self.search_button.setEnabled(not self._exporting)
         session = self._session
-        can_export = session is not None and session.can(Permission.DATA_EXPORT)
+        can_export = session is not None and session.can(Permission.AUDIT_EXPORT)
         self.export_button.setEnabled(can_export and not self._exporting and self._total > 0)
         self.export_button.setToolTip("" if can_export else self.tr("当前角色无此权限"))
 

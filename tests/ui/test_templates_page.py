@@ -216,7 +216,7 @@ def test_other_roles_can_only_view(
     for button in (page.new_button, page.copy_button, page.edit_button):
         assert not button.isEnabled()
         assert button.toolTip() == "当前角色无此权限"
-    assert "管理员" in page.note.text()
+    assert "模板管理权限" in page.note.text()
     # 页面方法被直接调用（界面被绕过）：服务层拒绝，没有保存
     errors: list[str] = []
 

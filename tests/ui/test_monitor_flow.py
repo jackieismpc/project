@@ -13,13 +13,12 @@ from gelinspect.domain.enums import AuditAction, Interpretation
 from gelinspect.domain.judgment import SCORE_FEATURES, read_judgment
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, MediaKind, PageRequest
-from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.mask_archive import MASK_PREFIX
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.monitor_page import MonitorPage
 from gelinspect.ui.pages.tube_detail_page import TubeDetailPage
 from gelinspect.ui.widgets.marks import WellState
-from tests.ui.conftest import settle, sign_in, wait_for
+from tests.ui.conftest import settle, wait_for
 from tests.ui.monitor_helpers import (
     click_well,
     start_sensitivity,
@@ -95,22 +94,9 @@ def test_full_review_flow_from_wizard_to_signable(
     assert with_mask != without_mask
     detail.mask_toggle.setChecked(True)
 
-    # 实验员不能复核：界面禁用，服务层也拒绝
-    assert not detail.submit_button.isEnabled()
-    session = window.session
-    try:
-        context.reviews.review_tube(session, experiment_id, tube, Interpretation.POSITIVE, "x")
-    except PermissionDeniedError:
-        pass
-    else:
-        raise AssertionError("实验员不应能复核")
-    assert (
-        context.database.experiments.get(experiment_id).results[tube].reviewed_by is None  # type: ignore[union-attr]
-    )
-
-    # 分析员复核：意见必填；逐管处理后试验转可签署
-    assert window.logout()
-    sign_in(qapp, window, "analyst")
+    # 实验与结果处理组可以复核，服务端与界面能力一致。
+    assert detail.submit_button.isEnabled()
+    # 同一普通用户继续复核：意见必填；全部处理后试验转可签署。
     for number, tube_no in enumerate(pending):
         assert window.open_tube(experiment_id, tube_no)
         detail = tube_page(window)
@@ -131,7 +117,7 @@ def test_full_review_flow_from_wizard_to_signable(
         assert row is not None
         result = row.results[tube_no]
         assert result.reviewed_interpretation is Interpretation.POSITIVE
-        assert result.reviewed_by == "analyst" and result.review_note == f"复核意见 {number}"
+        assert result.reviewed_by == "experimenter" and result.review_note == f"复核意见 {number}"
         assert result.auto_interpretation is Interpretation.PENDING_REVIEW  # 算法结果不被覆盖
         assert (
             "算法：" in detail.verdict_title.text() and "人工：阳性" in detail.verdict_title.text()

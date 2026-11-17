@@ -1,6 +1,6 @@
-"""权限矩阵。
+"""固定账号能力及六组普通用户授权。
 
-:data:`PERMISSION_ROLES` 以“权限 → 角色集合”表达，是权限判断的唯一事实来源。
+PERMISSION_GROUPS 是业务组定义，所有界面和服务统一使用 permissions_of 计算有效权限。
 """
 
 from __future__ import annotations
@@ -9,12 +9,19 @@ from collections.abc import Mapping
 from enum import StrEnum
 from types import MappingProxyType
 
+from gelinspect.domain.enums import PermissionGroup as PermissionGroup
 from gelinspect.domain.enums import Role
 
 
 class Permission(StrEnum):
     """系统权限。"""
 
+    COMPANY_CONFIGURE = "company_configure"
+    SETTINGS_VIEW = "settings_view"
+    REAGENT_VIEW = "reagent_view"
+    REPORT_PRINT = "report_print"
+    AUDIT_EXPORT = "audit_export"
+    DIAGNOSTICS_EXPORT = "diagnostics_export"
     USER_MANAGE = "user_manage"
     """管理用户和角色。"""
     INSTRUMENT_CONFIGURE = "instrument_configure"
@@ -45,49 +52,68 @@ class Permission(StrEnum):
     """导出报告和数据。"""
 
 
-_ALL_ROLES = frozenset(Role)
-
-PERMISSION_ROLES: Mapping[Permission, frozenset[Role]] = MappingProxyType(
+_VIEW = frozenset(
     {
-        Permission.USER_MANAGE: frozenset({Role.ADMIN}),
-        Permission.INSTRUMENT_CONFIGURE: frozenset({Role.ADMIN}),
-        Permission.AUDIT_VIEW: frozenset({Role.ADMIN, Role.ANALYST}),
-        Permission.TEMPLATE_VIEW: _ALL_ROLES,
-        Permission.TEMPLATE_MANAGE: frozenset({Role.ADMIN}),
-        Permission.REAGENT_MANAGE: frozenset({Role.EXPERIMENTER}),
-        Permission.EXPERIMENT_VIEW: _ALL_ROLES,
-        Permission.EXPERIMENT_CREATE: frozenset({Role.EXPERIMENTER}),
-        Permission.EXPERIMENT_RUN: frozenset({Role.EXPERIMENTER}),
-        Permission.EXPERIMENT_STOP: frozenset({Role.EXPERIMENTER}),
-        Permission.RESULT_REVIEW: frozenset({Role.ANALYST}),
-        Permission.EXPERIMENT_SIGN: frozenset({Role.ANALYST}),
-        Permission.REPORT_VIEW: _ALL_ROLES,
-        Permission.DATA_EXPORT: frozenset({Role.ADMIN, Role.ANALYST}),
+        Permission.EXPERIMENT_VIEW,
+        Permission.TEMPLATE_VIEW,
+        Permission.REPORT_VIEW,
+        Permission.REAGENT_VIEW,
     }
 )
-"""权限矩阵：每个权限对应可以使用它的角色。"""
+PERMISSION_GROUPS: Mapping[PermissionGroup, frozenset[Permission]] = MappingProxyType(
+    {
+        PermissionGroup.VIEW: _VIEW,
+        PermissionGroup.EXPERIMENT: _VIEW
+        | {
+            Permission.REAGENT_MANAGE,
+            Permission.EXPERIMENT_CREATE,
+            Permission.EXPERIMENT_RUN,
+            Permission.EXPERIMENT_STOP,
+            Permission.RESULT_REVIEW,
+            Permission.EXPERIMENT_SIGN,
+        },
+        PermissionGroup.TEMPLATE: frozenset({Permission.TEMPLATE_VIEW, Permission.TEMPLATE_MANAGE}),
+        PermissionGroup.OUTPUT: frozenset(
+            {
+                Permission.EXPERIMENT_VIEW,
+                Permission.REPORT_VIEW,
+                Permission.REPORT_PRINT,
+                Permission.DATA_EXPORT,
+            }
+        ),
+        PermissionGroup.AUDIT: frozenset({Permission.AUDIT_VIEW, Permission.AUDIT_EXPORT}),
+        PermissionGroup.MAINTENANCE: frozenset(
+            {
+                Permission.SETTINGS_VIEW,
+                Permission.INSTRUMENT_CONFIGURE,
+                Permission.DIAGNOSTICS_EXPORT,
+            }
+        ),
+    }
+)
 
 
-def has_permission(role: Role, permission: Permission) -> bool:
-    """判断角色是否拥有某权限。
+def permissions_of(
+    role: Role, groups: frozenset[PermissionGroup] = frozenset()
+) -> frozenset[Permission]:
+    """按账号类别及授权组计算能力，普通用户默认无权限。"""
+    if role is Role.DEVELOPER:
+        return frozenset(Permission)
+    if role is Role.ADMIN:
+        return frozenset(Permission) - {Permission.COMPANY_CONFIGURE}
+    if role is not Role.USER:
+        return frozenset()
+    return frozenset(p for g in groups for p in PERMISSION_GROUPS[g])
 
-    Args:
-        role: 用户角色。
-        permission: 要检查的权限。
 
-    Returns:
-        拥有时返回 True。
-    """
-    return role in PERMISSION_ROLES[permission]
+def has_permission(
+    role: Role, permission: Permission, groups: frozenset[PermissionGroup] = frozenset()
+) -> bool:
+    """检查有效权限，不根据用户名或旧岗位名隐式授权。"""
+    return permission in permissions_of(role, groups)
 
 
-def permissions_of(role: Role) -> frozenset[Permission]:
-    """列出角色拥有的全部权限。
-
-    Args:
-        role: 用户角色。
-
-    Returns:
-        该角色的权限集合。
-    """
-    return frozenset(permission for permission, roles in PERMISSION_ROLES.items() if role in roles)
+PERMISSION_ROLES: Mapping[Permission, frozenset[Role]] = MappingProxyType(
+    {p: frozenset(r for r in Role if has_permission(r, p)) for p in Permission}
+)
+"""仅表示账号类别的固定能力；普通用户授权通过 PERMISSION_GROUPS 计算。"""

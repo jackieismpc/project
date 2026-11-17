@@ -31,7 +31,7 @@ from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.plate_grid import PlateMode
 from simulation.reagents import SAMPLE_CODES
 from simulation.sim_device import SimDevice
-from tests.ui.conftest import settle, sign_in, wait_for
+from tests.ui.conftest import DEMO_PASSWORDS, settle, sign_in, wait_for
 from tests.ui.wizard_helpers import (
     GOOD,
     STEP_CONFIRM,
@@ -525,10 +525,8 @@ def test_going_back_after_a_failed_start_abandons_the_unstarted_experiment(
 # ---------------------------------------------------------------------------- 权限
 
 
-def test_the_experimenter_can_open_the_wizard_but_the_analyst_and_admin_cannot(
-    qapp: QApplication, window: MainWindow
-) -> None:
-    for username, allowed in (("experimenter", True), ("analyst", False), ("admin", False)):
+def test_experiment_group_users_can_open_the_wizard(qapp: QApplication, window: MainWindow) -> None:
+    for username, allowed in (("experimenter", True), ("analyst", True), ("admin", True)):
         sign_in(qapp, window, username)
         assert window.navigate("new") is allowed, username
         assert window.shell.toolbar.button("new_experiment").isEnabled() is allowed
@@ -543,8 +541,13 @@ def test_without_the_run_permission_the_confirm_button_is_disabled(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
     """页面被直接构造给没有权限的会话：扫码和启动按钮禁用；服务层另行拒绝（见服务测试）。"""
+    from gelinspect.domain.enums import PermissionGroup
     from gelinspect.ui.pages.new_experiment import NewExperimentPage as Page
 
+    admin = app_context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    user = app_context.database.users.get_by_username("analyst")
+    assert user is not None
+    app_context.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
     sign_in(qapp, window, "analyst")
     page = Page(window.services, window.bridge)
     page.set_session(window.session)

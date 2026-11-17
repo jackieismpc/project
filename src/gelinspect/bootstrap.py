@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, Role
+from gelinspect.domain.permissions import PermissionGroup
 from gelinspect.infrastructure.db import Database, seed_builtin_templates, seed_defaults
 from gelinspect.infrastructure.db.passwords import hash_password, needs_rehash, verify_password
 from gelinspect.infrastructure.db.seed import SYSTEM_ACTOR
@@ -79,6 +80,7 @@ class DatabaseProvisioner:
         role: Role,
         password: str,
         must_change_password: bool = False,
+        permission_groups: frozenset[PermissionGroup] = frozenset(),
     ) -> bool:
         """创建账号并写审计，同名账号已存在时不覆盖。
 
@@ -86,6 +88,7 @@ class DatabaseProvisioner:
             username: 登录名。
             display_name: 显示名称。
             role: 角色。
+            permission_groups: 普通用户的授权组，默认无业务权限。
             password: 明文密码。
             must_change_password: 首次登录是否必须改密。
 
@@ -93,7 +96,11 @@ class DatabaseProvisioner:
             新建时为 True。
         """
         user = User(
-            user_id=uuid.uuid4().hex, username=username, display_name=display_name, role=role
+            user_id=uuid.uuid4().hex,
+            username=username,
+            display_name=display_name,
+            role=role,
+            permission_groups=permission_groups,
         )
         try:
             self._database.users.add(

@@ -51,7 +51,7 @@ def make_event(
     return AuditEvent(
         occurred_at=at or T0 + timedelta(seconds=index),
         actor=actor,
-        actor_role=Role.ANALYST,
+        actor_role=Role.USER,
         action=action,
         detail=detail if detail is not None else f"操作 {index}",
         experiment_id=experiment_id,

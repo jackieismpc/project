@@ -22,7 +22,7 @@ from typing import Protocol
 
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, Role
-from gelinspect.domain.permissions import Permission
+from gelinspect.domain.permissions import Permission, PermissionGroup
 from gelinspect.interfaces.storage import (
     DuplicateError,
     NotFoundError,
@@ -33,6 +33,7 @@ from gelinspect.services.auth import (
     AuthErrorCode,
     AuthService,
     PasswordPolicyError,
+    PermissionDeniedError,
     Session,
     validate_username,
 )
@@ -40,8 +41,8 @@ from gelinspect.services.errors import ServiceError, ServiceErrorCode
 
 _ROLE_NAMES: dict[Role, str] = {
     Role.ADMIN: "管理员",
-    Role.EXPERIMENTER: "实验员",
-    Role.ANALYST: "分析员",
+    Role.USER: "普通用户",
+    Role.DEVELOPER: "开发人员",
 }
 
 MAX_DISPLAY_NAME_LENGTH = 40
@@ -162,6 +163,7 @@ class UserService:
         display_name: str,
         role: Role,
         password: str | None = None,
+        permission_groups: frozenset[PermissionGroup] = frozenset(),
     ) -> CredentialIssue:
         """新建账号，首次登录必须改密。
 
@@ -170,6 +172,7 @@ class UserService:
             username: 登录名。
             display_name: 显示名称，留空则用登录名。
             role: 角色。
+            permission_groups: 普通用户的授权组，默认无业务权限。
             password: 初始密码；为 None 时生成随机临时密码。
 
         Returns:
@@ -182,6 +185,15 @@ class UserService:
             StorageBusyError: 数据库忙，什么都没有写入，可重试。
         """
         actor = self._auth.authorize(session, Permission.USER_MANAGE)
+        if role not in (Role.USER, Role.ADMIN) or (
+            actor.role is Role.ADMIN and role is not Role.USER
+        ):
+            raise ServiceError("只能创建允许的账号类别", ServiceErrorCode.USER_PROTECTED)
+        groups = self._checked_groups(permission_groups)
+        if role is not Role.USER and groups:
+            raise ServiceError(
+                "管理账号不设置普通用户权限组", ServiceErrorCode.USER_PERMISSION_INVALID
+            )
         name = validate_username(username)
         shown = display_name.strip() or name
         if len(shown) > MAX_DISPLAY_NAME_LENGTH:
@@ -191,10 +203,21 @@ class UserService:
                 max=MAX_DISPLAY_NAME_LENGTH,
             )
         initial = self._checked_password(password, name)
-        user = User(user_id=uuid.uuid4().hex, username=name, display_name=shown, role=role)
-        event = self._event(actor, f"新建用户 {name}（{_ROLE_NAMES[role]}），首次登录须改密")
+        user = User(
+            user_id=uuid.uuid4().hex,
+            username=name,
+            display_name=shown,
+            role=role,
+            permission_groups=groups,
+        )
+        event = self._event(
+            actor,
+            f"新建用户 {name}（{_ROLE_NAMES[role]}），"
+            f"权限组 {sorted(g.value for g in groups)}；首次登录须改密",
+        )
         try:
             with self._storage.unit_of_work() as uow:
+                self._check_actor(uow.users, actor, session)
                 if uow.users.get_by_username(name) is not None:
                     raise DuplicateError(name)
                 uow.users.add(
@@ -229,7 +252,9 @@ class UserService:
         if not active and user_id == actor.user_id:
             raise ServiceError("不能停用自己的账号", ServiceErrorCode.USER_SELF_DISABLE)
         with self._storage.unit_of_work() as uow:
+            self._check_actor(uow.users, actor, session)
             target = self._require(uow.users, user_id)
+            self._protect_target(actor, target)
             if target.active == active:
                 return target
             if not active:
@@ -262,13 +287,17 @@ class UserService:
             StorageBusyError: 数据库忙，什么都没有写入，可重试。
         """
         actor = self._auth.authorize(session, Permission.USER_MANAGE)
+        if actor.role is not Role.DEVELOPER or role not in (Role.USER, Role.ADMIN):
+            raise ServiceError("只有开发人员可以调整管理员类别", ServiceErrorCode.USER_PROTECTED)
         with self._storage.unit_of_work() as uow:
+            self._check_actor(uow.users, actor, session)
             target = self._require(uow.users, user_id)
+            self._protect_target(actor, target)
             if target.role is role:
                 return target
             if target.role is Role.ADMIN:
                 self._require_other_admin(uow.users, target, "降级")
-            updated = replace(target, role=role)
+            updated = replace(target, role=role, permission_groups=frozenset())
             uow.users.update(updated)
             uow.audit.append(
                 self._event(
@@ -279,6 +308,62 @@ class UserService:
             )
         self._auth.refresh_sessions(updated)
         return updated
+
+    def set_permission_groups(
+        self, session: Session | None, user_id: str, groups: frozenset[PermissionGroup]
+    ) -> User:
+        """原子更新普通用户授权并立即刷新其全部登录会话。"""
+        actor = self._auth.authorize(session, Permission.USER_MANAGE)
+        checked = self._checked_groups(groups)
+        with self._storage.unit_of_work() as uow:
+            self._check_actor(uow.users, actor, session)
+            target = self._require(uow.users, user_id)
+            self._protect_target(actor, target)
+            if target.role is not Role.USER:
+                raise ServiceError("仅普通用户需要分配权限组", ServiceErrorCode.USER_PROTECTED)
+            if target.permission_groups == checked:
+                return target
+            updated = replace(target, permission_groups=checked)
+            uow.users.update(updated)
+            uow.audit.append(
+                self._event(
+                    actor,
+                    f"修改用户 {target.username} 的权限组："
+                    f"{sorted(g.value for g in target.permission_groups)} → "
+                    f"{sorted(g.value for g in checked)}",
+                )
+            )
+        self._auth.refresh_sessions(updated)
+        return updated
+
+    @staticmethod
+    def _check_actor(repo: UserRepository, actor: User, session: Session | None) -> None:
+        # 在写锁内复核操作者，避免等待写锁期间被停用、降级或重置后仍提交修改。
+        current = repo.get(actor.user_id)
+        if (
+            session is None
+            or not session.valid
+            or current is None
+            or not current.active
+            or current.role not in (Role.ADMIN, Role.DEVELOPER)
+            or current.role is not actor.role
+            or current.auth_version != actor.auth_version
+        ):
+            raise PermissionDeniedError("账号管理权限已失效", AuthErrorCode.DENIED)
+
+    @staticmethod
+    def _checked_groups(groups: frozenset[PermissionGroup]) -> frozenset[PermissionGroup]:
+        try:
+            return frozenset(PermissionGroup(g) for g in groups)
+        except (ValueError, TypeError) as error:
+            raise ServiceError("权限组不合法", ServiceErrorCode.USER_PERMISSION_INVALID) from error
+
+    @staticmethod
+    def _protect_target(actor: User, target: User) -> None:
+        if target.role is Role.DEVELOPER or (
+            actor.role is Role.ADMIN and target.role is not Role.USER
+        ):
+            raise ServiceError("该账号不允许在此修改", ServiceErrorCode.USER_PROTECTED)
 
     # ------------------------------------------------------------------ 重置密码
 
@@ -307,7 +392,9 @@ class UserService:
         if user_id == actor.user_id:
             raise ServiceError("不能在这里重置自己的密码", ServiceErrorCode.USER_SELF_RESET)
         with self._storage.unit_of_work() as uow:
+            self._check_actor(uow.users, actor, session)
             target = self._require(uow.users, user_id)
+            self._protect_target(actor, target)
             issued = self._checked_password(password, target.username)
             uow.users.set_password_hash(
                 user_id, self._auth.hash_password(issued), must_change_password=True

@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from gelinspect.domain.enums import Role
+from gelinspect.domain.permissions import PermissionGroup as G
 from gelinspect.interfaces.bootstrap import AccountProvisioner, DemoAccount
 
 DEMO_PASSWORD = "12345678"
@@ -16,8 +17,14 @@ DEMO_PASSWORD = "12345678"
 
 DEMO_ACCOUNTS: tuple[DemoAccount, ...] = (
     DemoAccount("admin", DEMO_PASSWORD, "Alex Chen", Role.ADMIN),
-    DemoAccount("experimenter", DEMO_PASSWORD, "Jordan Li", Role.EXPERIMENTER),
-    DemoAccount("analyst", DEMO_PASSWORD, "Sam Wu", Role.ANALYST),
+    DemoAccount("experimenter", DEMO_PASSWORD, "Jordan Li", Role.USER, frozenset({G.EXPERIMENT})),
+    DemoAccount(
+        "analyst",
+        DEMO_PASSWORD,
+        "Sam Wu",
+        Role.USER,
+        frozenset({G.VIEW, G.EXPERIMENT, G.OUTPUT, G.AUDIT}),
+    ),
 )
 """三个角色各一个演示账号。"""
 
@@ -44,6 +51,7 @@ class DemoAccounts:
                 username=account.username,
                 display_name=account.display_name,
                 role=account.role,
+                permission_groups=account.permission_groups,
                 password=account.password,
                 must_change_password=False,
             )

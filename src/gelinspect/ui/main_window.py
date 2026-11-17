@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from enum import StrEnum
 
-from PySide6.QtCore import QEvent
+from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
@@ -119,6 +119,11 @@ class MainWindow(QMainWindow):
         timeout = idle_timeout_s if idle_timeout_s is not None else services.idle_lock_minutes * 60
         self.idle = IdleWatcher(timeout, parent=self)
         self.idle.idle.connect(self.lock_screen)
+        self._permission_snapshot: object = None
+        self._permission_timer = QTimer(self)
+        self._permission_timer.setInterval(500)
+        self._permission_timer.timeout.connect(self._sync_permissions)
+        self._permission_timer.start()
 
         self._stack = QStackedWidget()
         self.setCentralWidget(self._stack)
@@ -269,8 +274,42 @@ class MainWindow(QMainWindow):
         self.navigate(self._current_route)
         return True
 
+    def _sync_permissions(self) -> None:
+        """同步后台授权变化，关闭旧对话框及旧页面，保留后台实验运行。"""
+        session = self._session
+        if session is None or self._closing:
+            return
+        try:
+            valid = self._services.auth.sync_session(session)
+        except Exception:
+            _log.exception("SESSION_REFRESH_FAILED")
+            return
+        if not valid:
+            modal = QApplication.activeModalWidget()
+            if modal is not None:
+                modal.reject() if isinstance(modal, QDialog) else modal.close()
+            self.logout(confirm=False)
+            return
+        signature = (session.user.role, session.permissions())
+        if self._permission_snapshot is None:
+            self._permission_snapshot = signature
+            return
+        if signature == self._permission_snapshot or session.locked or session.must_change_password:
+            return
+        self._permission_snapshot = signature
+        modal = QApplication.activeModalWidget()
+        if modal is not None:
+            modal.reject() if isinstance(modal, QDialog) else modal.close()
+        self._drop_pages()
+        self._pending_report_experiment = None
+        self._apply_permissions()
+        self.navigate("dashboard")
+
     def _apply_permissions(self) -> None:
         session = self._session
+        self._permission_snapshot = (
+            None if session is None else (session.role, session.permissions())
+        )
         toolbar = self.shell.toolbar
         toolbar.set_user_permissions(session.permissions() if session is not None else ())
         self.shell.nav.set_denied(denied_nav_keys(session))
@@ -355,6 +394,9 @@ class MainWindow(QMainWindow):
         route = route_for(key)
         session = self._session
         if session is None:
+            return False
+        if not self._services.auth.sync_session(session):
+            self.logout(confirm=False)
             return False
         if not can_enter(route, session):
             Toast.show_message(
@@ -729,6 +771,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         self._closing = True
+        self._permission_timer.stop()
         self.idle.stop()
         self.bridge.close()
         session = self._session

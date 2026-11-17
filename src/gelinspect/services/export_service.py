@@ -363,8 +363,7 @@ class ExportService:
             PermissionDeniedError: 没有权限。
             ServiceError: 条件不合法、没有符合条件的记录、密码不符合要求，或写文件失败。
         """
-        self._auth.authorize(session, Permission.AUDIT_VIEW)
-        user = self._auth.authorize(session, Permission.DATA_EXPORT)
+        user = self._auth.authorize(session, Permission.AUDIT_EXPORT)
         self._policy.check(password)
         query = audit_filter.to_query()
         started = time.perf_counter()

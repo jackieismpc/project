@@ -86,12 +86,8 @@ def test_readonly_and_error_states_are_english_too(
 ) -> None:
     language.set_language(Language.EN, persist=False)
     sign_in(qapp, window, "analyst")
-    window.navigate("settings")
-    page = window.page("settings")
-    assert isinstance(page, SettingsPage)
-    assert wait_for(qapp, lambda: not page.previewing)
-    assert chinese_left(page) == []
-    assert page.readonly_badge.text() == "Read-only"
+    assert not window.navigate("settings")
+    assert window.page("settings") is None
     window.navigate("audit")
     audit = window.page("audit")
     assert isinstance(audit, AuditPage)
@@ -140,7 +136,7 @@ def test_an_english_workbook_has_english_headers_and_values(
     write_audit([record], target, export_labels_module.export_labels())
     sheet = load_workbook(target)["Audit Trail"]
     assert [c.value for c in sheet[1]][:5] == ["No.", "Time", "Actor", "Permission", "Event type"]
-    assert sheet[2][3].value == "Analyst"  # 角色按当前语言
+    assert sheet[2][3].value == "Standard user"  # 角色按当前语言
     assert AuditFilter().describe() == "无条件"  # 写入审计库的原文固定为简体中文
 
 

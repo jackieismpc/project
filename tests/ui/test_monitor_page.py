@@ -27,7 +27,7 @@ from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.marks import WellState
 from simulation.sim_device import SimDevice
 from simulation.sim_video import SimVideoSource
-from tests.ui.conftest import settle, sign_in, wait_for
+from tests.ui.conftest import DEMO_PASSWORDS, settle, sign_in, wait_for
 from tests.ui.monitor_helpers import (
     start_sensitivity,
 )
@@ -243,6 +243,12 @@ def test_the_analyst_sees_a_disabled_stop_button(
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
     assert live_window.logout()
+    from gelinspect.domain.enums import PermissionGroup
+
+    admin = live_context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    user = live_context.database.users.get_by_username("analyst")
+    assert user is not None
+    live_context.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
     sign_in(qapp, live_window, "analyst")
     assert live_window.open_experiment(experiment_id)
     page = live_window.page("monitor")

@@ -7,10 +7,11 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, Role
-from gelinspect.domain.permissions import PERMISSION_ROLES, Permission
+from gelinspect.domain.permissions import Permission, PermissionGroup
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.ui.main_window import MainWindow
-from gelinspect.ui.pages.users_dialogs import CredentialDialog, NewUserDialog, RoleDialog
+from gelinspect.ui.pages.permission_picker import PermissionDialog
+from gelinspect.ui.pages.users_dialogs import CredentialDialog, NewUserDialog
 from gelinspect.ui.pages.users_page import UsersPage
 from gelinspect.ui.widgets.dialog import ConfirmDialog
 from tests.ui.conftest import DEMO_PASSWORDS, settle, sign_in
@@ -54,20 +55,11 @@ def test_lists_accounts_with_role_and_state_and_the_matrix_is_read_only(
     page = open_users(qapp, window)
     assert usernames(page) == ["admin", "analyst", "experimenter"]
     rows = {r["username"]: r for r in page.users_table.model.rows}
-    assert rows["admin"]["role"] == "管理员" and str(rows["admin"]["name"]).endswith("（我）")
-    assert rows["analyst"]["role"] == "分析员" and rows["analyst"]["state"] == "使用中"
-    # 角色-权限矩阵：和 PERMISSION_ROLES 一一对应，只展示
-    matrix = page.matrix_table.model.rows
-    assert len(matrix) == len(Permission) == len(PERMISSION_ROLES)
-    for row, roles in zip(matrix, PERMISSION_ROLES.values(), strict=True):
-        for role in Role:
-            assert row[role.value] == ("✓" if role in roles else "")
-    assert [c.title for c in page.matrix_table.model.columns] == [
-        "权限",
-        "管理员",
-        "实验员",
-        "分析员",
-    ]
+    assert rows["admin"]["role"] == "管理员"
+    assert rows["analyst"]["role"] == "普通用户"
+    assert len(page.matrix_table.model.rows) == 6
+    assert [c.title for c in page.matrix_table.model.columns] == ["权限组", "说明"]
+    assert "实验与结果处理" in str(rows["experimenter"]["groups"])
 
 
 def test_create_a_user_shows_the_temporary_password_once_and_forces_a_change(
@@ -82,7 +74,7 @@ def test_create_a_user_shows_the_temporary_password_once_and_forces_a_change(
     def fill(dialog: NewUserDialog) -> int:
         dialog.username.setText("newbie")
         dialog.display_name.setText("新同事")
-        dialog.role_box.setCurrentIndex(dialog.role_box.findData(Role.ANALYST.value))
+        dialog.role_box.setCurrentIndex(dialog.role_box.findData(Role.USER.value))
         assert dialog.submit()
         return int(QDialog.DialogCode.Accepted)
 
@@ -91,7 +83,7 @@ def test_create_a_user_shows_the_temporary_password_once_and_forces_a_change(
     assert issued is not None and usernames(page) == ["admin", "analyst", "experimenter", "newbie"]
     assert seen_credentials == [("newbie", issued.temporary_password)]
     session = app_context.auth.login("newbie", issued.temporary_password)
-    assert session.must_change_password and session.role is Role.ANALYST
+    assert session.must_change_password and session.role is Role.USER
     assert not any(issued.temporary_password in line for line in audit_lines(app_context))
     assert page.selected() is not None and page.selected().user.username == "newbie"  # type: ignore[union-attr]
 
@@ -101,8 +93,8 @@ def test_the_new_user_dialog_shows_why_it_cannot_save_and_stays_open(
 ) -> None:
     page = open_users(qapp, window)
     dialog = NewUserDialog(
-        lambda u, d, r, p: window.services.users.create_user(
-            window.session, username=u, display_name=d, role=r, password=p
+        lambda u, d, r, p, g: window.services.users.create_user(
+            window.session, username=u, display_name=d, role=r, password=p, permission_groups=g
         ),
         parent=page,
     )
@@ -169,7 +161,7 @@ def test_you_cannot_disable_or_reset_yourself_and_the_buttons_say_so(
     page = open_users(qapp, window)
     page.select_user("admin")
     assert not page.toggle_button.isEnabled() and "不能停用自己" in page.toggle_button.toolTip()
-    assert not page.reset_button.isEnabled() and page.role_button.isEnabled()
+    assert not page.reset_button.isEnabled() and not page.role_button.isEnabled()
     page.select_user("analyst")
     assert page.toggle_button.isEnabled() and page.reset_button.isEnabled()
 
@@ -202,49 +194,26 @@ def test_the_last_admin_cannot_be_demoted_and_the_dialog_explains_it(
 ) -> None:
     page = open_users(qapp, window)
     page.select_user("admin")
-    record = page.selected()
-    assert record is not None
-    dialog = RoleDialog(
-        record.user.username,
-        record.user.role,
-        lambda role: window.services.users.change_role(window.session, record.user.user_id, role),
-        parent=page,
-    )
-    dialog.role_box.setCurrentIndex(dialog.role_box.findData(Role.ANALYST.value))
-    assert not dialog.submit()
-    assert "最后一个管理员" in dialog.error.text() and dialog.error.isVisibleTo(dialog)
-    assert app_context.database.users.get_by_username("admin").role is Role.ADMIN  # type: ignore[union-attr]
-    assert window.session is not None and window.session.role is Role.ADMIN
+    assert not page.role_button.isEnabled()
+    assert not page.reset_button.isEnabled()
+    assert not page.toggle_button.isEnabled()
 
 
 def test_changing_the_role_takes_effect_in_the_current_session(
     qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     page = open_users(qapp, window)
-    # 先再造一个管理员，才允许把自己降级
-    second = app_context.users.create_user(
-        window.session, username="admin2", display_name="二号", role=Role.ADMIN
-    )
-    page.refresh()
-    assert second.user.role is Role.ADMIN
-    page.select_user("admin")
-    changed: list[bool] = []
-    page.sessionChanged.connect(lambda: changed.append(True))
+    session = app_context.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
+    page.select_user("experimenter")
 
-    def demote(dialog: RoleDialog) -> int:
-        dialog.role_box.setCurrentIndex(dialog.role_box.findData(Role.ANALYST.value))
-        assert dialog.submit()
-        return int(QDialog.DialogCode.Accepted)
+    def change(dialog: PermissionDialog) -> int:
+        for group, box in dialog.picker.boxes.items():
+            box.setChecked(group in {PermissionGroup.VIEW, PermissionGroup.TEMPLATE})
+        dialog.submit()
+        return dialog.result()
 
-    monkeypatch.setattr(RoleDialog, "exec", demote)
+    monkeypatch.setattr(PermissionDialog, "exec", change)
     assert page.request_change_role()
-    assert changed == [True]
-    # 当前会话立即是分析员：入口、权限、所在页面都跟着变
-    session = window.session
-    assert session is not None and session.role is Role.ANALYST
-    assert not session.can(Permission.USER_MANAGE) and session.can(Permission.RESULT_REVIEW)
-    assert window.current_route == "dashboard"
-    items = {item.entry.key: item for item in window.shell.nav.items()}
-    assert not items["users"].isEnabledTo(window.shell.nav)
-    assert items["audit"].isEnabledTo(window.shell.nav)
-    assert not window.navigate("users")
+    assert session.can(Permission.EXPERIMENT_VIEW) and session.can(Permission.TEMPLATE_MANAGE)
+    assert not session.can(Permission.EXPERIMENT_RUN)
+    app_context.auth.authorize(session, Permission.TEMPLATE_MANAGE)

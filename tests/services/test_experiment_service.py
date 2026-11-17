@@ -193,10 +193,18 @@ def test_create_refuses_duplicate_out_of_range_and_blank(stack: Stack) -> None:
     assert experiments_in(stack) == 0
 
 
-@pytest.mark.parametrize("role", ["analyst", "admin"])
-def test_only_the_experimenter_can_create(stack: Stack, role: str) -> None:
+def test_user_without_experiment_group_cannot_create(stack: Stack) -> None:
+    from gelinspect.domain.enums import PermissionGroup
+    from gelinspect.services.user_service import UserService
+
+    admin = stack.login("admin")
+    analyst = stack.database.users.get_by_username("analyst")
+    assert analyst is not None
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, analyst.user_id, frozenset({PermissionGroup.VIEW})
+    )
     with pytest.raises(PermissionDeniedError):
-        stack.experiments.create_experiment(stack.login(role), request_for())
+        stack.experiments.create_experiment(stack.login("analyst"), request_for())
     assert experiments_in(stack) == 0
     assert any("拒绝 experiment_create" in d for d in stack.audit(AuditAction.PERMISSION_DENIED))
     with pytest.raises(PermissionDeniedError):
@@ -285,11 +293,20 @@ def test_start_requires_a_ready_existing_experiment(stack: Stack) -> None:
     assert stopped.value.code is ServiceErrorCode.EXPERIMENT_NOT_READY
 
 
-@pytest.mark.parametrize("role", ["analyst", "admin"])
-def test_only_the_experimenter_can_start(stack: Stack, role: str) -> None:
+def test_user_without_experiment_group_cannot_start(stack: Stack) -> None:
+    from gelinspect.domain.enums import PermissionGroup
+
+    admin = stack.login("admin")
+    user = stack.database.users.get_by_username("analyst")
+    assert user is not None
+    from gelinspect.services.user_service import UserService
+
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, user.user_id, frozenset({PermissionGroup.VIEW})
+    )
     experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request_for())
     with pytest.raises(PermissionDeniedError):
-        stack.experiments.start_experiment(stack.login(role), experiment_id)
+        stack.experiments.start_experiment(stack.login("analyst"), experiment_id)
     assert stack.engine.started == []
     assert any("拒绝 experiment_run" in d for d in stack.audit(AuditAction.PERMISSION_DENIED))
 
@@ -319,5 +336,14 @@ def test_abandon_stops_a_ready_experiment_that_was_never_started(stack: Stack) -
     assert any("启动前放弃" in d for d in stack.audit(AuditAction.EXPERIMENT_STATE_CHANGED))
     with pytest.raises(ServiceError):
         stack.experiments.abandon_experiment(session, experiment_id)  # 已经不是就绪
+    from gelinspect.domain.enums import PermissionGroup
+    from gelinspect.services.user_service import UserService
+
+    admin = stack.login("admin")
+    analyst = stack.database.users.get_by_username("analyst")
+    assert analyst is not None
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, analyst.user_id, frozenset({PermissionGroup.VIEW})
+    )
     with pytest.raises(PermissionDeniedError):
         stack.experiments.abandon_experiment(stack.login("analyst"), experiment_id)

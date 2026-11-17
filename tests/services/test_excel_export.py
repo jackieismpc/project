@@ -202,7 +202,7 @@ def test_audit_export_has_the_page_columns_and_escapes_details(
     stack: Stack, exports: ExportService, tmp_path: Path
 ) -> None:
     stack.database.audit.append(
-        AuditEvent(NOW, "alice", Role.ANALYST, AuditAction.LOGIN, "=cmd|' /C calc'!A0", "EXP-1")
+        AuditEvent(NOW, "alice", Role.USER, AuditAction.LOGIN, "=cmd|' /C calc'!A0", "EXP-1")
     )
     summary = exports.export_audit(
         stack.login("analyst"), AuditFilter(keyword="calc"), tmp_path / "a.xlsx"
@@ -212,7 +212,7 @@ def test_audit_export_has_the_page_columns_and_escapes_details(
     head = [c.value for c in sheet[1]]
     assert head == ["序号", "时间", "操作者", "权限", "事件类型", "操作记录", "关联试验", "哈希"]
     row = dict(zip(head, sheet[2], strict=True))
-    assert row["操作者"].value == "alice" and row["权限"].value == "analyst"
+    assert row["操作者"].value == "alice" and row["权限"].value == "user"
     assert row["操作记录"].value.startswith("'=") and row["操作记录"].data_type == "s"
     assert len(row["哈希"].value) == 64
 
@@ -266,9 +266,7 @@ def test_audit_export_walks_every_page_without_gaps_or_repeats(
     monkeypatch.setattr(export_module, "_PAGE", 7)
     stack.database.audit.append_many(
         [
-            AuditEvent(
-                NOW, "alice" if i % 2 else "bob", Role.ANALYST, AuditAction.LOGIN, f"事件 {i}"
-            )
+            AuditEvent(NOW, "alice" if i % 2 else "bob", Role.USER, AuditAction.LOGIN, f"事件 {i}")
             for i in range(30)
         ]
     )

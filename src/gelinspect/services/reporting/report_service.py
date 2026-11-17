@@ -1,7 +1,7 @@
 """报告中心的服务：预览、签署、验签、导出和单批次报告。
 
-* 每个入口先校验权限：预览、验签、打印需要 ``report_view``；签署需要 ``experiment_sign``；
-  导出需要 ``data_export``。UI 不碰数据库，只通过这里取数据。
+* 每个入口先校验权限：预览和验签需要 ``report_view``，打印需要 ``report_print``，
+  签署需要 ``experiment_sign``，导出需要 ``data_export``。UI 不碰数据库，只通过这里取数据。
 * **签署**是一个原子操作：任一步失败都不留下半成品，试验状态不变（见 :meth:`ReportService.sign`）。
 * 已签署的试验锁定：状态是“已签署”，状态机不再接受任何事件，复核服务拒绝修改
   （``review_service``）；同一份签名文件可以反复导出。
@@ -27,7 +27,7 @@ from typing import Protocol
 
 import numpy as np
 from numpy.typing import NDArray
-from PySide6.QtGui import QImage, QPagedPaintDevice
+from PySide6.QtGui import QImage, QPagedPaintDevice, QPaintEngine
 
 from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, User
@@ -543,16 +543,26 @@ class ReportService:
             conclusions_enabled=self._conclusions_enabled,
         )
 
-    def paint(self, preview: ReportPreview, device: QPagedPaintDevice) -> int:
-        """把预览画到打印机或预览控件的设备上。
+    def paint(
+        self, session: Session | None, preview: ReportPreview, device: QPagedPaintDevice
+    ) -> int:
+        """按设备类型授权预览绘制或实际打印。
 
         Args:
+            session: 当前会话。
             preview: 预览。
-            device: 分页设备（``QPrinter``）。
+            device: 分页设备。只有 Qt 记录型预览引擎允许只读绘制。
 
         Returns:
             页数。
+
+        Raises:
+            PermissionDeniedError: 没有查看或打印权限。
         """
+        self._auth.authorize(session, Permission.REPORT_VIEW)
+        engine = device.paintEngine()
+        if engine is None or engine.type() != QPaintEngine.Type.Picture:
+            self._auth.authorize(session, Permission.REPORT_PRINT)
         return self._renderer.paint(preview.document, preview.texts, device)
 
     def record_print(self, session: Session | None, preview: ReportPreview) -> None:
@@ -565,7 +575,7 @@ class ReportService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        user = self._auth.authorize(session, Permission.REPORT_VIEW)
+        user = self._auth.authorize(session, Permission.REPORT_PRINT)
         target = preview.experiment_id or f"{preview.document.batch_no}"
         self._audit_best_effort(
             AuditEvent(

@@ -90,13 +90,24 @@ def test_analyst_reviews_and_the_last_review_makes_the_experiment_signable(stack
 def test_other_roles_cannot_review_and_are_audited(stack: Stack) -> None:
     make_pending(stack)
     reviews = service(stack)
-    for username in ("experimenter", "admin"):
-        with pytest.raises(PermissionDeniedError):
-            reviews.review_tube(stack.login(username), "EXP-REV-1", 3, Interpretation.POSITIVE, "x")
+    from gelinspect.domain.enums import PermissionGroup
+
+    admin = stack.login("admin")
+    user = stack.database.users.get_by_username("experimenter")
+    assert user is not None
+    from gelinspect.services.user_service import UserService
+
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, user.user_id, frozenset({PermissionGroup.VIEW})
+    )
+    with pytest.raises(PermissionDeniedError):
+        reviews.review_tube(
+            stack.login("experimenter"), "EXP-REV-1", 3, Interpretation.POSITIVE, "x"
+        )
     with pytest.raises(PermissionDeniedError):
         reviews.review_tube(None, "EXP-REV-1", 3, Interpretation.POSITIVE, "x")
     assert stored(stack).results[3].reviewed_by is None
-    assert len(stack.audit(AuditAction.PERMISSION_DENIED)) >= 2
+    assert len(stack.audit(AuditAction.PERMISSION_DENIED)) == 1
 
 
 @pytest.mark.parametrize("note", ["", "   ", "\n\t"])

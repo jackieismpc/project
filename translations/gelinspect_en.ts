@@ -1901,10 +1901,6 @@
         <translation>This experiment is signed. You can preview, print, verify and export the signed PDF.</translation>
     </message>
     <message>
-        <source>这个试验已完成，可以预览和打印报告；分析员核对后签署。</source>
-        <translation>This experiment is completed. You can preview and print the report; an analyst signs it after checking.</translation>
-    </message>
-    <message>
         <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
         <translation>This experiment is not completed yet. You can preview the report; it can be signed after completion and review.</translation>
     </message>
@@ -2113,6 +2109,10 @@
         <translation>Measured sensitivity λc</translation>
     </message>
     <message>
+        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation>This experiment is complete. Preview the report; an authorized user can check and sign it.</translation>
+    </message>
+    <message>
         <source>操作人</source>
         <translation>Operator</translation>
     </message>
@@ -2139,6 +2139,33 @@
     <message>
         <source>在报告中心打开</source>
         <translation>Open in Report Center</translation>
+    </message>
+</context>
+<context>
+    <name>MonitorReportPreview</name>
+    <message>
+        <source>先选择一个试验。</source>
+        <translation>Select an experiment first.</translation>
+    </message>
+    <message>
+        <source>第 {page} 页</source>
+        <translation>Page {page}</translation>
+    </message>
+    <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
+    </message>
+    <message>
+        <source>全部页面</source>
+        <translation>All pages</translation>
+    </message>
+    <message>
+        <source>刷新预览</source>
+        <translation>Refresh preview</translation>
+    </message>
+    <message>
+        <source>选择报告页码</source>
+        <translation>Select report page</translation>
     </message>
 </context>
 <context>
@@ -2524,6 +2551,30 @@
 <context>
     <name>Permission</name>
     <message>
+        <source>公司与版权设置</source>
+        <translation>Company and copyright settings</translation>
+    </message>
+    <message>
+        <source>查看仪器设置</source>
+        <translation>View instrument settings</translation>
+    </message>
+    <message>
+        <source>查看试剂记录</source>
+        <translation>View reagent records</translation>
+    </message>
+    <message>
+        <source>打印报告</source>
+        <translation>Print report</translation>
+    </message>
+    <message>
+        <source>导出审计记录</source>
+        <translation>Export audit records</translation>
+    </message>
+    <message>
+        <source>导出诊断包</source>
+        <translation>Export diagnostic bundle</translation>
+    </message>
+    <message>
         <source>管理用户和角色</source>
         <translation>Manage users and roles</translation>
     </message>
@@ -2578,6 +2629,52 @@
     <message>
         <source>导出报告和数据</source>
         <translation>Export reports and data</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionDialog</name>
+    <message>
+        <source>用户权限</source>
+        <translation>User permissions</translation>
+    </message>
+    <message>
+        <source>可组合授权；业务权限包含必要的查看能力。未选择任何项则无业务权限。</source>
+        <translation>Combine permission groups as needed. Required viewing access is included. No selection grants no business access.</translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGroup</name>
+    <message>
+        <source>查看记录</source>
+        <translation>View records</translation>
+    </message>
+    <message>
+        <source>模板管理</source>
+        <translation>Manage templates</translation>
+    </message>
+    <message>
+        <source>实验与结果处理</source>
+        <translation>Experiment and Results Processing</translation>
+    </message>
+    <message>
+        <source>打印与导出</source>
+        <translation>Print and export</translation>
+    </message>
+    <message>
+        <source>审计查询</source>
+        <translation>Audit access</translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
+        <translation>Instrument and maintenance</translation>
     </message>
 </context>
 <context>
@@ -3341,6 +3438,10 @@
         <translation>Ready to sign: every experiment of the lot is signed</translation>
     </message>
     <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
+    </message>
+    <message>
         <source>可以签署：全部待复核已处理，试验已完成</source>
         <translation>Ready to sign: all tubes pending review have been handled and the experiment is complete</translation>
     </message>
@@ -3349,8 +3450,8 @@
         <translation>Cannot be signed now</translation>
     </message>
     <message>
-        <source>当前角色没有签署权限，签署需要分析员。</source>
-        <translation>Your role has no signing permission; signing needs an analyst.</translation>
+        <source>当前账号没有报告签署权限，请联系管理员授权。</source>
+        <translation>This account cannot sign reports. Ask an administrator for access.</translation>
     </message>
     <message>
         <source>已经签署，可以重新验签或导出同一份文件。</source>
@@ -3524,12 +3625,12 @@
         <translation>Administrator</translation>
     </message>
     <message>
-        <source>实验员</source>
-        <translation>Experimenter</translation>
+        <source>普通用户</source>
+        <translation>Standard user</translation>
     </message>
     <message>
-        <source>分析员</source>
-        <translation>Analyst</translation>
+        <source>开发人员</source>
+        <translation>Developer</translation>
     </message>
 </context>
 <context>
@@ -3602,8 +3703,8 @@
         <translation>Audit trail</translation>
     </message>
     <message>
-        <source>用户与权限</source>
-        <translation>Users &amp; permissions</translation>
+        <source>用户管理</source>
+        <translation>User management</translation>
     </message>
     <message>
         <source>仪器设置</source>
@@ -3781,6 +3882,14 @@
         <translation>The export password must have at least {min} characters</translation>
     </message>
     <message>
+        <source>该账号不允许在此修改</source>
+        <translation>This account cannot be modified here</translation>
+    </message>
+    <message>
+        <source>权限组不合法</source>
+        <translation>Invalid permission group</translation>
+    </message>
+    <message>
         <source>用户不存在</source>
         <translation>User not found</translation>
     </message>
@@ -3895,8 +4004,8 @@
         <translation>Read-only</translation>
     </message>
     <message>
-        <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
-        <translation>Your role can only view the instrument settings; changing them needs the administrator role.</translation>
+        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
+        <translation>This account can only view settings. Instrument and maintenance access is required to edit them.</translation>
     </message>
     <message>
         <source>试验 {id} 正在运行</source>
@@ -4575,8 +4684,8 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Built-in templates are read-only; copy one to modify it. A saved custom template is available in the wizard right away.</translation>
     </message>
     <message>
-        <source>当前角色只能查看模板，新建、复制和编辑需要管理员。</source>
-        <translation>Your role can only view templates. Creating, copying and editing need an administrator.</translation>
+        <source>当前账号只能查看模板，新建、复制和编辑需要模板管理权限。</source>
+        <translation>This account can only view templates. Template management access is required to create, copy or edit them.</translation>
     </message>
     <message>
         <source>模板管理</source>
@@ -4931,6 +5040,10 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation> (you)</translation>
     </message>
     <message>
+        <source>可组合授予普通用户</source>
+        <translation>Can be combined for standard users</translation>
+    </message>
+    <message>
         <source>自己的密码请用用户菜单里的“修改密码”</source>
         <translation>Use Change password in the user menu for your own password</translation>
     </message>
@@ -4987,12 +5100,32 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Status</translation>
     </message>
     <message>
-        <source>权限</source>
-        <translation>Permission</translation>
+        <source>已授权权限组</source>
+        <translation>Granted groups</translation>
     </message>
     <message>
-        <source>用户与权限</source>
-        <translation>Users and Permissions</translation>
+        <source>权限组</source>
+        <translation>Permission group</translation>
+    </message>
+    <message>
+        <source>说明</source>
+        <translation>Description</translation>
+    </message>
+    <message>
+        <source>用户管理</source>
+        <translation>User management</translation>
+    </message>
+    <message>
+        <source>授予／剥夺权限…</source>
+        <translation>Edit permissions…</translation>
+    </message>
+    <message>
+        <source>权限组说明</source>
+        <translation>Permission groups</translation>
+    </message>
+    <message>
+        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
+        <translation>Ordinary users can combine six permission groups; administrators have administrative access, and developers also have company and copyright settings.</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>
@@ -5011,24 +5144,12 @@ Fix the configuration file and start again. Starting without --config uses the d
         <translation>Reset password</translation>
     </message>
     <message>
-        <source>修改角色…</source>
-        <translation>Change role…</translation>
-    </message>
-    <message>
         <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
         <translation>You cannot disable yourself, nor disable or demote the last administrator. After a reset, the user must change the password at the next sign-in.</translation>
     </message>
     <message>
         <source>还没有账号</source>
         <translation>No accounts yet</translation>
-    </message>
-    <message>
-        <source>角色与权限</source>
-        <translation>Roles and permissions</translation>
-    </message>
-    <message>
-        <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
-        <translation>Read-only. The permission matrix is part of the software and changing it needs a new release; it drives both the interface entries and the service-level checks.</translation>
     </message>
 </context>
 <context>
@@ -5163,33 +5284,6 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>正在读取图像…</source>
         <translation>Loading images…</translation>
-    </message>
-</context>
-<context>
-    <name>MonitorReportPreview</name>
-    <message>
-        <source>先选择一个试验。</source>
-        <translation>Select an experiment first.</translation>
-    </message>
-    <message>
-        <source>第 {page} 页</source>
-        <translation>Page {page}</translation>
-    </message>
-    <message>
-        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
-        <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
-    </message>
-    <message>
-        <source>全部页面</source>
-        <translation>All pages</translation>
-    </message>
-    <message>
-        <source>刷新预览</source>
-        <translation>Refresh preview</translation>
-    </message>
-    <message>
-        <source>选择报告页码</source>
-        <translation>Select report page</translation>
     </message>
 </context>
 </TS>

@@ -28,7 +28,7 @@ def seed(stack: Stack, count: int = 120) -> None:
             AuditEvent(
                 occurred_at=NOW - timedelta(hours=count - i),
                 actor="alice" if i % 3 else "bob",
-                actor_role=Role.ANALYST,
+                actor_role=Role.USER,
                 action=AuditAction.LOGIN if i % 2 else AuditAction.TEMPLATE_CHANGED,
                 detail=f"第 {i} 条 批号 LAL-{i % 7}",
                 experiment_id=f"E{i % 4}",

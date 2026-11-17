@@ -122,13 +122,22 @@ def test_batch_with_no_completed_experiment_is_an_empty_state(
 
 
 def test_batch_permissions_and_password(signing_stack: Stack, tmp_path: Path) -> None:
+    from gelinspect.domain.enums import PermissionGroup
     from gelinspect.services.auth import InvalidCredentialsError
 
     stack = signing_stack
     service, _ = make_service(stack, tmp_path)
     sign_one(stack, service, "EXP-A")
+    admin = stack.login("admin")
+    user = stack.database.users.get_by_username("experimenter")
+    assert user is not None
+    from gelinspect.services.user_service import UserService
+
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, user.user_id, frozenset({PermissionGroup.VIEW})
+    )
     experimenter = stack.login("experimenter")
-    # 实验员可以预览，不能签署
+    # 只读用户可以预览，不能签署。
     service.batch_preview(experimenter, BatchKind.LAL_REAGENT, "LAL2606A")
     with pytest.raises(PermissionDeniedError):
         service.sign_batch(
@@ -225,7 +234,7 @@ def test_export_needs_the_export_permission_and_a_selection(
     with pytest.raises(PermissionDeniedError):
         service.export_report_file(stack.login("experimenter"), record.report_id, tmp_path / "x")
     assert not (tmp_path / "o").exists()
-    # 管理员可以导出（data_export），但不能签署
+    # 管理员可以导出（data_export）。
     service.export_reports(stack.login("admin"), [record.report_id], tmp_path / "o")
     with pytest.raises(ServiceError) as caught:
         service.export_reports(stack.login("analyst"), [], tmp_path / "empty")

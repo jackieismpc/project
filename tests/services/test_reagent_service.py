@@ -142,9 +142,17 @@ def test_stored_batches_are_rechecked_against_todays_date(stack: Stack) -> None:
 
 def test_permissions(stack: Stack) -> None:
     code = SAMPLE_CODES["lal_valid"]
-    for role in ("analyst", "admin"):
-        with pytest.raises(PermissionDeniedError):
-            stack.reagents.scan(stack.login(role), code)  # 录入和校验需要 reagent_manage
+    from gelinspect.domain.enums import PermissionGroup
+    from gelinspect.services.user_service import UserService
+
+    admin = stack.login("admin")
+    analyst = stack.database.users.get_by_username("analyst")
+    assert analyst is not None
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, analyst.user_id, frozenset({PermissionGroup.VIEW})
+    )
+    with pytest.raises(PermissionDeniedError):
+        stack.reagents.scan(stack.login("analyst"), code)  # 录入和校验需要 reagent_manage
     # 查询、批次列表和校验记录所有角色都能看
     for role in ("analyst", "admin", "experimenter"):
         session = stack.login(role)

@@ -134,13 +134,13 @@ def test_shell_texts_change_everywhere(
     toolbar = window.shell.toolbar
     nav = window.shell.nav
     assert toolbar.action("new_experiment").text() == "新建试验"
-    assert toolbar._user.text() == "Jordan Li · 实验员"
+    assert toolbar._user.text() == "Jordan Li · 普通用户"
     assert nav.items()[0].text() == "工作台"
     language.set_language(Language.EN)
     settle(qapp)
     assert toolbar.action("new_experiment").text() == "New experiment"
     assert toolbar.action("instrument_settings").text() == "Settings"
-    assert toolbar._user.text() == "Jordan Li · Experimenter"
+    assert toolbar._user.text() == "Jordan Li · Standard user"
     assert toolbar._language.text() == "English"
     assert [i.text() for i in nav.items()][:3] == [
         "Dashboard",
@@ -162,7 +162,7 @@ def test_shell_texts_change_everywhere(
     settle(qapp)
     assert page.title.text() == "报告中心"
     assert toolbar.action("new_experiment").text() == "新建试验"
-    assert toolbar._user.text() == "Jordan Li · 实验员"
+    assert toolbar._user.text() == "Jordan Li · 普通用户"
 
 
 def test_language_menu_in_the_toolbar_switches_the_language(

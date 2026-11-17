@@ -119,6 +119,7 @@ GLOSSARY = {
     ("Role", "管理员"): "管理員",
     ("Role", "分析员"): "分析員",
     ("Role", "实验员"): "實驗員",
+    ("Role", "普通用户"): "一般使用者",
     ("LoginPage", "登录"): "登入",
     ("LoginPage", "退出登录"): "登出",
     ("LoginPage", "用户名"): "使用者名稱",
@@ -340,7 +341,7 @@ def test_window_texts_switch_to_traditional_chinese_immediately(
     sign_in(qapp, window, "experimenter")
     toolbar = window.shell.toolbar
     assert toolbar.action("new_experiment").text() == "新增試驗"
-    assert toolbar._user.text() == "Jordan Li · 實驗員"
+    assert toolbar._user.text() == "Jordan Li · 一般使用者"
     assert toolbar._language.text() == "繁體中文"
     assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "新試驗", "試驗監控"]
     language.set_language(Language.ZH_CN)

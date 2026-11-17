@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QGraphicsView
 from pytestqt.qtbot import QtBot
 
 from gelinspect.app_context import AppContext
+from gelinspect.domain.enums import PermissionGroup
 from gelinspect.services.auth import Session
 from gelinspect.services.reporting.texts import ReportLanguage
 from gelinspect.ui.i18n import Language, LanguageManager
@@ -26,6 +27,26 @@ def prepare(context: AppContext, tubes: int = 18) -> tuple[Session, str]:
     context.database.experiments.save(experiment)
     session = context.auth.login("admin", DEMO_PASSWORDS["admin"])
     return session, experiment.experiment_id
+
+
+def test_read_only_session_can_render_monitor_preview(
+    qtbot: QtBot, qapp: QApplication, app_context: AppContext
+) -> None:
+    experiment = big_experiment(18)
+    app_context.database.experiments.save(experiment)
+    admin = app_context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    user = app_context.database.users.get_by_username("experimenter")
+    assert user is not None
+    app_context.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
+    session = app_context.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
+    pane = MonitorReportPreview(app_context.reports)
+    qtbot.addWidget(pane)
+    pane.show()
+    pane.set_context(session, experiment.experiment_id, 1)
+    pane.set_active(True)
+    settle(qapp)
+    assert pane.current_preview is not None
+    assert pane.preview_widget.pageCount() > 0
 
 
 @pytest.mark.parametrize("tubes", [18, 96])

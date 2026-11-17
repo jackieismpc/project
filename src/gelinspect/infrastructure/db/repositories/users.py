@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from gelinspect.domain.entities import User
-from gelinspect.domain.enums import Role
+from gelinspect.domain.enums import PermissionGroup, Role
 from gelinspect.infrastructure.db.models import UserRow
 from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
@@ -17,6 +17,7 @@ from gelinspect.infrastructure.db.repositories._common import (
 from gelinspect.interfaces.storage import (
     DuplicateError,
     NotFoundError,
+    StateConflictError,
     UserCredentials,
     UserRepository,
 )
@@ -30,6 +31,8 @@ def _to_user(row: UserRow) -> User:
         display_name=row.display_name,
         role=Role(row.role),
         active=row.active,
+        auth_version=row.auth_version,
+        permission_groups=frozenset(PermissionGroup(g) for g in row.permission_groups),
     )
 
 
@@ -65,6 +68,8 @@ class SqlUserRepository(UserRepository):
                         display_name=user.display_name,
                         role=user.role.value,
                         active=user.active,
+                        auth_version=user.auth_version,
+                        permission_groups=sorted(g.value for g in user.permission_groups),
                         password_hash=password_hash,
                         must_change_password=must_change_password,
                         created_at=datetime.now(UTC),
@@ -145,9 +150,15 @@ class SqlUserRepository(UserRepository):
             row.display_name = user.display_name
             row.role = user.role.value
             row.active = user.active
+            row.permission_groups = sorted(g.value for g in user.permission_groups)
 
     def set_password_hash(
-        self, user_id: str, password_hash: str, *, must_change_password: bool
+        self,
+        user_id: str,
+        password_hash: str,
+        *,
+        must_change_password: bool,
+        expected_version: int | None = None,
     ) -> None:
         """更新密码哈希和改密标记。
 
@@ -155,14 +166,24 @@ class SqlUserRepository(UserRepository):
             user_id: 用户标识。
             password_hash: 新的 argon2 哈希。
             must_change_password: 下次登录是否必须改密。
+            expected_version: 可选的凭据版本，阻止并发重置被旧密码覆盖。
 
         Raises:
             NotFoundError: 用户不存在。
             StorageBusyError: 等写锁超时，什么都没有写入。
         """
         with translate_lock_errors(), self._sessions() as session:
-            row = session.get(UserRow, user_id)
-            if row is None:
-                raise NotFoundError(f"用户不存在：{user_id}")
-            row.password_hash = password_hash
-            row.must_change_password = must_change_password
+            statement = update(UserRow).where(UserRow.user_id == user_id)
+            if expected_version is not None:
+                statement = statement.where(UserRow.auth_version == expected_version)
+            result = session.execute(
+                statement.values(
+                    password_hash=password_hash,
+                    auth_version=UserRow.auth_version + 1,
+                    must_change_password=must_change_password,
+                ).returning(UserRow.user_id)
+            )
+            if result.scalar_one_or_none() is None:
+                if session.get(UserRow, user_id) is None:
+                    raise NotFoundError(f"用户不存在：{user_id}")
+                raise StateConflictError("凭据已被其他操作修改，请重新登录")

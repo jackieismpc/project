@@ -60,7 +60,7 @@ def test_user_writes_raise_storage_busy(busy_database: Database, tmp_path: Path)
     with write_lock_held(tmp_path / "gel.db"):
         with pytest.raises(StorageBusyError):
             busy_database.users.add(
-                User("u2", "bob", "Bob", Role.ANALYST),
+                User("u2", "bob", "Bob", Role.USER),
                 password_hash="h",
                 must_change_password=False,
             )

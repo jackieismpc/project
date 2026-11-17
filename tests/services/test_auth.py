@@ -73,7 +73,7 @@ def audit_of(database: Database, action: AuditAction, actor: str | None = None) 
 
 def test_login_success_writes_audit(auth: AuthService, database: Database) -> None:
     session = auth.login("experimenter", "12345678")
-    assert session.user.role is Role.EXPERIMENTER
+    assert session.user.role is Role.USER
     assert not session.must_change_password
     assert audit_of(database, AuditAction.LOGIN, "experimenter") == ["登录成功"]
 
@@ -162,7 +162,7 @@ def test_role_change_takes_effect_immediately(auth: AuthService, database: Datab
     auth.authorize(session, Permission.RESULT_REVIEW)
     user = database.users.get_by_username("analyst")
     assert user is not None
-    database.users.update(User(user.user_id, user.username, user.display_name, Role.ADMIN))
+    database.users.update(User(user.user_id, user.username, user.display_name, Role.USER))
     with pytest.raises(PermissionDeniedError):
         auth.authorize(session, Permission.RESULT_REVIEW)
 
@@ -267,22 +267,21 @@ def test_first_admin_not_available_without_a_seeder(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("call", "role", "allowed"),
     [
-        (lambda q, s: q.recent_experiments(s), Role.ANALYST, True),
-        (lambda q, s: q.faulted_experiments(s), Role.EXPERIMENTER, True),
-        (lambda q, s: q.recent_audit(s), Role.ADMIN, True),
-        (lambda q, s: q.recent_audit(s), Role.ANALYST, True),
-        (lambda q, s: q.recent_audit(s), Role.EXPERIMENTER, False),
+        (lambda q, s: q.recent_experiments(s), "analyst", True),
+        (lambda q, s: q.faulted_experiments(s), "experimenter", True),
+        (lambda q, s: q.recent_audit(s), "admin", True),
+        (lambda q, s: q.recent_audit(s), "analyst", True),
+        (lambda q, s: q.recent_audit(s), "experimenter", False),
     ],
 )
 def test_query_service_rechecks_permissions(
     auth: AuthService,
     database: Database,
     call: Callable[[QueryService, object], object],
-    role: Role,
+    role: str,
     allowed: bool,
 ) -> None:
-    username = {Role.ADMIN: "admin", Role.EXPERIMENTER: "experimenter", Role.ANALYST: "analyst"}
-    session = auth.login(username[role], PASSWORDS[username[role]])
+    session = auth.login(role, PASSWORDS[role])
     queries = QueryService(auth, database)
     if allowed:
         call(queries, session)

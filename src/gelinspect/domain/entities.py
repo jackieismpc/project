@@ -17,6 +17,7 @@ from gelinspect.domain.enums import (
     ExperimentType,
     GelState,
     Interpretation,
+    PermissionGroup,
     ReagentCheckStatus,
     ReagentKind,
     ReviewStatus,
@@ -552,6 +553,15 @@ class User:
     display_name: str
     role: Role
     active: bool = True
+    permission_groups: frozenset[PermissionGroup] = frozenset()
+    auth_version: int = 0
+
+    def __post_init__(self) -> None:
+        """校验账号类别和授权组，冻结调用方传入的集合。"""
+        object.__setattr__(self, "role", Role(self.role))
+        object.__setattr__(
+            self, "permission_groups", frozenset(PermissionGroup(g) for g in self.permission_groups)
+        )
 
 
 @dataclass(frozen=True, slots=True)

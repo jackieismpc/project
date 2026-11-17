@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.domain.enums import Role
-from gelinspect.domain.permissions import permissions_of
+from gelinspect.domain.permissions import PermissionGroup, permissions_of
 from gelinspect.ui.theme.fonts import load_fonts
 from gelinspect.ui.widgets.app_shell import AppShell, NavMode, ShellSettings
 from gelinspect.ui.widgets.badge import StatusBadge
@@ -70,7 +70,7 @@ def configure_demo_toolbar(toolbar: QuickToolbar) -> None:
     toolbar.set_instrument_status(True)
     toolbar.set_language("简体中文")
     toolbar.set_user("张工", "实验员")
-    toolbar.set_user_permissions(permissions_of(Role.EXPERIMENTER))
+    toolbar.set_user_permissions(permissions_of(Role.USER, frozenset({PermissionGroup.EXPERIMENT})))
 
 
 class MonitorPage(QWidget):

@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.domain.enums import Role
+from gelinspect.domain.permissions import PermissionGroup
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.auth import AuthError
 from gelinspect.services.errors import ServiceError
@@ -33,7 +34,7 @@ from gelinspect.ui.labels import (
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.label import Label
 
-NewUserSubmit = Callable[[str, str, Role, str | None], CredentialIssue]
+NewUserSubmit = Callable[[str, str, Role, str | None, frozenset[PermissionGroup]], CredentialIssue]
 """新建用户：登录名、显示名称、角色、初始密码（None 表示自动生成）。"""
 
 
@@ -50,11 +51,14 @@ def _problem_text(error: Exception) -> str:
 class NewUserDialog(QDialog):
     """新建用户：登录名、显示名称、角色、可选的初始密码。"""
 
-    def __init__(self, submit: NewUserSubmit, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, submit: NewUserSubmit, parent: QWidget | None = None, *, allow_admin: bool = False
+    ) -> None:
         """创建对话框。
 
         Args:
             submit: 保存函数，成功返回新账号和临时密码。
+            allow_admin: 仅开发账号可创建管理员，服务层另有强制检查。
             parent: 父窗口。
         """
         super().__init__(parent)
@@ -78,7 +82,7 @@ class NewUserDialog(QDialog):
         self.role_label = Label("", "lab")
         self.role_box = QComboBox()
         self.role_box.setMinimumHeight(44)
-        for role in Role:
+        for role in (Role.USER, Role.ADMIN) if allow_admin else (Role.USER,):
             self.role_box.addItem("", role.value)
         self.password_label = Label("", "lab")
         self.password = QLineEdit()
@@ -92,6 +96,15 @@ class NewUserDialog(QDialog):
         ):
             layout.addWidget(label)
             layout.addWidget(field)
+        self.role_box.setVisible(allow_admin)
+        self.role_label.setVisible(allow_admin)
+        from gelinspect.ui.pages.permission_picker import PermissionPicker
+
+        self.permissions = PermissionPicker()
+        layout.addWidget(self.permissions)
+        self.role_box.currentIndexChanged.connect(
+            lambda: self.permissions.setEnabled(self.role() is Role.USER)
+        )
         self.note = Label("", "meta")
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
@@ -131,6 +144,7 @@ class NewUserDialog(QDialog):
                 self.display_name.text(),
                 self.role(),
                 password or None,
+                self.permissions.groups() if self.role() is Role.USER else frozenset(),
             )
         except (AuthError, ServiceError, StorageBusyError) as error:
             self.error.setText(_problem_text(error))
@@ -197,7 +211,7 @@ class RoleDialog(QDialog):
         self.role_label = Label("", "lab")
         self.role_box = QComboBox()
         self.role_box.setMinimumHeight(44)
-        for role in Role:
+        for role in (Role.USER, Role.ADMIN):
             self.role_box.addItem("", role.value)
         self.role_box.setCurrentIndex(self.role_box.findData(current.value))
         layout.addWidget(self.role_label)

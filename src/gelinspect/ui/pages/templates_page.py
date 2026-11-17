@@ -307,7 +307,7 @@ class TemplatesPage(QWidget):
                 self.tr("内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。")
             )
         else:
-            self.note.setText(self.tr("当前角色只能查看模板，新建、复制和编辑需要管理员。"))
+            self.note.setText(self.tr("当前账号只能查看模板，新建、复制和编辑需要模板管理权限。"))
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""

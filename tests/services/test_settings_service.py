@@ -62,6 +62,19 @@ def admin(context: AppContext) -> Session:
     return context.auth.login("admin", PASSWORDS["admin"])
 
 
+def developer(context: AppContext) -> Session:
+    from gelinspect.domain.entities import User
+    from gelinspect.domain.enums import Role
+
+    if context.database.users.get_by_username("developer") is None:
+        context.database.users.add(
+            User("dev", "developer", "开发人员", Role.DEVELOPER),
+            password_hash=context.auth.hash_password("Developer-Test1"),
+            must_change_password=False,
+        )
+    return context.auth.login("developer", "Developer-Test1")
+
+
 def draft_of(context: AppContext, **changes: object) -> SettingsDraft:
     current = context.settings.current(admin(context)).settings
     return replace(SettingsDraft.from_settings(current), **changes)  # type: ignore[arg-type]
@@ -89,7 +102,7 @@ def write_images(folder: Path, count: int = 5, bgr: tuple[int, int, int] = (40, 
 
 
 def test_current_settings_show_the_effective_values_and_the_defaults(context: AppContext) -> None:
-    view = context.settings.current(context.auth.login("experimenter", PASSWORDS["experimenter"]))
+    view = context.settings.current(admin(context))
     assert view.settings == view.defaults  # 没改过
     assert view.settings.instrument_no == "GI-001" and view.settings.retention_days is None
     assert view.settings.video_input is VideoInput.CONFIG
@@ -187,7 +200,7 @@ def test_video_paths_are_checked_against_the_chosen_type(
 def test_save_applies_persists_and_audits_old_and_new_values(
     context: AppContext, tmp_path: Path
 ) -> None:
-    session = admin(context)
+    session = developer(context)
     result = context.settings.save(
         session,
         draft_of(
@@ -300,7 +313,8 @@ def test_a_corrupt_settings_file_stops_startup_with_a_clear_message(tmp_path: Pa
 def test_only_admins_can_save_but_everyone_can_look(context: AppContext) -> None:
     for name in ("experimenter", "analyst"):
         session = context.auth.login(name, PASSWORDS[name])
-        assert context.settings.current(session).settings.instrument_no == "GI-001"
+        with pytest.raises(PermissionDeniedError):
+            context.settings.current(session)
         with pytest.raises(PermissionDeniedError):
             context.settings.save(session, draft_of(context, instrument_no="HACK"))
         with pytest.raises(PermissionDeniedError):
@@ -316,7 +330,7 @@ def test_changes_that_affect_a_run_are_refused_while_an_experiment_runs(
     monkeypatch.setattr(
         ExperimentEngine, "active_experiment_id", property(lambda _s: "EXP-RUNNING")
     )
-    session = admin(context)
+    session = developer(context)
     for changes in (
         {"incubation_minutes": "20"},
         {"frames_per_side": "6"},
@@ -443,3 +457,19 @@ def test_settings_switch_encryption_on_immediately_and_persist(context: AppConte
     saved = json.loads(settings_file(context.config.data_dir).read_text(encoding="utf-8"))
     assert saved["settings"] == {"encrypt_exports": True}
     assert context.settings.current(admin(context)).settings.encrypt_exports
+
+
+def test_admin_and_maintenance_user_cannot_change_company_settings(context: AppContext) -> None:
+    from gelinspect.domain.permissions import PermissionGroup
+
+    admin_session = admin(context)
+    ordinary = context.auth.login("experimenter", PASSWORDS["experimenter"])
+    context.users.set_permission_groups(
+        admin_session, ordinary.user.user_id, frozenset({PermissionGroup.MAINTENANCE})
+    )
+    for session in (admin_session, ordinary):
+        with pytest.raises(PermissionDeniedError):
+            context.settings.save(session, draft_of(context, copyright_holder="Unauthorized"))
+        assert context.settings.current(session).settings.copyright_holder != "Unauthorized"
+    result = context.settings.save(ordinary, draft_of(context, instrument_no="GI-MAINT"))
+    assert result.settings.instrument_no == "GI-MAINT"

@@ -400,7 +400,7 @@ class MonitorPage(QWidget):
         if view.state is ExperimentState.SIGNED:
             text = self.tr("这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。")
         elif view.state is ExperimentState.COMPLETED:
-            text = self.tr("这个试验已完成，可以预览和打印报告；分析员核对后签署。")
+            text = self.tr("这个试验已完成，可以预览报告；有签署权限的用户核对后签署。")
         else:
             text = self.tr("这个试验还没有完成，可以先预览报告；完成并复核后才能签署。")
         self.report_summary.setText(text)

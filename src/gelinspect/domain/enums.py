@@ -149,15 +149,23 @@ class BatchKind(StrEnum):
     """样品批号。"""
 
 
-class Role(StrEnum):
-    """用户角色。"""
+class PermissionGroup(StrEnum):
+    """管理员可以组合授予普通用户的六组能力。"""
 
+    VIEW = "view"
+    EXPERIMENT = "experiment"
+    TEMPLATE = "template"
+    OUTPUT = "output"
+    AUDIT = "audit"
+    MAINTENANCE = "maintenance"
+
+
+class Role(StrEnum):
+    """账号类别；普通用户的业务能力由权限组决定。"""
+
+    DEVELOPER = "developer"
     ADMIN = "admin"
-    """管理员。"""
-    EXPERIMENTER = "experimenter"
-    """实验员。"""
-    ANALYST = "analyst"
-    """分析员。"""
+    USER = "user"
 
 
 class AuditAction(StrEnum):

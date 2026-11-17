@@ -59,7 +59,7 @@ def test_opening_the_page_queries_in_the_background_and_shows_the_columns(
     seqs = [int(str(v)) for v in column_values(page.table, "seq")]
     assert len(seqs) == 50 and seqs == sorted(seqs, reverse=True)  # 每页 50，最新在前
     assert page.total >= 130
-    assert {"分析员"} & set(column_values(page.table, "role"))  # “权限”列是操作时的角色
+    assert {"普通用户"} & set(column_values(page.table, "role"))  # “权限”列是操作时的角色
 
 
 def test_pagination(qapp: QApplication, window: MainWindow, app_context: AppContext) -> None:
@@ -85,7 +85,7 @@ def write_audits(context: AppContext, count: int, tag: str = "并发") -> None:
             AuditEvent(
                 occurred_at=BASE + timedelta(days=30, minutes=i),
                 actor="carol",
-                actor_role=Role.EXPERIMENTER,
+                actor_role=Role.USER,
                 action=AuditAction.LOGIN,
                 detail=f"{tag}写入 {i}",
             )
@@ -390,7 +390,7 @@ def test_paging_is_stable_while_new_records_arrive(
             AuditEvent(
                 BASE + timedelta(days=1, minutes=n),
                 "carol",
-                Role.ANALYST,
+                Role.USER,
                 AuditAction.LOGIN,
                 "新写入",
             )

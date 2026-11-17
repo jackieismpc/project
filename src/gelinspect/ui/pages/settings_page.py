@@ -375,7 +375,17 @@ class SettingsPage(QWidget):
         editable = self._editable
         for name, field in self.fields.items():
             impacting = name in IMPACTING_FIELDS
-            field.edit.setEnabled(editable and not (impacting and self._locked))
+            field.edit.setEnabled(
+                editable
+                and not (impacting and self._locked)
+                and (
+                    name != "copyright_holder"
+                    or (
+                        self._session is not None
+                        and self._session.can(Permission.COMPANY_CONFIGURE)
+                    )
+                )
+            )
         self.encrypt_box.setEnabled(editable)
         video_enabled = editable and not self._locked
         self.type_box.setEnabled(video_enabled)
@@ -391,7 +401,7 @@ class SettingsPage(QWidget):
                 "info",
                 "info",
                 self.tr("只读"),
-                self.tr("当前角色只能查看仪器设置，修改需要管理员权限。"),
+                self.tr("当前账号只能查看仪器设置，修改需要仪器与维护权限。"),
             )
         elif self._locked and view is not None:
             self.banner.show_message(

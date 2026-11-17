@@ -299,7 +299,13 @@ def test_resume_requires_confirmation_and_permission(
     assert monitor.request_resume() is False  # 取消：什么都不做
     assert context.engine.snapshot().state is ExperimentState.FAULTED  # type: ignore[union-attr]
 
-    # 分析员看得到按钮但不能操作，服务层也拒绝并写审计
+    # 没有实验与结果处理组的只读用户不能操作，服务层也拒绝并写审计
+    from gelinspect.domain.enums import PermissionGroup
+
+    admin = context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    user = context.database.users.get_by_username("analyst")
+    assert user is not None
+    context.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
     session = context.auth.login("analyst", DEMO_PASSWORDS["analyst"])
     experimenter = monitor._session  # noqa: SLF001
     monitor.set_session(session)

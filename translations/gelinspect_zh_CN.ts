@@ -1901,10 +1901,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个试验已完成，可以预览和打印报告；分析员核对后签署。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2113,6 +2109,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>操作人</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2138,6 +2138,33 @@
     </message>
     <message>
         <source>在报告中心打开</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>MonitorReportPreview</name>
+    <message>
+        <source>先选择一个试验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>第 {page} 页</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部页面</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>刷新预览</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择报告页码</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2524,6 +2551,30 @@
 <context>
     <name>Permission</name>
     <message>
+        <source>公司与版权设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看仪器设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查看试剂记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打印报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出审计记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出诊断包</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>管理用户和角色</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2577,6 +2628,52 @@
     </message>
     <message>
         <source>导出报告和数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PermissionDialog</name>
+    <message>
+        <source>用户权限</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可组合授权；业务权限包含必要的查看能力。未选择任何项则无业务权限。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGroup</name>
+    <message>
+        <source>查看记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板管理</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验与结果处理</source>
+        <translation>实验与结果处理</translation>
+    </message>
+    <message>
+        <source>打印与导出</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>审计查询</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3341,6 +3438,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>可以签署：全部待复核已处理，试验已完成</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3349,7 +3450,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>当前角色没有签署权限，签署需要分析员。</source>
+        <source>当前账号没有报告签署权限，请联系管理员授权。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3524,11 +3625,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>实验员</source>
+        <source>普通用户</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>分析员</source>
+        <source>开发人员</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3602,7 +3703,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>用户与权限</source>
+        <source>用户管理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3781,6 +3882,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>该账号不允许在此修改</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权限组不合法</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>用户不存在</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3895,7 +4004,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
+        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4573,7 +4682,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>当前角色只能查看模板，新建、复制和编辑需要管理员。</source>
+        <source>当前账号只能查看模板，新建、复制和编辑需要模板管理权限。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4929,6 +5038,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>可组合授予普通用户</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>自己的密码请用用户菜单里的“修改密码”</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4985,12 +5098,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>权限</source>
+        <source>已授权权限组</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>用户与权限</source>
+        <source>权限组</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>说明</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>用户管理</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>授予／剥夺权限…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>权限组说明</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
+        <translation>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>
@@ -5009,23 +5142,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>修改角色…</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>还没有账号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>角色与权限</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5160,33 +5281,6 @@
     </message>
     <message>
         <source>正在读取图像…</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>MonitorReportPreview</name>
-    <message>
-        <source>先选择一个试验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {page} 页</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>全部页面</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>刷新预览</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>选择报告页码</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

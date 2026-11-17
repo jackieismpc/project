@@ -11,7 +11,7 @@ from typing import Any
 from alembic import command
 from alembic.config import Config
 from alembic.util.exc import CommandError
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, inspect
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -305,6 +305,14 @@ def open_database(path: str | Path, *, chain_keys: ChainKeys | None = None) -> D
     engine = create_engine(f"sqlite:///{file}")
     event.listen(engine, "connect", _configure_connection)
     try:
+        inspector = inspect(engine)
+        if "users" in inspector.get_table_names() and not {
+            "permission_groups",
+            "auth_version",
+        }.issubset({column["name"] for column in inspector.get_columns("users")}):
+            raise DatabaseVersionError(
+                "此开发数据库使用旧权限结构。本版本不迁移旧开发数据，请使用空数据目录重新初始化。"
+            )
         _migrate(engine)
     except Exception:
         engine.dispose()

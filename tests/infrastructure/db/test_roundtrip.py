@@ -39,7 +39,7 @@ SHA = "a" * 64
 
 
 def test_user_roundtrip_and_credentials(database: Database) -> None:
-    user = User("u1", "alice", "爱丽丝", Role.ANALYST)
+    user = User("u1", "alice", "爱丽丝", Role.USER)
     database.users.add(user, password_hash=hash_password("secret-pass"), must_change_password=True)
     assert database.users.get("u1") == user
     assert database.users.get_by_username("alice") == user
@@ -52,7 +52,7 @@ def test_user_roundtrip_and_credentials(database: Database) -> None:
 
 
 def test_user_duplicate_update_and_password(database: Database) -> None:
-    user = User("u1", "alice", "爱丽丝", Role.ANALYST)
+    user = User("u1", "alice", "爱丽丝", Role.USER)
     database.users.add(user, password_hash="h", must_change_password=False)
     with pytest.raises(DuplicateError):
         database.users.add(

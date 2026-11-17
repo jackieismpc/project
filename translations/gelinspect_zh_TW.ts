@@ -1901,8 +1901,8 @@
         <translation>這個試驗已簽署，可以預覽、列印、驗章和匯出已簽章的 PDF。</translation>
     </message>
     <message>
-        <source>这个试验已完成，可以预览和打印报告；分析员核对后签署。</source>
-        <translation>這個試驗已完成，可以預覽和列印報告；分析員核對後簽署。</translation>
+        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation>這個試驗已完成，可以預覽報告；具有簽署權限的使用者核對後簽署。</translation>
     </message>
     <message>
         <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
@@ -2139,6 +2139,33 @@
     <message>
         <source>在报告中心打开</source>
         <translation>在報告中心開啟</translation>
+    </message>
+</context>
+<context>
+    <name>MonitorReportPreview</name>
+    <message>
+        <source>先选择一个试验。</source>
+        <translation>請先選擇一個試驗。</translation>
+    </message>
+    <message>
+        <source>第 {page} 页</source>
+        <translation>第 {page} 頁</translation>
+    </message>
+    <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>暫時無法顯示報告預覽，請按“重新整理預覽”重試。</translation>
+    </message>
+    <message>
+        <source>全部页面</source>
+        <translation>全部頁面</translation>
+    </message>
+    <message>
+        <source>刷新预览</source>
+        <translation>重新整理預覽</translation>
+    </message>
+    <message>
+        <source>选择报告页码</source>
+        <translation>選擇報告頁碼</translation>
     </message>
 </context>
 <context>
@@ -2524,6 +2551,30 @@
 <context>
     <name>Permission</name>
     <message>
+        <source>公司与版权设置</source>
+        <translation>公司與版權設定</translation>
+    </message>
+    <message>
+        <source>查看仪器设置</source>
+        <translation>查看儀器設定</translation>
+    </message>
+    <message>
+        <source>查看试剂记录</source>
+        <translation>查看試劑紀錄</translation>
+    </message>
+    <message>
+        <source>打印报告</source>
+        <translation>列印報告</translation>
+    </message>
+    <message>
+        <source>导出审计记录</source>
+        <translation>匯出稽核紀錄</translation>
+    </message>
+    <message>
+        <source>导出诊断包</source>
+        <translation>匯出診斷套件</translation>
+    </message>
+    <message>
         <source>管理用户和角色</source>
         <translation>管理使用者和角色</translation>
     </message>
@@ -2578,6 +2629,52 @@
     <message>
         <source>导出报告和数据</source>
         <translation>匯出報告和資料</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionDialog</name>
+    <message>
+        <source>用户权限</source>
+        <translation>使用者權限</translation>
+    </message>
+    <message>
+        <source>可组合授权；业务权限包含必要的查看能力。未选择任何项则无业务权限。</source>
+        <translation>可組合授權；業務權限包含必要的查看能力。未選擇任何項目則無業務權限。</translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation>儲存</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>取消</translation>
+    </message>
+</context>
+<context>
+    <name>PermissionGroup</name>
+    <message>
+        <source>查看记录</source>
+        <translation>查看紀錄</translation>
+    </message>
+    <message>
+        <source>模板管理</source>
+        <translation>範本管理</translation>
+    </message>
+    <message>
+        <source>实验与结果处理</source>
+        <translation>實驗與結果處理</translation>
+    </message>
+    <message>
+        <source>打印与导出</source>
+        <translation>列印與匯出</translation>
+    </message>
+    <message>
+        <source>审计查询</source>
+        <translation>稽核查詢</translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
+        <translation>儀器與維護</translation>
     </message>
 </context>
 <context>
@@ -3325,6 +3422,10 @@
 <context>
     <name>ReportsPage</name>
     <message>
+        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
+        <translation>暫時無法顯示報告預覽，請按“重新整理預覽”重試。</translation>
+    </message>
+    <message>
         <source>第 {page} / {total} 页</source>
         <translation>第 {page} / {total} 頁</translation>
     </message>
@@ -3349,8 +3450,8 @@
         <translation>現在不能簽署</translation>
     </message>
     <message>
-        <source>当前角色没有签署权限，签署需要分析员。</source>
-        <translation>目前角色沒有簽署權限，簽署需要分析員。</translation>
+        <source>当前账号没有报告签署权限，请联系管理员授权。</source>
+        <translation>目前帳號沒有報告簽署權限，請聯絡管理員授權。</translation>
     </message>
     <message>
         <source>已经签署，可以重新验签或导出同一份文件。</source>
@@ -3524,12 +3625,12 @@
         <translation>管理員</translation>
     </message>
     <message>
-        <source>实验员</source>
-        <translation>實驗員</translation>
+        <source>普通用户</source>
+        <translation>一般使用者</translation>
     </message>
     <message>
-        <source>分析员</source>
-        <translation>分析員</translation>
+        <source>开发人员</source>
+        <translation>開發人員</translation>
     </message>
 </context>
 <context>
@@ -3602,8 +3703,8 @@
         <translation>稽核軌跡</translation>
     </message>
     <message>
-        <source>用户与权限</source>
-        <translation>使用者與權限</translation>
+        <source>用户管理</source>
+        <translation>使用者管理</translation>
     </message>
     <message>
         <source>仪器设置</source>
@@ -3781,6 +3882,14 @@
         <translation>匯出密碼至少 {min} 個字元</translation>
     </message>
     <message>
+        <source>该账号不允许在此修改</source>
+        <translation>此帳號不允許在此修改</translation>
+    </message>
+    <message>
+        <source>权限组不合法</source>
+        <translation>權限群組無效</translation>
+    </message>
+    <message>
         <source>用户不存在</source>
         <translation>使用者不存在</translation>
     </message>
@@ -3895,8 +4004,8 @@
         <translation>唯讀</translation>
     </message>
     <message>
-        <source>当前角色只能查看仪器设置，修改需要管理员权限。</source>
-        <translation>目前角色只能查看儀器設定，修改需要管理員權限。</translation>
+        <source>当前账号只能查看仪器设置，修改需要仪器与维护权限。</source>
+        <translation>目前帳號只能查看儀器設定，修改需要儀器與維護權限。</translation>
     </message>
     <message>
         <source>试验 {id} 正在运行</source>
@@ -4575,8 +4684,8 @@
         <translation>內建範本唯讀，可以複製後修改。自訂範本儲存後，新試驗精靈裡立即可選。</translation>
     </message>
     <message>
-        <source>当前角色只能查看模板，新建、复制和编辑需要管理员。</source>
-        <translation>目前角色只能查看範本，新增、複製和編輯需要管理員。</translation>
+        <source>当前账号只能查看模板，新建、复制和编辑需要模板管理权限。</source>
+        <translation>目前帳號只能查看範本，新增、複製及編輯需要範本管理權限。</translation>
     </message>
     <message>
         <source>模板管理</source>
@@ -4927,6 +5036,10 @@
         <translation>（我）</translation>
     </message>
     <message>
+        <source>可组合授予普通用户</source>
+        <translation>可組合授予一般使用者</translation>
+    </message>
+    <message>
         <source>自己的密码请用用户菜单里的“修改密码”</source>
         <translation>自己的密碼請用使用者選單裡的“修改密碼”</translation>
     </message>
@@ -4987,12 +5100,32 @@
         <translation>狀態</translation>
     </message>
     <message>
-        <source>权限</source>
-        <translation>權限</translation>
+        <source>已授权权限组</source>
+        <translation>已授權權限群組</translation>
     </message>
     <message>
-        <source>用户与权限</source>
-        <translation>使用者與權限</translation>
+        <source>权限组</source>
+        <translation>權限群組</translation>
+    </message>
+    <message>
+        <source>说明</source>
+        <translation>說明</translation>
+    </message>
+    <message>
+        <source>用户管理</source>
+        <translation>使用者管理</translation>
+    </message>
+    <message>
+        <source>授予／剥夺权限…</source>
+        <translation>授予／撤銷權限…</translation>
+    </message>
+    <message>
+        <source>权限组说明</source>
+        <translation>權限群組說明</translation>
+    </message>
+    <message>
+        <source>普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。</source>
+        <translation>一般使用者可組合獲得六組權限；管理員具備管理權限，開發人員另可設定公司與版權。</translation>
     </message>
     <message>
         <source>改动立即生效，并记入审计追踪</source>
@@ -5011,24 +5144,12 @@
         <translation>重設密碼</translation>
     </message>
     <message>
-        <source>修改角色…</source>
-        <translation>修改角色…</translation>
-    </message>
-    <message>
         <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
         <translation>不能停用自己，也不能停用或降級最後一個管理員。重設密碼後，對方首次登入必須先改密碼。</translation>
     </message>
     <message>
         <source>还没有账号</source>
         <translation>還沒有帳號</translation>
-    </message>
-    <message>
-        <source>角色与权限</source>
-        <translation>角色與權限</translation>
-    </message>
-    <message>
-        <source>只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。</source>
-        <translation>唯讀。權限矩陣是軟體的一部分，調整需要發行新版本；它也是介面入口和服務層檢查的依據。</translation>
     </message>
 </context>
 <context>
@@ -5163,33 +5284,6 @@
     <message>
         <source>正在读取图像…</source>
         <translation>正在讀取影像…</translation>
-    </message>
-</context>
-<context>
-    <name>MonitorReportPreview</name>
-    <message>
-        <source>先选择一个试验。</source>
-        <translation>請先選擇一個試驗。</translation>
-    </message>
-    <message>
-        <source>第 {page} 页</source>
-        <translation>第 {page} 頁</translation>
-    </message>
-    <message>
-        <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
-        <translation>暫時無法顯示報告預覽，請按“重新整理預覽”重試。</translation>
-    </message>
-    <message>
-        <source>全部页面</source>
-        <translation>全部頁面</translation>
-    </message>
-    <message>
-        <source>刷新预览</source>
-        <translation>重新整理預覽</translation>
-    </message>
-    <message>
-        <source>选择报告页码</source>
-        <translation>選擇報告頁碼</translation>
     </message>
 </context>
 </TS>

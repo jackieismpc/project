@@ -506,5 +506,5 @@ class ExperimentEngine:
 
     @staticmethod
     def _require(user: User, permission: Permission) -> None:
-        if not user.active or not has_permission(user.role, permission):
+        if not user.active or not has_permission(user.role, permission, user.permission_groups):
             raise EnginePermissionError(f"用户 {user.username} 没有 {permission.value} 权限")

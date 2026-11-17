@@ -29,6 +29,7 @@ from gelinspect.domain.enums import (
     Role,
     TubeRole,
 )
+from gelinspect.domain.permissions import PermissionGroup
 from gelinspect.domain.plate import ROW_COUNT, TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.infrastructure.db import Database, open_database, verify_audit_chain
@@ -71,8 +72,10 @@ from simulation.sim_device import SimDevice
 from simulation.sim_video import SimVideoSource
 from tests.services.video.helpers import wait_until
 
-OPERATOR = User("u1", "operator", "实验员", Role.EXPERIMENTER)
-ANALYST = User("u2", "analyst", "分析员", Role.ANALYST)
+OPERATOR = User(
+    "u1", "operator", "实验员", Role.USER, permission_groups=frozenset({PermissionGroup.EXPERIMENT})
+)
+ANALYST = User("u2", "analyst", "分析员", Role.USER)
 EXP_ID = "EXP-T-1"
 WAIT_S = 30.0
 """等待条件成立的上限。只在失败时才会等满，正常远小于它。"""

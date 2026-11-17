@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from gelinspect.domain.enums import Role
+from gelinspect.domain.permissions import PermissionGroup
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +30,7 @@ class DemoAccount:
     password: str
     display_name: str
     role: Role
+    permission_groups: frozenset[PermissionGroup] = frozenset()
 
 
 class AccountProvisioner(Protocol):
@@ -42,6 +44,7 @@ class AccountProvisioner(Protocol):
         role: Role,
         password: str,
         must_change_password: bool = False,
+        permission_groups: frozenset[PermissionGroup] = frozenset(),
     ) -> bool:
         """创建账号。
 
@@ -49,6 +52,7 @@ class AccountProvisioner(Protocol):
             username: 登录名。
             display_name: 显示名称。
             role: 角色。
+            permission_groups: 普通用户的授权组，默认无业务权限。
             password: 明文密码，由实现负责哈希。
             must_change_password: 首次登录是否必须改密。
 

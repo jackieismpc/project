@@ -33,8 +33,8 @@ from gelinspect.services.video.events import VideoEventCode
 
 _ROLES: dict[Role, str] = {
     Role.ADMIN: str(QT_TRANSLATE_NOOP("Role", "管理员")),
-    Role.EXPERIMENTER: str(QT_TRANSLATE_NOOP("Role", "实验员")),
-    Role.ANALYST: str(QT_TRANSLATE_NOOP("Role", "分析员")),
+    Role.USER: str(QT_TRANSLATE_NOOP("Role", "普通用户")),
+    Role.DEVELOPER: str(QT_TRANSLATE_NOOP("Role", "开发人员")),
 }
 
 _EXPERIMENT_TYPES: dict[ExperimentType, str] = {
@@ -403,6 +403,10 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ServiceErrorCode.EXPORT_PASSWORD_WEAK: str(
         QT_TRANSLATE_NOOP("ServiceError", "导出密码至少 {min} 个字符")
     ),
+    ServiceErrorCode.USER_PROTECTED: str(QT_TRANSLATE_NOOP("ServiceError", "该账号不允许在此修改")),
+    ServiceErrorCode.USER_PERMISSION_INVALID: str(
+        QT_TRANSLATE_NOOP("ServiceError", "权限组不合法")
+    ),
     ServiceErrorCode.USER_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "用户不存在")),
     ServiceErrorCode.USER_DUPLICATE: str(QT_TRANSLATE_NOOP("ServiceError", "登录名已存在：{name}")),
     ServiceErrorCode.USER_LAST_ADMIN: str(
@@ -695,6 +699,12 @@ def format_concentration(value: float) -> str:
 
 
 _PERMISSIONS: dict[Permission, str] = {
+    Permission.COMPANY_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "公司与版权设置")),
+    Permission.SETTINGS_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看仪器设置")),
+    Permission.REAGENT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看试剂记录")),
+    Permission.REPORT_PRINT: str(QT_TRANSLATE_NOOP("Permission", "打印报告")),
+    Permission.AUDIT_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出审计记录")),
+    Permission.DIAGNOSTICS_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出诊断包")),
     Permission.USER_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "管理用户和角色")),
     Permission.INSTRUMENT_CONFIGURE: str(QT_TRANSLATE_NOOP("Permission", "修改仪器设置")),
     Permission.AUDIT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看审计追踪")),

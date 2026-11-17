@@ -354,6 +354,8 @@ class SideNav(QFrame):
         denied = set(denied_keys)
         for key, item in self._items.items():
             item.set_denied(key in denied)
+            if key == "users":
+                item.setVisible(key not in denied)
 
     def _on_clicked(self, key: str) -> None:
         """处理点击：先更新选中，再通知激活。

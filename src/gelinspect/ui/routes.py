@@ -50,7 +50,7 @@ PAGE_ROUTES: tuple[Route, ...] = (
         Permission.EXPERIMENT_VIEW,
     ),
     Route("templates", str(QT_TRANSLATE_NOOP("Routes", "模板管理")), Permission.TEMPLATE_VIEW),
-    Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")), Permission.EXPERIMENT_VIEW),
+    Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")), Permission.REAGENT_VIEW),
     Route(
         "reports",
         str(QT_TRANSLATE_NOOP("Routes", "报告中心")),
@@ -63,11 +63,11 @@ PAGE_ROUTES: tuple[Route, ...] = (
     ),
     Route(
         "users",
-        str(QT_TRANSLATE_NOOP("Routes", "用户与权限")),
+        str(QT_TRANSLATE_NOOP("Routes", "用户管理")),
         Permission.USER_MANAGE,
     ),
     # 所有角色可以查看；修改需要 instrument_configure，由页面和服务层判断。
-    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "仪器设置"))),
+    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "仪器设置")), Permission.SETTINGS_VIEW),
     Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
 )
 """外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，“关于”属于仪器设置和关于页。"""

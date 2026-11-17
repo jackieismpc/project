@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 import pytest
+from PySide6.QtWidgets import QApplication
 
 from gelinspect.domain.enums import AuditAction, ExperimentType
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
@@ -109,6 +110,15 @@ def test_limits_can_be_edited_until_the_experiment_is_signed(stack: Stack) -> No
         "修改 MVD 和内毒素限值：无 → MVD 640，内毒素限值 0.5",
         "修改 MVD 和内毒素限值：MVD 640，内毒素限值 0.5 → 内毒素限值 0.5",
     ]
+    from gelinspect.domain.enums import PermissionGroup
+    from gelinspect.services.user_service import UserService
+
+    admin = stack.login("admin")
+    analyst = stack.database.users.get_by_username("analyst")
+    assert analyst is not None
+    UserService(stack.auth, stack.database).set_permission_groups(
+        admin, analyst.user_id, frozenset({PermissionGroup.VIEW})
+    )
     with pytest.raises(PermissionDeniedError):
         stack.experiments.update_limits(
             stack.login("analyst"), "EXP-L-1", mvd=1.0, endotoxin_limit=1.0
@@ -121,7 +131,9 @@ def test_limits_can_be_edited_until_the_experiment_is_signed(stack: Stack) -> No
     assert missing.value.code is ServiceErrorCode.EXPERIMENT_NOT_FOUND
 
 
-def test_a_signed_experiment_cannot_have_its_limits_changed(stack: Stack, tmp_path: Path) -> None:
+def test_a_signed_experiment_cannot_have_its_limits_changed(
+    stack: Stack, tmp_path: Path, qapp: QApplication
+) -> None:
     make_completed(stack, experiment_id="EXP-L-2")
     stack.experiments.update_limits(
         stack.login("experimenter"), "EXP-L-2", mvd=100.0, endotoxin_limit=2.0

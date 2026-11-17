@@ -1,59 +1,64 @@
+"""六组授权的全集组合、默认拒绝及管理能力隔离。"""
+
+import itertools
+
 import pytest
 
 from gelinspect.domain.enums import Role
 from gelinspect.domain.permissions import (
+    PERMISSION_GROUPS,
     PERMISSION_ROLES,
     Permission,
+    PermissionGroup,
     has_permission,
     permissions_of,
 )
 
-A = Role.ADMIN
-X = Role.EXPERIMENTER
-N = Role.ANALYST
 
-EXPECTED = {
-    Permission.USER_MANAGE: {A},
-    Permission.INSTRUMENT_CONFIGURE: {A},
-    Permission.AUDIT_VIEW: {A, N},
-    Permission.TEMPLATE_VIEW: {A, X, N},
-    Permission.TEMPLATE_MANAGE: {A},
-    Permission.REAGENT_MANAGE: {X},
-    Permission.EXPERIMENT_VIEW: {A, X, N},
-    Permission.EXPERIMENT_CREATE: {X},
-    Permission.EXPERIMENT_RUN: {X},
-    Permission.EXPERIMENT_STOP: {X},
-    Permission.RESULT_REVIEW: {N},
-    Permission.EXPERIMENT_SIGN: {N},
-    Permission.REPORT_VIEW: {A, X, N},
-    Permission.DATA_EXPORT: {A, N},
-}
+def test_exactly_three_categories_and_six_groups() -> None:
+    assert set(Role) == {Role.DEVELOPER, Role.ADMIN, Role.USER}
+    assert len(PermissionGroup) == 6
+    assert set(PERMISSION_GROUPS) == set(PermissionGroup)
+    assert permissions_of(Role.USER) == frozenset()
+    assert permissions_of(Role.DEVELOPER) == frozenset(Permission)
+    assert permissions_of(Role.ADMIN) == frozenset(Permission) - {Permission.COMPANY_CONFIGURE}
 
 
-def test_matrix_covers_every_permission() -> None:
-    assert set(PERMISSION_ROLES) == set(Permission)
+@pytest.mark.parametrize("mask", range(64))
+def test_all_group_combinations_are_exact_unions_and_never_grant_management(mask: int) -> None:
+    groups = frozenset(g for i, g in enumerate(PermissionGroup) if mask & (1 << i))
+    expected = frozenset(itertools.chain.from_iterable(PERMISSION_GROUPS[g] for g in groups))
+    assert permissions_of(Role.USER, groups) == expected
+    assert not expected & {Permission.USER_MANAGE, Permission.COMPANY_CONFIGURE}
+    assert all(has_permission(Role.USER, p, groups) == (p in expected) for p in Permission)
 
 
-def test_matrix_matches_specification() -> None:
-    assert {key: set(value) for key, value in PERMISSION_ROLES.items()} == EXPECTED
-
-
-@pytest.mark.parametrize("permission", list(Permission))
 @pytest.mark.parametrize("role", list(Role))
-def test_has_permission_agrees_with_table(role: Role, permission: Permission) -> None:
-    assert has_permission(role, permission) is (role in EXPECTED[permission])
+@pytest.mark.parametrize("permission", list(Permission))
+def test_fixed_category_permissions_match_matrix(role: Role, permission: Permission) -> None:
+    assert has_permission(role, permission) == (role in PERMISSION_ROLES[permission])
 
 
-def test_permissions_of_is_the_inverse_of_the_matrix() -> None:
-    for role in Role:
-        assert permissions_of(role) == {p for p, roles in EXPECTED.items() if role in roles}
+def test_read_only_is_read_only_and_output_cannot_export_audit() -> None:
+    view = permissions_of(Role.USER, frozenset({PermissionGroup.VIEW}))
+    assert view == {
+        Permission.EXPERIMENT_VIEW,
+        Permission.TEMPLATE_VIEW,
+        Permission.REPORT_VIEW,
+        Permission.REAGENT_VIEW,
+    }
+    assert Permission.AUDIT_EXPORT not in permissions_of(
+        Role.USER, frozenset({PermissionGroup.OUTPUT})
+    )
+    assert Permission.AUDIT_EXPORT in permissions_of(Role.USER, frozenset({PermissionGroup.AUDIT}))
 
 
-def test_experimenter_cannot_review_or_sign_own_runs() -> None:
-    assert not has_permission(X, Permission.RESULT_REVIEW)
-    assert not has_permission(X, Permission.EXPERIMENT_SIGN)
+def test_experiment_group_includes_review_and_signing() -> None:
+    permissions = permissions_of(Role.USER, frozenset({PermissionGroup.EXPERIMENT}))
+    assert Permission.RESULT_REVIEW in permissions
+    assert Permission.EXPERIMENT_SIGN in permissions
 
 
-def test_matrix_is_read_only() -> None:
+def test_group_definitions_are_immutable() -> None:
     with pytest.raises(TypeError):
-        PERMISSION_ROLES[Permission.USER_MANAGE] = frozenset()  # type: ignore[index]
+        PERMISSION_GROUPS[PermissionGroup.VIEW] = frozenset()  # type: ignore[index]

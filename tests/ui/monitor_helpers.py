@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 from gelinspect.app_context import AppContext, build_app_context
 from gelinspect.domain.entities import User
 from gelinspect.domain.enums import Role
+from gelinspect.domain.permissions import PermissionGroup
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.config import parse_config
 from gelinspect.ui.i18n import LanguageManager
@@ -85,7 +86,16 @@ def close_window(app: QApplication, win: MainWindow) -> None:
     """关闭主窗口；试验还在运行时先停止，免得关窗弹出确认框。"""
     engine = win.services.engine
     if engine.active_experiment_id is not None:
-        engine.stop(User("tester", "tester", "测试", Role.EXPERIMENTER), "测试结束")
+        engine.stop(
+            User(
+                "tester",
+                "tester",
+                "测试",
+                Role.USER,
+                permission_groups=frozenset({PermissionGroup.EXPERIMENT}),
+            ),
+            "测试结束",
+        )
         engine.wait(30.0)
     win.bridge.close()
     win.close()

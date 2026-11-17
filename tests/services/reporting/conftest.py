@@ -58,8 +58,9 @@ def make_completed(
     operator: str = "operator01",
     sample_batch: str = "SB2606",
     conclusions_enabled: bool = True,
+    reviewer: str = "analyst",
 ) -> Experiment:
-    """造一个已完成的灵敏度复核试验：先写入分析结果，再由分析员复核全部待复核的管。
+    """造一个已完成的灵敏度复核试验：先写入分析结果，再由指定用户复核全部待复核的管。
 
     ``conclusions_enabled`` 为 False 时模拟结论功能关闭：完成时不计算、不入库结论。
     """
@@ -103,7 +104,7 @@ def make_completed(
             stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=conclusions_enabled
         )
         for tube in experiment.pending_review_tubes:
-            service.review_tube(stack.login("analyst"), experiment_id, tube, review_to, "复核")
+            service.review_tube(stack.login(reviewer), experiment_id, tube, review_to, "复核")
     else:
         # 没有待复核的管：引擎直接完成并固化结论（与引擎的做法一致）。
         from gelinspect.domain.conclusions import finalize_completion
@@ -142,8 +143,15 @@ def signing_stack(tmp_path: Path) -> Iterator[Stack]:
     analyst = stack.database.users.get_by_username("analyst")
     assert analyst is not None
     stack.database.users.update(
-        User(analyst.user_id, analyst.username, "李工", analyst.role, analyst.active)
+        User(
+            analyst.user_id,
+            analyst.username,
+            "李工",
+            analyst.role,
+            analyst.active,
+            analyst.permission_groups,
+        )
     )
-    add_user(stack, "zhang", "张工", Role.EXPERIMENTER)
+    add_user(stack, "zhang", "张工", Role.USER)
     yield stack
     stack.database.close()

@@ -284,7 +284,7 @@ class InstrumentSettingsService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        self._auth.authorize(session, Permission.SETTINGS_VIEW)
         return SettingsView(
             settings=settings_of(self._effective),
             defaults=settings_of(self._base),
@@ -324,7 +324,7 @@ class InstrumentSettingsService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        self._auth.authorize(session, Permission.SETTINGS_VIEW)
         return parse_draft(draft, current=self._current_draft())[1]
 
     def _current_draft(self) -> SettingsDraft:
@@ -356,6 +356,8 @@ class InstrumentSettingsService:
         with self._lock:
             old = settings_of(self._effective)
             changed = tuple(n for n in FIELD_NAMES if getattr(old, n) != getattr(new, n))
+            if "copyright_holder" in changed:
+                self._auth.authorize(session, Permission.COMPANY_CONFIGURE)
             if not changed:
                 return SaveResult(old, ())
             running = self._engine.active_experiment_id
@@ -450,7 +452,7 @@ class InstrumentSettingsService:
             ServiceError: 打不开或读不到画面（``SETTINGS_PREVIEW_FAILED``）。
         """
         if kind is None:
-            self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+            self._auth.authorize(session, Permission.SETTINGS_VIEW)
             video = self._effective.video
             spec, options, device = video.source, video.options, video.device
             config = VideoConfig(

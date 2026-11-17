@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from gelinspect.domain.enums import AuditAction, Role
-from gelinspect.domain.permissions import Permission
+from gelinspect.domain.permissions import Permission, PermissionGroup
 from gelinspect.services.auth import (
     AccountDisabledError,
     InvalidCredentialsError,
@@ -35,7 +35,7 @@ def test_only_admins_can_manage_users(stack: Stack, users: UserService) -> None:
         with pytest.raises(PermissionDeniedError):
             users.list_users(session)
         with pytest.raises(PermissionDeniedError):
-            users.create_user(session, username="x1", display_name="X", role=Role.ANALYST)
+            users.create_user(session, username="x1", display_name="X", role=Role.USER)
     assert any("user_manage" in line for line in stack.audit(AuditAction.PERMISSION_DENIED))
     with pytest.raises(PermissionDeniedError):
         users.list_users(None)
@@ -45,8 +45,8 @@ def test_create_user_issues_a_temporary_password_and_forces_a_change(
     stack: Stack, users: UserService
 ) -> None:
     admin = stack.login("admin")
-    issued = users.create_user(admin, username="newbie", display_name="新同事", role=Role.ANALYST)
-    assert issued.user.role is Role.ANALYST and issued.user.active
+    issued = users.create_user(admin, username="newbie", display_name="新同事", role=Role.USER)
+    assert issued.user.role is Role.USER and issued.user.active
     assert len(issued.temporary_password) >= 8
     listed = {r.user.username: r for r in users.list_users(admin)}
     assert listed["newbie"].must_change_password
@@ -57,6 +57,8 @@ def test_create_user_issues_a_temporary_password_and_forces_a_change(
     with pytest.raises(PermissionDeniedError):
         stack.auth.authorize(session, Permission.EXPERIMENT_VIEW)
     stack.auth.change_password(session, issued.temporary_password, "Brand-new-pass1")
+    assert not session.permissions()
+    users.set_permission_groups(admin, session.user.user_id, frozenset({PermissionGroup.VIEW}))
     stack.auth.authorize(session, Permission.EXPERIMENT_VIEW)
     # 审计记了新建，但没有密码
     text = "\n".join(stack.audit(AuditAction.USER_CHANGED))
@@ -66,27 +68,25 @@ def test_create_user_issues_a_temporary_password_and_forces_a_change(
 def test_create_user_validates_and_rejects_duplicates(stack: Stack, users: UserService) -> None:
     admin = stack.login("admin")
     with pytest.raises(PasswordPolicyError):
-        users.create_user(admin, username="has space", display_name="x", role=Role.ANALYST)
+        users.create_user(admin, username="has space", display_name="x", role=Role.USER)
     with pytest.raises(PasswordPolicyError):
         users.create_user(
-            admin, username="shortpw", display_name="x", role=Role.ANALYST, password="1234"
+            admin, username="shortpw", display_name="x", role=Role.USER, password="1234"
         )
     with pytest.raises(PasswordPolicyError):
         users.create_user(
-            admin, username="samename", display_name="x", role=Role.ANALYST, password="SameName"
+            admin, username="samename", display_name="x", role=Role.USER, password="SameName"
         )
     assert (
         code_of(
-            lambda: users.create_user(
-                admin, username="analyst", display_name="x", role=Role.ANALYST
-            )
+            lambda: users.create_user(admin, username="analyst", display_name="x", role=Role.USER)
         )
         is ServiceErrorCode.USER_DUPLICATE
     )
     assert (
         code_of(
             lambda: users.create_user(
-                admin, username="longname", display_name="长" * 41, role=Role.ANALYST
+                admin, username="longname", display_name="长" * 41, role=Role.USER
             )
         )
         is ServiceErrorCode.USER_NAME_REQUIRED
@@ -97,7 +97,7 @@ def test_create_user_validates_and_rejects_duplicates(stack: Stack, users: UserS
 def test_a_chosen_initial_password_is_used(stack: Stack, users: UserService) -> None:
     admin = stack.login("admin")
     issued = users.create_user(
-        admin, username="chosen", display_name="", role=Role.EXPERIMENTER, password="Chosen-Pass-9"
+        admin, username="chosen", display_name="", role=Role.USER, password="Chosen-Pass-9"
     )
     assert issued.temporary_password == "Chosen-Pass-9" and issued.user.display_name == "chosen"
     assert stack.auth.login("chosen", "Chosen-Pass-9").must_change_password
@@ -123,7 +123,7 @@ def test_disabling_blocks_login_and_ends_the_session_and_enabling_restores(
     with pytest.raises(AccountDisabledError):
         stack.auth.login("analyst", PASSWORDS["analyst"])
     users.set_active(admin, target.user_id, True)
-    assert stack.auth.login("analyst", PASSWORDS["analyst"]).role is Role.ANALYST
+    assert stack.auth.login("analyst", PASSWORDS["analyst"]).role is Role.USER
     details = stack.audit(AuditAction.USER_CHANGED)
     assert "停用用户 analyst" in details and "启用用户 analyst" in details
 
@@ -142,29 +142,30 @@ def test_cannot_disable_yourself(stack: Stack, users: UserService) -> None:
 def test_the_last_admin_cannot_be_disabled_or_demoted_but_a_second_one_allows_it(
     stack: Stack, users: UserService
 ) -> None:
-    admin = stack.login("admin")
-    second = users.create_user(admin, username="admin2", display_name="二号", role=Role.ADMIN)
-    me = stack.database.users.get_by_username("admin")
-    assert me is not None
-    # 现在有两个管理员：admin 可以把 admin2 降级，但降级后 admin 就成了最后一个
-    users.change_role(admin, second.user.user_id, Role.ANALYST)
+    from gelinspect.domain.entities import User
+
+    stack.database.users.add(
+        User("dev", "developer", "开发", Role.DEVELOPER),
+        password_hash=stack.auth.hash_password("Dev-Test-Pass1"),
+        must_change_password=False,
+    )
+    dev = stack.auth.login("developer", "Dev-Test-Pass1")
+    admin = stack.database.users.get_by_username("admin")
+    assert admin is not None
     assert (
-        code_of(lambda: users.change_role(admin, me.user_id, Role.ANALYST))
+        code_of(lambda: users.set_active(dev, admin.user_id, False))
         is ServiceErrorCode.USER_LAST_ADMIN
     )
-    # 别人当管理员，最后一个管理员也不能被停用（用 admin2 重新升回来，再由它停用 admin）
-    users.change_role(admin, second.user.user_id, Role.ADMIN)
-    session2 = stack.auth.login("admin2", second.temporary_password)
-    stack.auth.change_password(session2, second.temporary_password, "Second-Admin-1")
-    users.set_active(session2, me.user_id, False)  # 还有 admin2，允许
+    second = users.create_user(dev, username="admin2", display_name="二号", role=Role.ADMIN)
+    users.set_active(dev, admin.user_id, False)
     assert (
-        code_of(lambda: users.change_role(session2, second.user.user_id, Role.ANALYST))
+        code_of(lambda: users.change_role(dev, second.user.user_id, Role.USER))
         is ServiceErrorCode.USER_LAST_ADMIN
     )
-    # 已停用的管理员不算：admin2 是唯一启用的管理员
-    assert [
-        u.username for u in stack.database.users.list_all() if u.role is Role.ADMIN and u.active
-    ] == ["admin2"]
+    users.set_active(dev, admin.user_id, True)
+    users.change_role(dev, second.user.user_id, Role.USER)
+    updated = stack.database.users.get(second.user.user_id)
+    assert updated is not None and updated.role is Role.USER
 
 
 def test_role_change_takes_effect_in_the_current_session_immediately(
@@ -172,17 +173,15 @@ def test_role_change_takes_effect_in_the_current_session_immediately(
 ) -> None:
     admin = stack.login("admin")
     exp = stack.login("experimenter")
-    target = stack.database.users.get_by_username("experimenter")
-    assert target is not None
-    assert exp.can(Permission.EXPERIMENT_CREATE) and not exp.can(Permission.RESULT_REVIEW)
-    users.change_role(admin, target.user_id, Role.ANALYST)
-    assert exp.role is Role.ANALYST  # 会话里的用户立即换成新角色
-    assert exp.can(Permission.RESULT_REVIEW) and not exp.can(Permission.EXPERIMENT_CREATE)
-    stack.auth.authorize(exp, Permission.RESULT_REVIEW)
+    target = exp.user
+    groups = frozenset({PermissionGroup.VIEW})
+    users.set_permission_groups(admin, target.user_id, groups)
+    assert exp.role is Role.USER
+    assert exp.can(Permission.EXPERIMENT_VIEW) and not exp.can(Permission.RESULT_REVIEW)
+    stack.auth.authorize(exp, Permission.EXPERIMENT_VIEW)
     with pytest.raises(PermissionDeniedError):
-        stack.auth.authorize(exp, Permission.EXPERIMENT_CREATE)
-    assert "修改用户 experimenter 的角色：实验员 → 分析员" in stack.audit(AuditAction.USER_CHANGED)
-    users.change_role(admin, target.user_id, Role.ANALYST)  # 没变化不重复写审计
+        stack.auth.authorize(exp, Permission.RESULT_REVIEW)
+    users.set_permission_groups(admin, target.user_id, groups)
     changes = [d for d in stack.audit(AuditAction.USER_CHANGED) if "修改用户 experimenter" in d]
     assert len(changes) == 1
 

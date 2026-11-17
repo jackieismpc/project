@@ -52,6 +52,7 @@ from gelinspect.services.reporting.verify import SignatureVerification
 from gelinspect.ui.export_labels import export_labels
 from gelinspect.ui.labels import (
     conclusion_verdict_label,
+    describe_auth_error,
     describe_service_error,
     describe_storage_busy,
     experiment_state_label,
@@ -551,7 +552,13 @@ class ReportsPage(QWidget):
             return
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
-            self._services.reports.paint(preview, printer)
+            self._services.reports.paint(self._session, preview, printer)
+        except (AuthError, ServiceError) as error:
+            self._clear_failed_preview(self._error_text(error))
+            self._fail(error)
+        except Exception:
+            _log.exception("REPORT_PREVIEW_PAINT_FAILED")
+            self._clear_failed_preview(self.tr("报告预览暂时无法显示，请点击“刷新预览”重试。"))
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -709,7 +716,7 @@ class ReportsPage(QWidget):
         signed = self._record is not None
         self.sign_button.setEnabled(preview.can_sign and can_sign_role and not signed)
         if not can_sign_role:
-            self.sign_hint.setText(self.tr("当前角色没有签署权限，签署需要分析员。"))
+            self.sign_hint.setText(self.tr("当前账号没有报告签署权限，请联系管理员授权。"))
         elif signed:
             self.sign_hint.setText(self.tr("已经签署，可以重新验签或导出同一份文件。"))
         else:
@@ -718,7 +725,9 @@ class ReportsPage(QWidget):
                 if not batch
                 else self.tr("单批次报告汇总已签署的试验，不改变试验状态。")
             )
-        self.print_button.setEnabled(True)
+        self.print_button.setEnabled(
+            self._session is not None and self._session.can(Permission.REPORT_PRINT)
+        )
         can_export = self._can(Permission.DATA_EXPORT)
         self.export_button.setEnabled(signed and can_export)
         self.excel_button.setEnabled(not batch and can_export)
@@ -876,7 +885,8 @@ class ReportsPage(QWidget):
             return 0
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
-            pages = self._services.reports.paint(preview, printer)
+            self._services.auth.authorize(self._session, Permission.REPORT_PRINT)
+            pages = self._services.reports.paint(self._session, preview, printer)
             self._services.reports.record_print(self._session, preview)
         except (AuthError, ServiceError) as error:
             self._fail(error)
@@ -978,9 +988,19 @@ class ReportsPage(QWidget):
     # ------------------------------------------------------------------ 提示
 
     def _error_text(self, error: Exception) -> str:
+        if isinstance(error, AuthError):
+            return describe_auth_error(error)
         if isinstance(error, ServiceError):
             return describe_service_error(error)
         return str(error)
+
+    def _clear_failed_preview(self, message: str) -> None:
+        """清除失效预览并在原位置说明原因。"""
+        self._preview = None
+        self.preview_widget.hide()
+        self.batch_empty.setText(message)
+        self.batch_empty.setVisible(True)
+        self._update_pager()
 
     def _fail(self, error: Exception) -> None:
         _log.info("报告中心操作失败：%s", error)

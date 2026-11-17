@@ -485,7 +485,12 @@ class UserRepository(Protocol):
         ...
 
     def set_password_hash(
-        self, user_id: str, password_hash: str, *, must_change_password: bool
+        self,
+        user_id: str,
+        password_hash: str,
+        *,
+        must_change_password: bool,
+        expected_version: int | None = None,
     ) -> None:
         """更新密码哈希和改密标记。
 

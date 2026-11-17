@@ -440,7 +440,7 @@ class ReagentService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        self._auth.authorize(session, Permission.REAGENT_VIEW)
         return self.evaluate(raw)
 
     def record_checks(
@@ -522,7 +522,7 @@ class ReagentService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        self._auth.authorize(session, Permission.REAGENT_VIEW)
         return self._storage.reagent_checks.list_batches(limit)
 
     def recent_checks(self, session: Session | None, limit: int = 100) -> Page[ReagentCheckRecord]:
@@ -538,7 +538,7 @@ class ReagentService:
         Raises:
             PermissionDeniedError: 没有权限。
         """
-        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        self._auth.authorize(session, Permission.REAGENT_VIEW)
         return self._storage.reagent_checks.query(PageRequest(limit=limit))
 
     def days_remaining(self, expiry: date | None) -> int | None:

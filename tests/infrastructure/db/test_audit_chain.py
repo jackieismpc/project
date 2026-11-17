@@ -39,7 +39,7 @@ def test_hash_matches_independent_computation(database: Database) -> None:
         "seq": 1,
         "occurred_at": "2026-03-01T08:00:00.000000Z",
         "actor": "alice",
-        "actor_role": "analyst",
+        "actor_role": "user",
         "action": "login",
         "detail": '登录 "成功"',
         "experiment_id": None,

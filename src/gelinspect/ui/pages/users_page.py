@@ -13,7 +13,7 @@ from PySide6.QtCore import QEvent, Signal
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QWidget
 
 from gelinspect.domain.enums import Role
-from gelinspect.domain.permissions import PERMISSION_ROLES
+from gelinspect.domain.permissions import Permission, PermissionGroup
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
@@ -23,11 +23,11 @@ from gelinspect.ui.labels import (
     describe_auth_error,
     describe_service_error,
     describe_storage_busy,
-    permission_label,
     role_label,
 )
 from gelinspect.ui.pages.page_frame import build_page_column
-from gelinspect.ui.pages.users_dialogs import CredentialDialog, NewUserDialog, RoleDialog
+from gelinspect.ui.pages.permission_picker import PermissionDialog, group_label
+from gelinspect.ui.pages.users_dialogs import CredentialDialog, NewUserDialog
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
@@ -178,6 +178,9 @@ class UsersPage(QWidget):
                     "name": name,
                     "role": role_label(user.role),
                     "state": state,
+                    "groups": "、".join(
+                        group_label(g) for g in PermissionGroup if g in user.permission_groups
+                    ),
                     **({} if user.active else {"_tone": "warning"}),
                 }
             )
@@ -186,11 +189,8 @@ class UsersPage(QWidget):
             self.select_user(keep)
         self.matrix_table.set_rows(
             [
-                {
-                    "permission": permission_label(permission),
-                    **{role.value: "✓" if role in roles else "" for role in Role},
-                }
-                for permission, roles in PERMISSION_ROLES.items()
+                {"permission": group_label(g), "note": self.tr("可组合授予普通用户")}
+                for g in PermissionGroup
             ]
         )
         self._update_buttons()
@@ -198,14 +198,27 @@ class UsersPage(QWidget):
     def _update_buttons(self) -> None:
         record = self.selected()
         me = self._session.user.user_id if self._session is not None else None
-        has = record is not None
         is_self = record is not None and record.user.user_id == me
-        self.role_button.setEnabled(has)
-        self.reset_button.setEnabled(has and not is_self)
+        actor = self._session.user if self._session is not None else None
+        manageable = (
+            record is not None
+            and actor is not None
+            and (
+                record.user.role is Role.USER
+                or (actor.role is Role.DEVELOPER and record.user.role is Role.ADMIN)
+            )
+        )
+        self.new_button.setEnabled(
+            self._session is not None and self._session.can(Permission.USER_MANAGE)
+        )
+        self.role_button.setEnabled(
+            manageable and record is not None and record.user.role is Role.USER
+        )
+        self.reset_button.setEnabled(manageable and not is_self)
         self.reset_button.setToolTip(
             self.tr("自己的密码请用用户菜单里的“修改密码”") if is_self else ""
         )
-        self.toggle_button.setEnabled(has and not is_self)
+        self.toggle_button.setEnabled(manageable and not is_self)
         self.toggle_button.setToolTip(self.tr("不能停用自己的账号") if is_self else "")
         active = record is None or record.user.active
         self.toggle_button.setText(self.tr("停用") if active else self.tr("启用"))
@@ -221,13 +234,24 @@ class UsersPage(QWidget):
         session = self._session
 
         def submit(
-            username: str, display_name: str, role: Role, password: str | None
+            username: str,
+            display_name: str,
+            role: Role,
+            password: str | None,
+            groups: frozenset[PermissionGroup],
         ) -> CredentialIssue:
             return self._services.users.create_user(
-                session, username=username, display_name=display_name, role=role, password=password
+                session,
+                username=username,
+                display_name=display_name,
+                role=role,
+                password=password,
+                permission_groups=groups,
             )
 
-        dialog = NewUserDialog(submit, parent=self)
+        dialog = NewUserDialog(
+            submit, parent=self, allow_admin=session is not None and session.role is Role.DEVELOPER
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.issued is None:
             return None
         issued = dialog.issued
@@ -276,10 +300,12 @@ class UsersPage(QWidget):
         if record is None or session is None:
             return False
 
-        def submit(role: Role) -> object:
-            return self._services.users.change_role(session, record.user.user_id, role)
+        def submit(groups: frozenset[PermissionGroup]) -> object:
+            return self._services.users.set_permission_groups(session, record.user.user_id, groups)
 
-        dialog = RoleDialog(record.user.username, record.user.role, submit, parent=self)
+        dialog = PermissionDialog(
+            record.user.username, record.user.permission_groups, submit, parent=self
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
         self.refresh()
@@ -332,7 +358,12 @@ class UsersPage(QWidget):
         Toast.show_message(self.window(), template.format(name=name), ToastKind.SUCCESS)
 
     def _fail(self, error: Exception) -> None:
-        _log.info("用户管理操作失败：%s", error)
+        _log.warning(
+            "USER_MANAGEMENT_FAILED code=%s: %s",
+            getattr(error, "code", type(error).__name__),
+            error,
+            exc_info=True,
+        )
         if isinstance(error, ServiceError):
             text = describe_service_error(error)
         elif isinstance(error, AuthError):
@@ -349,22 +380,20 @@ class UsersPage(QWidget):
             Column("name", self.tr("显示名称")),
             Column("role", self.tr("角色")),
             Column("state", self.tr("状态")),
+            Column("groups", self.tr("已授权权限组")),
         ]
 
     def _matrix_columns(self) -> list[Column]:
-        return [
-            Column("permission", self.tr("权限")),
-            *(Column(role.value, role_label(role)) for role in Role),
-        ]
+        return [Column("permission", self.tr("权限组")), Column("note", self.tr("说明"))]
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.title.setText(self.tr("用户与权限"))
+        self.title.setText(self.tr("用户管理"))
         self.hint.setText(self.tr("改动立即生效，并记入审计追踪"))
         self.new_button.setText(self.tr("新建用户"))
         self.users_card.set_title(self.tr("账号"))
         self.reset_button.setText(self.tr("重置密码"))
-        self.role_button.setText(self.tr("修改角色…"))
+        self.role_button.setText(self.tr("授予／剥夺权限…"))
         self.rule_note.setText(
             self.tr(
                 "不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。"
@@ -372,10 +401,10 @@ class UsersPage(QWidget):
         )
         self.users_table.set_columns(self._user_columns())
         self.users_table.set_empty_text(self.tr("还没有账号"))
-        self.matrix_card.set_title(self.tr("角色与权限"))
+        self.matrix_card.set_title(self.tr("权限组说明"))
         self.matrix_note.setText(
             self.tr(
-                "只读。权限矩阵是软件的一部分，调整需要发布新版本；它也是界面入口和服务层检查的依据。"
+                "普通用户可组合获得六组权限；管理员拥有管理能力，开发人员另有公司与版权设置权限。"
             )
         )
         self.matrix_table.set_columns(self._matrix_columns())
