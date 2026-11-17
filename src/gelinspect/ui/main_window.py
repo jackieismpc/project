@@ -21,6 +21,7 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
 from gelinspect.domain.enums import BatchKind
+from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
 from gelinspect.services.engine_types import (
@@ -475,6 +476,7 @@ class MainWindow(QMainWindow):
         if route.key == "templates":
             templates = TemplatesPage(self._services)
             templates.set_session(self._session)
+            templates.use_template_requested.connect(self._use_template_in_experiment)
             return templates
         if route.key == "reagents":
             reagents = ReagentsPage(self._services)
@@ -521,6 +523,14 @@ class MainWindow(QMainWindow):
             settings.set_session(self._session)
             return settings
         raise KeyError(f"没有页面：{route.key}")
+
+    def _use_template_in_experiment(self, template: ExperimentTemplate) -> None:
+        """从模板管理带配置跳转到新建实验向导。"""
+        if not self.navigate("new"):
+            return
+        page = self._pages.get("new")
+        if isinstance(page, NewExperimentPage):
+            page.use_template(template)
 
     def _on_own_role_changed(self) -> None:
         """管理员改了自己的角色：会话已经换成新角色，立即刷新入口，当前页没有权限就回工作台。"""

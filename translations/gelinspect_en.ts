@@ -2231,6 +2231,14 @@
         <translation>No templates available yet</translation>
     </message>
     <message>
+        <source>从空白配置开始</source>
+        <translation>Start with a blank configuration</translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
+        <translation>Edit this run&apos;s tube configuration</translation>
+    </message>
+    <message>
         <source>下一步：校验试剂</source>
         <translation>Next: verify reagents</translation>
     </message>
@@ -2289,6 +2297,10 @@
     <message>
         <source>全部清除</source>
         <translation>Clear all</translation>
+    </message>
+    <message>
+        <source>另存为模板</source>
+        <translation>Save as template</translation>
     </message>
     <message>
         <source>下一步：确认启动</source>
@@ -2353,6 +2365,30 @@
     <message>
         <source>保留当前模板</source>
         <translation>Keep current</translation>
+    </message>
+    <message>
+        <source>修改本次配置？</source>
+        <translation>Change this run&apos;s configuration?</translation>
+    </message>
+    <message>
+        <source>修改试管配置会清空已录入的样品和管位，试剂校验结果会保留。</source>
+        <translation>Changing the tube configuration clears entered samples and positions. Reagent checks are kept.</translation>
+    </message>
+    <message>
+        <source>继续</source>
+        <translation>Continue</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>本次实验配置</source>
+        <translation>This run&apos;s configuration</translation>
+    </message>
+    <message>
+        <source>模板已另存；当前实验草稿保留</source>
+        <translation>Template saved separately; the current experiment draft is kept</translation>
     </message>
     <message>
         <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
@@ -4758,6 +4794,10 @@ Fix the configuration file and start again. Starting without --config uses the d
     <message>
         <source>删除</source>
         <translation>Delete</translation>
+    </message>
+    <message>
+        <source>使用此模板新建实验</source>
+        <translation>Use this template for a new experiment</translation>
     </message>
     <message>
         <source>检测模板</source>

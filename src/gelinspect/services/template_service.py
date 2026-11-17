@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import math
 import uuid
 from collections.abc import Sequence
 from contextlib import AbstractContextManager
@@ -112,6 +113,65 @@ def draft_of(template: ExperimentTemplate) -> TemplateDraft:
             )
             for i in ordered
         ),
+    )
+
+
+def build_template_config(template_id: str, draft: TemplateDraft) -> ExperimentTemplate:
+    """统一构建并校验可复用模板或单次实验的试管配置。"""
+    name = draft.name.strip()
+    if not name:
+        raise ServiceError("模板名称不能为空", ServiceErrorCode.TEMPLATE_NAME_REQUIRED)
+    if len(name) > MAX_NAME_LENGTH:
+        raise ServiceError(
+            f"模板名称不能超过 {MAX_NAME_LENGTH} 个字符",
+            ServiceErrorCode.TEMPLATE_NAME_TOO_LONG,
+            max=MAX_NAME_LENGTH,
+        )
+    if not 1 <= len(draft.items) <= TUBE_COUNT:
+        raise ServiceError(
+            f"模板的试管数应在 1–{TUBE_COUNT} 内：{len(draft.items)}",
+            ServiceErrorCode.TEMPLATE_TUBE_COUNT,
+            max=TUBE_COUNT,
+        )
+    items: list[TemplateTubeItem] = []
+    for index, item in enumerate(draft.items, start=1):
+        sample = item.sample_name.strip()
+        if not sample:
+            raise ServiceError(
+                f"第 {index} 支试管的样品名称不能为空",
+                ServiceErrorCode.TEMPLATE_SAMPLE_NAME_REQUIRED,
+                index=index,
+            )
+        values = (item.dilution_factor, item.spiked_endotoxin, item.lambda_multiple)
+        if any(value is not None and not math.isfinite(value) for value in values):
+            raise ServiceError(
+                f"第 {index} 支试管的数值必须为有限数",
+                ServiceErrorCode.TEMPLATE_VALUE_INVALID,
+                index=index,
+            )
+        try:
+            items.append(
+                TemplateTubeItem(
+                    index,
+                    sample,
+                    item.role,
+                    item.dilution_factor,
+                    None if item.lambda_multiple is not None else item.spiked_endotoxin,
+                    item.lambda_multiple,
+                )
+            )
+        except ValueError as error:
+            raise ServiceError(
+                f"第 {index} 支试管的数值不合法：{error}",
+                ServiceErrorCode.TEMPLATE_VALUE_INVALID,
+                index=index,
+            ) from error
+    return ExperimentTemplate(
+        template_id=template_id,
+        name=name,
+        experiment_type=draft.experiment_type,
+        items=tuple(items),
+        needs_confirmation=False,
     )
 
 
@@ -364,57 +424,7 @@ class TemplateService:
         return f"{wanted} {index}"
 
     def _build(self, template_id: str, draft: TemplateDraft) -> ExperimentTemplate:
-        name = draft.name.strip()
-        if not name:
-            raise ServiceError("模板名称不能为空", ServiceErrorCode.TEMPLATE_NAME_REQUIRED)
-        if len(name) > MAX_NAME_LENGTH:
-            raise ServiceError(
-                f"模板名称不能超过 {MAX_NAME_LENGTH} 个字符",
-                ServiceErrorCode.TEMPLATE_NAME_TOO_LONG,
-                max=MAX_NAME_LENGTH,
-            )
-        if not 1 <= len(draft.items) <= TUBE_COUNT:
-            raise ServiceError(
-                f"模板的试管数应在 1–{TUBE_COUNT} 内：{len(draft.items)}",
-                ServiceErrorCode.TEMPLATE_TUBE_COUNT,
-                max=TUBE_COUNT,
-            )
-        items: list[TemplateTubeItem] = []
-        for index, item in enumerate(draft.items, start=1):
-            sample = item.sample_name.strip()
-            if not sample:
-                raise ServiceError(
-                    f"第 {index} 支试管的样品名称不能为空",
-                    ServiceErrorCode.TEMPLATE_SAMPLE_NAME_REQUIRED,
-                    index=index,
-                )
-            try:
-                items.append(
-                    TemplateTubeItem(
-                        tube_no=index,
-                        sample_name=sample,
-                        role=item.role,
-                        dilution_factor=item.dilution_factor,
-                        # 同时填了倍数和绝对值时以倍数为准，不留下两个互相矛盾的数。
-                        spiked_endotoxin=(
-                            None if item.lambda_multiple is not None else item.spiked_endotoxin
-                        ),
-                        lambda_multiple=item.lambda_multiple,
-                    )
-                )
-            except ValueError as error:
-                raise ServiceError(
-                    f"第 {index} 支试管的数值不合法：{error}",
-                    ServiceErrorCode.TEMPLATE_VALUE_INVALID,
-                    index=index,
-                ) from error
-        return ExperimentTemplate(
-            template_id=template_id,
-            name=name,
-            experiment_type=draft.experiment_type,
-            items=tuple(items),
-            needs_confirmation=False,
-        )
+        return build_template_config(template_id, draft)
 
     def _save(self, user: User, template: ExperimentTemplate, detail: str) -> None:
         event = AuditEvent(

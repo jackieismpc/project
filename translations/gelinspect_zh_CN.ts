@@ -2231,6 +2231,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>从空白配置开始</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>下一步：校验试剂</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2288,6 +2296,10 @@
     </message>
     <message>
         <source>全部清除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>另存为模板</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2352,6 +2364,30 @@
     </message>
     <message>
         <source>保留当前模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改本次配置？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>修改试管配置会清空已录入的样品和管位，试剂校验结果会保留。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>继续</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>本次实验配置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>模板已另存；当前实验草稿保留</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4755,6 +4791,10 @@
     </message>
     <message>
         <source>删除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>使用此模板新建实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

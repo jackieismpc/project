@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLineEdit
+from PySide6.QtWidgets import QApplication, QDialog, QLineEdit
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind
@@ -27,6 +27,7 @@ from gelinspect.ui.pages.new_experiment import (
     COL_TUBE,
     NewExperimentPage,
 )
+from gelinspect.ui.pages.template_editor import TemplateEditorDialog
 from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.plate_grid import PlateMode
 from simulation.reagents import SAMPLE_CODES
@@ -556,3 +557,97 @@ def test_without_the_run_permission_the_confirm_button_is_disabled(
     assert not page.confirm_start.isEnabled()
     assert page.confirm_start.toolTip() == "当前角色无此权限"
     page.deleteLater()
+
+
+def test_blank_configuration_is_a_per_run_draft(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window)
+
+    def save_dialog(dialog: TemplateEditorDialog) -> int:
+        dialog.name.setText("本次空白配置")
+        dialog.table.cell_item(0, 1).setText("样品甲")
+        dialog.save_button.click()
+        return int(dialog.result())
+
+    monkeypatch.setattr(TemplateEditorDialog, "exec", save_dialog)
+    page._configure_blank()
+    template = page.draft().template
+    assert template is not None and template.template_id.startswith("draft.")
+    assert template.tube_count == 1 and template.items[0].sample_name == "样品甲"
+    assert app_context.database.templates.get(template.template_id) is None
+
+
+def test_reediting_configuration_preserves_source_and_current_sample_text(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_wizard(qapp, window)
+    page.draft().choose_template(LIMIT)
+    page._sync_samples()
+    dialogs = 0
+
+    def save_dialog(dialog: TemplateEditorDialog) -> int:
+        nonlocal dialogs
+        dialogs += 1
+        if dialogs == 1:
+            dialog.name.setText("本次修改")
+            dialog.table.cell_item(0, 1).setText("样品首版")
+        else:
+            assert dialog.table.cell_text(0, 1) == "样品最新值"
+        dialog.save_button.click()
+        return int(dialog.result())
+
+    monkeypatch.setattr(TemplateEditorDialog, "exec", save_dialog)
+    monkeypatch.setattr(ConfirmDialog, "ask", lambda *_args, **_kwargs: True)
+    page._configure_selected()
+    first = page.draft().template
+    assert first is not None and page.draft().source_template_id == LIMIT.template_id
+    page.draft().rows[0].name = "样品最新值"
+    page._sync_samples()
+    page._configure_selected()
+    request = page.draft().to_request()
+    assert dialogs == 2
+    assert request.source_template_id == LIMIT.template_id
+    assert request.template_snapshot is not None
+    assert request.template_snapshot.items[0].sample_name == "样品最新值"
+
+
+def test_cancel_or_save_as_template_keeps_current_draft(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    page.draft().choose_template(LIMIT)
+    page.draft().rows[0].name = "当前样品值"
+    page._sync_samples()
+    original_template = page.draft().template
+    original_rows = list(page.draft().rows)
+
+    def cancel_dialog(_dialog: TemplateEditorDialog) -> int:
+        return int(QDialog.DialogCode.Rejected)
+
+    monkeypatch.setattr(TemplateEditorDialog, "exec", cancel_dialog)
+    page._save_as_template()
+    assert page.draft().template is original_template
+    assert page.draft().rows == original_rows
+
+    def save_dialog(dialog: TemplateEditorDialog) -> int:
+        assert dialog.table.cell_text(0, 1) == "当前样品值"
+        dialog.name.setText("已另存模板")
+        dialog.save_button.click()
+        return int(dialog.result())
+
+    monkeypatch.setattr(TemplateEditorDialog, "exec", save_dialog)
+    page._save_as_template()
+    saved = next(
+        (item for item in app_context.database.templates.list_all() if item.name == "已另存模板"),
+        None,
+    )
+    assert saved is not None and saved.items[0].sample_name == "当前样品值"
+    assert page.draft().template is original_template
+    assert page.draft().rows[0].name == "当前样品值"

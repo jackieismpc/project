@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt
+from PySide6.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt, Signal
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
 from gelinspect.domain.permissions import Permission
@@ -39,6 +39,8 @@ def _number(value: float | None) -> str:
 
 class TemplatesPage(QWidget):
     """模板管理页。"""
+
+    use_template_requested = Signal(object)
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
         """创建页面。
@@ -78,10 +80,12 @@ class TemplatesPage(QWidget):
         self.edit_button = Button("", ButtonVariant.SECONDARY, icon="pencil")
         self.lifecycle_button = Button("", ButtonVariant.SECONDARY)
         self.delete_button = Button("", ButtonVariant.DANGER)
+        self.use_button = Button("", ButtonVariant.PRIMARY)
         top.addWidget(self.title)
         top.addWidget(self.readonly_badge)
         top.addStretch(1)
         for button in (
+            self.use_button,
             self.new_button,
             self.copy_button,
             self.edit_button,
@@ -115,6 +119,7 @@ class TemplatesPage(QWidget):
         self.edit_button.clicked.connect(self.edit_selected)
         self.lifecycle_button.clicked.connect(self.toggle_selected_visibility)
         self.delete_button.clicked.connect(self.delete_selected)
+        self.use_button.clicked.connect(self.use_selected)
         self.retranslate()
 
     # ------------------------------------------------------------------ 列定义
@@ -278,6 +283,12 @@ class TemplatesPage(QWidget):
             self.refresh()
             self._toast(self.tr("模板已删除"), ToastKind.SUCCESS)
 
+    def use_selected(self) -> None:
+        """带选中模板配置打开新建实验向导。"""
+        info = self.selected()
+        if info is not None and not info.hidden:
+            self.use_template_requested.emit(info.template)
+
     @staticmethod
     def _error_text(error: Exception) -> str:
         if isinstance(error, ServiceError):
@@ -355,6 +366,9 @@ class TemplatesPage(QWidget):
         manage = self.can_manage()
         info = self.selected()
         denied = self.tr("当前角色无此权限")
+        usable = bool(info and not info.hidden)
+        self.use_button.setEnabled(usable)
+        self.use_button.setVisible(usable)
         self.new_button.setEnabled(manage)
         self.new_button.setToolTip("" if manage else denied)
         self.copy_button.setEnabled(manage and info is not None and not info.hidden)
@@ -388,6 +402,7 @@ class TemplatesPage(QWidget):
         self.edit_button.setText(self.tr("编辑"))
         self.lifecycle_button.setText(self.tr("隐藏"))
         self.delete_button.setText(self.tr("删除"))
+        self.use_button.setText(self.tr("使用此模板新建实验"))
         self.list_card.set_title(self.tr("检测模板"))
         self.list_table.set_columns(self._list_columns())
         self.detail_table.set_columns(self._detail_columns())

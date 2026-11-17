@@ -85,6 +85,7 @@ class NewExperimentRequest:
     mvd: float | None = None
     endotoxin_limit: float | None = None
     template_snapshot: ExperimentTemplate | None = None
+    source_template_id: str | None = None
 
 
 def parse_limit(text: str) -> float | None:
@@ -109,6 +110,7 @@ class ExperimentDraft:
     def __init__(self) -> None:
         """创建空草稿。"""
         self._template: ExperimentTemplate | None = None
+        self._source_template_id: str | None = None
         self._rows: list[SampleRow] = []
         self._baseline: list[tuple[str, str, float | None, float | None]] = []
         self._selected: list[int] = []
@@ -149,6 +151,11 @@ class ExperimentDraft:
         """当前选中的模板。"""
         return self._template
 
+    @property
+    def source_template_id(self) -> str | None:
+        """单次配置最初来源的模板标识。"""
+        return self._source_template_id
+
     def choose_template(self, template: ExperimentTemplate) -> None:
         """选择模板：样品行取模板默认值，已选管位清空。
 
@@ -156,6 +163,9 @@ class ExperimentDraft:
             template: 模板。
         """
         self._template = template
+        self._source_template_id = (
+            template.template_id if not template.template_id.startswith("draft.") else None
+        )
         self._rows = [
             SampleRow(
                 name=item.sample_name,
@@ -168,6 +178,13 @@ class ExperimentDraft:
         ]
         self._baseline = [row.snapshot() for row in self._rows]
         self._selected = []
+
+    def configure(
+        self, template: ExperimentTemplate, *, source_template_id: str | None = None
+    ) -> None:
+        """替换本次配置，同时保留试剂校验和限值输入。"""
+        self.choose_template(template)
+        self._source_template_id = source_template_id
 
     @property
     def rows(self) -> list[SampleRow]:
@@ -335,4 +352,5 @@ class ExperimentDraft:
             mvd=self.mvd,
             endotoxin_limit=self.endotoxin_limit,
             template_snapshot=self._template,
+            source_template_id=self._source_template_id,
         )

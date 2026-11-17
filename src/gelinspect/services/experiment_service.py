@@ -31,7 +31,7 @@ from gelinspect.domain.entities import (
 from gelinspect.domain.enums import AuditAction, ReagentKind
 from gelinspect.domain.errors import InvalidPlatePositionError
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.plate import tube_to_position
+from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.interfaces.storage import (
     ExperimentRepository,
@@ -40,7 +40,7 @@ from gelinspect.interfaces.storage import (
     TemplateRepository,
     UnitOfWork,
 )
-from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.auth import AuthService, PermissionDeniedError, Session
 from gelinspect.services.engine_types import EngineBusyError, EngineError, EngineStateError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.experiment_draft import NewExperimentRequest
@@ -50,6 +50,7 @@ from gelinspect.services.reagent_service import (
     ReagentScan,
     ReagentService,
 )
+from gelinspect.services.template_service import build_template_config, draft_of
 
 _log = logging.getLogger(__name__)
 
@@ -169,20 +170,47 @@ class ExperimentService:
         user = self._auth.authorize(session, Permission.EXPERIMENT_CREATE)
         mvd = check_limit(request.mvd, "mvd")
         endotoxin_limit = check_limit(request.endotoxin_limit, "endotoxin_limit")
-        template = self._storage.templates.get(request.template_id)
-        if template is None:
+        # ``draft.*`` 表示共享试管编辑器产生的单次配置，只随请求快照传递，不写入模板库。
+        ad_hoc = request.template_id.startswith("draft.")
+        template = (
+            request.template_snapshot
+            if ad_hoc
+            else self._storage.templates.get(request.template_id)
+        )
+        if template is None or template.template_id != request.template_id:
             raise ServiceError(
                 f"模板不存在：{request.template_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND
             )
-        inactive = self._storage.templates.is_hidden(
-            request.template_id
-        ) or self._storage.templates.is_deleted(request.template_id)
+        if ad_hoc:
+            source_id = request.source_template_id
+            if source_id is not None:
+                source = self._storage.templates.get(source_id)
+                source_inactive = (
+                    source is None
+                    or self._storage.templates.is_hidden(source_id)
+                    or self._storage.templates.is_deleted(source_id)
+                )
+                if source_inactive and not self._can_manage_templates(session):
+                    raise ServiceError(
+                        f"模板不可用于新实验：{source_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND
+                    )
+            configured = sorted(template.items, key=lambda item: item.tube_no)
+            if (
+                not configured
+                or len(configured) > TUBE_COUNT
+                or [item.tube_no for item in configured] != list(range(1, len(configured) + 1))
+            ):
+                raise ServiceError("本次配置的管号无效", ServiceErrorCode.DRAFT_TUBES_INVALID)
+            template = build_template_config(request.template_id, draft_of(template))
+        inactive = not ad_hoc and (
+            self._storage.templates.is_hidden(request.template_id)
+            or self._storage.templates.is_deleted(request.template_id)
+        )
         if inactive:
             if (
                 request.template_snapshot is None
                 or request.template_snapshot.template_id != request.template_id
-                or session is None
-                or not session.can(Permission.TEMPLATE_MANAGE)
+                or not self._can_manage_templates(session)
             ):
                 raise ServiceError(
                     f"模板不可用于新实验：{request.template_id}",
@@ -457,6 +485,14 @@ class ExperimentService:
             uow.audit.append(event)
 
     # ------------------------------------------------------------------ 内部
+
+    def _can_manage_templates(self, session: Session | None) -> bool:
+        """使用服务层最新账号授权判断是否可保留失效模板快照。"""
+        try:
+            self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
+        except PermissionDeniedError:
+            return False
+        return True
 
     def _new_id(self, now: datetime) -> str:
         base = f"EXP-{now.astimezone().strftime('%Y%m%d-%H%M%S')}"

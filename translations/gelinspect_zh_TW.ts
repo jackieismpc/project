@@ -2231,6 +2231,14 @@
         <translation>還沒有可用的範本</translation>
     </message>
     <message>
+        <source>从空白配置开始</source>
+        <translation>從空白配置開始</translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
+        <translation>編輯本次試管配置</translation>
+    </message>
+    <message>
         <source>下一步：校验试剂</source>
         <translation>下一步：驗證試劑</translation>
     </message>
@@ -2289,6 +2297,10 @@
     <message>
         <source>全部清除</source>
         <translation>全部清除</translation>
+    </message>
+    <message>
+        <source>另存为模板</source>
+        <translation>另存為範本</translation>
     </message>
     <message>
         <source>下一步：确认启动</source>
@@ -2353,6 +2365,30 @@
     <message>
         <source>保留当前模板</source>
         <translation>保留目前範本</translation>
+    </message>
+    <message>
+        <source>修改本次配置？</source>
+        <translation>修改本次配置？</translation>
+    </message>
+    <message>
+        <source>修改试管配置会清空已录入的样品和管位，试剂校验结果会保留。</source>
+        <translation>修改試管配置會清除已輸入的樣品和管位，試劑驗證結果會保留。</translation>
+    </message>
+    <message>
+        <source>继续</source>
+        <translation>繼續</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>本次实验配置</source>
+        <translation>本次實驗配置</translation>
+    </message>
+    <message>
+        <source>模板已另存；当前实验草稿保留</source>
+        <translation>範本已另存；目前實驗草稿保留</translation>
     </message>
     <message>
         <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
@@ -4758,6 +4794,10 @@
     <message>
         <source>删除</source>
         <translation>刪除</translation>
+    </message>
+    <message>
+        <source>使用此模板新建实验</source>
+        <translation>使用此範本新增實驗</translation>
     </message>
     <message>
         <source>检测模板</source>

@@ -12,11 +12,13 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import Callable, Mapping
 from typing import Any
 
 from PySide6.QtCore import QEvent, Qt, Signal, Slot
 from PySide6.QtWidgets import (
+    QDialog,
     QGridLayout,
     QHBoxLayout,
     QLineEdit,
@@ -27,10 +29,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gelinspect.domain.enums import ReagentKind
+from gelinspect.domain.enums import ExperimentType, ReagentKind
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import HOLES_PER_ROW, ROW_COUNT, row_label, tube_to_position
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
@@ -38,7 +41,12 @@ from gelinspect.services.engine_types import AlertCode, EngineAlert, StateChange
 from gelinspect.services.errors import ServiceError
 from gelinspect.services.experiment_draft import ExperimentDraft
 from gelinspect.services.reagent_service import ReagentLockedError, ReagentScan
-from gelinspect.services.template_service import TemplateInfo
+from gelinspect.services.template_service import (
+    TemplateDraft,
+    TemplateInfo,
+    TemplateItemInput,
+    build_template_config,
+)
 from gelinspect.ui.bridge import EngineBridge
 from gelinspect.ui.labels import (
     builtin_name_text,
@@ -51,6 +59,7 @@ from gelinspect.ui.labels import (
     reagent_kind_label,
     role_label,
 )
+from gelinspect.ui.pages.template_editor import TemplateEditorDialog
 from gelinspect.ui.pages.wizard_widgets import Banner, ReagentCard, ReagentTile, TemplateOption
 from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.button import Button, ButtonVariant
@@ -196,12 +205,18 @@ class NewExperimentPage(QWidget):
         self.template_empty = Label("", "meta")
         self.template_empty.setWordWrap(True)
         self.template_card.body.addWidget(self.template_empty)
+        self.blank_button = Button("", ButtonVariant.SECONDARY)
+        self.configure_button = Button("", ButtonVariant.SECONDARY)
+        self.template_card.body.addWidget(self.blank_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.template_card.body.addWidget(self.configure_button, 0, Qt.AlignmentFlag.AlignLeft)
         row, _left, _back, self.template_next = self._nav_row(back=False)
         self.template_card.body.addLayout(row)
         layout.addWidget(self.template_card)
         layout.addStretch(1)
         self._options: list[TemplateOption] = []
         self.template_next.clicked.connect(lambda: self._go(STEP_REAGENTS))
+        self.blank_button.clicked.connect(self._configure_blank)
+        self.configure_button.clicked.connect(self._configure_selected)
         self.stack.addWidget(step)
 
     def _build_reagent_step(self) -> None:
@@ -317,14 +332,17 @@ class NewExperimentPage(QWidget):
         row, left, self.sample_back, self.sample_next = self._nav_row(back=True)
         self.auto_button = Button("", ButtonVariant.SECONDARY)
         self.clear_button = Button("", ButtonVariant.SECONDARY)
+        self.save_template_button = Button("", ButtonVariant.SECONDARY)
         left.addWidget(self.auto_button)
         left.addWidget(self.clear_button)
+        left.addWidget(self.save_template_button)
         self.plate_card.body.addLayout(row)
         work.addWidget(self.plate_card, 1)
         layout.addLayout(work)
         layout.addStretch(1)
         self.auto_button.clicked.connect(self._auto_select)
         self.clear_button.clicked.connect(self.plate.clear_selection)
+        self.save_template_button.clicked.connect(self._save_as_template)
         self.sample_back.clicked.connect(lambda: self._go(STEP_REAGENTS))
         self.sample_next.clicked.connect(lambda: self._go(STEP_CONFIRM))
         self.stack.addWidget(step)
@@ -400,6 +418,9 @@ class NewExperimentPage(QWidget):
             self.tr("模板决定试管数量和每管的用途、样品、稀释倍数和外加内毒素。")
         )
         self.template_empty.setText(self.tr("还没有可用的模板"))
+        self.blank_button.setText(self.tr("从空白配置开始"))
+        self.configure_button.setText(self.tr("编辑本次试管配置"))
+        self.configure_button.setVisible(self._draft.template is not None)
         self.template_next.setText(self.tr("下一步：校验试剂"))
         self.reagent_intro.setText(
             self.tr(
@@ -423,6 +444,10 @@ class NewExperimentPage(QWidget):
         )
         self.auto_button.setText(self.tr("自动选择"))
         self.clear_button.setText(self.tr("全部清除"))
+        self.save_template_button.setText(self.tr("另存为模板"))
+        self.save_template_button.setVisible(
+            self._session is not None and self._session.can(Permission.TEMPLATE_MANAGE)
+        )
         self.sample_back.setText(self.tr("上一步"))
         self.sample_next.setText(self.tr("下一步：确认启动"))
         self.info_card.set_title(self.tr("试验信息"))
@@ -464,6 +489,20 @@ class NewExperimentPage(QWidget):
         for kind, card in self.reagent_cards.items():
             samples = self._services.reagents.sample_codes(kind) if self._demo_helpers else []
             card.set_samples(samples)
+        self._render()
+
+    def use_template(self, template: ExperimentTemplate) -> None:
+        """选择模板管理页面传入的可用模板。"""
+        if self.is_dirty() and not self.confirm_leave():
+            return
+        if all(info.template.template_id != template.template_id for info in self._templates):
+            self._load_templates()
+        if all(info.template.template_id != template.template_id for info in self._templates):
+            return
+        self._draft.choose_template(template)
+        for option in self._options:
+            option.set_selected(option.template.template_id == template.template_id)
+        self._sync_samples()
         self._render()
 
     def current_step(self) -> int:
@@ -593,6 +632,102 @@ class NewExperimentPage(QWidget):
             option.set_selected(option.template.template_id == template_id)
         self._sync_lambda()
         self._render()
+
+    def _configure_blank(self) -> None:
+        self._open_tube_editor(None)
+
+    def _configure_selected(self) -> None:
+        template = self._draft.template
+        if template is not None:
+            self._open_tube_editor(template)
+
+    def _open_tube_editor(self, source: ExperimentTemplate | None) -> None:
+        if self._draft.has_sample_input() and not ConfirmDialog.ask(
+            self,
+            self.tr("修改本次配置？"),
+            self.tr("修改试管配置会清空已录入的样品和管位，试剂校验结果会保留。"),
+            confirm_text=self.tr("继续"),
+            cancel_text=self.tr("取消"),
+        ):
+            return
+        initial = (
+            self._current_configuration_draft(source)
+            if source is not None
+            else TemplateDraft(
+                self.tr("本次实验配置"),
+                ExperimentType.GENERAL,
+                [TemplateItemInput(self.tr("样品"))],
+            )
+        )
+        dialog = TemplateEditorDialog(
+            lambda draft: self._build_run_template(draft),
+            initial=initial,
+            parent=self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.saved is not None:
+            configured = dialog.saved
+            configured = ExperimentTemplate(
+                f"draft.{uuid.uuid4().hex}",
+                configured.name,
+                configured.experiment_type,
+                configured.items,
+                configured.needs_confirmation,
+            )
+            self._draft.configure(
+                configured,
+                source_template_id=(
+                    self._draft.source_template_id
+                    if source is not None and source.template_id.startswith("draft.")
+                    else source.template_id
+                    if source is not None
+                    else None
+                ),
+            )
+            self._sync_samples()
+            self._render()
+
+    @staticmethod
+    def _build_run_template(draft: TemplateDraft) -> ExperimentTemplate:
+        return build_template_config("draft.pending", draft)
+
+    def _current_configuration_draft(self, template: ExperimentTemplate) -> TemplateDraft:
+        """把当前样品行与原管用途、稀释和 λ 配置合并为编辑器初值。"""
+        self.sample_table.commit_editor()
+        items = sorted(template.items, key=lambda item: item.tube_no)
+        return TemplateDraft(
+            template.name,
+            template.experiment_type,
+            tuple(
+                TemplateItemInput(
+                    sample_name=row.name,
+                    role=item.role,
+                    dilution_factor=item.dilution_factor,
+                    spiked_endotoxin=row.spiked_endotoxin,
+                    lambda_multiple=item.lambda_multiple,
+                )
+                for row, item in zip(self._draft.rows, items, strict=True)
+            ),
+        )
+
+    def _save_as_template(self) -> None:
+        if self._session is None or not self._session.can(Permission.TEMPLATE_MANAGE):
+            return
+        current = self._draft.template
+        if current is None:
+            return
+        original = self._current_configuration_draft(current)
+        initial = TemplateDraft("", original.experiment_type, original.items)
+        dialog = TemplateEditorDialog(
+            lambda draft: self._services.templates.create_template(self._session, draft),
+            initial=initial,
+            parent=self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            from gelinspect.ui.widgets.toast import Toast, ToastKind
+
+            Toast.show_message(
+                self.window(), self.tr("模板已另存；当前实验草稿保留"), ToastKind.SUCCESS
+            )
 
     # ================================================================== 步骤 2
 

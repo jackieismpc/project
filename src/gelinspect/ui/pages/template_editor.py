@@ -246,6 +246,9 @@ class TemplateEditorDialog(QDialog):
         except StorageBusyError:
             self._show_error(describe_storage_busy())
             return
+        except ValueError as error:
+            self._show_error(str(error))
+            return
         self.accept()
 
     def _show_error(self, text: str) -> None:

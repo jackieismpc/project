@@ -112,6 +112,68 @@ def test_only_template_manager_can_retain_deleted_template_snapshot(stack: Stack
     assert experiment.assignments[1].role is TubeRole.NEGATIVE_CONTROL
 
 
+def test_ad_hoc_configuration_runs_without_persisting_a_template(stack: Stack) -> None:
+    source = request_for()
+    snapshot = dataclasses.replace(source.template_snapshot, template_id="draft.one")
+    request = dataclasses.replace(
+        source, template_id="draft.one", template_snapshot=snapshot, source_template_id=None
+    )
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None
+    assert experiment.template_id == "draft.one"
+    assert len(experiment.assignments) == 18
+    assert stack.database.templates.get("draft.one") is None
+
+
+def test_ad_hoc_configuration_accepts_exactly_96_tubes(stack: Stack) -> None:
+    template = BUILTIN_TEMPLATES[ExperimentType.GENERAL]
+    source = request_for(template)
+    snapshot = dataclasses.replace(template, template_id="draft.ninety-six")
+    request = dataclasses.replace(
+        source, template_id=snapshot.template_id, template_snapshot=snapshot
+    )
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None and len(experiment.assignments) == TUBE_COUNT
+
+
+def test_ad_hoc_configuration_rejects_non_contiguous_tube_configuration(stack: Stack) -> None:
+    template = ExperimentTemplate(
+        "draft.gapped",
+        "间隔管位",
+        ExperimentType.LIMIT,
+        (
+            dataclasses.replace(LIMIT.items[0], tube_no=1),
+            dataclasses.replace(LIMIT.items[1], tube_no=3),
+        ),
+    )
+    with pytest.raises(ServiceError) as caught:
+        stack.experiments.create_experiment(stack.login("experimenter"), request_for(template))
+    assert caught.value.code is ServiceErrorCode.DRAFT_TUBES_INVALID
+
+
+def test_ad_hoc_configuration_keeps_source_revocation_guard(stack: Stack) -> None:
+    admin = stack.login("admin")
+    source_template = stack.templates.create_template(
+        admin,
+        TemplateDraft("來源模板", ExperimentType.LIMIT, [TemplateItemInput("供試品")]),
+    )
+    source = request_for(source_template)
+    snapshot = dataclasses.replace(source.template_snapshot, template_id="draft.two")
+    request = dataclasses.replace(
+        source,
+        template_id="draft.two",
+        template_snapshot=snapshot,
+        source_template_id=source_template.template_id,
+    )
+    stack.templates.delete_template(admin, source_template.template_id)
+    with pytest.raises(ServiceError) as caught:
+        stack.experiments.create_experiment(stack.login("experimenter"), request)
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_NOT_FOUND
+    assert stack.experiments.create_experiment(admin, request)
+
+
 def test_snapshot_reuse_rechecks_revoked_template_permission(stack: Stack) -> None:
     admin = stack.login("admin")
     template = stack.templates.create_template(

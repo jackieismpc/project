@@ -11,6 +11,7 @@ from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.template_service import TemplateDraft, TemplateItemInput
 from gelinspect.ui.main_window import MainWindow
+from gelinspect.ui.pages.new_experiment import NewExperimentPage
 from gelinspect.ui.pages.template_editor import (
     COL_DILUTION,
     COL_ROLE,
@@ -89,6 +90,20 @@ def test_lists_builtin_templates_with_type_count_and_state(
         "供试品", "供试品", "供试品阳性对照", "供试品阳性对照",
         "阳性对照", "阳性对照", "阴性对照", "阴性对照",
     ]  # fmt: skip
+
+
+def test_selected_template_can_be_sent_to_new_experiment(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_templates(qapp, window, "experimenter")
+    select_row(qapp, page, "限度试验")
+    selected = page.selected()
+    assert selected is not None
+    page.use_template_requested.connect(window._use_template_in_experiment)
+    click(qapp, page.use_button)
+    wizard = window.page("new")
+    assert window.current_route == "new" and isinstance(wizard, NewExperimentPage)
+    assert wizard.draft().template == selected.template
 
 
 def test_builtin_templates_are_read_only_but_can_be_copied(

@@ -119,6 +119,17 @@ def test_request_pairs_tubes_with_trimmed_sample_rows() -> None:
     assert [a.tube_no for a in request.assignments] == [10, 11, 12, 13, 14, 15, 16, 17]
 
 
+def test_reconfiguring_a_run_keeps_its_original_template_source() -> None:
+    draft = draft_with(LIMIT)
+    adhoc = ExperimentTemplate("draft.current", LIMIT.name, LIMIT.experiment_type, LIMIT.items)
+    draft.configure(adhoc, source_template_id=LIMIT.template_id)
+    updated = ExperimentTemplate("draft.edited", LIMIT.name, LIMIT.experiment_type, LIMIT.items)
+    draft.configure(updated, source_template_id=draft.source_template_id)
+    request = draft.to_request()
+    assert request.template_id == "draft.edited"
+    assert request.source_template_id == LIMIT.template_id
+
+
 def test_request_without_a_template_is_an_error() -> None:
     with pytest.raises(ValueError, match="模板"):
         ExperimentDraft().to_request()
