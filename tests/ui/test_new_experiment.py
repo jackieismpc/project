@@ -299,7 +299,8 @@ def test_manual_reagent_mode_and_editing_invalidate_old_pass(
     click(qapp, page.template_next)
     card = page.reagent_cards[ReagentKind.LAL_REAGENT]
     scan(qapp, page, ReagentKind.LAL_REAGENT, SAMPLE_CODES["lal_valid"])
-    assert card.scan() is not None and card.scan().valid
+    original = card.scan()
+    assert original is not None and original.valid
     card.manual_mode_button.click()
     settle(qapp)
     assert card.scan() is None and not page.reagents_ok()
@@ -307,8 +308,9 @@ def test_manual_reagent_mode_and_editing_invalidate_old_pass(
     card.batch_input.setText("LAL2606A")
     card.scan_button.click()
     settle(qapp)
-    assert card.scan() is not None and card.scan().valid
-    assert card.scan().input_mode == "manual"
+    manual = card.scan()
+    assert manual is not None and manual.valid
+    assert manual.input_mode == "manual"
     assert card.sensitivity_input.text() == "0.25"
     card.batch_input.setText("LAL9999X")
     settle(qapp)

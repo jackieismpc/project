@@ -1,8 +1,8 @@
 """用 ``QTextDocument`` 排版、``QPdfWriter`` 输出 A4 PDF；同一套排版也用于预览和打印。
 
 * 只用 PySide6-Essentials 里的 ``QtGui``，不引入 QtPdf（Addons）或其他 PDF 库。
-* 中文字体用随软件内置的 Noto Sans SC，Qt 在 PDF 里只嵌入用到的字形（子集），所以在没有这个
-  字体的电脑上也能正确显示。内置字体缺失时回退到系统字体并记警告。
+* 英文与数字用 Times New Roman，中文用 SimSun。字体由目标操作系统提供，不随软件分发；
+  系统缺少时会记录警告并由系统字体回退。
 * 页脚（不可更改声明、版权声明、内容摘要、页码）逐页自绘，因为 ``QTextDocument`` 没有页眉页脚。
 * 排版只依赖“设备”（``QPagedPaintDevice``）：``QPdfWriter`` 出文件，``QPrinter`` 供预览、打印。
 * 服务层可以在没有窗口的环境里运行：没有 ``QGuiApplication`` 时用 ``offscreen`` 平台创建一个。
@@ -14,7 +14,6 @@ from __future__ import annotations
 import logging
 import os
 from datetime import tzinfo
-from pathlib import Path
 
 from PySide6.QtCore import (
     QBuffer,
@@ -40,22 +39,11 @@ from PySide6.QtGui import (
 )
 
 from gelinspect.services.reporting.document import ReportDocument
-from gelinspect.services.reporting.html import MONO, SANS, image_resource_name, render_html
+from gelinspect.services.reporting.html import CJK, MONO, SANS, image_resource_name, render_html
 from gelinspect.services.reporting.strings import DEFAULT_HOLDER, SOURCES, S
 from gelinspect.services.reporting.texts import ReportTexts
 
 _log = logging.getLogger(__name__)
-
-FONT_DIR = Path(__file__).resolve().parents[2] / "ui" / "assets" / "fonts"
-"""内置字体目录（与界面共用同一份文件，不重复打包）。"""
-FONT_FILES = (
-    "NotoSansSC-Regular.ttf",
-    "NotoSansSC-Medium.ttf",
-    "NotoSansSC-Bold.ttf",
-    "IBMPlexMono-Regular.ttf",
-    "IBMPlexMono-Medium.ttf",
-)
-"""报告用到的内置字体文件。"""
 
 PDF_RESOLUTION = 288
 """PDF 排版分辨率（dpi），是 96 的整数倍，逻辑像素到设备像素的换算因此是整数。"""
@@ -66,7 +54,7 @@ FOOTER_MM = 15.0
 
 _app: QGuiApplication | None = None
 _fonts_loaded = False
-_fonts_bundled = False
+_report_fonts_available = False
 
 
 def ensure_gui_application() -> QGuiApplication:
@@ -97,28 +85,22 @@ def configure_printer(printer: QPagedPaintDevice) -> None:
 
 
 def ensure_fonts() -> bool:
-    """加载内置字体（只加载一次）。
+    """Check whether the requested system report fonts are installed.
 
     Returns:
-        正文字体是否来自内置文件；缺失时回退系统字体并返回 False。
+        True when Times New Roman and SimSun are available; missing fonts fall back.
     """
-    global _fonts_loaded, _fonts_bundled
+    global _fonts_loaded, _report_fonts_available
     ensure_gui_application()
     if not _fonts_loaded:
-        loaded = [
-            name
-            for name in FONT_FILES
-            if (FONT_DIR / name).is_file()
-            and QFontDatabase.addApplicationFont(str(FONT_DIR / name)) >= 0
-        ]
         families = set(QFontDatabase.families())
-        _fonts_bundled = SANS in families and any(n.startswith("NotoSansSC") for n in loaded)
-        if not _fonts_bundled:
-            _log.warning("内置字体 %s 不可用，报告回退到系统字体", SANS)
-        if MONO not in families:
-            _log.warning("内置等宽字体 %s 不可用，报告回退到系统字体", MONO)
+        _report_fonts_available = SANS in families and CJK in families
+        if SANS not in families:
+            _log.warning("报告字体 %s 不可用，报告回退到系统字体", SANS)
+        if CJK not in families:
+            _log.warning("报告字体 %s 不可用，报告回退到系统字体", CJK)
         _fonts_loaded = True
-    return _fonts_bundled
+    return _report_fonts_available
 
 
 class ReportRenderer:
@@ -198,6 +180,7 @@ class ReportRenderer:
         text_document.documentLayout().setPaintDevice(device)
         text_document.setDocumentMargin(0)
         font = QFont(SANS)
+        font.setFamilies([SANS, CJK])
         font.setPointSizeF(9)
         text_document.setDefaultFont(font)
         for experiment_id, pairs in document.images.items():
@@ -261,6 +244,7 @@ class ReportRenderer:
         painter.setPen(Qt.GlobalColor.black)
         painter.drawLine(0, top + pad, width, top + pad)
         notes = QFont(SANS)
+        notes.setFamilies([SANS, CJK])
         notes.setPointSizeF(7)
         painter.setFont(notes)
         painter.setPen(Qt.GlobalColor.darkGray)
@@ -278,9 +262,9 @@ class ReportRenderer:
             int(wrap),
             f"{statement} {copyright_text}",
         )
-        # 摘要标签含汉字，必须用内置的中文字体画：等宽字体没有汉字，会回退到系统字体，
-        # 繁体报告里就会混进系统字形。标签和摘要值分两段画，值用等宽字体。
+        # 摘要标签含汉字，按系统 SimSun 字体回退绘制；摘要数字使用 Times New Roman。
         mono = QFont(MONO)
+        mono.setFamilies([MONO, CJK])
         mono.setPointSizeF(6.5)
         base = top + pad * 1.6 + line_height * 2
         label = f"{texts.s(S.FOOT_DIGEST)} "

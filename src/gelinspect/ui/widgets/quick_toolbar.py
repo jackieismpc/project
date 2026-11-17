@@ -53,36 +53,29 @@ class QuickAction:
     text: str
     icon: str
     shortcut: QKeySequence.StandardKey | str
-    permission: Permission
+    permission: Permission | None
 
 
 DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
     QuickAction(
         "new_experiment",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "新建试验")),
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "新建实验")),
         "circle-plus",
         QKeySequence.StandardKey.New,
         Permission.EXPERIMENT_CREATE,
     ),
     QuickAction(
-        "open_file",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "打开文件")),
-        "folder-open",
-        QKeySequence.StandardKey.Open,
-        Permission.EXPERIMENT_VIEW,
-    ),
-    QuickAction(
         "templates",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "检测模板")),
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "模板管理")),
         "columns-2",
         "Ctrl+T",
         Permission.TEMPLATE_VIEW,
     ),
     QuickAction(
-        "print_report",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "打印报告")),
-        "printer",
-        QKeySequence.StandardKey.Print,
+        "reports",
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "报告中心")),
+        "file-text",
+        "Ctrl+R",
         Permission.REPORT_VIEW,
     ),
     QuickAction(
@@ -100,7 +93,7 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         Permission.SETTINGS_VIEW,
     ),
 )
-"""设计评审确定的 6 个快捷操作，从左到右排列；宽度不足时从右端开始收进“更多”。"""
+"""快捷入口从左到右排列；宽度不足时从右端开始收进“更多”。"""
 
 
 def native_shortcut_text(shortcut: QKeySequence.StandardKey | str) -> str:
@@ -216,8 +209,8 @@ class QuickToolbar(QFrame):
         actionTriggered: 某快捷操作被触发（点击或快捷键），参数为操作 id。
         menuRequested: 点击了菜单按钮，由 AppShell 决定展开或收起侧栏。
         languageSelected: 在语言菜单里选了某种语言，参数为语言代码（如 ``zh_CN``）。
-        userActionRequested: 在用户菜单里选了某项，参数为 ``change_password``、
-            ``lock`` 或 ``logout``。
+        userActionRequested: 在用户或设置菜单里选了某项，如 ``appearance``、
+            ``change_password``、``lock`` 或 ``logout``。
     """
 
     actionTriggered = Signal(str)  # noqa: N815
@@ -270,6 +263,29 @@ class QuickToolbar(QFrame):
         for spec in self._specs:
             self._add_action(spec)
 
+        self._settings_menu = QMenu(self)
+        self._settings_menu.setTitle(self.tr("设置"))
+        self._settings_actions = {
+            "appearance": self._settings_menu.addAction(_icon("settings"), self.tr("外观设置")),
+            "instrument_settings": self._settings_menu.addAction(
+                _icon("settings"), self.tr("仪器与维护")
+            ),
+            "about": self._settings_menu.addAction(_icon("info"), self.tr("关于")),
+        }
+        self._settings_actions["appearance"].triggered.connect(
+            lambda: self.userActionRequested.emit("appearance")
+        )
+        self._settings_actions["instrument_settings"].triggered.connect(
+            lambda: self.actionTriggered.emit("instrument_settings")
+        )
+        self._settings_actions["about"].triggered.connect(
+            lambda: self.actionTriggered.emit("about")
+        )
+        settings_button = self._buttons.get("instrument_settings")
+        if settings_button is not None:
+            settings_button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+            settings_button.setMenu(self._settings_menu)
+
         self.more_button = self._make_button()
         self.more_button.setText(self.tr("更多"))
         self.more_button.setIcon(_icon("ellipsis"))
@@ -307,6 +323,12 @@ class QuickToolbar(QFrame):
         self._user_menu = QMenu(self._user)
         self._user.setMenu(self._user_menu)
         self._user_actions: dict[str, QAction] = {}
+        appearance_action = self._user_menu.addAction(_icon("settings"), "")
+        appearance_action.triggered.connect(
+            lambda: self.userActionRequested.emit("appearance")
+        )
+        self._user_actions["appearance"] = appearance_action
+        self._user_menu.addSeparator()
         for action_id, icon_name in (
             ("change_password", "key-round"),
             ("lock", "lock"),
@@ -520,8 +542,13 @@ class QuickToolbar(QFrame):
             self._buttons[spec.id].setAccessibleName(name)
         self._refresh_actions()
         self._user_actions["change_password"].setText(self.tr("修改密码"))
+        self._user_actions["appearance"].setText(self.tr("外观设置"))
         self._user_actions["lock"].setText(self.tr("锁定屏幕"))
         self._user_actions["logout"].setText(self.tr("退出登录"))
+        self._settings_menu.setTitle(self.tr("设置"))
+        self._settings_actions["appearance"].setText(self.tr("外观设置"))
+        self._settings_actions["instrument_settings"].setText(self.tr("仪器与维护"))
+        self._settings_actions["about"].setText(self.tr("关于"))
         self.set_instrument_status(self._connected)
         self.set_user(self._user_name, self._user_role)
         if self._language_name:
@@ -530,7 +557,7 @@ class QuickToolbar(QFrame):
     def _refresh_actions(self) -> None:
         """按权限刷新各操作的可用状态与提示。"""
         for spec in self._specs:
-            allowed = spec.permission in self._granted
+            allowed = spec.permission is None or spec.permission in self._granted
             action = self._actions[spec.id]
             name = self.tr(spec.text)
             action.setEnabled(allowed)

@@ -233,6 +233,61 @@
     </message>
 </context>
 <context>
+    <name>AppearanceDialog</name>
+    <message>
+        <source>外观设置</source>
+        <translation>外觀設定</translation>
+    </message>
+    <message>
+        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
+        <translation>按帳號儲存。變更會立即預覽，取消可還原原設定。</translation>
+    </message>
+    <message>
+        <source>选择颜色</source>
+        <translation>選擇顏色</translation>
+    </message>
+    <message>
+        <source>跟随系统字号</source>
+        <translation>跟隨系統字型大小</translation>
+    </message>
+    <message>
+        <source>预览</source>
+        <translation>預覽</translation>
+    </message>
+    <message>
+        <source>报告中心</source>
+        <translation>報告中心</translation>
+    </message>
+    <message>
+        <source>这是界面内容和正文文字的预览。</source>
+        <translation>這是介面內容與正文文字的預覽。</translation>
+    </message>
+    <message>
+        <source>主要操作</source>
+        <translation>主要操作</translation>
+    </message>
+    <message>
+        <source>恢复默认</source>
+        <translation>還原預設值</translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation>儲存</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>系统</source>
+        <translation>系統</translation>
+    </message>
+    <message>
+        <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
+        <translation>部分文字與背景的對比度較低，請調整顏色以確保可讀性。</translation>
+    </message>
+</context>
+<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -927,8 +982,8 @@
         <translation>工作台</translation>
     </message>
     <message>
-        <source>新建试验</source>
-        <translation>新增試驗</translation>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
     </message>
     <message>
         <source>检测室温度</source>
@@ -1614,6 +1669,10 @@
         <translation>開啟所選試驗</translation>
     </message>
     <message>
+        <source>打开所选报告</source>
+        <translation>開啟所選報告</translation>
+    </message>
+    <message>
         <source>导出所选结果…</source>
         <translation>匯出所選結果…</translation>
     </message>
@@ -1816,6 +1875,18 @@
         <translation>密碼已修改</translation>
     </message>
     <message>
+        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <translation>實驗 {id} 檢測完成，{count} 支試管待複核。</translation>
+    </message>
+    <message>
+        <source>若干</source>
+        <translation>若干</translation>
+    </message>
+    <message>
+        <source>试验 {id} 已完成，可查看报告。</source>
+        <translation>實驗 {id} 已完成，可檢視報告。</translation>
+    </message>
+    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation>凝膠智檢系統 GelInspect</translation>
     </message>
@@ -1897,22 +1968,6 @@
         <translation>這個試驗還沒有完成，可以先預覽報告；完成並複核後才能簽署。</translation>
     </message>
     <message>
-        <source>把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：</source>
-        <translation>把同一批號的多次試驗彙總到一份報告。選擇本試驗用到的批號：</translation>
-    </message>
-    <message>
-        <source>这个试验没有批号可以汇总。</source>
-        <translation>這個試驗沒有批號可以彙總。</translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation>鱟試劑批號</translation>
-    </message>
-    <message>
-        <source>样品批号</source>
-        <translation>樣品批號</translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation>試管編號</translation>
     </message>
@@ -1983,6 +2038,10 @@
     <message>
         <source>回放（还没有录像）</source>
         <translation>回放（還沒有錄影）</translation>
+    </message>
+    <message>
+        <source>这个排没有录像</source>
+        <translation>此排沒有錄影</translation>
     </message>
     <message>
         <source>等待视频画面…</source>
@@ -2073,16 +2132,12 @@
         <translation>報告列印預覽</translation>
     </message>
     <message>
-        <source>单批次报告</source>
-        <translation>單批次報告</translation>
+        <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
+        <translation>在「新增實驗」中啟動實驗後，這裡會顯示即時畫面、孔板和結果；也可以到歷史記錄回看已完成的實驗。</translation>
     </message>
     <message>
         <source>当前没有进行中的试验</source>
         <translation>目前沒有進行中的試驗</translation>
-    </message>
-    <message>
-        <source>在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
-        <translation>在“新試驗”裡啟動試驗後，這裡顯示即時畫面、孔板和結果；也可以到歷史紀錄回看已完成的試驗。</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -2185,10 +2240,6 @@
     <message>
         <source>排</source>
         <translation>排</translation>
-    </message>
-    <message>
-        <source>新试验</source>
-        <translation>新試驗</translation>
     </message>
     <message>
         <source>选择模板</source>
@@ -2311,8 +2362,20 @@
         <translation>沒有樣品</translation>
     </message>
     <message>
-        <source>离开新试验向导？</source>
-        <translation>離開新試驗精靈？</translation>
+        <source>扫码或输入样品批号，回车填入选中行</source>
+        <translation>掃描或輸入樣品批號，按 Enter 填入選取的列</translation>
+    </message>
+    <message>
+        <source>λ倍数</source>
+        <translation>λ 倍數</translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
+    </message>
+    <message>
+        <source>离开新建实验向导？</source>
+        <translation>要離開新增實驗精靈嗎？</translation>
     </message>
     <message>
         <source>向导里已录入的内容还没有提交，离开后会丢失。确定要离开吗？</source>
@@ -2453,6 +2516,10 @@
     <message>
         <source>、</source>
         <translation>、</translation>
+    </message>
+    <message>
+        <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
+        <translation>缺少鱟試劑標示靈敏度 λ，無法計算外加內毒素；請完成有效的試劑驗證。</translation>
     </message>
     <message>
         <source>管位数量要与模板一致，样品名称不能为空</source>
@@ -2788,20 +2855,16 @@
 <context>
     <name>QuickToolbar</name>
     <message>
-        <source>新建试验</source>
-        <translation>新增試驗</translation>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
     </message>
     <message>
-        <source>打开文件</source>
-        <translation>開啟檔案</translation>
+        <source>模板管理</source>
+        <translation>範本管理</translation>
     </message>
     <message>
-        <source>检测模板</source>
-        <translation>檢測範本</translation>
-    </message>
-    <message>
-        <source>打印报告</source>
-        <translation>列印報告</translation>
+        <source>报告中心</source>
+        <translation>報告中心</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -2818,6 +2881,18 @@
     <message>
         <source>菜单</source>
         <translation>選單</translation>
+    </message>
+    <message>
+        <source>外观设置</source>
+        <translation>外觀設定</translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
+        <translation>儀器與維護</translation>
+    </message>
+    <message>
+        <source>关于</source>
+        <translation>關於</translation>
     </message>
     <message>
         <source>更多</source>
@@ -3138,8 +3213,8 @@
         <translation>還沒有驗證紀錄</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>試劑溯源</translation>
+        <source>试剂记录</source>
+        <translation>試劑記錄</translation>
     </message>
     <message>
         <source>扫码查询</source>
@@ -3209,10 +3284,6 @@
     <message>
         <source>自动凝胶检测报告</source>
         <translation>自動凝膠檢測報告</translation>
-    </message>
-    <message>
-        <source>单批次汇总报告</source>
-        <translation>單批次彙總報告</translation>
     </message>
     <message>
         <source>文件名（试验编号）</source>
@@ -3399,26 +3470,6 @@
         <translation>沒有影像</translation>
     </message>
     <message>
-        <source>试验编号</source>
-        <translation>試驗編號</translation>
-    </message>
-    <message>
-        <source>试管数</source>
-        <translation>試管數</translation>
-    </message>
-    <message>
-        <source>状态</source>
-        <translation>狀態</translation>
-    </message>
-    <message>
-        <source>试验</source>
-        <translation>試驗</translation>
-    </message>
-    <message>
-        <source>共 {n} 个试验</source>
-        <translation>共 {n} 個試驗</translation>
-    </message>
-    <message>
         <source>本报告已使用数字签名，任何修改都会导致验签失败。</source>
         <translation>本報告已使用數位簽章，任何修改都會導致驗章失敗。</translation>
     </message>
@@ -3474,10 +3525,6 @@
         <translation>已簽署</translation>
     </message>
     <message>
-        <source>可以签署：批次里的试验都已签署</source>
-        <translation>可以簽署：批次裡的試驗都已簽署</translation>
-    </message>
-    <message>
         <source>可以签署：试验结论为“{verdict}”</source>
         <translation>可以簽署：試驗結論為“{verdict}”</translation>
     </message>
@@ -3502,32 +3549,12 @@
         <translation>簽署需要再次輸入密碼；簽署後結果和複核被鎖定。</translation>
     </message>
     <message>
-        <source>单批次报告汇总已签署的试验，不改变试验状态。</source>
-        <translation>單批次報告彙總已簽署的試驗，不改變試驗狀態。</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>目前角色無此權限</translation>
     </message>
     <message>
-        <source>已签署的报告语言固定为签署时的语言。</source>
-        <translation>已簽署的報告語言固定為簽署時的語言。</translation>
-    </message>
-    <message>
-        <source>未签署时可以选择报告语言，签署时按所选语言生成。</source>
-        <translation>未簽署時可以選擇報告語言，簽署時按所選語言產生。</translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation>鱟試劑批號</translation>
-    </message>
-    <message>
         <source>样品批号</source>
         <translation>樣品批號</translation>
-    </message>
-    <message>
-        <source>还没有已完成的试验，没有可汇总的批次。</source>
-        <translation>還沒有已完成的試驗，沒有可彙總的批次。</translation>
     </message>
     <message>
         <source>已签署，报告已保存：{name}</source>
@@ -3540,6 +3567,58 @@
     <message>
         <source>PDF 文件 (*.pdf)</source>
         <translation>PDF 檔案 (*.pdf)</translation>
+    </message>
+    <message>
+        <source>全部样品批号</source>
+        <translation>所有樣品批號</translation>
+    </message>
+    <message>
+        <source>全部鲎试剂批号</source>
+        <translation>所有鱟試劑批號</translation>
+    </message>
+    <message>
+        <source>全部缓冲液批号</source>
+        <translation>所有緩衝液批號</translation>
+    </message>
+    <message>
+        <source>全部内毒素试剂批号</source>
+        <translation>所有內毒素試劑批號</translation>
+    </message>
+    <message>
+        <source>待签署</source>
+        <translation>待簽署</translation>
+    </message>
+    <message>
+        <source>导入外部 PDF</source>
+        <translation>匯入外部 PDF</translation>
+    </message>
+    <message>
+        <source>数字签名有效，报告内容和签署记录已匹配。</source>
+        <translation>數位簽章有效，報告內容與簽署記錄相符。</translation>
+    </message>
+    <message>
+        <source>数字签名无效，文件不能作为可信报告。</source>
+        <translation>數位簽章無效，檔案不能視為可信報告。</translation>
+    </message>
+    <message>
+        <source>PDF 未签名。</source>
+        <translation>PDF 尚未簽署。</translation>
+    </message>
+    <message>
+        <source>无法识别签名或签署者，请检查文件权限并联系后台检查。</source>
+        <translation>無法識別簽章或簽署者，請檢查檔案權限並聯絡後台檢查。</translation>
+    </message>
+    <message>
+        <source>PDF 损坏或无法读取，请检查文件权限并联系后台检查。</source>
+        <translation>PDF 已損毀或無法讀取，請檢查檔案權限並聯絡後台檢查。</translation>
+    </message>
+    <message>
+        <source>数字签名有效，但不是本系统已知报告。</source>
+        <translation>數位簽章有效，但不是本系統已知的報告。</translation>
+    </message>
+    <message>
+        <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
+        <translation>無法確認 PDF 狀態，請檢查檔案權限並聯絡後台檢查。</translation>
     </message>
     <message>
         <source>已发送到打印机（{pages} 页）</source>
@@ -3562,6 +3641,14 @@
         <translation>Excel 檔案 (*.xlsx)</translation>
     </message>
     <message>
+        <source>请先选择要导出的实验。</source>
+        <translation>請先選取要匯出的實驗。</translation>
+    </message>
+    <message>
+        <source>所选实验没有已签署报告可导出。</source>
+        <translation>所選實驗沒有已簽署的報告可匯出。</translation>
+    </message>
+    <message>
         <source>报告中心</source>
         <translation>報告中心</translation>
     </message>
@@ -3572,6 +3659,38 @@
     <message>
         <source>刷新</source>
         <translation>重新整理</translation>
+    </message>
+    <message>
+        <source>返回报告列表</source>
+        <translation>返回報告清單</translation>
+    </message>
+    <message>
+        <source>刷新列表</source>
+        <translation>重新整理清單</translation>
+    </message>
+    <message>
+        <source>导入外部 PDF…</source>
+        <translation>匯入外部 PDF…</translation>
+    </message>
+    <message>
+        <source>打开匹配的报告</source>
+        <translation>開啟相符的報告</translation>
+    </message>
+    <message>
+        <source>实验</source>
+        <translation>實驗</translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation>時間</translation>
+    </message>
+    <message>
+        <source>试剂批号</source>
+        <translation>試劑批號</translation>
+    </message>
+    <message>
+        <source>报告状态</source>
+        <translation>報告狀態</translation>
     </message>
     <message>
         <source>还没有可出报告的试验</source>
@@ -3622,8 +3741,8 @@
         <translation>簽署和匯出</translation>
     </message>
     <message>
-        <source>报告语言</source>
-        <translation>報告語言</translation>
+        <source>查看实验数据</source>
+        <translation>檢視實驗資料</translation>
     </message>
     <message>
         <source>签署并生成 PDF</source>
@@ -3640,22 +3759,6 @@
     <message>
         <source>批量导出…</source>
         <translation>批次匯出…</translation>
-    </message>
-    <message>
-        <source>单批次报告</source>
-        <translation>單批次報告</translation>
-    </message>
-    <message>
-        <source>把同一批号的多次试验汇总到一份报告。</source>
-        <translation>把同一批號的多次試驗彙總到一份報告。</translation>
-    </message>
-    <message>
-        <source>预览单批次报告</source>
-        <translation>預覽單批次報告</translation>
-    </message>
-    <message>
-        <source>返回试验报告</source>
-        <translation>返回試驗報告</translation>
     </message>
 </context>
 <context>
@@ -3711,14 +3814,6 @@
         <translation>工作台</translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation>新試驗</translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation>試驗監控</translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation>單管詳情</translation>
     </message>
@@ -3731,8 +3826,16 @@
         <translation>範本管理</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>試劑溯源</translation>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation>實驗監控</translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
+        <translation>試劑記錄</translation>
     </message>
     <message>
         <source>报告中心</source>
@@ -3896,14 +3999,6 @@
     <message>
         <source>报告文件与入库的 SHA-256 不符，可能已被改动：{name}</source>
         <translation>報告檔案與存入資料庫的 SHA-256 不符，可能已被改動：{name}</translation>
-    </message>
-    <message>
-        <source>这个批号下没有已完成的试验</source>
-        <translation>這個批號下沒有已完成的試驗</translation>
-    </message>
-    <message>
-        <source>单批次报告只能在其中全部试验都已签署后签署</source>
-        <translation>單批次報告只能在其中全部試驗都已簽署後簽署</translation>
     </message>
     <message>
         <source>没有可导出的报告</source>
@@ -4128,6 +4223,38 @@
         <translation>操作失敗：{reason}</translation>
     </message>
     <message>
+        <source>导出诊断包</source>
+        <translation>匯出診斷套件</translation>
+    </message>
+    <message>
+        <source>ZIP 文件 (*.zip)</source>
+        <translation>ZIP 檔案 (*.zip)</translation>
+    </message>
+    <message>
+        <source>正在收集诊断资料…</source>
+        <translation>正在收集診斷資料…</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>生成诊断包</source>
+        <translation>產生診斷套件</translation>
+    </message>
+    <message>
+        <source>正在写入诊断文件 {done}/{total}…</source>
+        <translation>正在寫入診斷檔案 {done}/{total}…</translation>
+    </message>
+    <message>
+        <source>诊断包已生成：{path}，{count} 个文件，{size} 字节。缺失/排除 {missing} 项。</source>
+        <translation>診斷套件已產生：{path}，共 {count} 個檔案、{size} 位元組。缺少／排除 {missing} 項。</translation>
+    </message>
+    <message>
+        <source>诊断包生成已取消；未留下部分 ZIP 文件。</source>
+        <translation>已取消產生診斷套件；未留下不完整的 ZIP 檔案。</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>儀器與資料</translation>
     </message>
@@ -4142,6 +4269,26 @@
     <message>
         <source>视频输入</source>
         <translation>影片輸入</translation>
+    </message>
+    <message>
+        <source>诊断包</source>
+        <translation>診斷套件</translation>
+    </message>
+    <message>
+        <source>导出诊断包…</source>
+        <translation>匯出診斷套件…</translation>
+    </message>
+    <message>
+        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation>收集實驗參數、演算法輸出、複核記錄、稽核、輪替記錄檔及可用媒體，並附上檔案驗證清單。不會包含資料庫、密碼、權杖或私密金鑰。產生過程可取消；缺少或驗證失敗的媒體會列入清單。</translation>
+    </message>
+    <message>
+        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <translation>記錄檔約 {logs:.1f} MB（預設保留，不會自動刪除）；資料磁碟可用 {free:.1f} GB。</translation>
+    </message>
+    <message>
+        <source>日志默认保留，不自动删除。</source>
+        <translation>記錄檔預設保留，不會自動刪除。</translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4305,14 +4452,6 @@
         <translation>工作台</translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation>新試驗</translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation>試驗監控</translation>
-    </message>
-    <message>
         <source>历史记录</source>
         <translation>歷史紀錄</translation>
     </message>
@@ -4321,8 +4460,16 @@
         <translation>範本管理</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>試劑溯源</translation>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation>實驗監控</translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
+        <translation>試劑記錄</translation>
     </message>
     <message>
         <source>报告中心</source>
@@ -4413,10 +4560,6 @@
     <message>
         <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
         <translation>試驗結論為“無效”，不能簽署：不得據此放行。請處理下面的無效原因後重新做試驗。</translation>
-    </message>
-    <message>
-        <source>批次里还有试验没有签署，全部签署后才能签署单批次报告。</source>
-        <translation>批次裡還有試驗沒有簽署，全部簽署後才能簽署單批次報告。</translation>
     </message>
 </context>
 <context>
@@ -4736,6 +4879,10 @@
         <translation>自訂</translation>
     </message>
     <message>
+        <source>内置模板只读，可以复制后修改。自定义模板保存后，新建实验向导里立即可选。</source>
+        <translation>內建範本為唯讀，可複製後修改。自訂範本儲存後，會立即出現在新增實驗精靈中。</translation>
+    </message>
+    <message>
         <source>内置·已隐藏</source>
         <translation>內建・已隱藏</translation>
     </message>
@@ -4766,10 +4913,6 @@
     <message>
         <source>隐藏</source>
         <translation>隱藏</translation>
-    </message>
-    <message>
-        <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
-        <translation>內建範本唯讀，可以複製後修改。自訂範本儲存後，新試驗精靈裡立即可選。</translation>
     </message>
     <message>
         <source>当前账号只能查看模板，新建、复制和编辑需要模板管理权限。</source>
@@ -4919,18 +5062,6 @@
         <translation>目前角色沒有複核權限，只有分析員可以複核</translation>
     </message>
     <message>
-        <source>试验已无待复核的试管</source>
-        <translation>試驗已無待複核的試管</translation>
-    </message>
-    <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
-        <translation>全部排讀數分析完成、試驗進入待複核後才能複核</translation>
-    </message>
-    <message>
-        <source>已由 {who} 于 {when} 复核为{v}。意见：{note}</source>
-        <translation>已由 {who} 於 {when} 複核為{v}。意見：{note}</translation>
-    </message>
-    <message>
         <source>放弃未提交的复核？</source>
         <translation>放棄未提交的複核？</translation>
     </message>
@@ -4997,6 +5128,14 @@
     <message>
         <source>检测结果 · {v}</source>
         <translation>檢測結果 · {v}</translation>
+    </message>
+    <message>
+        <source>已由 {who} 于 {when} 复核为{v}。原因：{note}</source>
+        <translation>已由 {who} 於 {when} 複核為{v}。原因：{note}</translation>
+    </message>
+    <message>
+        <source>{when} · {who} · {v} · {note}</source>
+        <translation>{when} · {who} · {v} · {note}</translation>
     </message>
     <message>
         <source>判读过程</source>

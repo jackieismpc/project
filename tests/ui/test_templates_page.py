@@ -134,7 +134,9 @@ def test_editor_deletes_selected_tubes_instead_of_last_row(qapp: QApplication) -
         ExperimentType.LIMIT,
         [TemplateItemInput(f"样品{index}") for index in range(1, 4)],
     )
-    dialog = TemplateEditorDialog(lambda _draft: None, initial=draft)  # type: ignore[arg-type]
+    dialog = TemplateEditorDialog(
+        lambda _draft: BUILTIN_TEMPLATES[ExperimentType.INTERFERENCE], initial=draft
+    )
     dialog.table.selectRow(0)
     dialog.table.selectRow(2)
     assert dialog.remove_button.isEnabled()

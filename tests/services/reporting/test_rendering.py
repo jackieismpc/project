@@ -218,14 +218,15 @@ def test_user_text_is_escaped_not_interpreted_as_markup() -> None:
     assert "<b>粗体</b>&<script>1" in flat_text(data)
 
 
-def test_fonts_are_the_bundled_ones_and_are_embedded() -> None:
-    assert ensure_fonts() is True  # 内置 Noto Sans SC 可用
+def test_report_system_fonts_are_available_and_embedded() -> None:
+    assert ensure_fonts() is True  # Times New Roman 和 SimSun 可用
     data, _ = ReportRenderer(zone=UTC).render_pdf(
         document_of(big_experiment(3)), ReportTexts(ReportLanguage.ZH_CN)
     )
     fonts = pdf_font_report(data)
     assert fonts and all(embedded for _, embedded in fonts)
-    assert any("NotoSansSC" in name for name, _ in fonts)
+    assert any("TimesNewRoman" in name or "Times New Roman" in name for name, _ in fonts)
+    assert any("SimSun" in name for name, _ in fonts)
 
 
 def test_content_digest_ignores_language_and_changes_with_content() -> None:

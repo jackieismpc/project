@@ -413,7 +413,7 @@ class NewExperimentPage(QWidget):
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.title.setText(self.tr("新试验"))
+        self.title.setText(self.tr("新建实验"))
         self.steps.set_steps(
             [
                 self.tr("选择模板"),
@@ -553,7 +553,7 @@ class NewExperimentPage(QWidget):
             return True
         confirmed = ConfirmDialog.ask(
             self,
-            self.tr("离开新试验向导？"),
+            self.tr("离开新建实验向导？"),
             self.tr("向导里已录入的内容还没有提交，离开后会丢失。确定要离开吗？"),
             confirm_text=self.tr("离开"),
             cancel_text=self.tr("留在向导"),

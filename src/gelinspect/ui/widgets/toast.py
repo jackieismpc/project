@@ -59,6 +59,8 @@ class Toast(QFrame):
         icon = Label()
         icon.setPixmap(IconLoader.pixmap(icon_name, 18, color))
         self.message_label = Label(message, "body")
+        self.message_label.setWordWrap(True)
+        self.message_label.setMaximumWidth(420)
         layout.addWidget(icon)
         layout.addWidget(self.message_label)
         self._timer = QTimer(self)

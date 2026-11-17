@@ -102,6 +102,7 @@ class ReportsPage(QWidget):
     """
 
     signedExperiment = Signal(str)  # noqa: N815
+    experimentDataRequested = Signal(str)  # noqa: N815
     navigationRequested = Signal(str)  # noqa: N815
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
@@ -356,12 +357,14 @@ class ReportsPage(QWidget):
         self.print_button = Button("", ButtonVariant.SECONDARY, icon="printer")
         self.export_button = Button("", ButtonVariant.SECONDARY)
         self.excel_button = Button("", ButtonVariant.SECONDARY)
+        self.experiment_data_button = Button("", ButtonVariant.SECONDARY)
         for action_widget in (
             self.sign_button,
             self.sign_hint,
             self.print_button,
             self.export_button,
             self.excel_button,
+            self.experiment_data_button,
         ):
             self.actions_card.body.addWidget(action_widget)
         column.addWidget(self.actions_card)
@@ -378,6 +381,7 @@ class ReportsPage(QWidget):
         self.print_button.clicked.connect(self.request_print)
         self.export_button.clicked.connect(self.export_current)
         self.excel_button.clicked.connect(self.export_excel)
+        self.experiment_data_button.clicked.connect(self.open_experiment_data)
         return panel
 
     # ------------------------------------------------------------------ 公开接口
@@ -535,6 +539,11 @@ class ReportsPage(QWidget):
         self._apply_report_filters()
 
     def _apply_report_filters(self, _index: int = -1) -> None:
+        selected_ids = {
+            self._visible_report_items[row].experiment_id
+            for row in self.report_table.selected_rows()
+            if 0 <= row < len(self._visible_report_items)
+        }
         rows: list[dict[str, str]] = []
         self._visible_report_items: list[ReportListItem] = []
         sample = str(self.sample_filter.currentData() or "")
@@ -565,6 +574,9 @@ class ReportsPage(QWidget):
             )
             self._visible_report_items.append(item)
         self.report_table.set_rows(rows)
+        for row, item in enumerate(self._visible_report_items):
+            if item.experiment_id in selected_ids:
+                self.report_table.view.selectRow(row)
         self.list_export.setEnabled(bool(rows) and self._can(Permission.DATA_EXPORT))
 
     def _open_list_row(self, row: int) -> None:
@@ -605,6 +617,12 @@ class ReportsPage(QWidget):
         experiment_id = None if result is None else getattr(result, "experiment_id", None)
         if experiment_id:
             self.open_experiment(str(experiment_id))
+
+    def open_experiment_data(self) -> None:
+        """请求打开当前报告对应的实验数据。"""
+        experiment_id = self.experiment_id
+        if experiment_id:
+            self.experimentDataRequested.emit(experiment_id)
 
     # ------------------------------------------------------------------ 读取和显示
 
@@ -698,6 +716,7 @@ class ReportsPage(QWidget):
             self.print_button.setEnabled(False)
             self.export_button.setEnabled(False)
             self.excel_button.setEnabled(False)
+            self.experiment_data_button.setEnabled(False)
             self.verify_button.setEnabled(False)
             return
         section = preview.document.sections[0]
@@ -706,6 +725,7 @@ class ReportsPage(QWidget):
         )
         self._render_status(preview)
         self._render_actions(preview)
+        self.experiment_data_button.setEnabled(bool(preview.experiment_id))
         self._update_pager()
 
     def _tone(self, tone: str, text: str) -> None:
@@ -1091,6 +1111,7 @@ class ReportsPage(QWidget):
         self.print_button.setText(self.tr("打印"))
         self.export_button.setText(self.tr("导出已签名 PDF"))
         self.excel_button.setText(self.tr("导出 Excel 数据…"))
+        self.experiment_data_button.setText(self.tr("查看实验数据"))
         for index in range(self.experiment_box.count()):
             experiment_id = self.experiment_box.itemData(index)
             match = next((e for e in self._experiments if e.experiment_id == experiment_id), None)

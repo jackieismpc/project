@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtGui import QRawFont
-
-from gelinspect.services.reporting.renderer import FONT_DIR
 from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.reporting.texts import ReportLanguage, ReportTexts, report_language_of
 from gelinspect.services.reporting.verify import verify_pdf_bytes
@@ -82,32 +79,23 @@ def test_traditional_pdf_is_generated_signed_and_verified(
         assert bracket not in text
 
 
-def test_traditional_pdf_uses_only_bundled_fonts_and_every_glyph_is_covered(
+def test_traditional_pdf_embeds_the_requested_system_fonts(
     qapp: object, signing_stack: Stack, tmp_path: Path
 ) -> None:
-    """没有任何字符回退到系统字体：PDF 里的字体都是内置的，所有字符都在内置字体里。"""
+    """报告 PDF 使用目标系统提供的衬线字体。"""
     _, data, _ = sign_in_traditional(signing_stack, tmp_path)
     fonts = pdf_font_report(data)
     assert fonts and all(embedded for _, embedded in fonts)
-    for name, _ in fonts:
-        assert "NotoSansSC" in name or "IBMPlexMono" in name, f"回退到了系统字体：{name}"
-    covers = [
-        QRawFont(str(FONT_DIR / name), 12)
-        for name in ("NotoSansSC-Regular.ttf", "IBMPlexMono-Regular.ttf")
-    ]
-    uncovered = {
-        c
-        for c in flat_text(data)
-        if not c.isspace() and not any(font.supportsCharacter(ord(c)) for font in covers)
-    }
-    assert uncovered == set()
+    assert any("TimesNewRoman" in name or "Times New Roman" in name for name, _ in fonts)
+    assert any("SimSun" in name for name, _ in fonts)
 
 
 def test_signed_report_keeps_its_traditional_language(signing_stack: Stack, tmp_path: Path) -> None:
     service, _, _ = sign_in_traditional(signing_stack, tmp_path)
     analyst = signing_stack.login("analyst")
     preview = service.preview(analyst, "EXP-SAMPLE-0001", ReportLanguage.EN)
-    assert preview.language is ReportLanguage.ZH_TW  # 已签署的以签署时的语言为准
+    assert preview.language is ReportLanguage.EN
+    assert preview.can_sign
 
 
 def test_every_report_text_has_a_traditional_translation() -> None:

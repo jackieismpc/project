@@ -240,7 +240,7 @@ def test_quick_actions_navigate_to_their_pages(qapp: QApplication, window: MainW
     assert window.current_route == "new"
     window.shell.toolbar.action("templates").trigger()
     assert window.current_route == "templates"
-    window.shell.toolbar.action("print_report").trigger()
+    window.shell.toolbar.action("reports").trigger()
     assert window.current_route == "reports"
 
 

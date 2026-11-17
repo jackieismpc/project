@@ -1,4 +1,4 @@
-"""试剂溯源页：已录入的批次、校验记录和扫码查询。
+"""试剂记录页：已录入的批次、校验记录和扫码查询。
 
 所有角色可以查看和查询（查询只校验、不写记录）。批次和校验记录来自新试验向导里的扫码；
 过期的批次整行高亮并写明“已过期”，剩余天数不超过 30 天的提示“即将到期”。
@@ -38,7 +38,7 @@ def _local(value: object) -> str:
 
 
 class ReagentsPage(QWidget):
-    """试剂溯源页。"""
+    """试剂记录页。"""
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
         """创建页面。
@@ -248,7 +248,7 @@ class ReagentsPage(QWidget):
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.title.setText(self.tr("试剂溯源"))
+        self.title.setText(self.tr("试剂记录"))
         self.query_card.set_title(self.tr("扫码查询"))
         self.query_input.setPlaceholderText(self.tr("扫码或输入试剂码，按回车查询"))
         self.query_input.setAccessibleName(self.tr("试剂码"))

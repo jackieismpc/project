@@ -268,8 +268,8 @@ class DashboardPage(QWidget):
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("工作台"))
-        self.new_button.setText(self.tr("新建试验"))
-        self.new_button.setAccessibleName(self.tr("新建试验"))
+        self.new_button.setText(self.tr("新建实验"))
+        self.new_button.setAccessibleName(self.tr("新建实验"))
         self.temperature.set_label(self.tr("检测室温度"))
         self.running_card.set_title(self.tr("进行中的试验"))
         self.running_open.setText(self.tr("打开监控"))

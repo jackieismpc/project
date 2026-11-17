@@ -38,7 +38,7 @@ uv run python scripts/build.py                   # 当前唯一发布包
 | `--jobs N` | 并行编译数，默认 CPU 核数 |
 | `--no-archive` | 只生成 `.app` 或目录，不打 dmg/zip |
 
-构建过程：生成构建信息（版本、构建标识、清单公钥，编译进主程序）→ `lrelease` 生成 `.qm` → Nuitka 编译（约 5 分钟）→ 复制数据文件（迁移脚本、翻译、默认配置及运行资源）→ 写第三方许可声明 → 检查构建资源 → 生成并签名文件清单 →（macOS）ad-hoc 签名 → 打包 → `dist/build-report.json`（体积、耗时、SHA-256）。
+构建过程：生成构建信息（版本、构建标识、清单公钥，编译进主程序）→ `lrelease` 生成 `.qm` → Nuitka 编译（实测 Windows 首次干净编译约 19 分 38 秒，随依赖和机器而变）→ 复制数据文件（迁移脚本、翻译、默认配置及运行资源）→ 写第三方许可声明 → 检查构建资源 → 生成并签名文件清单 →（macOS）ad-hoc 签名 → 打包 → `dist/build-report.json`（体积、耗时、SHA-256）。
 
 发布包内容（程序目录）：
 
@@ -167,9 +167,16 @@ PySide6-Essentials、Shiboken6 的包元数据为 `LGPL-3.0-only OR GPL-2.0-only
 
 ## 8. 已知限制
 
-- **Windows 包未在本机构建和运行**，脚本、工作流、Inno Setup 脚本都需要在 Windows 上实测（第 2.2 节清单）。DPAPI 代码只在 Windows 测试里运行。
+- 2026-11-17 已在 Windows x64 实际构建目录包并执行隔离数据目录的启动烟雾测试；ZIP 归档完整性也已检查。当前证据不是最终冻结源码构建，未验证断网安装、Inno Setup 安装程序或干净系统环境；DPAPI 与代码签名仍需按第 2.2 节清单实测。
 - macOS 包没有 Apple 签名和公证；只构建本机架构。
 - 应用图标是占位（PLAN 第 7 节第 7 项，名称和 Logo 未定），Nuitka 会提示没有指定图标。
 - LGPL 源代码书面承诺、软件许可条款需要权利人和法务补充。
 - 完整性校验只能发现改动、不能阻止；替换主程序可以绕过（见 security.md“不能防什么”）。
 - 发布包体积较大，主要是 Qt 和 OpenCV（含 FFmpeg）的动态库。
+
+
+## 9. Windows 构建记录（2026-11-17）
+
+当前工作树上的预构建使用 Python 3.11.16、Nuitka 4.3.4、PySide6/lrelease 6.12.0、Visual Studio 2022 Community MSVC 14.44.35207，命令为 `uv run python scripts/build.py --no-archive --jobs 4`。Nuitka 成功编译 Windows x64 standalone 目录，生成 798 项签名清单，目录大小 370,710,375 字节，编译耗时 1,177.8 秒；签名清单自检通过。随后使用构建脚本的 `make_archive` 函数从该目录生成 `dist/GelInspect-0.1.0-windows-x64.zip`：137,414,348 字节，SHA-256 为 `879099d106c03c7029e15b42c67b9539724945e2e78a7de6e2c010a4edbcd9ff`，ZIP 871 项逐项读取检查通过。完整数值见 `dist/build-report.json`。
+
+在 `build/release/smoke-data` 独立数据目录首次启动 `dist/GelInspect/GelInspect.exe --smoke-test --data-dir .\build\release\smoke-data` 成功；运行日志确认数据库迁移、首次初始化、798 项文件完整性校验和 smoke test 通过。该测试使用了当前 Windows 环境网络设置，不代表断网安装验证。构建时有其他工作并行修改源码；build ID `20261117090215-ae1cf87` 表示基于提交标识，但工作区未冻结，所以此制品只作为工具链和启动流程证据，不代表最终提交制品。冻结源码后应重新构建并替换此预构建记录。

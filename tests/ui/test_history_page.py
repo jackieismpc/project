@@ -81,6 +81,40 @@ def test_pagination_does_not_shift_when_an_experiment_is_created_while_paging(
     assert page.total == 13 and ids(page)[0] == "EXP-NEW-001"
 
 
+def test_history_context_survives_experiment_and_report_navigation(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gelinspect.ui.pages.monitor_page import MonitorPage
+    from gelinspect.ui.pages.reports_page import ReportsPage
+
+    monkeypatch.setattr("gelinspect.ui.pages.history_page.PAGE_SIZE", 2)
+    page = open_history(qapp, window, app_context)
+    page.batch_edit.setText("LAL-1")
+    page.search()
+    page.pager.next_button.click()
+    page.table.view.selectRow(0)
+    selected_id = ids(page)[0]
+    selected_page = page.page_index
+
+    page.open_button.click()
+    monitor = window.page("monitor")
+    assert window.current_route == "monitor"
+    assert isinstance(monitor, MonitorPage) and monitor.experiment_id == selected_id
+    assert window.navigate("history")
+    assert page.page_index == selected_page and page.batch_edit.text() == "LAL-1"
+    assert ids(page)[0] == selected_id and page.table.selected_rows() == [0]
+
+    page.open_report_button.click()
+    report = window.page("reports")
+    assert window.current_route == "reports"
+    assert isinstance(report, ReportsPage) and report.experiment_id == selected_id
+    report.experiment_data_button.click()
+    assert window.current_route == "monitor" and monitor.experiment_id == selected_id
+
+
 def test_each_filter_narrows_the_list(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:

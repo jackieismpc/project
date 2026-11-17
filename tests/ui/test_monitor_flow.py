@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import AppContext
@@ -42,6 +44,16 @@ def test_full_review_flow_from_wizard_to_signable(
     assert wait_for(qapp, lambda: monitor.view_model is not None and monitor.view_model.live)
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
+    viewed = context.database.audit.query(
+        AuditQuery(action=AuditAction.EXPERIMENT_VIEWED), PageRequest(limit=100)
+    )
+    assert sum(item.event.experiment_id == experiment_id for item in viewed.items) == 1
+    monitor.reload()
+    settle(qapp)
+    viewed = context.database.audit.query(
+        AuditQuery(action=AuditAction.EXPERIMENT_VIEWED), PageRequest(limit=100)
+    )
+    assert sum(item.event.experiment_id == experiment_id for item in viewed.items) == 1
     assert monitor.table.row_count() == 18
     assert wait_for(
         qapp,
@@ -71,6 +83,17 @@ def test_full_review_flow_from_wizard_to_signable(
     assert wait_for(qapp, lambda: all(monitor.plate.state(n) == s for n, s in expected.items()))
     assert monitor.badge.text().startswith("待复核")
 
+    # 点击 Row 标题会选中整排并切换右侧对应录像。
+    QTest.mouseClick(
+        monitor.plate,
+        Qt.MouseButton.LeftButton,
+        pos=QPoint(max(2, monitor.plate.width() // 24), 8),
+    )
+    settle(qapp)
+    assert monitor.plate.active_row == 1
+    assert monitor.replay_card.isVisible() and not monitor.video_card.isVisible()
+    assert monitor.replay_player.clip is not None or 1 not in monitor._recordings
+
     # 点孔进详情：原图、掩码文件存在，掩码能叠加
     tube = pending[0]
     click_well(monitor.plate, tube)
@@ -90,6 +113,17 @@ def test_full_review_flow_from_wizard_to_signable(
     assert not detail.mask_overlay_visible()
     assert detail.mask_toggle.isHidden()
     assert detail.sequence_box.isVisible()
+
+    # 返回监控时恢复原管位的孔板焦点和结果表选中行。
+    detail.back_button.click()
+    settle(qapp)
+    assert window.current_route == "monitor"
+    assert monitor.plate.current_tube() == tube
+    assert monitor.view_model is not None
+    tube_row = next(
+        index for index, item in enumerate(monitor.view_model.tubes) if item.tube_no == tube
+    )
+    assert monitor.table.selected_rows() == [tube_row]
 
     # 实验与结果处理组可以复核，服务端与界面能力一致。
     assert detail.submit_button.isEnabled()

@@ -125,9 +125,10 @@ def test_pdf_has_chinese_text_key_fields_and_embedded_bundled_font(
     ):
         assert expected in text, expected
     assert "�" not in text  # 没有缺字
-    # 中文字体是内置的 Noto Sans SC，并且嵌入了字体文件
+    # 报告字体由系统提供，PDF 文件嵌入了实际使用的字体子集。
     fonts = pdf_font_report(data)
-    assert any(name.endswith("NotoSansSC-Regular") or "NotoSansSC" in name for name, _ in fonts)
+    assert any("TimesNewRoman" in name or "Times New Roman" in name for name, _ in fonts)
+    assert any("SimSun" in name for name, _ in fonts)
     assert all(embedded for _, embedded in fonts)
 
 

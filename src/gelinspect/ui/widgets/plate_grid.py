@@ -117,11 +117,13 @@ class PlateGrid(QWidget):
         tubeClicked: 显示模式下点击（或在焦点孔上按空格、回车），参数为管号。
         selectionChanged: 选择模式下选中集合变化，参数为升序的管号列表。
         selectionLimitReached: 已达到选择上限时再选，参数为上限。
+    rowActivated: 点击列头 Row 标题，参数为排号。
     """
 
     tubeClicked = Signal(int)  # noqa: N815
     selectionChanged = Signal(list)  # noqa: N815
     selectionLimitReached = Signal(int)  # noqa: N815
+    rowActivated = Signal(int)  # noqa: N815
 
     def __init__(self, mode: PlateMode = PlateMode.DISPLAY, parent: QWidget | None = None) -> None:
         """创建孔板。
@@ -138,6 +140,8 @@ class PlateGrid(QWidget):
         self._current = 1
         self._hover: int | None = None
         self._pressed: int | None = None
+        self._pressed_row: int | None = None
+        self._active_row: int | None = None
         self._kb_focus = False
         self._limit: int | None = None
         self._show_countdown = True
@@ -209,6 +213,19 @@ class PlateGrid(QWidget):
             显示状态，未设置时为 ``EMPTY``。
         """
         return self._states.get(tube_no, WellState.EMPTY)
+
+    def set_active_row(self, row_index: int | None) -> None:
+        """高亮当前选择的整排。"""
+        if row_index is not None:
+            row_label(row_index)
+        if row_index != self._active_row:
+            self._active_row = row_index
+            self.update()
+
+    @property
+    def active_row(self) -> int | None:
+        """当前高亮的排号。"""
+        return self._active_row
 
     def set_countdown(self, row_index: int, text: str, *, active: bool = False) -> None:
         """设置一排的倒计时文字。
@@ -423,12 +440,20 @@ class PlateGrid(QWidget):
             event: 鼠标事件。
         """
         tube = self.tube_at(event.position())
+        col_w, _, _, _ = self._metrics()
+        row_header = (
+            int(event.position().x() // col_w) + 1
+            if self._show_labels and event.position().y() < _LABEL_H + 6
+            else None
+        )
         if tube != self._hover:
             self._hover = tube
-            self.setCursor(
-                Qt.CursorShape.PointingHandCursor if tube else Qt.CursorShape.ArrowCursor
-            )
             self.update()
+        self.setCursor(
+            Qt.CursorShape.PointingHandCursor
+            if tube is not None or row_header is not None
+            else Qt.CursorShape.ArrowCursor
+        )
 
     def leaveEvent(self, event: object) -> None:  # noqa: N802
         """清除悬停。
@@ -449,6 +474,14 @@ class PlateGrid(QWidget):
         self._pressed = (
             self.tube_at(event.position()) if event.button() == Qt.MouseButton.LeftButton else None
         )
+        col_w, _, _, _ = self._metrics()
+        self._pressed_row = (
+            int(event.position().x() // col_w) + 1
+            if event.button() == Qt.MouseButton.LeftButton
+            and self._show_labels
+            and event.position().y() < _LABEL_H + 6
+            else None
+        )
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.update()
 
@@ -460,6 +493,17 @@ class PlateGrid(QWidget):
         """
         tube = self.tube_at(event.position())
         pressed, self._pressed = self._pressed, None
+        pressed_row, self._pressed_row = self._pressed_row, None
+        col_w, _, _, _ = self._metrics()
+        release_row = (
+            int(event.position().x() // col_w) + 1
+            if self._show_labels and event.position().y() < _LABEL_H + 6
+            else None
+        )
+        if pressed_row is not None and pressed_row == release_row:
+            self.set_active_row(pressed_row)
+            self.rowActivated.emit(pressed_row)
+            return
         if tube is not None and tube == pressed:
             self._activate(tube)
 
@@ -606,6 +650,13 @@ class PlateGrid(QWidget):
                 selected=selectable and tube_no in self._selected,
                 selectable=selectable,
                 hovered=tube_no == self._hover,
+            )
+        if self._active_row is not None:
+            col_w, _, _, _ = self._metrics()
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(QColor(c.success), 2.0))
+            p.drawRect(
+                QRectF((self._active_row - 1) * col_w + 1, 1, col_w - 2, self.height() - 2)
             )
         if self.hasFocus() and self._kb_focus:
             paint_focus_ring(p, self.well_rect(self._current), tokens)

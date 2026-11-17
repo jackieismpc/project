@@ -57,10 +57,12 @@ class HistoryPage(QWidget):
 
     Signals:
         experimentRequested: 请求打开某个试验回看，参数为试验标识。
+        reportRequested: 请求打开某个试验的报告，参数为试验标识。
         exportFinished: 一次导出结束（成功或失败），参数为提示文字。
     """
 
     experimentRequested = Signal(str)  # noqa: N815
+    reportRequested = Signal(str)  # noqa: N815
     exportFinished = Signal(str)  # noqa: N815
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
@@ -90,6 +92,7 @@ class HistoryPage(QWidget):
         self.hint = Label("", "meta")
         self.refresh_button = Button("")
         self.open_button = Button("")
+        self.open_report_button = Button("")
         self.export_selected_button = Button("", ButtonVariant.SECONDARY, icon="copy")
         self.export_list_button = Button("", ButtonVariant.SECONDARY, icon="copy")
         top.addWidget(self.title)
@@ -98,6 +101,7 @@ class HistoryPage(QWidget):
         for button in (
             self.refresh_button,
             self.open_button,
+            self.open_report_button,
             self.export_selected_button,
             self.export_list_button,
         ):
@@ -152,6 +156,7 @@ class HistoryPage(QWidget):
 
         self.refresh_button.clicked.connect(self.refresh)
         self.open_button.clicked.connect(self._open_selected)
+        self.open_report_button.clicked.connect(self._open_selected_report)
         self.search_button.clicked.connect(self.search)
         self.reset_button.clicked.connect(self.reset_filters)
         self.batch_edit.returnPressed.connect(self.search)
@@ -234,8 +239,24 @@ class HistoryPage(QWidget):
 
     def refresh(self) -> None:
         """重新读取操作人列表和当前页，并开始一次新查询（看到此刻之前的全部试验）。"""
+        selected_ids = {
+            self._items[row].experiment_id
+            for row in self.table.selected_rows()
+            if 0 <= row < len(self._items)
+        }
+        current = self.table.view.currentIndex()
+        current_id = (
+            self._items[current.row()].experiment_id
+            if current.isValid() and 0 <= current.row() < len(self._items)
+            else None
+        )
         self._load_operators()
         self._load(self._page, fresh=True)
+        for row, item in enumerate(self._items):
+            if item.experiment_id in selected_ids:
+                self.table.view.selectRow(row)
+            if item.experiment_id == current_id:
+                self.table.view.setCurrentIndex(self.table.model.index(row, 0))
 
     def search(self) -> None:
         """按当前筛选条件开始一次新查询，从第一页开始。"""
@@ -344,6 +365,7 @@ class HistoryPage(QWidget):
         selected = self.table.selected_rows()
         busy = self._export_busy
         self.open_button.setEnabled(bool(self._items))
+        self.open_report_button.setEnabled(bool(self._items))
         self.export_selected_button.setEnabled(can_export and bool(selected) and not busy)
         self.export_list_button.setEnabled(can_export and self._total > 0 and not busy)
         tip = "" if can_export else self.tr("当前角色无此权限")
@@ -361,6 +383,13 @@ class HistoryPage(QWidget):
             self._on_activated(rows[0])
         elif index.isValid():
             self._on_activated(index.row())
+
+    def _open_selected_report(self) -> None:
+        rows = self.table.selected_rows()
+        index = self.table.view.currentIndex()
+        row = rows[0] if rows else index.row() if index.isValid() else None
+        if row is not None and 0 <= row < len(self._items):
+            self.reportRequested.emit(self._items[row].experiment_id)
 
     def _on_activated(self, row: int) -> None:
         if 0 <= row < len(self._items):
@@ -505,6 +534,7 @@ class HistoryPage(QWidget):
         self.hint.setText(self.tr("双击一行打开回看，点选多行可以导出"))
         self.refresh_button.setText(self.tr("刷新"))
         self.open_button.setText(self.tr("打开所选试验"))
+        self.open_report_button.setText(self.tr("打开所选报告"))
         self.export_selected_button.setText(self.tr("导出所选结果…"))
         self.export_list_button.setText(self.tr("导出当前列表…"))
         self.type_label.setText(self.tr("试验类型"))

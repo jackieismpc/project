@@ -33,10 +33,12 @@ from gelinspect.services.reporting.document import (
 from gelinspect.services.reporting.strings import S
 from gelinspect.services.reporting.texts import ReportTexts
 
-SANS = "Noto Sans SC"
-"""正文字体（随软件内置）。"""
-MONO = "IBM Plex Mono"
-"""数字、批号用的等宽字体（随软件内置）。"""
+SANS = "Times New Roman"
+"""英文与数字正文字体，使用目标系统字体。"""
+CJK = "SimSun"
+"""中文正文字体，使用目标系统字体。"""
+MONO = SANS
+"""报告数字与批号按要求使用 Times New Roman。"""
 
 INK = "#111111"
 MUTED = "#555555"
@@ -433,7 +435,7 @@ class _Builder:
         )
         return (
             "<html><head><meta charset='utf-8'></head>"
-            f"<body style=\"font-family:'{SANS}';font-size:9pt;color:{INK}\">{body}</body></html>"
+            f"<body style=\"font-family:'{SANS}','{CJK}';font-size:9pt;color:{INK}\">{body}</body></html>"
         )
 
 

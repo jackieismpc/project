@@ -47,6 +47,7 @@ from gelinspect.interfaces.traceability import (
 )
 from gelinspect.interfaces.video import VideoSource
 from gelinspect.services.app_services import AppServices
+from gelinspect.services.appearance_service import AppearanceService
 from gelinspect.services.audit_service import AuditService
 from gelinspect.services.auth import AuthService, LoginPolicy
 from gelinspect.services.config import (
@@ -184,6 +185,7 @@ class AppContext:
                 data_dir=config.data_dir,
                 log_dir=log_dir or config.data_dir / "logs",
             ),
+            appearance=AppearanceService(config.data_dir),
             demo_accounts=self.demo_accounts,
             idle_lock_minutes=config.security.idle_lock_minutes,
             recovered=tuple(self.recovered),

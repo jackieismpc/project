@@ -208,3 +208,11 @@ def current_tokens() -> Tokens:
         当前 :class:`Tokens`。
     """
     return _current
+
+
+def activate_tokens(tokens: Tokens) -> Tokens:
+    """Set a runtime token set, such as a user's appearance preferences."""
+    global _current
+    _current = tokens
+    _THEMES[tokens.name] = tokens
+    return tokens

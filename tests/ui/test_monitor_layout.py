@@ -48,7 +48,7 @@ def test_monitor_tube_and_history_pages_fit_in_both_languages(
             assert window.open_experiment(experiment_id)
             page = window.page("monitor")
             assert isinstance(page, MonitorPage)
-            for tab in range(4):
+            for tab in range(3):
                 page.tabs.set_current(tab)
                 if tab == 1:
                     assert wait_for(qapp, partial(loaded, page), 30.0)

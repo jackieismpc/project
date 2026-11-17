@@ -233,6 +233,61 @@
     </message>
 </context>
 <context>
+    <name>AppearanceDialog</name>
+    <message>
+        <source>外观设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选择颜色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>跟随系统字号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>预览</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告中心</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这是界面内容和正文文字的预览。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>主要操作</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复默认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>系统</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -927,7 +982,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新建试验</source>
+        <source>新建实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1586,6 +1641,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>打开所选报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>导出所选结果…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1816,6 +1875,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>若干</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试验 {id} 已完成，可查看报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1893,22 +1964,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验没有批号可以汇总。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>样品批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1974,6 +2029,10 @@
     </message>
     <message>
         <source>回放（还没有录像）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个排没有录像</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2065,15 +2124,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>单批次报告</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>当前没有进行中的试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2098,6 +2149,10 @@
     </message>
     <message>
         <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2184,10 +2239,6 @@
     </message>
     <message>
         <source>排</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>新试验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2311,7 +2362,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>离开新试验向导？</source>
+        <source>扫码或输入样品批号，回车填入选中行</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>λ倍数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>离开新建实验向导？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2452,6 +2515,10 @@
     </message>
     <message>
         <source>、</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2788,19 +2855,15 @@
 <context>
     <name>QuickToolbar</name>
     <message>
-        <source>新建试验</source>
+        <source>新建实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>打开文件</source>
+        <source>模板管理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>检测模板</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>打印报告</source>
+        <source>报告中心</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2817,6 +2880,18 @@
     </message>
     <message>
         <source>菜单</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外观设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关于</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3138,7 +3213,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试剂溯源</source>
+        <source>试剂记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3208,10 +3283,6 @@
     <name>Report</name>
     <message>
         <source>自动凝胶检测报告</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>单批次汇总报告</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3399,26 +3470,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验编号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试管数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>状态</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>共 {n} 个试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>本报告已使用数字签名，任何修改都会导致验签失败。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3474,10 +3525,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>可以签署：批次里的试验都已签署</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3502,31 +3549,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>单批次报告汇总已签署的试验，不改变试验状态。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>已签署的报告语言固定为签署时的语言。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>未签署时可以选择报告语言，签署时按所选语言生成。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>样品批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>还没有已完成的试验，没有可汇总的批次。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3539,6 +3566,58 @@
     </message>
     <message>
         <source>PDF 文件 (*.pdf)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部样品批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部鲎试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部缓冲液批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部内毒素试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>待签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导入外部 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数字签名有效，报告内容和签署记录已匹配。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数字签名无效，文件不能作为可信报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PDF 未签名。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法识别签名或签署者，请检查文件权限并联系后台检查。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PDF 损坏或无法读取，请检查文件权限并联系后台检查。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>数字签名有效，但不是本系统已知报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3562,6 +3641,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>请先选择要导出的实验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>所选实验没有已签署报告可导出。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>报告中心</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3571,6 +3658,38 @@
     </message>
     <message>
         <source>刷新</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>返回报告列表</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>刷新列表</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导入外部 PDF…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>打开匹配的报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>报告状态</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3622,7 +3741,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>报告语言</source>
+        <source>查看实验数据</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3639,22 +3758,6 @@
     </message>
     <message>
         <source>批量导出…</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>单批次报告</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>把同一批号的多次试验汇总到一份报告。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>预览单批次报告</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>返回试验报告</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3711,14 +3814,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3731,7 +3826,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试剂溯源</source>
+        <source>新建实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3895,14 +3998,6 @@
     </message>
     <message>
         <source>报告文件与入库的 SHA-256 不符，可能已被改动：{name}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个批号下没有已完成的试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>单批次报告只能在其中全部试验都已签署后签署</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4128,6 +4223,38 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>导出诊断包</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ZIP 文件 (*.zip)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在收集诊断资料…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>生成诊断包</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>正在写入诊断文件 {done}/{total}…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>诊断包已生成：{path}，{count} 个文件，{size} 字节。缺失/排除 {missing} 项。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>诊断包生成已取消；未留下部分 ZIP 文件。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4141,6 +4268,26 @@
     </message>
     <message>
         <source>视频输入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>诊断包</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出诊断包…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>日志默认保留，不自动删除。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4305,14 +4452,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>历史记录</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4321,7 +4460,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试剂溯源</source>
+        <source>新建实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4412,10 +4559,6 @@
     </message>
     <message>
         <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>批次里还有试验没有签署，全部签署后才能签署单批次报告。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4734,6 +4877,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>内置模板只读，可以复制后修改。自定义模板保存后，新建实验向导里立即可选。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>内置·已隐藏</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4763,10 +4910,6 @@
     </message>
     <message>
         <source>隐藏</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4917,18 +5060,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验已无待复核的试管</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已由 {who} 于 {when} 复核为{v}。意见：{note}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>放弃未提交的复核？</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4994,6 +5125,14 @@
     </message>
     <message>
         <source>检测结果 · {v}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已由 {who} 于 {when} 复核为{v}。原因：{note}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{when} · {who} · {v} · {note}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

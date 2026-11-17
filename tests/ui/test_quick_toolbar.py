@@ -16,9 +16,8 @@ CTRL = Qt.KeyboardModifier.ControlModifier
 
 SHORTCUT_KEYS = {
     "new_experiment": Qt.Key.Key_N,
-    "open_file": Qt.Key.Key_O,
     "templates": Qt.Key.Key_T,
-    "print_report": Qt.Key.Key_P,
+    "reports": Qt.Key.Key_R,
     "audit_trail": Qt.Key.Key_L,
     "instrument_settings": Qt.Key.Key_Comma,
 }
@@ -93,9 +92,8 @@ def test_permissions_follow_role(qtbot: QtBot) -> None:
     # “仪器设置”所有角色都能打开（只读），修改由服务层拒绝；审计追踪实验员没有权限
     assert enabled == {
         "new_experiment",
-        "open_file",
         "templates",
-        "print_report",
+        "reports",
     }
     spy = QSignalSpy(toolbar.actionTriggered)
     QTest.keyClick(toolbar, Qt.Key.Key_L, CTRL)  # 审计追踪：实验员无权限

@@ -20,8 +20,10 @@ from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
+from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.app_services import AppServices
+from gelinspect.services.appearance_service import AppearancePreferences
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
 from gelinspect.services.engine_types import (
     AlertLevel,
@@ -35,6 +37,7 @@ from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.idle import IdleWatcher
 from gelinspect.ui.labels import describe_alert, role_label
 from gelinspect.ui.pages.about import AboutPage
+from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
 from gelinspect.ui.pages.audit_page import AuditPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
 from gelinspect.ui.pages.dashboard import DashboardPage
@@ -56,6 +59,7 @@ from gelinspect.ui.routes import (
     route_for,
     route_title,
 )
+from gelinspect.ui.theme.appearance import apply_appearance
 from gelinspect.ui.widgets.app_shell import AppShell, ShellSettings
 from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.toast import Toast, ToastKind
@@ -107,6 +111,7 @@ class MainWindow(QMainWindow):
         self._current_route = "dashboard"
         self._closing = False
         self._pending_report_experiment: str | None = None
+        self._tube_return_context: tuple[str, int] | None = None
         self.resize(1280, 800)
         self.setMinimumSize(*MIN_WINDOW_SIZE)
 
@@ -242,6 +247,14 @@ class MainWindow(QMainWindow):
     def _enter_session(self, session: Session) -> None:
         self._session = session
         user = session.user
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            try:
+                preferences = self._services.appearance.get(user.username)
+            except Exception:
+                _log.exception("APPEARANCE_LOAD_FAILED")
+                preferences = AppearancePreferences()
+            apply_appearance(app, preferences)
         toolbar = self.shell.toolbar
         toolbar.set_user(user.display_name, role_label(user.role))
         self._apply_permissions()
@@ -330,6 +343,9 @@ class MainWindow(QMainWindow):
         self._session = None
         self.idle.stop()
         self._drop_pages()
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            apply_appearance(app, AppearancePreferences())
         self.shell.toolbar.set_user("", "")
         self._apply_permissions()
         self.show_start_screen()
@@ -418,7 +434,6 @@ class MainWindow(QMainWindow):
             | TemplatesPage
             | ReagentsPage
             | NewExperimentPage
-            | HistoryPage
             | AuditPage
             | UsersPage
             | SettingsPage
@@ -492,6 +507,7 @@ class MainWindow(QMainWindow):
             reports.set_session(self._session)
             reports.navigationRequested.connect(self.navigate)
             reports.signedExperiment.connect(self._on_reviewed)
+            reports.experimentDataRequested.connect(self.open_experiment)
             return reports
         if route.key == "tube":
             tube = TubeDetailPage(self._services)
@@ -503,6 +519,7 @@ class MainWindow(QMainWindow):
             history = HistoryPage(self._services)
             history.set_session(self._session)
             history.experimentRequested.connect(self.open_experiment)
+            history.reportRequested.connect(self.open_report)
             return history
         if route.key == "audit":
             audit = AuditPage(self._services)
@@ -576,13 +593,21 @@ class MainWindow(QMainWindow):
         Returns:
             成功显示时为 True。
         """
+        monitor = self._pages.get("monitor")
+        if isinstance(monitor, MonitorPage) and monitor.experiment_id == experiment_id:
+            self._tube_return_context = (experiment_id, tube_no)
         if not self.navigate("tube"):
             return False
         page = self._pages.get("tube")
         return isinstance(page, TubeDetailPage) and page.open_tube(experiment_id, tube_no)
 
     def _back_to_monitor(self) -> None:
-        self.navigate("monitor")
+        if not self.navigate("monitor"):
+            return
+        context, self._tube_return_context = self._tube_return_context, None
+        monitor = self._pages.get("monitor")
+        if context is not None and isinstance(monitor, MonitorPage):
+            monitor.focus_tube(context[1])
 
     def _on_reviewed(self, experiment_id: str) -> None:
         monitor = self._pages.get("monitor")
@@ -591,6 +616,9 @@ class MainWindow(QMainWindow):
         dashboard = self._pages.get("dashboard")
         if isinstance(dashboard, DashboardPage):
             dashboard.refresh()
+        history = self._pages.get("history")
+        if isinstance(history, HistoryPage):
+            history.refresh()
 
     def _on_experiment_started(self, experiment_id: str) -> None:
         """向导启动了试验：留在向导页的用户跳到试验监控页。"""
@@ -608,14 +636,12 @@ class MainWindow(QMainWindow):
 
     def _on_quick_action(self, action_id: str) -> None:
         key = QUICK_ACTION_ROUTES.get(action_id)
-        if action_id == "print_report":
-            # “打印报告”：带上监控页正在看的试验，到报告中心预览和打印。
-            monitor = self._pages.get("monitor")
-            if isinstance(monitor, MonitorPage) and monitor.experiment_id is not None:
-                self._pending_report_experiment = monitor.experiment_id
         if key is not None:
             self.navigate(key)
-            self._pending_report_experiment = None
+            if key == "reports":
+                page = self._pages.get("reports")
+                if isinstance(page, ReportsPage):
+                    page.show_report_list()
 
     def _on_user_action(self, action: str) -> None:
         if action == "logout":
@@ -624,6 +650,14 @@ class MainWindow(QMainWindow):
             self.lock_screen()
         elif action == "change_password":
             self.change_password()
+        elif action == "appearance":
+            session = self._session
+            app = QApplication.instance()
+            if session is not None and isinstance(app, QApplication):
+                dialog = AppearanceDialog(
+                    session.user.username, self._services.appearance, self, app=app
+                )
+                dialog.exec()
 
     def change_password(self) -> None:
         """打开修改密码对话框。"""
@@ -649,6 +683,28 @@ class MainWindow(QMainWindow):
         _log.info(
             "试验 %s：%s → %s", event.experiment_id, event.previous.value, event.current.value
         )
+        if event.current is ExperimentState.PENDING_REVIEW:
+            monitor = self._pages.get("monitor")
+            pending = 0
+            if isinstance(monitor, MonitorPage) and monitor.experiment_id == event.experiment_id:
+                monitor.reload()
+                view = monitor.view_model
+                pending = 0 if view is None else len(view.pending_review)
+            text = self.tr("试验 {id} 检测完成，{count} 管待复核。")
+            Toast.show_message(
+                self,
+                text.format(id=event.experiment_id, count=pending or self.tr("若干")),
+                ToastKind.WARNING,
+                6000,
+            )
+        elif event.current is ExperimentState.COMPLETED:
+            Toast.show_message(
+                self,
+                self.tr("试验 {id} 已完成，可查看报告。")
+                .format(id=event.experiment_id),
+                ToastKind.SUCCESS,
+                6000,
+            )
 
     def _on_alert(self, alert: EngineAlert) -> None:
         if self._screen is not Screen.SHELL:

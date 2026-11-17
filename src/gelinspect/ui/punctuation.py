@@ -18,7 +18,7 @@ def annotate(text: str, note: str) -> str:
         note: 注释，例如快捷键。
 
     Returns:
-        中文是“新试验（Ctrl+N）”，英文是 ``New experiment (Ctrl+N)``。
+        中文是“新建实验（Ctrl+N）”，英文是 ``New experiment (Ctrl+N)``。
     """
     return QCoreApplication.translate("Punctuation", "{text}（{note}）").format(
         text=text, note=note

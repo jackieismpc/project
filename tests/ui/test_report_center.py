@@ -223,10 +223,10 @@ def test_monitor_report_tab_and_quick_action_open_report(
     assert monitor.report_open.isEnabled()
     click(qapp, monitor.report_open)
     assert window.current_route == "reports" and reports_of(window).experiment_id == experiment_id
-    # 快捷栏“打印报告”
+    # 快捷栏入口打开报告中心首页。
     assert window.open_experiment(experiment_id)
-    window._on_quick_action("print_report")
-    assert window.current_route == "reports" and reports_of(window).experiment_id == experiment_id
+    window._on_quick_action("reports")
+    assert window.current_route == "reports" and reports_of(window).list_card.isVisible()
 
 
 
@@ -344,3 +344,4 @@ def test_preview_layout_settles_instead_of_oscillating(
     settle(qapp, 30)
     qapp.removeEventFilter(counter)
     assert resizes < 200, resizes
+

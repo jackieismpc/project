@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from gelinspect.interfaces.bootstrap import DemoAccount
+from gelinspect.services.appearance_service import AppearanceService
 from gelinspect.services.audit_service import AuditService
 from gelinspect.services.auth import AuthService
 from gelinspect.services.dashboard_service import DashboardService
@@ -52,6 +53,7 @@ class AppServices:
         exports: Excel 导出（试验结果、历史列表、审计）。
         settings: 仪器设置。
         diagnostics: 受维护权限保护的诊断包生成服务。
+        appearance: 个人外观偏好，无需业务权限。
         demo_accounts: 登录页可快捷填入的账号信息。
         idle_lock_minutes: 空闲多久自动锁屏，0 表示不锁。
         recovered: 启动恢复时被标记为异常的试验。
@@ -77,6 +79,7 @@ class AppServices:
     exports: ExportService
     settings: InstrumentSettingsService
     diagnostics: DiagnosticsService
+    appearance: AppearanceService
     demo_accounts: Sequence[DemoAccount] = ()
     idle_lock_minutes: float = 15.0
     recovered: Sequence[RecoveredExperiment] = ()

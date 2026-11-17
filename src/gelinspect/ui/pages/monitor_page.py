@@ -140,6 +140,8 @@ class MonitorPage(QWidget):
         self._status: dict[int, WellStatus | None] = {}
         self._rows: dict[int, tuple[RowPhase | None, float | None]] = {}
         self._recordings: list[int] = []
+        self._selected_video_row: int | None = None
+        self._tube_focus: int | None = None
         self._reload_pending = False
         self._dirty = False
         self._closed = False
@@ -191,6 +193,7 @@ class MonitorPage(QWidget):
 
         self.tabs.currentChanged.connect(self._on_tab)
         self.plate.tubeClicked.connect(self._on_tube_clicked)
+        self.plate.rowActivated.connect(self._on_row_title_activated)
         self.table.rowActivated.connect(self._on_row_activated)
         self.stop_button.clicked.connect(self.request_stop)
         self.resume_button.clicked.connect(self.request_resume)
@@ -427,9 +430,22 @@ class MonitorPage(QWidget):
         Returns:
             成功显示时为 True；没有试验或没有权限时显示空状态并返回 False。
         """
+        if self._view is not None and (
+            experiment_id is None or experiment_id != self._view.experiment_id
+        ):
+            self.replay_player.unload()
+        self._selected_video_row = None
+        self._tube_focus = None
+        self.plate.set_active_row(None)
         try:
             target = experiment_id or self._services.monitor.default_experiment_id(self._session)
-            view = None if target is None else self._services.monitor.view(self._session, target)
+            view = (
+                None
+                if target is None
+                else self._services.monitor.view(
+                    self._session, target, audit_access=experiment_id is not None
+                )
+            )
         except (AuthError, ServiceError):
             view = None
         self.alerts.clear()
@@ -552,6 +568,14 @@ class MonitorPage(QWidget):
     def _on_video_event(self, event: VideoEvent) -> None:
         if self._closed or self._view is None or not self._view.live or event.code in _VIDEO_HIDDEN:
             return
+        if event.active and event.code in {
+            VideoEventCode.STREAM_STALLED,
+            VideoEventCode.DISCONNECTED,
+            VideoEventCode.RECONNECTING,
+            VideoEventCode.RECONNECT_FAILED,
+        }:
+            self.video.set_image(None)
+            self.video.set_text(describe_video_event(event.code, event.message))
         key = f"video:{event.code.value}"
         resolved = _VIDEO_RESOLVING.get(event.code)
         if resolved is not None:
@@ -760,14 +784,24 @@ class MonitorPage(QWidget):
         if view is None:
             return
         live = view.live
-        self.video_card.setVisible(live)
-        self.replay_card.setVisible(not live)
+        row_playback = self._selected_video_row is not None
+        self.video_card.setVisible(live and not row_playback)
+        self.replay_card.setVisible(not live or row_playback)
         self.replay_button.setEnabled(bool(self._recordings))
         if self._recordings:
             self.replay_button.setText(self.tr("回放第 {n} 排").format(n=self._recordings[-1]))
         else:
             self.replay_button.setText(self.tr("回放（还没有录像）"))
-        if not live:
+        if row_playback:
+            selected_row = self._selected_video_row
+            assert selected_row is not None
+            self.replay_rows.setVisible(bool(self._recordings))
+            self.replay_empty.setVisible(selected_row not in self._recordings)
+            self.replay_player.setVisible(True)
+            if selected_row not in self._recordings:
+                self.replay_empty.setText(self.tr("这个排没有录像"))
+                self.replay_player.show_message(self.tr("这个排没有录像"))
+        elif not live:
             current = self.replay_rows.currentData()
             self.replay_rows.blockSignals(True)
             self.replay_rows.clear()
@@ -840,6 +874,32 @@ class MonitorPage(QWidget):
         view = self._view
         if view is not None and 0 <= row < len(view.tubes):
             self.tubeRequested.emit(view.experiment_id, view.tubes[row].tube_no)
+
+    def _on_row_title_activated(self, row_index: int) -> None:
+        """选择整排并播放对应录像；没有录像时清除旧画面并提示。"""
+        self._selected_video_row = row_index
+        recordings = set(self._recordings)
+        if row_index not in recordings:
+            self.replay_player.show_message(self.tr("这个排没有录像"))
+            self.replay_empty.setText(self.tr("这个排没有录像"))
+            self.replay_empty.setVisible(True)
+        else:
+            self.replay_rows.blockSignals(True)
+            self.replay_rows.setCurrentIndex(self.replay_rows.findData(row_index))
+            self.replay_rows.blockSignals(False)
+            self._load_inline(row_index, autoplay=True)
+        self._render_video()
+
+    def focus_tube(self, tube_no: int) -> None:
+        """返回监控页时重新选中原管位。"""
+        self._tube_focus = tube_no
+        self.plate.set_current_tube(tube_no)
+        row = next(
+            (index for index, tube in enumerate(self._view.tubes) if tube.tube_no == tube_no),
+            None,
+        ) if self._view is not None else None
+        if row is not None:
+            self.table.view.selectRow(row)
 
     def request_stop(self) -> bool:
         """弹出确认框，确认后停止试验。
@@ -985,7 +1045,7 @@ class MonitorPage(QWidget):
         self.empty_title.setText(self.tr("当前没有进行中的试验"))
         self.empty_hint.setText(
             self.tr(
-                "在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。"
+                "在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。"
             )
         )
         self.empty_history.setText(self.tr("打开历史记录"))

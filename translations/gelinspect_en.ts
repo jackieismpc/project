@@ -233,6 +233,61 @@
     </message>
 </context>
 <context>
+    <name>AppearanceDialog</name>
+    <message>
+        <source>外观设置</source>
+        <translation>Appearance</translation>
+    </message>
+    <message>
+        <source>按账号保存。更改会立即预览，取消可恢复原设置。</source>
+        <translation>Saved per account. Changes preview immediately; Cancel restores the saved settings.</translation>
+    </message>
+    <message>
+        <source>选择颜色</source>
+        <translation>Choose color</translation>
+    </message>
+    <message>
+        <source>跟随系统字号</source>
+        <translation>Use system font size</translation>
+    </message>
+    <message>
+        <source>预览</source>
+        <translation>Preview</translation>
+    </message>
+    <message>
+        <source>报告中心</source>
+        <translation>Reports</translation>
+    </message>
+    <message>
+        <source>这是界面内容和正文文字的预览。</source>
+        <translation>Preview of the interface surface and body text.</translation>
+    </message>
+    <message>
+        <source>主要操作</source>
+        <translation>Primary action</translation>
+    </message>
+    <message>
+        <source>恢复默认</source>
+        <translation>Restore defaults</translation>
+    </message>
+    <message>
+        <source>保存</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>系统</source>
+        <translation>System</translation>
+    </message>
+    <message>
+        <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
+        <translation>Some text has low contrast against its background. Adjust the colors for readability.</translation>
+    </message>
+</context>
+<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -927,8 +982,8 @@
         <translation>Dashboard</translation>
     </message>
     <message>
-        <source>新建试验</source>
-        <translation>New experiment</translation>
+        <source>新建实验</source>
+        <translation>New Experiment</translation>
     </message>
     <message>
         <source>检测室温度</source>
@@ -1586,6 +1641,10 @@
         <translation>Double-click a row to open it; click several rows to export them</translation>
     </message>
     <message>
+        <source>打开所选报告</source>
+        <translation>Open Selected Report</translation>
+    </message>
+    <message>
         <source>导出所选结果…</source>
         <translation>Export selected results…</translation>
     </message>
@@ -1816,6 +1875,18 @@
         <translation>Password changed</translation>
     </message>
     <message>
+        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <translation>Experiment {id} analysis is complete; {count} tubes need review.</translation>
+    </message>
+    <message>
+        <source>若干</source>
+        <translation>Several</translation>
+    </message>
+    <message>
+        <source>试验 {id} 已完成，可查看报告。</source>
+        <translation>Experiment {id} is complete. View its report.</translation>
+    </message>
+    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation>GelInspect</translation>
     </message>
@@ -1893,22 +1964,6 @@
         <translation>This experiment is not completed yet. You can preview the report; it can be signed after completion and review.</translation>
     </message>
     <message>
-        <source>把同一批号的多次试验汇总到一份报告。选择本试验用到的批号：</source>
-        <translation>Summarize all experiments of one lot in a single report. Choose a lot used by this experiment:</translation>
-    </message>
-    <message>
-        <source>这个试验没有批号可以汇总。</source>
-        <translation>This experiment has no lot number to summarize.</translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation>LAL reagent lot</translation>
-    </message>
-    <message>
-        <source>样品批号</source>
-        <translation>Sample lot</translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation>Tube</translation>
     </message>
@@ -1975,6 +2030,10 @@
     <message>
         <source>回放（还没有录像）</source>
         <translation>Replay (no recording)</translation>
+    </message>
+    <message>
+        <source>这个排没有录像</source>
+        <translation>No recording is available for this row.</translation>
     </message>
     <message>
         <source>等待视频画面…</source>
@@ -2065,16 +2124,8 @@
         <translation>Report preview</translation>
     </message>
     <message>
-        <source>单批次报告</source>
-        <translation>Lot report</translation>
-    </message>
-    <message>
         <source>当前没有进行中的试验</source>
         <translation>No experiment is running</translation>
-    </message>
-    <message>
-        <source>在“新试验”里启动试验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的试验。</source>
-        <translation>Start one from New experiment to see live video, the plate and results here, or open History to review finished experiments.</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -2099,6 +2150,10 @@
     <message>
         <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
         <translation>This experiment is complete. Preview the report; an authorized user can check and sign it.</translation>
+    </message>
+    <message>
+        <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
+        <translation>Start an experiment from “New Experiment” to view live video, the plate, and results here. Completed experiments are also available in History.</translation>
     </message>
     <message>
         <source>操作人</source>
@@ -2185,10 +2240,6 @@
     <message>
         <source>排</source>
         <translation>Row</translation>
-    </message>
-    <message>
-        <source>新试验</source>
-        <translation>New experiment</translation>
     </message>
     <message>
         <source>选择模板</source>
@@ -2311,8 +2362,20 @@
         <translation>No samples</translation>
     </message>
     <message>
-        <source>离开新试验向导？</source>
-        <translation>Leave the new experiment wizard?</translation>
+        <source>扫码或输入样品批号，回车填入选中行</source>
+        <translation>Scan or enter a sample lot number and press Enter to fill the selected row</translation>
+    </message>
+    <message>
+        <source>λ倍数</source>
+        <translation>λ multiple</translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation>New Experiment</translation>
+    </message>
+    <message>
+        <source>离开新建实验向导？</source>
+        <translation>Leave the New Experiment wizard?</translation>
     </message>
     <message>
         <source>向导里已录入的内容还没有提交，离开后会丢失。确定要离开吗？</source>
@@ -2453,6 +2516,10 @@
     <message>
         <source>、</source>
         <translation>, </translation>
+    </message>
+    <message>
+        <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
+        <translation>The LAL reagent&#x27;s labeled sensitivity λ is missing, so the endotoxin spike cannot be calculated. Complete a valid reagent check.</translation>
     </message>
     <message>
         <source>管位数量要与模板一致，样品名称不能为空</source>
@@ -2604,7 +2671,7 @@
     </message>
     <message>
         <source>导出诊断包</source>
-        <translation>Export diagnostic bundle</translation>
+        <translation>Export Diagnostic Package</translation>
     </message>
     <message>
         <source>管理用户和角色</source>
@@ -2694,7 +2761,7 @@
     </message>
     <message>
         <source>模板管理</source>
-        <translation>Manage templates</translation>
+        <translation>Templates</translation>
     </message>
     <message>
         <source>实验与结果处理</source>
@@ -2710,7 +2777,7 @@
     </message>
     <message>
         <source>仪器与维护</source>
-        <translation>Instrument and maintenance</translation>
+        <translation>Instrument &amp; Maintenance</translation>
     </message>
 </context>
 <context>
@@ -2788,20 +2855,16 @@
 <context>
     <name>QuickToolbar</name>
     <message>
-        <source>新建试验</source>
-        <translation>New experiment</translation>
+        <source>新建实验</source>
+        <translation>New Experiment</translation>
     </message>
     <message>
-        <source>打开文件</source>
-        <translation>Open file</translation>
-    </message>
-    <message>
-        <source>检测模板</source>
+        <source>模板管理</source>
         <translation>Templates</translation>
     </message>
     <message>
-        <source>打印报告</source>
-        <translation>Print report</translation>
+        <source>报告中心</source>
+        <translation>Reports</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -2818,6 +2881,18 @@
     <message>
         <source>菜单</source>
         <translation>Menu</translation>
+    </message>
+    <message>
+        <source>外观设置</source>
+        <translation>Appearance</translation>
+    </message>
+    <message>
+        <source>仪器与维护</source>
+        <translation>Instrument &amp; Maintenance</translation>
+    </message>
+    <message>
+        <source>关于</source>
+        <translation>About</translation>
     </message>
     <message>
         <source>更多</source>
@@ -3138,8 +3213,8 @@
         <translation>No checks yet</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>Reagent traceability</translation>
+        <source>试剂记录</source>
+        <translation>Reagent Records</translation>
     </message>
     <message>
         <source>扫码查询</source>
@@ -3209,10 +3284,6 @@
     <message>
         <source>自动凝胶检测报告</source>
         <translation>Automated Gel-Clot Test Report</translation>
-    </message>
-    <message>
-        <source>单批次汇总报告</source>
-        <translation>Lot Summary Report</translation>
     </message>
     <message>
         <source>文件名（试验编号）</source>
@@ -3399,26 +3470,6 @@
         <translation>No image</translation>
     </message>
     <message>
-        <source>试验编号</source>
-        <translation>Experiment ID</translation>
-    </message>
-    <message>
-        <source>试管数</source>
-        <translation>Tubes</translation>
-    </message>
-    <message>
-        <source>状态</source>
-        <translation>Status</translation>
-    </message>
-    <message>
-        <source>试验</source>
-        <translation>Experiment</translation>
-    </message>
-    <message>
-        <source>共 {n} 个试验</source>
-        <translation>{n} experiment(s)</translation>
-    </message>
-    <message>
         <source>本报告已使用数字签名，任何修改都会导致验签失败。</source>
         <translation>This report carries a digital signature; any modification makes the signature check fail.</translation>
     </message>
@@ -3474,10 +3525,6 @@
         <translation>Ready to sign: the experiment conclusion is “{verdict}”</translation>
     </message>
     <message>
-        <source>可以签署：批次里的试验都已签署</source>
-        <translation>Ready to sign: every experiment of the lot is signed</translation>
-    </message>
-    <message>
         <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
         <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
     </message>
@@ -3502,32 +3549,12 @@
         <translation>Signing asks for your password again; results and review are locked afterwards.</translation>
     </message>
     <message>
-        <source>单批次报告汇总已签署的试验，不改变试验状态。</source>
-        <translation>A lot report summarizes signed experiments and does not change their status.</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>Your role does not have this permission</translation>
     </message>
     <message>
-        <source>已签署的报告语言固定为签署时的语言。</source>
-        <translation>A signed report keeps the language it was signed in.</translation>
-    </message>
-    <message>
-        <source>未签署时可以选择报告语言，签署时按所选语言生成。</source>
-        <translation>Before signing you can choose the report language; the signed file uses it.</translation>
-    </message>
-    <message>
-        <source>鲎试剂批号</source>
-        <translation>LAL reagent lot</translation>
-    </message>
-    <message>
         <source>样品批号</source>
         <translation>Sample lot</translation>
-    </message>
-    <message>
-        <source>还没有已完成的试验，没有可汇总的批次。</source>
-        <translation>No completed experiments yet, so there is no lot to summarize.</translation>
     </message>
     <message>
         <source>已签署，报告已保存：{name}</source>
@@ -3540,6 +3567,58 @@
     <message>
         <source>PDF 文件 (*.pdf)</source>
         <translation>PDF files (*.pdf)</translation>
+    </message>
+    <message>
+        <source>全部样品批号</source>
+        <translation>All Sample Lots</translation>
+    </message>
+    <message>
+        <source>全部鲎试剂批号</source>
+        <translation>All LAL Reagent Lots</translation>
+    </message>
+    <message>
+        <source>全部缓冲液批号</source>
+        <translation>All Buffer Lots</translation>
+    </message>
+    <message>
+        <source>全部内毒素试剂批号</source>
+        <translation>All Endotoxin Reagent Lots</translation>
+    </message>
+    <message>
+        <source>待签署</source>
+        <translation>Awaiting Signature</translation>
+    </message>
+    <message>
+        <source>导入外部 PDF</source>
+        <translation>Import External PDF</translation>
+    </message>
+    <message>
+        <source>数字签名有效，报告内容和签署记录已匹配。</source>
+        <translation>Digital signature is valid; the report content matches a signing record.</translation>
+    </message>
+    <message>
+        <source>数字签名无效，文件不能作为可信报告。</source>
+        <translation>The digital signature is invalid. This file cannot be trusted as a report.</translation>
+    </message>
+    <message>
+        <source>PDF 未签名。</source>
+        <translation>The PDF is not signed.</translation>
+    </message>
+    <message>
+        <source>无法识别签名或签署者，请检查文件权限并联系后台检查。</source>
+        <translation>The signature or signer could not be identified. Check file access and contact support for review.</translation>
+    </message>
+    <message>
+        <source>PDF 损坏或无法读取，请检查文件权限并联系后台检查。</source>
+        <translation>The PDF is damaged or unreadable. Check file access and contact support for review.</translation>
+    </message>
+    <message>
+        <source>数字签名有效，但不是本系统已知报告。</source>
+        <translation>The digital signature is valid, but this report is not known to this system.</translation>
+    </message>
+    <message>
+        <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
+        <translation>The PDF status could not be confirmed. Check file access and contact support for review.</translation>
     </message>
     <message>
         <source>已发送到打印机（{pages} 页）</source>
@@ -3562,8 +3641,16 @@
         <translation>Excel files (*.xlsx)</translation>
     </message>
     <message>
+        <source>请先选择要导出的实验。</source>
+        <translation>Select experiments to export first.</translation>
+    </message>
+    <message>
+        <source>所选实验没有已签署报告可导出。</source>
+        <translation>The selected experiments have no signed reports to export.</translation>
+    </message>
+    <message>
         <source>报告中心</source>
-        <translation>Report Center</translation>
+        <translation>Reports</translation>
     </message>
     <message>
         <source>试验</source>
@@ -3572,6 +3659,38 @@
     <message>
         <source>刷新</source>
         <translation>Refresh</translation>
+    </message>
+    <message>
+        <source>返回报告列表</source>
+        <translation>Back to Report List</translation>
+    </message>
+    <message>
+        <source>刷新列表</source>
+        <translation>Refresh List</translation>
+    </message>
+    <message>
+        <source>导入外部 PDF…</source>
+        <translation>Import External PDF…</translation>
+    </message>
+    <message>
+        <source>打开匹配的报告</source>
+        <translation>Open Matching Report</translation>
+    </message>
+    <message>
+        <source>实验</source>
+        <translation>Experiment</translation>
+    </message>
+    <message>
+        <source>时间</source>
+        <translation>Time</translation>
+    </message>
+    <message>
+        <source>试剂批号</source>
+        <translation>Reagent Lot</translation>
+    </message>
+    <message>
+        <source>报告状态</source>
+        <translation>Report Status</translation>
     </message>
     <message>
         <source>还没有可出报告的试验</source>
@@ -3622,8 +3741,8 @@
         <translation>Sign and export</translation>
     </message>
     <message>
-        <source>报告语言</source>
-        <translation>Report language</translation>
+        <source>查看实验数据</source>
+        <translation>View Experiment Data</translation>
     </message>
     <message>
         <source>签署并生成 PDF</source>
@@ -3640,22 +3759,6 @@
     <message>
         <source>批量导出…</source>
         <translation>Export in bulk…</translation>
-    </message>
-    <message>
-        <source>单批次报告</source>
-        <translation>Lot report</translation>
-    </message>
-    <message>
-        <source>把同一批号的多次试验汇总到一份报告。</source>
-        <translation>Summarize all experiments of one lot in a single report.</translation>
-    </message>
-    <message>
-        <source>预览单批次报告</source>
-        <translation>Preview lot report</translation>
-    </message>
-    <message>
-        <source>返回试验报告</source>
-        <translation>Back to experiment report</translation>
     </message>
 </context>
 <context>
@@ -3711,14 +3814,6 @@
         <translation>Dashboard</translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation>New experiment</translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation>Experiment monitor</translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation>Tube detail</translation>
     </message>
@@ -3728,15 +3823,23 @@
     </message>
     <message>
         <source>模板管理</source>
-        <translation>Template management</translation>
+        <translation>Templates</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>Reagent traceability</translation>
+        <source>新建实验</source>
+        <translation>New Experiment</translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation>Experiment Monitor</translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
+        <translation>Reagent Records</translation>
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Report Center</translation>
+        <translation>Reports</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -3896,14 +3999,6 @@
     <message>
         <source>报告文件与入库的 SHA-256 不符，可能已被改动：{name}</source>
         <translation>The report file does not match the stored SHA-256 and may have been modified: {name}</translation>
-    </message>
-    <message>
-        <source>这个批号下没有已完成的试验</source>
-        <translation>No completed experiments use this lot.</translation>
-    </message>
-    <message>
-        <source>单批次报告只能在其中全部试验都已签署后签署</source>
-        <translation>A lot report can only be signed after every experiment in it has been signed.</translation>
     </message>
     <message>
         <source>没有可导出的报告</source>
@@ -4128,6 +4223,38 @@
         <translation>Operation failed: {reason}</translation>
     </message>
     <message>
+        <source>导出诊断包</source>
+        <translation>Export Diagnostic Package</translation>
+    </message>
+    <message>
+        <source>ZIP 文件 (*.zip)</source>
+        <translation>ZIP files (*.zip)</translation>
+    </message>
+    <message>
+        <source>正在收集诊断资料…</source>
+        <translation>Collecting diagnostic data…</translation>
+    </message>
+    <message>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>生成诊断包</source>
+        <translation>Create Diagnostic Package</translation>
+    </message>
+    <message>
+        <source>正在写入诊断文件 {done}/{total}…</source>
+        <translation>Writing diagnostic files {done}/{total}…</translation>
+    </message>
+    <message>
+        <source>诊断包已生成：{path}，{count} 个文件，{size} 字节。缺失/排除 {missing} 项。</source>
+        <translation>Diagnostic package created: {path}, {count} files, {size} bytes. {missing} items were missing or excluded.</translation>
+    </message>
+    <message>
+        <source>诊断包生成已取消；未留下部分 ZIP 文件。</source>
+        <translation>Diagnostic package creation was cancelled; no partial ZIP file was left behind.</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>Instrument and data</translation>
     </message>
@@ -4142,6 +4269,26 @@
     <message>
         <source>视频输入</source>
         <translation>Video input</translation>
+    </message>
+    <message>
+        <source>诊断包</source>
+        <translation>Diagnostic Package</translation>
+    </message>
+    <message>
+        <source>导出诊断包…</source>
+        <translation>Export Diagnostic Package…</translation>
+    </message>
+    <message>
+        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation>Collects experiment settings, algorithm output, review records, audit entries, rotated logs, and available media with a file verification manifest. It excludes databases, passwords, tokens, and private keys. Creation can be cancelled; missing or unverifiable media is listed in the manifest.</translation>
+    </message>
+    <message>
+        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <translation>Logs use about {logs:.1f} MB (retained by default and not deleted automatically); {free:.1f} GB is available on the data drive.</translation>
+    </message>
+    <message>
+        <source>日志默认保留，不自动删除。</source>
+        <translation>Logs are retained by default and are not deleted automatically.</translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4305,14 +4452,6 @@
         <translation>Dashboard</translation>
     </message>
     <message>
-        <source>新试验</source>
-        <translation>New experiment</translation>
-    </message>
-    <message>
-        <source>试验监控</source>
-        <translation>Experiment monitor</translation>
-    </message>
-    <message>
         <source>历史记录</source>
         <translation>History</translation>
     </message>
@@ -4321,12 +4460,20 @@
         <translation>Templates</translation>
     </message>
     <message>
-        <source>试剂溯源</source>
-        <translation>Reagent traceability</translation>
+        <source>新建实验</source>
+        <translation>New Experiment</translation>
+    </message>
+    <message>
+        <source>实验监控</source>
+        <translation>Experiment Monitor</translation>
+    </message>
+    <message>
+        <source>试剂记录</source>
+        <translation>Reagent Records</translation>
     </message>
     <message>
         <source>报告中心</source>
-        <translation>Report Center</translation>
+        <translation>Reports</translation>
     </message>
     <message>
         <source>审计追踪</source>
@@ -4413,10 +4560,6 @@
     <message>
         <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
         <translation>The conclusion is “Invalid”, so it cannot be signed and must not be used for release. Address the reasons below and repeat the test.</translation>
-    </message>
-    <message>
-        <source>批次里还有试验没有签署，全部签署后才能签署单批次报告。</source>
-        <translation>Some experiments of the lot are not signed yet; sign them all before signing the lot report.</translation>
     </message>
 </context>
 <context>
@@ -4736,6 +4879,10 @@ Correct the configuration file and restart the application.</translation>
         <translation>Custom</translation>
     </message>
     <message>
+        <source>内置模板只读，可以复制后修改。自定义模板保存后，新建实验向导里立即可选。</source>
+        <translation>Built-in templates are read-only and can be copied for editing. Saved custom templates are immediately available in New Experiment.</translation>
+    </message>
+    <message>
         <source>内置·已隐藏</source>
         <translation>Built-in · Hidden</translation>
     </message>
@@ -4766,10 +4913,6 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>隐藏</source>
         <translation>Hide</translation>
-    </message>
-    <message>
-        <source>内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。</source>
-        <translation>Built-in templates are read-only; copy one to modify it. A saved custom template is available in the wizard right away.</translation>
     </message>
     <message>
         <source>当前账号只能查看模板，新建、复制和编辑需要模板管理权限。</source>
@@ -4919,18 +5062,6 @@ Correct the configuration file and restart the application.</translation>
         <translation>This role cannot review; only analysts can</translation>
     </message>
     <message>
-        <source>试验已无待复核的试管</source>
-        <translation>No tubes left to review</translation>
-    </message>
-    <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
-        <translation>Review is available once all rows are analyzed and the experiment is pending review</translation>
-    </message>
-    <message>
-        <source>已由 {who} 于 {when} 复核为{v}。意见：{note}</source>
-        <translation>Reviewed by {who} at {when} as {v}. Note: {note}</translation>
-    </message>
-    <message>
         <source>放弃未提交的复核？</source>
         <translation>Discard the unsubmitted review?</translation>
     </message>
@@ -4997,6 +5128,14 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>检测结果 · {v}</source>
         <translation>Detection result · {v}</translation>
+    </message>
+    <message>
+        <source>已由 {who} 于 {when} 复核为{v}。原因：{note}</source>
+        <translation>Reviewed as {v} by {who} at {when}. Reason: {note}</translation>
+    </message>
+    <message>
+        <source>{when} · {who} · {v} · {note}</source>
+        <translation>{when} · {who} · {v} · {note}</translation>
     </message>
     <message>
         <source>判读过程</source>

@@ -388,7 +388,7 @@ class TemplatesPage(QWidget):
         self.delete_button.setEnabled(bool(manage and info and not info.builtin))
         if manage:
             self.note.setText(
-                self.tr("内置模板只读，可以复制后修改。自定义模板保存后，新试验向导里立即可选。")
+                self.tr("内置模板只读，可以复制后修改。自定义模板保存后，新建实验向导里立即可选。")
             )
         else:
             self.note.setText(self.tr("当前账号只能查看模板，新建、复制和编辑需要模板管理权限。"))

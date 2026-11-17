@@ -32,10 +32,10 @@ LOGIN_ROUTE = Route("login", str(QT_TRANSLATE_NOOP("Routes", "登录")), in_nav=
 
 PAGE_ROUTES: tuple[Route, ...] = (
     Route("dashboard", str(QT_TRANSLATE_NOOP("Routes", "工作台"))),
-    Route("new", str(QT_TRANSLATE_NOOP("Routes", "新试验")), Permission.EXPERIMENT_CREATE),
+    Route("new", str(QT_TRANSLATE_NOOP("Routes", "新建实验")), Permission.EXPERIMENT_CREATE),
     Route(
         "monitor",
-        str(QT_TRANSLATE_NOOP("Routes", "试验监控")),
+        str(QT_TRANSLATE_NOOP("Routes", "实验监控")),
         Permission.EXPERIMENT_VIEW,
     ),
     Route(
@@ -50,7 +50,7 @@ PAGE_ROUTES: tuple[Route, ...] = (
         Permission.EXPERIMENT_VIEW,
     ),
     Route("templates", str(QT_TRANSLATE_NOOP("Routes", "模板管理")), Permission.TEMPLATE_VIEW),
-    Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂溯源")), Permission.REAGENT_VIEW),
+    Route("reagents", str(QT_TRANSLATE_NOOP("Routes", "试剂记录")), Permission.REAGENT_VIEW),
     Route(
         "reports",
         str(QT_TRANSLATE_NOOP("Routes", "报告中心")),
@@ -79,13 +79,13 @@ _BY_KEY = {route.key: route for route in ROUTES}
 
 QUICK_ACTION_ROUTES: dict[str, str] = {
     "new_experiment": "new",
-    "open_file": "history",
     "templates": "templates",
-    "print_report": "reports",
+    "reports": "reports",
     "audit_trail": "audit",
     "instrument_settings": "settings",
+    "about": "about",
 }
-"""快捷栏操作到页面的映射。"""
+"""快捷栏操作到页面的映射；报告快捷项打开报告中心首页。"""
 
 
 def route_for(key: str) -> Route:

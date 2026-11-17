@@ -174,3 +174,10 @@ QT_QPA_PLATFORM=offscreen uv run pytest -m video_perf -s
 - 监控页读取抓拍图像列表失败时写日志，不再静默。
 - 清理代码注释和 README、部署说明里的开发阶段编号。
 ```
+
+
+## 8. 2026-11-17 单一 Windows 发布路径预构建
+
+在 Windows x64 使用 Python 3.11.16、Nuitka 4.3.4 和 MSVC 14.44.35207 执行 `uv run python scripts/build.py --no-archive --jobs 4`，原生编译成功，耗时 1,177.8 秒，生成 370,710,375 字节的 standalone 目录包，签名清单含 798 个文件且自检通过。构建脚本的归档函数随后从该目录生成 ZIP（137,414,348 字节，SHA-256 `879099d106c03c7029e15b42c67b9539724945e2e78a7de6e2c010a4edbcd9ff`），871 个归档项通过 ZIP 读取检查。构建 ID 为 `20261117090215-ae1cf87`。
+
+将该可执行文件指向 `build/release/smoke-data` 后，首次启动烟雾测试通过；日志确认数据库迁移、初始化、程序清单校验和 smoke test 均成功。此构建期间工作区有并行源码变动，因此不是最终冻结提交的制品。尚未进行全仓 pytest、全仓 Ruff/mypy 最终复查、断网安装、Inno Setup 安装或 macOS 实机打包；见 [未完成工作登记](remaining-work.md)。
