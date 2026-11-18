@@ -29,6 +29,7 @@ from gelinspect.domain.errors import TransitionGuardError
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.plate import tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState, next_state
+from gelinspect.domain.templates import ExperimentTemplate
 
 if TYPE_CHECKING:
     from gelinspect.domain.conclusions import ExperimentConclusion
@@ -369,6 +370,7 @@ class Experiment:
             默认 False：没有明确确认的布局不能得出合格或不合格。
         completed_at: 试验转为“已完成”的时间。
         conclusion: 入库的试验结论，试验完成时固化，之后修改规则或阈值不会改写它。
+        template_snapshot: 创建时实际使用的模板配置，包括分配到的物理管号；旧记录可能为空。
     """
 
     experiment_id: str
@@ -389,6 +391,7 @@ class Experiment:
     layout_confirmed: bool = False
     completed_at: datetime | None = None
     conclusion: ExperimentConclusion | None = None
+    template_snapshot: ExperimentTemplate | None = None
 
     def __post_init__(self) -> None:
         """校验创建时间和管号唯一性。

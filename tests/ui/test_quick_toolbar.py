@@ -17,6 +17,7 @@ CTRL = Qt.KeyboardModifier.ControlModifier
 SHORTCUT_KEYS = {
     "new_experiment": Qt.Key.Key_N,
     "reports": Qt.Key.Key_R,
+    "history": Qt.Key.Key_H,
     "current_experiment": Qt.Key.Key_E,
     "instrument_settings": Qt.Key.Key_Comma,
 }
@@ -102,6 +103,7 @@ def test_permissions_follow_role(qtbot: QtBot) -> None:
         "new_experiment",
         "current_experiment",
         "reports",
+        "history",
         "instrument_settings",
     }
     spy = QSignalSpy(toolbar.actionTriggered)

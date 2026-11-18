@@ -233,77 +233,6 @@
     </message>
 </context>
 <context>
-    <name>AppearanceDialog</name>
-    <message>
-        <source>外观设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>按账号保存外观。选择固定配色和字号档位，更改立即预览；取消可恢复原设置。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>配色</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>石青</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>沉静蓝</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>字号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>跟随系统</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>较小</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>较大</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>预览</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>报告中心</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这是界面内容和正文文字的预览。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>主要操作</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>恢复默认</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>保存</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>取消</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无法保存外观设置，请检查数据目录后重试。</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -2012,6 +1941,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>已另存模板：{name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2125,6 +2058,10 @@
     </message>
     <message>
         <source>这个实验没有录像</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>另存为模板…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2334,7 +2271,79 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>按序号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>按管号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新增试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除选中</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结束扫码</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码录入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>清空管位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>没有试管，请先新增试管。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单扫 #{sequence}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已扫完；点结束</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>批量 #{sequence}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已达到96支试管上限。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除样品行？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>该试管已录入样品名称或批号。删除试管也会删除这行资料，确定继续吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请新增试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>试管数量应与已选管位一致，样品名称不能为空</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2350,23 +2359,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>样品批号扫码填入</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>输入或扫描批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>{rows} 排 × {holes} 支管位</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>自动选择</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>全部清除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2394,23 +2391,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>样品批号扫码输入</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>扫码批号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>新建实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>扫码填入样品批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>填入批号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。扫码枪按键盘输入并自动回车。手输示例：BATCH-2026-001，按回车或点“填入批号”。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2506,34 +2499,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>目标：没有空批号行，请在样品表中选中要替换的行。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {row} 行（未分配管号）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>管号 {tube}（第 {row} 行）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；下一目标为 {next}。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；目前没有其他空批号行。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>目标：样品表已选 {targets}。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>目标：{target}。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2543,10 +2508,6 @@
     </message>
     <message>
         <source>已选 {picked} / {total} ·</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>请先选择模板</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2587,10 +2548,6 @@
     </message>
     <message>
         <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>管位数量要与模板一致，样品名称不能为空</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2920,6 +2877,10 @@
     </message>
     <message>
         <source>报告中心</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>历史记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3989,6 +3950,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>该实验没有保存完整模板配置，无法另存为模板</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>实验 {id} 不是就绪状态，不能启动</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4291,14 +4256,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仅影响当前账号的界面配色和字号，不会修改仪器参数。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>外观设置…</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>运行参数改动对之后启动的实验生效。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4371,10 +4328,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>无法读取外观设置，请检查数据目录后重试。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4388,6 +4341,38 @@
     </message>
     <message>
         <source>设置</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>配色</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>石青</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>沉静蓝</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>字号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>跟随系统</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>较小</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>较大</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>保存外观设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4420,6 +4405,18 @@
     </message>
     <message>
         <source>配置文件</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外观设置无法保存，请检查数据目录后重试。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>外观设置已保存。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

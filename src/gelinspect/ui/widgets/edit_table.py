@@ -117,6 +117,10 @@ class _Delegate(QStyledItemDelegate):
             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
             text,
         )
+        if index.row() == self._table.active_row:
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor(c.focus), 1.5))
+            painter.drawRect(rect.adjusted(1, 1, -1, -1))
         painter.restore()
 
     def createEditor(  # noqa: N802
@@ -214,6 +218,7 @@ class EditTable(QTableWidget):
         """
         super().__init__(0, len(columns), parent)
         self.columns = list(columns)
+        self._active_row: int | None = None
         self.setItemDelegate(_Delegate(self))
         self.setShowGrid(False)
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -235,6 +240,19 @@ class EditTable(QTableWidget):
         header.setStretchLastSection(True)
         self.itemChanged.connect(lambda item: self.cellEdited.emit(item.row(), item.column()))
         self.retitle()
+
+    @property
+    def active_row(self) -> int | None:
+        """扫码等流程中需要描边提示的目标行。"""
+        return self._active_row
+
+    def set_active_row(self, row: int | None) -> None:
+        """设置需要描边的行；传 None 清除提示。"""
+        if row is not None and not 0 <= row < self.rowCount():
+            row = None
+        if row != self._active_row:
+            self._active_row = row
+            self.viewport().update()
 
     def retitle(self, titles: Sequence[str] | None = None) -> None:
         """刷新表头文字（语言切换后调用）。

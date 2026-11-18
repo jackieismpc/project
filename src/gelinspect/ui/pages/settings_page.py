@@ -31,7 +31,10 @@ from PySide6.QtWidgets import (
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
-from gelinspect.services.appearance_service import AppearanceSettingsError
+from gelinspect.services.appearance_service import (
+    AppearancePreferences,
+    AppearanceSettingsError,
+)
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.diagnostics_service import (
     DiagnosticCancelledError,
@@ -54,9 +57,9 @@ from gelinspect.ui.labels import (
     describe_storage_busy,
     setting_label,
 )
-from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
 from gelinspect.ui.pages.page_frame import build_page_column
 from gelinspect.ui.pages.wizard_widgets import Banner
+from gelinspect.ui.theme.appearance import apply_appearance
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -159,12 +162,28 @@ class SettingsPage(QWidget):
         column.addWidget(self.banner)
 
         self.personal_card = Card(" ")
-        self.appearance_hint = Label("", "meta")
-        self.appearance_hint.setWordWrap(True)
-        self.appearance_button = Button("", ButtonVariant.SECONDARY)
-        self.appearance_button.clicked.connect(self._open_appearance)
-        self.personal_card.body.addWidget(self.appearance_hint)
-        self.personal_card.body.addWidget(self.appearance_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.palette_label = Label("", "lab")
+        self.palette_box = QComboBox()
+        self.palette_box.setMinimumHeight(44)
+        self.palette_box.addItem("", "teal")
+        self.palette_box.addItem("", "blue")
+        self.font_scale_label = Label("", "lab")
+        self.font_scale_box = QComboBox()
+        self.font_scale_box.setMinimumHeight(44)
+        for scale in ("system", "small", "large"):
+            self.font_scale_box.addItem("", scale)
+        self.appearance_message = Label("", "meta")
+        self.appearance_message.setWordWrap(True)
+        self.appearance_save_button = Button("", ButtonVariant.SECONDARY)
+        self.appearance_save_button.clicked.connect(self.save_appearance)
+        self.personal_card.body.addWidget(self.palette_label)
+        self.personal_card.body.addWidget(self.palette_box)
+        self.personal_card.body.addWidget(self.font_scale_label)
+        self.personal_card.body.addWidget(self.font_scale_box)
+        self.personal_card.body.addWidget(self.appearance_message)
+        self.personal_card.body.addWidget(
+            self.appearance_save_button, 0, Qt.AlignmentFlag.AlignLeft
+        )
         column.addWidget(self.personal_card)
 
         self.configuration_area = QWidget(self)
@@ -343,6 +362,7 @@ class SettingsPage(QWidget):
             self.save_bar_area.hide()
             return
         self.personal_card.show()
+        self._load_appearance(session)
         can_view_settings = session.can(Permission.SETTINGS_VIEW)
         self.configuration_area.setVisible(can_view_settings)
         self.save_bar_area.setVisible(can_view_settings)
@@ -369,23 +389,39 @@ class SettingsPage(QWidget):
         self._apply_enabled()
         self.preview_current()
 
-    def _open_appearance(self) -> None:
-        """打开个人外观设置，不刷新设备草稿或写入设备配置。"""
-        session = self._session
-        app = QApplication.instance()
-        if session is None or not isinstance(app, QApplication):
-            return
+    def _load_appearance(self, session: Session) -> None:
+        """读取当前账号偏好；失败时保留默认选项供用户重新保存。"""
         try:
-            dialog = AppearanceDialog(
-                session.user.username, self._services.appearance, self, app=app
-            )
+            preferences = self._services.appearance.get(session.user.username)
         except (OSError, AppearanceSettingsError):
-            _log.exception("APPEARANCE_OPEN_FAILED")
-            Toast.show_message(
-                self, self.tr("无法读取外观设置，请检查数据目录后重试。"), ToastKind.DANGER
-            )
-            return
-        dialog.exec()
+            _log.exception("APPEARANCE_READ_FAILED")
+            preferences = AppearancePreferences()
+            self.appearance_message.setText(self.tr("无法读取已保存的外观设置。可重新选择后保存。"))
+        else:
+            self.appearance_message.setText("")
+        self.palette_box.setCurrentIndex(self.palette_box.findData(preferences.palette))
+        self.font_scale_box.setCurrentIndex(self.font_scale_box.findData(preferences.font_scale))
+
+    def save_appearance(self) -> bool:
+        """保存并应用当前账号外观；选择变更时不即时预览。"""
+        session = self._session
+        if session is None:
+            return False
+        preferences = AppearancePreferences(
+            palette=str(self.palette_box.currentData()),
+            font_scale=str(self.font_scale_box.currentData()),
+        )
+        try:
+            self._services.appearance.save(session.user.username, preferences)
+        except (OSError, AppearanceSettingsError):
+            _log.exception("APPEARANCE_SAVE_FAILED")
+            self.appearance_message.setText(self.tr("外观设置无法保存，请检查数据目录后重试。"))
+            return False
+        app = QApplication.instance()
+        if isinstance(app, QApplication):
+            apply_appearance(app, preferences)
+        self.appearance_message.setText(self.tr("外观设置已保存。"))
+        return True
 
     def draft(self) -> SettingsDraft:
         """按输入框当前内容生成草稿（保存前由服务层校验）。
@@ -781,8 +817,13 @@ class SettingsPage(QWidget):
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("设置"))
         self.personal_card.set_title(self.tr("个人外观"))
-        self.appearance_hint.setText(self.tr("仅影响当前账号的界面配色和字号，不会修改仪器参数。"))
-        self.appearance_button.setText(self.tr("外观设置…"))
+        self.palette_label.setText(self.tr("配色"))
+        self.palette_box.setItemText(0, self.tr("石青"))
+        self.palette_box.setItemText(1, self.tr("沉静蓝"))
+        self.font_scale_label.setText(self.tr("字号"))
+        for index, text in enumerate((self.tr("跟随系统"), self.tr("较小"), self.tr("较大"))):
+            self.font_scale_box.setItemText(index, text)
+        self.appearance_save_button.setText(self.tr("保存外观设置"))
         self.readonly_badge.set_text(self.tr("只读"))
         self.hint.setText(self.tr("运行参数改动对之后启动的实验生效。"))
         self.instrument_card.set_title(self.tr("仪器与数据"))

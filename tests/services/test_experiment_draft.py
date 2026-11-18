@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from gelinspect.domain.enums import ExperimentType, ReagentKind
+from gelinspect.domain.enums import ExperimentType, ReagentKind, TubeRole
 from gelinspect.domain.errors import InvalidPlatePositionError
 from gelinspect.domain.plate import TUBE_COUNT
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
@@ -31,7 +31,7 @@ def test_rows_come_from_the_template_in_tube_order() -> None:
 
 def test_count_difference_and_match() -> None:
     draft = draft_with()
-    assert draft.difference == -18 and not draft.tubes_match
+    assert draft.difference == 0 and draft.tubes_match
     draft.set_selected(range(1, 15))
     assert draft.difference == -4 and not draft.tubes_match
     draft.set_selected(range(1, 22))
@@ -94,7 +94,7 @@ def test_choosing_another_template_resets_rows_and_selection() -> None:
     draft = draft_with()
     draft.set_selected(range(1, 19))
     draft.choose_template(LIMIT)
-    assert draft.selected == [] and draft.expected_count == 8
+    assert draft.selected == list(range(1, 9)) and draft.expected_count == 8
 
 
 def test_blank_sample_names_are_reported_by_row() -> None:
@@ -111,7 +111,9 @@ def test_request_pairs_tubes_with_trimmed_sample_rows() -> None:
     draft.rows[0].spiked_endotoxin = 0.5
     draft.set_selected([10, 11, 12, 13, 14, 15, 16, 17])
     request = draft.to_request()
-    assert request.template_id == LIMIT.template_id
+    assert request.template_id.startswith("draft.")
+    assert request.template_snapshot is not None
+    assert [item.tube_no for item in request.template_snapshot.items] == list(range(1, 9))
     first = request.assignments[0]
     assert (first.tube_no, first.name, first.batch_no, first.spiked_endotoxin) == (
         10, "样品A", "B-1", 0.5,
@@ -148,3 +150,47 @@ def test_reconfiguring_a_run_keeps_its_original_template_source() -> None:
 def test_request_without_a_template_is_an_error() -> None:
     with pytest.raises(ValueError, match="模板"):
         ExperimentDraft().to_request()
+
+
+def test_row_identity_sequence_and_sample_binding_survive_tube_edits_and_sorting() -> None:
+    draft = draft_with(LIMIT)
+    first = draft.rows[0]
+    first.name = "用户样品"
+    first.batch_no = "BATCH-A"
+    first.role = TubeRole.SAMPLE
+    assert draft.row_has_user_edits(first.row_id)
+
+    removed = draft.remove_tube(8)
+    assert removed is not None and removed.sequence_no == 8
+    added = draft.add_tube(20, name="新增样品", role=TubeRole.TEST)
+    assert added.sequence_no == 9
+    assert draft.tubes_match
+
+    draft.sort_rows("tube_no")
+    draft.sort_rows("sequence")
+    kept = next(row for row in draft.rows if row.row_id == first.row_id)
+    assert (kept.tube_no, kept.name, kept.batch_no, kept.role) == (
+        1,
+        "用户样品",
+        "BATCH-A",
+        TubeRole.SAMPLE,
+    )
+    assert draft.auto_select() == list(range(1, 9))
+    assert next(row for row in draft.rows if row.row_id == added.row_id).sequence_no == 9
+    request = draft.to_request()
+    assert request.template_id.startswith("draft.")
+    assert request.template_snapshot is not None
+    assert request.template_snapshot.items[0].role is TubeRole.SAMPLE
+    assert request.template_snapshot.items[0].sample_name == "用户样品"
+
+
+def test_removed_sequence_is_not_reused_and_assign_tube_rejects_conflicts() -> None:
+    draft = draft_with(LIMIT)
+    last = draft.rows[-1]
+    draft.remove_row(last.row_id)
+    new = draft.add_row(name="新样品")
+    assert new.sequence_no == 9
+    with pytest.raises(ValueError, match="管位已分配"):
+        draft.assign_tube(new.row_id, draft.rows[0].tube_no)
+    draft.assign_tube(new.row_id, 20)
+    assert new.tube_no == 20 and 20 in draft.selected

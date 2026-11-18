@@ -43,6 +43,7 @@ from gelinspect.domain.enums import (
     TubeRole,
 )
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem
 from gelinspect.infrastructure.db.models import (
     ExperimentConclusionRow,
     ExperimentRow,
@@ -73,6 +74,52 @@ def _features_from_json(raw: dict[str, Any]) -> dict[str, FeatureValue]:
         key: (float(value[0]), float(value[1])) if isinstance(value, list) else value
         for key, value in raw.items()
     }
+
+
+def _template_payload(template: ExperimentTemplate | None) -> dict[str, Any] | None:
+    """把试验模板快照转为 JSON 可保存的结构。"""
+    if template is None:
+        return None
+    return {
+        "template_id": template.template_id,
+        "name": template.name,
+        "experiment_type": template.experiment_type.value,
+        "needs_confirmation": template.needs_confirmation,
+        "items": [
+            {
+                "tube_no": item.tube_no,
+                "sample_name": item.sample_name,
+                "role": item.role.value,
+                "dilution_factor": item.dilution_factor,
+                "spiked_endotoxin": item.spiked_endotoxin,
+                "lambda_multiple": item.lambda_multiple,
+            }
+            for item in template.items
+        ],
+    }
+
+
+def _template_from_payload(raw: dict[str, Any] | None) -> ExperimentTemplate | None:
+    """从 JSON 结构还原试验创建时的模板快照。"""
+    if raw is None:
+        return None
+    return ExperimentTemplate(
+        template_id=str(raw["template_id"]),
+        name=str(raw["name"]),
+        experiment_type=ExperimentType(raw["experiment_type"]),
+        needs_confirmation=bool(raw.get("needs_confirmation", False)),
+        items=tuple(
+            TemplateTubeItem(
+                tube_no=int(item["tube_no"]),
+                sample_name=str(item["sample_name"]),
+                role=TubeRole(item["role"]),
+                dilution_factor=item.get("dilution_factor"),
+                spiked_endotoxin=item.get("spiked_endotoxin"),
+                lambda_multiple=item.get("lambda_multiple"),
+            )
+            for item in raw["items"]
+        ),
+    )
 
 
 def _result_row(experiment_id: str, result: TubeResult) -> TubeResultRow:
@@ -291,6 +338,7 @@ class SqlExperimentRepository(ExperimentRepository):
             row.signed_at = experiment.signed_at
             row.completed_at = experiment.completed_at
             row.layout_confirmed = experiment.layout_confirmed
+            row.template_snapshot = _template_payload(experiment.template_snapshot)
             session.flush()
             for table in (TubeAssignmentRow, ReagentBatchRow, TubeResultRow):
                 session.execute(delete(table).where(table.experiment_id == row.experiment_id))
@@ -505,6 +553,7 @@ class SqlExperimentRepository(ExperimentRepository):
                 signed_by=row.signed_by,
                 signed_at=row.signed_at,
                 layout_confirmed=row.layout_confirmed,
+                template_snapshot=_template_from_payload(row.template_snapshot),
                 completed_at=row.completed_at,
                 conclusion=(
                     None if conclusion is None else _to_conclusion(experiment_type, conclusion)

@@ -233,77 +233,6 @@
     </message>
 </context>
 <context>
-    <name>AppearanceDialog</name>
-    <message>
-        <source>外观设置</source>
-        <translation>Appearance</translation>
-    </message>
-    <message>
-        <source>按账号保存外观。选择固定配色和字号档位，更改立即预览；取消可恢复原设置。</source>
-        <translation>Appearance is saved per account. Choose a color palette and text size; changes preview immediately, and Cancel restores the previous settings.</translation>
-    </message>
-    <message>
-        <source>配色</source>
-        <translation>Color palette</translation>
-    </message>
-    <message>
-        <source>石青</source>
-        <translation>Teal</translation>
-    </message>
-    <message>
-        <source>沉静蓝</source>
-        <translation>Calm blue</translation>
-    </message>
-    <message>
-        <source>字号</source>
-        <translation>Text size</translation>
-    </message>
-    <message>
-        <source>跟随系统</source>
-        <translation>Follow system</translation>
-    </message>
-    <message>
-        <source>较小</source>
-        <translation>Smaller</translation>
-    </message>
-    <message>
-        <source>较大</source>
-        <translation>Larger</translation>
-    </message>
-    <message>
-        <source>预览</source>
-        <translation>Preview</translation>
-    </message>
-    <message>
-        <source>报告中心</source>
-        <translation>Report Center</translation>
-    </message>
-    <message>
-        <source>这是界面内容和正文文字的预览。</source>
-        <translation>Preview of the interface surface and body text.</translation>
-    </message>
-    <message>
-        <source>主要操作</source>
-        <translation>Primary action</translation>
-    </message>
-    <message>
-        <source>恢复默认</source>
-        <translation>Restore defaults</translation>
-    </message>
-    <message>
-        <source>保存</source>
-        <translation>Save</translation>
-    </message>
-    <message>
-        <source>取消</source>
-        <translation>Cancel</translation>
-    </message>
-    <message>
-        <source>无法保存外观设置，请检查数据目录后重试。</source>
-        <translation>Unable to save appearance settings. Check the data folder and try again.</translation>
-    </message>
-</context>
-<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -2012,6 +1941,10 @@
         <translation>Select an experiment first.</translation>
     </message>
     <message>
+        <source>已另存模板：{name}</source>
+        <translation>Template saved: {name}</translation>
+    </message>
+    <message>
         <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
         <translation>This experiment is signed. You can preview, print, verify and export the signed PDF.</translation>
     </message>
@@ -2126,6 +2059,10 @@
     <message>
         <source>这个实验没有录像</source>
         <translation>This experiment has no recordings</translation>
+    </message>
+    <message>
+        <source>另存为模板…</source>
+        <translation>Save as template…</translation>
     </message>
     <message>
         <source>已请求停止，正在收尾</source>
@@ -2334,8 +2271,80 @@
         <translation>Leave empty to leave it blank in the report</translation>
     </message>
     <message>
+        <source>按序号</source>
+        <translation>By sequence</translation>
+    </message>
+    <message>
+        <source>按管号</source>
+        <translation>By tube</translation>
+    </message>
+    <message>
+        <source>新增试管</source>
+        <translation>Add tube</translation>
+    </message>
+    <message>
+        <source>删除选中</source>
+        <translation>Delete selected</translation>
+    </message>
+    <message>
+        <source>结束扫码</source>
+        <translation>End scanning</translation>
+    </message>
+    <message>
+        <source>扫码录入</source>
+        <translation>Scan entry</translation>
+    </message>
+    <message>
+        <source>清空管位</source>
+        <translation>Clear tube positions</translation>
+    </message>
+    <message>
         <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>The workflow is locked and cannot continue. Replace the reagent with a valid lot and scan again. This check was written to the audit trail.</translation>
+    </message>
+    <message>
+        <source>没有试管，请先新增试管。</source>
+        <translation>No tubes. Add a tube first.</translation>
+    </message>
+    <message>
+        <source>单扫 #{sequence}</source>
+        <translation>Single #{sequence}</translation>
+    </message>
+    <message>
+        <source>已扫完；点结束</source>
+        <translation>Done; click End</translation>
+    </message>
+    <message>
+        <source>批量 #{sequence}</source>
+        <translation>Batch #{sequence}</translation>
+    </message>
+    <message>
+        <source>已达到96支试管上限。</source>
+        <translation>96-tube limit reached.</translation>
+    </message>
+    <message>
+        <source>删除样品行？</source>
+        <translation>Delete sample row?</translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation>The selected row contains an entered sample name or lot. Deletion cannot be undone. Continue?</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <source>该试管已录入样品名称或批号。删除试管也会删除这行资料，确定继续吗？</source>
+        <translation>This tube has sample information entered. Deleting it also deletes that row. Continue?</translation>
+    </message>
+    <message>
+        <source>请新增试管</source>
+        <translation>Add a tube</translation>
+    </message>
+    <message>
+        <source>试管数量应与已选管位一致，样品名称不能为空</source>
+        <translation>Tube count must match the selected positions, and sample names cannot be empty</translation>
     </message>
     <message>
         <source>实验类型</source>
@@ -2350,24 +2359,12 @@
         <translation>Tubes</translation>
     </message>
     <message>
-        <source>样品批号扫码填入</source>
-        <translation>Scan to enter sample lot</translation>
-    </message>
-    <message>
-        <source>输入或扫描批号</source>
-        <translation>Enter or scan a lot</translation>
-    </message>
-    <message>
         <source>{rows} 排 × {holes} 支管位</source>
         <translation>{rows} rows × {holes} tubes</translation>
     </message>
     <message>
         <source>自动选择</source>
         <translation>Auto-select</translation>
-    </message>
-    <message>
-        <source>全部清除</source>
-        <translation>Clear all</translation>
     </message>
     <message>
         <source>另存为模板</source>
@@ -2394,24 +2391,20 @@
         <translation>λ multiple</translation>
     </message>
     <message>
+        <source>样品批号扫码输入</source>
+        <translation>Sample lot scan input</translation>
+    </message>
+    <message>
+        <source>扫码批号</source>
+        <translation>Scan lot</translation>
+    </message>
+    <message>
         <source>新建实验</source>
         <translation>New Experiment</translation>
     </message>
     <message>
         <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
         <translation>Saved with the experiment record and shown in the report; it cannot be changed after signing.</translation>
-    </message>
-    <message>
-        <source>扫码填入样品批号</source>
-        <translation>Scan sample lot</translation>
-    </message>
-    <message>
-        <source>填入批号</source>
-        <translation>Enter lot</translation>
-    </message>
-    <message>
-        <source>在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。扫码枪按键盘输入并自动回车。手输示例：BATCH-2026-001，按回车或点“填入批号”。</source>
-        <translation>Select one or more rows in the sample table before entering a lot. With no selection, lots go to the next empty row. A barcode scanner types like a keyboard and presses Enter automatically. Example for manual entry: BATCH-2026-001; press Enter or click “Enter lot”.</translation>
     </message>
     <message>
         <source>实验信息</source>
@@ -2506,34 +2499,6 @@
         <translation>Replace it with a valid lot and scan again. This check was written to the audit trail.</translation>
     </message>
     <message>
-        <source>目标：没有空批号行，请在样品表中选中要替换的行。</source>
-        <translation>Target: no empty lot rows. Select rows in the sample table to replace their lots.</translation>
-    </message>
-    <message>
-        <source>第 {row} 行（未分配管号）</source>
-        <translation>Row {row} (no tube assigned)</translation>
-    </message>
-    <message>
-        <source>管号 {tube}（第 {row} 行）</source>
-        <translation>Tube {tube} (row {row})</translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；下一目标为 {next}。</source>
-        <translation>Entered {filled}; next target: {next}.</translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；目前没有其他空批号行。</source>
-        <translation>Entered {filled}; there are no other empty lot rows.</translation>
-    </message>
-    <message>
-        <source>目标：样品表已选 {targets}。</source>
-        <translation>Target: selected in the sample table: {targets}.</translation>
-    </message>
-    <message>
-        <source>目标：{target}。</source>
-        <translation>Target: {target}.</translation>
-    </message>
-    <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
         <translation> · labeled sensitivity {value:g} EU/mL</translation>
     </message>
@@ -2544,10 +2509,6 @@
     <message>
         <source>已选 {picked} / {total} ·</source>
         <translation>Selected {picked} / {total} ·</translation>
-    </message>
-    <message>
-        <source>请先选择模板</source>
-        <translation>Select a template first</translation>
     </message>
     <message>
         <source>请在孔板上选择管位</source>
@@ -2588,10 +2549,6 @@
     <message>
         <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
         <translation>The LAL reagent&apos;s labeled sensitivity λ is missing, so the endotoxin spike cannot be calculated. Complete a valid reagent check.</translation>
-    </message>
-    <message>
-        <source>管位数量要与模板一致，样品名称不能为空</source>
-        <translation>Tube count must match the template and sample names cannot be empty</translation>
     </message>
     <message>
         <source>试管</source>
@@ -2921,6 +2878,10 @@
     <message>
         <source>报告中心</source>
         <translation>Report Center</translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation>History</translation>
     </message>
     <message>
         <source>当前实验</source>
@@ -3989,6 +3950,10 @@
         <translation>Experiment not found: {id}</translation>
     </message>
     <message>
+        <source>该实验没有保存完整模板配置，无法另存为模板</source>
+        <translation>This experiment has no complete saved template configuration and cannot be saved as a template.</translation>
+    </message>
+    <message>
         <source>实验 {id} 不是就绪状态，不能启动</source>
         <translation>Experiment {id} is not ready and cannot be started</translation>
     </message>
@@ -4291,14 +4256,6 @@
         <translation>Personal appearance</translation>
     </message>
     <message>
-        <source>仅影响当前账号的界面配色和字号，不会修改仪器参数。</source>
-        <translation>Changes the interface colors and text size for this account only. Instrument settings are not affected.</translation>
-    </message>
-    <message>
-        <source>外观设置…</source>
-        <translation>Appearance settings…</translation>
-    </message>
-    <message>
         <source>运行参数改动对之后启动的实验生效。</source>
         <translation>Changes to run parameters apply to experiments started afterward.</translation>
     </message>
@@ -4371,10 +4328,6 @@
         <translation>Browse…</translation>
     </message>
     <message>
-        <source>无法读取外观设置，请检查数据目录后重试。</source>
-        <translation>Could not read appearance settings. Check the data folder and try again.</translation>
-    </message>
-    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>Your account can view settings only. Instrument maintenance permission is required to make changes.</translation>
     </message>
@@ -4389,6 +4342,38 @@
     <message>
         <source>设置</source>
         <translation>Settings</translation>
+    </message>
+    <message>
+        <source>配色</source>
+        <translation>Color palette</translation>
+    </message>
+    <message>
+        <source>石青</source>
+        <translation>Teal</translation>
+    </message>
+    <message>
+        <source>沉静蓝</source>
+        <translation>Calm blue</translation>
+    </message>
+    <message>
+        <source>字号</source>
+        <translation>Text size</translation>
+    </message>
+    <message>
+        <source>跟随系统</source>
+        <translation>Follow system</translation>
+    </message>
+    <message>
+        <source>较小</source>
+        <translation>Smaller</translation>
+    </message>
+    <message>
+        <source>较大</source>
+        <translation>Larger</translation>
+    </message>
+    <message>
+        <source>保存外观设置</source>
+        <translation>Save appearance settings</translation>
     </message>
     <message>
         <source>启动配置与数据目录</source>
@@ -4421,6 +4406,18 @@
     <message>
         <source>配置文件</source>
         <translation>Config file</translation>
+    </message>
+    <message>
+        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
+        <translation>Could not read the saved appearance settings. Select the options again and save.</translation>
+    </message>
+    <message>
+        <source>外观设置无法保存，请检查数据目录后重试。</source>
+        <translation>Could not save appearance settings. Check the data folder and try again.</translation>
+    </message>
+    <message>
+        <source>外观设置已保存。</source>
+        <translation>Appearance settings saved.</translation>
     </message>
     <message>
         <source>还原</source>

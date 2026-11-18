@@ -235,10 +235,16 @@ def resolve_runtime_paths(
 ) -> tuple[Path | None, Path | None, Path | None]:
     """解析 UI 暂存启动路径；命令行/环境传入值优先，坏记录整体忽略。"""
     selected_analysis: Path | None = None
+    path = selection_file or runtime_selection_file()
     try:
-        selection = json.loads(
-            (selection_file or runtime_selection_file()).read_text(encoding="utf-8")
-        )
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return config_path, data_dir, None
+    except (OSError, UnicodeError) as error:
+        _log.warning("忽略无效的界面启动路径设置：%s", error)
+        return config_path, data_dir, None
+    try:
+        selection = json.loads(text)
         if not isinstance(selection, dict):
             raise ValueError("启动路径记录不是对象")
         selected_config = config_path or (

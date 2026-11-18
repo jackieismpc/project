@@ -343,6 +343,9 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ServiceErrorCode.EXPERIMENT_NOT_FOUND: str(
         QT_TRANSLATE_NOOP("ServiceError", "实验不存在：{id}")
     ),
+    ServiceErrorCode.EXPERIMENT_TEMPLATE_SNAPSHOT_MISSING: str(
+        QT_TRANSLATE_NOOP("ServiceError", "该实验没有保存完整模板配置，无法另存为模板")
+    ),
     ServiceErrorCode.EXPERIMENT_NOT_READY: str(
         QT_TRANSLATE_NOOP("ServiceError", "实验 {id} 不是就绪状态，不能启动")
     ),

@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 from gelinspect.domain.enums import ReagentKind, TubeRole
 from gelinspect.domain.plate import tube_to_position
-from gelinspect.domain.templates import ExperimentTemplate, spike_from_lambda
+from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem, spike_from_lambda
 from gelinspect.interfaces.traceability import ReagentInput
 
 
@@ -41,6 +41,7 @@ class SampleRow:
     lambda_multiple: float | None = None
     tube_no: int | None = None
     row_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    sequence_no: int = 0
     lambda_multiple_overridden: bool = False
 
     def snapshot(self) -> tuple[str, str, float | None, float | None, float | None]:
@@ -125,7 +126,11 @@ class ExperimentDraft:
         self._template: ExperimentTemplate | None = None
         self._source_template_id: str | None = None
         self._rows: list[SampleRow] = []
-        self._baseline: list[tuple[str, str, float | None, float | None, float | None]] = []
+        self._baseline: dict[str, tuple[str, str, float | None, float | None, float | None]] = {}
+        self._initial_row_ids: frozenset[str] = frozenset()
+        self._initial_selected: tuple[int, ...] = ()
+        self._initial_tubes_by_row_id: dict[str, int | None] = {}
+        self._next_sequence_no = 1
         self._selected: list[int] = []
         self._reagent_codes: dict[ReagentKind, str] = {}
         self._reagent_inputs: dict[ReagentKind, ReagentInput] = {}
@@ -187,14 +192,19 @@ class ExperimentDraft:
                 dilution_factor=item.dilution_factor,
                 role=item.role,
                 lambda_multiple=item.lambda_multiple,
+                sequence_no=index,
             )
-            for item in sorted(template.items, key=lambda i: i.tube_no)
+            for index, item in enumerate(sorted(template.items, key=lambda i: i.tube_no), start=1)
         ]
         ordered_items = sorted(template.items, key=lambda i: i.tube_no)
         for row, item in zip(self._rows, ordered_items, strict=True):
             row.tube_no = item.tube_no
-        self._baseline = [row.snapshot() for row in self._rows]
-        self._selected = []
+        self._baseline = {row.row_id: row.snapshot() for row in self._rows}
+        self._selected = sorted(item.tube_no for item in template.items)
+        self._initial_row_ids = frozenset(row.row_id for row in self._rows)
+        self._initial_selected = tuple(self._selected)
+        self._initial_tubes_by_row_id = {row.row_id: row.tube_no for row in self._rows}
+        self._next_sequence_no = len(self._rows) + 1
 
     def configure(
         self, template: ExperimentTemplate, *, source_template_id: str | None = None
@@ -208,13 +218,106 @@ class ExperimentDraft:
         """样品行（可直接修改行内容）。"""
         return self._rows
 
+    def add_row(
+        self,
+        *,
+        name: str = "",
+        role: TubeRole = TubeRole.TEST,
+        tube_no: int | None = None,
+    ) -> SampleRow:
+        """追加样品行并分配不可复用的稳定序号。"""
+        if len(self._rows) >= 96:
+            raise ValueError("最多支持96支试管")
+        if tube_no is not None:
+            tube_to_position(tube_no)
+            if any(row.tube_no == tube_no for row in self._rows):
+                raise ValueError(f"管位已分配：{tube_no}")
+        sequence_no = self._next_sequence_no
+        self._next_sequence_no += 1
+        row = SampleRow(name=name, role=role, tube_no=tube_no, sequence_no=sequence_no)
+        self._rows.append(row)
+        self._baseline[row.row_id] = row.snapshot()
+        if tube_no is not None:
+            self._selected = sorted({*self._selected, tube_no})
+        return row
+
+    def remove_row(self, row_id: str) -> SampleRow:
+        """按稳定行标识删除样品行及其管位绑定。"""
+        index = next((i for i, row in enumerate(self._rows) if row.row_id == row_id), None)
+        if index is None:
+            raise KeyError(f"样品行不存在：{row_id}")
+        row = self._rows.pop(index)
+        self._baseline.pop(row.row_id, None)
+        if row.tube_no is not None:
+            self._selected = [tube for tube in self._selected if tube != row.tube_no]
+        return row
+
+    def assign_tube(self, row_id: str, tube_no: int | None) -> None:
+        """为样品行绑定或解绑管位；已绑定到其他行的管位会拒绝覆盖。"""
+        row = next((item for item in self._rows if item.row_id == row_id), None)
+        if row is None:
+            raise KeyError(f"样品行不存在：{row_id}")
+        if tube_no is not None:
+            tube_to_position(tube_no)
+            if any(item.row_id != row_id and item.tube_no == tube_no for item in self._rows):
+                raise ValueError(f"管位已分配：{tube_no}")
+        previous = row.tube_no
+        row.tube_no = tube_no
+        self._selected = sorted({item.tube_no for item in self._rows if item.tube_no is not None})
+        if previous is not None and previous not in self._selected:
+            self._selected = [tube for tube in self._selected if tube != previous]
+
+    def add_tube(
+        self, tube_no: int, *, name: str = "", role: TubeRole = TubeRole.TEST
+    ) -> SampleRow:
+        """新增一个样品行并直接绑定指定管位。"""
+        tube_to_position(tube_no)
+        if any(row.tube_no == tube_no for row in self._rows):
+            raise ValueError(f"管位已分配：{tube_no}")
+        row = next(
+            (
+                item
+                for item in sorted(self._rows, key=lambda item: item.sequence_no)
+                if item.tube_no is None
+            ),
+            None,
+        )
+        if row is None:
+            row = self.add_row(name=name, role=role)
+        elif name:
+            row.name = name
+        if row is not None and role is not TubeRole.TEST:
+            row.role = role
+        self.assign_tube(row.row_id, tube_no)
+        return row
+
+    def remove_tube(self, tube_no: int) -> SampleRow | None:
+        """删除指定管位对应的样品行；其他样品、批号和稳定序号不变。"""
+        row = next((item for item in self._rows if item.tube_no == tube_no), None)
+        if row is not None:
+            return self.remove_row(row.row_id)
+        self._selected = [tube for tube in self._selected if tube != tube_no]
+        return None
+
+    def row_has_user_edits(self, row_id: str) -> bool:
+        """名称或批号是否相对该稳定行的初始值被用户修改。"""
+        row = next((item for item in self._rows if item.row_id == row_id), None)
+        if row is None:
+            raise KeyError(f"样品行不存在：{row_id}")
+        baseline = self._baseline.get(row_id)
+        return baseline is not None and (row.name, row.batch_no) != baseline[:2]
+
     def sort_rows(self, key: str, *, reverse: bool = False) -> None:
         """按指定字段排序；整行移动以保留样品、参数和管位绑定。"""
-        if key not in {"name", "batch_no", "tube_no", "lambda_multiple"}:
+        if key not in {"name", "batch_no", "tube_no", "lambda_multiple", "sequence", "sequence_no"}:
             raise ValueError(f"不支持的样品排序字段：{key}")
         indexed = list(enumerate(self._rows))
-        if key == "tube_no":
-            indexed.sort(key=lambda pair: pair[1].tube_no or 10_000, reverse=reverse)
+        if key in {"sequence", "sequence_no"}:
+            indexed.sort(key=lambda pair: pair[1].sequence_no, reverse=reverse)
+        elif key == "tube_no":
+            indexed.sort(
+                key=lambda pair: (pair[1].tube_no is None, pair[1].tube_no or 0), reverse=reverse
+            )
         elif key == "lambda_multiple":
             indexed.sort(key=lambda pair: pair[1].lambda_multiple or 0, reverse=reverse)
         else:
@@ -263,15 +366,16 @@ class ExperimentDraft:
         unique = sorted(set(tubes))
         for tube_no in unique:
             tube_to_position(tube_no)
-        self._selected = unique
-        existing = {row.tube_no for row in self._rows}
-        if len(unique) == len(self._rows) and existing == set(unique):
+        if set(unique) == set(self._selected):
             return
-        for row in self._rows:
-            row.tube_no = None
-        if len(unique) == len(self._rows):
-            for row, tube_no in zip(self._rows, unique, strict=True):
+        self._selected = unique
+        ordered_rows = sorted(self._rows, key=lambda row: row.sequence_no)
+        if len(unique) == len(ordered_rows):
+            for row, tube_no in zip(ordered_rows, unique, strict=True):
                 row.tube_no = tube_no
+        else:
+            for row in ordered_rows:
+                row.tube_no = None
 
     def auto_select(self) -> list[int]:
         """自动选择：选中模板默认的管号。
@@ -282,8 +386,13 @@ class ExperimentDraft:
         if self._template is None:
             self._selected = []
         else:
-            self._selected = sorted(item.tube_no for item in self._template.items)
-            for row, tube_no in zip(self._rows, self._selected, strict=True):
+            if frozenset(row.row_id for row in self._rows) == self._initial_row_ids:
+                self._selected = sorted(item.tube_no for item in self._template.items)
+            else:
+                self._selected = list(range(1, len(self._rows) + 1))
+            for row, tube_no in zip(
+                sorted(self._rows, key=lambda item: item.sequence_no), self._selected, strict=True
+            ):
                 row.tube_no = tube_no
         return self.selected
 
@@ -355,7 +464,30 @@ class ExperimentDraft:
         Returns:
             选过管位或编辑过样品行时为 True。
         """
-        return bool(self._selected) or [row.snapshot() for row in self._rows] != self._baseline
+        return (
+            frozenset(row.row_id for row in self._rows) != self._initial_row_ids
+            or tuple(self._selected) != self._initial_selected
+            or {row.row_id: row.snapshot() for row in self._rows} != self._baseline
+        )
+
+    @property
+    def is_customized(self) -> bool:
+        """本次试管行结构或单管配置已偏离所选模板。"""
+        if self._template is None:
+            return False
+        if frozenset(row.row_id for row in self._rows) != self._initial_row_ids:
+            return True
+        template_items = sorted(self._template.items, key=lambda item: item.tube_no)
+        rows = sorted(self._rows, key=lambda row: row.sequence_no)
+        if len(rows) != len(template_items) or any(
+            row.role is not item.role
+            or row.dilution_factor != item.dilution_factor
+            or row.lambda_multiple != item.lambda_multiple
+            for row, item in zip(rows, template_items, strict=False)
+        ):
+            return True
+        current_mapping = {row.row_id: row.tube_no for row in rows}
+        return current_mapping != self._initial_tubes_by_row_id
 
     def is_modified(self) -> bool:
         """向导里是否已有用户录入的内容（离开时需要确认）。
@@ -402,13 +534,40 @@ class ExperimentDraft:
             if (tube_no := row.tube_no) is not None
         ]
         assignments.sort(key=lambda assignment: assignment.tube_no)
+        template = self._template
+        template_id = template.template_id
+        if self.is_customized:
+            template_id = f"draft.{uuid.uuid4().hex}"
+            assigned_rows = sorted(
+                (row for row in self._rows if row.tube_no is not None),
+                key=lambda row: row.tube_no or 0,
+            )
+            template = ExperimentTemplate(
+                template_id=template_id,
+                name=self._template.name,
+                experiment_type=self._template.experiment_type,
+                items=tuple(
+                    TemplateTubeItem(
+                        tube_no=index,
+                        sample_name=row.name.strip(),
+                        role=row.role,
+                        dilution_factor=row.dilution_factor,
+                        spiked_endotoxin=(
+                            None if row.lambda_multiple is not None else row.spiked_endotoxin
+                        ),
+                        lambda_multiple=row.lambda_multiple,
+                    )
+                    for index, row in enumerate(assigned_rows, start=1)
+                ),
+                needs_confirmation=self._template.needs_confirmation,
+            )
         return NewExperimentRequest(
-            template_id=self._template.template_id,
+            template_id=template_id,
             assignments=assignments,
             reagent_codes=dict(self._reagent_codes),
             reagent_inputs=dict(self._reagent_inputs),
             mvd=self.mvd,
             endotoxin_limit=self.endotoxin_limit,
-            template_snapshot=self._template,
+            template_snapshot=template,
             source_template_id=self._source_template_id,
         )

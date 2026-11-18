@@ -71,7 +71,7 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert experiment is not None
     assert experiment.state is ExperimentState.READY
     assert experiment.experiment_type is ExperimentType.SENSITIVITY_CONFIRMATION
-    assert experiment.template_id == SENSITIVITY.template_id
+    assert experiment.template_id.startswith("draft.")
     assert experiment.operator == "experimenter" and experiment.instrument_no == "GI-001"
     assert experiment.created_at == NOW
     # 第 i 个样品行对应第 i 小的管号，用途和外加内毒素来自同一个模板管位项
@@ -197,7 +197,7 @@ def test_ad_hoc_configuration_accepts_exactly_96_tubes(stack: Stack) -> None:
     assert experiment is not None and len(experiment.assignments) == TUBE_COUNT
 
 
-def test_ad_hoc_configuration_rejects_non_contiguous_tube_configuration(stack: Stack) -> None:
+def test_ad_hoc_configuration_preserves_non_contiguous_template_positions(stack: Stack) -> None:
     template = ExperimentTemplate(
         "draft.gapped",
         "间隔管位",
@@ -207,9 +207,65 @@ def test_ad_hoc_configuration_rejects_non_contiguous_tube_configuration(stack: S
             dataclasses.replace(LIMIT.items[1], tube_no=3),
         ),
     )
-    with pytest.raises(ServiceError) as caught:
-        stack.experiments.create_experiment(stack.login("experimenter"), request_for(template))
-    assert caught.value.code is ServiceErrorCode.DRAFT_TUBES_INVALID
+    experiment_id = stack.experiments.create_experiment(
+        stack.login("experimenter"), request_for(template)
+    )
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None
+    assert [assignment.tube_no for assignment in experiment.assignments] == [1, 3]
+    assert experiment.template_snapshot is not None
+    assert [item.tube_no for item in experiment.template_snapshot.items] == [1, 3]
+    assert [item.role for item in experiment.template_snapshot.items] == [
+        item.role for item in template.items
+    ]
+
+
+def test_create_persists_physical_template_snapshot_with_lambda_overrides(stack: Stack) -> None:
+    request = request_for(tubes=range(20, 38))
+    assignments = list(request.assignments)
+    assignments[0] = dataclasses.replace(
+        assignments[0], lambda_multiple=0.5, lambda_multiple_overridden=True
+    )
+    assignments[1] = dataclasses.replace(
+        assignments[1], lambda_multiple=None, spiked_endotoxin=None, lambda_multiple_overridden=True
+    )
+    assignments[2] = dataclasses.replace(
+        assignments[2], lambda_multiple=0.0, lambda_multiple_overridden=True
+    )
+    request = dataclasses.replace(request, assignments=assignments)
+
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+    experiment = stack.database.experiments.get(experiment_id)
+
+    assert experiment is not None and experiment.template_snapshot is not None
+    snapshot = {item.tube_no: item for item in experiment.template_snapshot.items}
+    assert set(snapshot) == set(range(20, 38))
+    assert snapshot[20].role is experiment.assignments[0].role
+    assert snapshot[20].lambda_multiple == 0.5 and snapshot[20].spiked_endotoxin is None
+    assert snapshot[21].lambda_multiple is None and snapshot[21].spiked_endotoxin is None
+    assert snapshot[22].lambda_multiple == 0.0 and snapshot[22].spiked_endotoxin is None
+
+
+def test_sparse_row_rebinding_keeps_roles_with_physical_tubes(stack: Stack) -> None:
+    draft = ExperimentDraft()
+    draft.choose_template(LIMIT)
+    first, last = draft.rows[0], draft.rows[-1]
+    draft.assign_tube(first.row_id, None)
+    draft.assign_tube(last.row_id, None)
+    draft.assign_tube(first.row_id, 8)
+    draft.assign_tube(last.row_id, 1)
+    request = dataclasses.replace(draft.to_request(), reagent_codes=GOOD_CODES)
+    assert request.template_id.startswith("draft.")
+
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+    experiment = stack.database.experiments.get(experiment_id)
+
+    assert experiment is not None and experiment.template_snapshot is not None
+    by_tube = {assignment.tube_no: assignment for assignment in experiment.assignments}
+    assert by_tube[1].role is last.role
+    assert by_tube[8].role is first.role
+    snapshot = {item.tube_no: item for item in experiment.template_snapshot.items}
+    assert snapshot[1].role is last.role and snapshot[8].role is first.role
 
 
 def test_ad_hoc_configuration_keeps_source_revocation_guard(stack: Stack) -> None:

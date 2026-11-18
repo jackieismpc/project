@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction, ReagentKind
+from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind, TubeRole
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.engine_types import RowPhase, WellStatus
@@ -96,6 +97,27 @@ def test_default_experiment_falls_back_to_the_most_recent(stack: object) -> None
     assert view.last_elapsed_ms == 12.0
     assert result_status(view.tubes[2].result) is WellStatus.PENDING_REVIEW  # type: ignore[arg-type]
     assert view.tubes[0].status is WellStatus.POSITIVE
+
+
+def test_view_uses_the_experiment_template_snapshot_name(stack: object) -> None:
+    from tests.services.conftest import Stack
+
+    assert isinstance(stack, Stack)
+    make_pending(stack)
+    experiment = stack.database.experiments.get("EXP-REV-1")
+    assert experiment is not None
+    experiment.template_id = "draft.deleted-source"
+    experiment.template_snapshot = ExperimentTemplate(
+        "draft.deleted-source",
+        "实验时的本次配置",
+        ExperimentType.GENERAL,
+        (TemplateTubeItem(3, "样品", TubeRole.TEST),),
+    )
+    stack.database.experiments.save(experiment)
+    monitor = MonitorService(stack.auth, stack.database, _IdleEngine())
+    view = monitor.view(stack.login("analyst"), experiment.experiment_id)
+    assert view.template_name == "实验时的本次配置"
+    assert not view.template_builtin
 
 
 class _IdleEngine:

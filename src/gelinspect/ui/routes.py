@@ -85,6 +85,7 @@ _BY_KEY = {route.key: route for route in ROUTES}
 QUICK_ACTION_ROUTES: dict[str, str] = {
     "new_experiment": "new",
     "reports": "reports",
+    "history": "history",
     "current_experiment": "monitor",
     "instrument_settings": "settings",
     "about": "about",

@@ -26,6 +26,7 @@ class ServiceErrorCode(StrEnum):
     DRAFT_SAMPLE_NAME_REQUIRED = "draft_sample_name_required"
     REAGENT_LOCKED = "reagent_locked"
     EXPERIMENT_NOT_FOUND = "experiment_not_found"
+    EXPERIMENT_TEMPLATE_SNAPSHOT_MISSING = "experiment_template_snapshot_missing"
     EXPERIMENT_NOT_READY = "experiment_not_ready"
     ENGINE_BUSY = "engine_busy"
     ENGINE_REFUSED = "engine_refused"

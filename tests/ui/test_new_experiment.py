@@ -22,6 +22,7 @@ from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageReque
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.new_experiment import (
     COL_BATCH,
+    COL_INDEX,
     COL_LAMBDA,
     COL_NAME,
     COL_TUBE,
@@ -83,8 +84,12 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
     assert page.current_step() == STEP_TEMPLATE and not page.template_next.isEnabled()
     reach_samples(qapp, page)
 
-    # 第 3 步：编辑样品表（真实编辑器），在孔板上点 10–27 号管
+    # 第 3 步：孔板默认选中模板管位；改为 10–27 号后编辑首个样品批号
     table = page.sample_table
+    tubes = list(range(10, 28))
+    select_tubes(qapp, page, [*range(1, 10), *range(19, 28)])
+    assert page.draft().selected == tubes
+    assert [table.cell_text(i, COL_TUBE) for i in range(18)] == [str(t) for t in tubes]
     table.editItem(table.cell_item(0, COL_BATCH))
     editor = table.findChild(QLineEdit)
     assert editor is not None
@@ -93,10 +98,6 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
     settle(qapp)
     assert page.draft().rows[0].batch_no == "S2611-01"
     assert page.plate.mode() is PlateMode.SELECT
-    tubes = list(range(10, 28))
-    select_tubes(qapp, page, tubes)
-    assert page.draft().selected == tubes
-    assert [table.cell_text(i, COL_TUBE) for i in range(18)] == [str(t) for t in tubes]
     assert page.match_label.text() == "管位已对应" and page.sample_next.isEnabled()
     click(qapp, page.sample_next)
 
@@ -320,22 +321,25 @@ def test_manual_reagent_mode_and_editing_invalidate_old_pass(
 # ---------------------------------------------------------------------------- 步骤 3：样品和管位
 
 
-def test_count_mismatch_blocks_the_next_step_and_shows_the_difference(
+def test_plate_add_and_remove_keep_sample_rows_bound_to_tubes(
     qapp: QApplication, window: MainWindow
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
-    assert page.count_label.text() == "已选 0 / 18 ·"
-    assert page.match_label.text() == "请在孔板上选择管位" and not page.sample_next.isEnabled()
-    select_tubes(qapp, page, range(1, 18))  # 17 个
-    assert page.count_label.text() == "已选 17 / 18 ·" and page.match_label.text() == "还差 1 个"
-    assert not page.sample_next.isEnabled()
-    click(qapp, page.sample_next)
-    page._go(STEP_CONFIRM)  # 绕过按钮也不行
-    assert page.current_step() == STEP_SAMPLES
-    select_tubes(qapp, page, [18, 19])  # 19 个
-    assert page.match_label.text() == "多选了 1 个" and not page.sample_next.isEnabled()
-    select_tubes(qapp, page, [19])  # 取消 19
+    assert page.draft().selected == list(range(1, 19))
+    assert page.draft().expected_count == 18 and page.sample_next.isEnabled()
+    original = {row.sequence_no: row.row_id for row in page.draft().rows}
+
+    select_tubes(qapp, page, [18])
+    assert page.draft().expected_count == 17
+    assert page.draft().selected == list(range(1, 18))
+    assert page.sample_next.isEnabled()
+    assert {row.sequence_no: row.row_id for row in page.draft().rows} == {
+        sequence: row_id for sequence, row_id in original.items() if sequence < 18
+    }
+
+    select_tubes(qapp, page, [19])
+    assert page.draft().expected_count == 18 and page.draft().selected_count == 18
     assert page.match_label.text() == "管位已对应" and page.sample_next.isEnabled()
     assert page.match_label.property("role") == "ok"
 
@@ -350,6 +354,7 @@ def test_auto_select_and_clear(qapp: QApplication, window: MainWindow) -> None:
     ]
     click(qapp, page.clear_button)
     assert page.plate.selected_tubes() == [] and not page.sample_next.isEnabled()
+    assert page.draft().expected_count == 8 and len(page.draft().rows) == 8
     assert page.sample_table.cell_text(0, COL_TUBE) == "–"
 
 
@@ -417,61 +422,178 @@ def test_going_back_keeps_everything_that_was_entered(
     assert page.current_step() == STEP_SAMPLES and page.draft().selected == list(range(20, 38))
 
 
-def test_sample_sort_lambda_edit_and_batch_scanner_fill_selected_rows(
+def test_sample_sort_keeps_stable_sequence_and_tube_bindings(
     qapp: QApplication, window: MainWindow
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
-    page._draft.set_labeled_sensitivity(0.5)
+    page._draft.clear_selection()
+    rows = sorted(page._draft.rows, key=lambda row: row.sequence_no)
+    for row, tube in zip(rows, reversed(range(1, len(rows) + 1)), strict=True):
+        page._draft.assign_tube(row.row_id, tube)
     page._sync_samples()
-    page.sample_table.cell_item(0, COL_NAME).setText("Z sample")
-    page.sample_table.cell_item(1, COL_NAME).setText("A sample")
-    page._draft.sort_rows("name")
-    page._sync_samples()
-    assert page.sample_table.cell_text(0, COL_NAME) == "A sample"
-    tube_by_id = {row.row_id: row.tube_no for row in page._draft.rows}
-    page._draft.sort_rows("tube_no", reverse=True)
-    page._draft.sort_rows("name")
-    assert {row.row_id: row.tube_no for row in page._draft.rows} == tube_by_id
-    page._sync_samples()
+    bindings = {row.sequence_no: (row.row_id, row.tube_no) for row in page._draft.rows}
 
-    page.sample_table.cell_item(0, COL_LAMBDA).setText("0.5")
-    assert page._draft.rows[0].spiked_endotoxin == 0.25
-    page.sample_table.selectRow(0)
-    page.batch_fill.setText("LOT-SCAN-1")
-    assert page.batch_fill_label.text() == "扫码填入样品批号"
-    assert page.batch_fill_button.text() == "填入批号"
-    assert "扫码枪按键盘输入并自动回车" in page.batch_fill_hint.text()
-    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
-    assert page._draft.rows[0].batch_no == "LOT-SCAN-1"
-    assert page._draft.rows[1].batch_no == ""
-    assert "已填入" in page.batch_fill_target.text() and "下一目标" in page.batch_fill_target.text()
+    page.sample_sort.setCurrentIndex(1)
+    assert page.sample_table.cell_text(0, COL_INDEX) == str(len(rows))
+    assert page.sample_table.cell_text(len(rows) - 1, COL_INDEX) == "1"
+    page.sample_sort.setCurrentIndex(0)
+    assert [page.sample_table.cell_text(i, COL_INDEX) for i in range(len(rows))] == [
+        str(i) for i in range(1, len(rows) + 1)
+    ]
+    assert {row.sequence_no: (row.row_id, row.tube_no) for row in page._draft.rows} == bindings
+
+
+def test_adding_tube_keeps_current_tube_sort_order(qapp: QApplication, window: MainWindow) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    page._draft.clear_selection()
+    rows = sorted(page._draft.rows, key=lambda row: row.sequence_no)
+    for row, tube in zip(rows[:3], (1, 3, 4), strict=True):
+        page._draft.assign_tube(row.row_id, tube)
+    page._sync_samples()
+    page.sample_sort.setCurrentIndex(1)
+
+    select_tubes(qapp, page, [2])
+
+    assert [page.sample_table.cell_text(i, COL_TUBE) for i in range(4)] == [
+        "1",
+        "2",
+        "3",
+        "4",
+    ]
+
+
+def test_scanner_overwrites_in_sequence_and_single_row_resumes_batch_pointer(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    page._draft.rows[0].batch_no = "OLD-1"
+    page._draft.rows[1].batch_no = "OLD-2"
+    page._draft.rows[4].batch_no = "OLD-5"
+    page._sync_samples()
+    edit_triggers = page.sample_table.editTriggers()
+
+    page.batch_scan_button.click()
+    assert page._batch_scan_active
+    assert not page.batch_fill.isHidden()
     assert QApplication.focusWidget() is page.batch_fill
-    page.sample_table.clearSelection()
-    page.batch_fill.setText("LOT-SCAN-2")
-    page.batch_fill_button.click()
-    assert page._draft.rows[1].batch_no == "LOT-SCAN-2"
-    assert page.sample_table.currentRow() == 2
+    assert page.sample_table.active_row == 0
+    assert page.batch_scan_status.text() == "批量 #1"
+    assert page.sample_table.editTriggers() == page.sample_table.EditTrigger.NoEditTriggers
+
+    QTest.keyClicks(page.batch_fill, "LOT-1")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._draft.rows[0].batch_no == "LOT-1"
+    assert page.sample_table.active_row == 1 and page.batch_scan_status.text() == "批量 #2"
+
+    clicked = page.sample_table.visualItemRect(page.sample_table.cell_item(4, COL_NAME))
+    QTest.mouseClick(page.sample_table.viewport(), Qt.MouseButton.LeftButton, pos=clicked.center())
+    assert page.batch_scan_status.text() == "单扫 #5"
+    assert page.sample_table.active_row == 4
+    QTest.keyClicks(page.batch_fill, "LOT-SINGLE")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._draft.rows[4].batch_no == "LOT-SINGLE"
+    assert page.sample_table.active_row == 1
+    assert page.batch_scan_status.text() == "批量 #2"
+
+    QTest.keyClicks(page.batch_fill, "LOT-2")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._draft.rows[1].batch_no == "LOT-2"
+
+    # 单扫目标等于批量游标时，完成后推进一次，避免下一个批号覆盖同一行。
+    target = page.sample_table.visualItemRect(page.sample_table.cell_item(1, COL_NAME))
+    QTest.mouseClick(page.sample_table.viewport(), Qt.MouseButton.LeftButton, pos=target.center())
+    assert page.batch_scan_status.text() == "单扫 #2"
+    QTest.keyClicks(page.batch_fill, "LOT-2-AGAIN")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._draft.rows[1].batch_no == "LOT-2-AGAIN"
+    assert page._batch_scan_row_id == page._draft.rows[2].row_id
+    assert page.batch_scan_status.text() == "批量 #3"
+
+    for sequence in range(3, len(page._draft.rows) + 1):
+        QTest.keyClicks(page.batch_fill, f"LOT-{sequence}")
+        QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._batch_scan_row_id is None and not page.batch_fill.isEnabled()
+
+    # 批量结束后单扫仍可用，但不重新启动批量序号。
+    target = page.sample_table.visualItemRect(page.sample_table.cell_item(9, COL_NAME))
+    QTest.mouseClick(page.sample_table.viewport(), Qt.MouseButton.LeftButton, pos=target.center())
+    assert page.batch_scan_status.text() == "单扫 #10" and page.batch_fill.isEnabled()
+    QTest.keyClicks(page.batch_fill, "LOT-10-OVERRIDE")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    assert page._batch_scan_row_id is None
+    assert page.batch_scan_status.text() == "已扫完；点结束" and not page.batch_fill.isEnabled()
+
+    page.batch_scan_button.click()
+    assert page.batch_fill.isHidden()
+    assert page.sample_table.editTriggers() == edit_triggers
+    assert page.sample_table.active_row is None
 
 
-def test_batch_scanner_wraps_to_earlier_empty_sample_row(
+def test_add_and_remove_sample_tubes_preserves_stable_sequence_ids(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    before = {row.sequence_no: row.row_id for row in page._draft.rows}
+    select_tubes(qapp, page, [25])
+    assert page.draft().expected_count == 19
+    assert page.draft().selected_count == 19
+    added = next(row for row in page._draft.rows if row.tube_no == 25)
+    assert added.sequence_no == 19 and added.name == "样品"
+
+    row_index = page._draft.rows.index(added)
+    page.sample_table.selectRow(row_index)
+    page.remove_tube_button.click()
+    assert page.draft().expected_count == 18
+    assert 25 not in page.draft().selected
+    assert {row.sequence_no: row.row_id for row in page.draft().rows} == before
+
+    page.add_tube_button.click()
+    added_again = max(page.draft().rows, key=lambda row: row.sequence_no)
+    assert added_again.sequence_no == 20 and added_again.row_id != added.row_id
+    assert added_again.tube_no == 19
+
+    index = page.draft().rows.index(added_again)
+    page.sample_table.cell_item(index, COL_BATCH).setText("LOT-NEEDS-CONFIRM")
+    page.sample_table.selectRow(index)
+    asked: list[str] = []
+
+    def decline(_parent: object, title: str, *_args: object, **_kwargs: object) -> bool:
+        asked.append(title)
+        return False
+
+    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(decline))
+    page.remove_tube_button.click()
+    assert any(row.row_id == added_again.row_id for row in page.draft().rows)
+    assert asked == ["删除样品行？"]
+
+    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_args, **_kwargs: True))
+    page.remove_tube_button.click()
+    assert all(row.row_id != added_again.row_id for row in page.draft().rows)
+    template = page.draft().template
+    assert template is not None
+    configured = page._current_configuration_draft(template)
+    assert len(configured.items) == page.draft().expected_count == 17
+    assert configured.tube_numbers == tuple(range(1, 18))
+
+
+def test_deleting_pending_scan_row_advances_by_stable_sequence(
     qapp: QApplication, window: MainWindow
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
-    for row in page._draft.rows[1:]:
-        row.batch_no = "ALREADY-FILLED"
-    page._sync_samples()
-    page.sample_table.selectRow(3)
-    assert "样品表已选" in page.batch_fill_target.text()
+    page.batch_scan_button.click()
+    assert page.sample_table.active_row == 0 and page.batch_scan_status.text() == "批量 #1"
 
-    page.batch_fill.setText("LOT-LATE-ROW")
-    page.batch_fill_button.click()
+    page.sample_table.selectRow(0)
+    page.remove_tube_button.click()
 
-    assert page._draft.rows[3].batch_no == "LOT-LATE-ROW"
-    assert page._draft.rows[0].batch_no == ""
-    assert "第 4 行（未分配管号）" in page.batch_fill_target.text()
-    assert "第 1 行（未分配管号）" in page.batch_fill_target.text()
+    assert page._batch_scan_row_id == page._draft.rows[0].row_id
+    assert page._draft.rows[0].sequence_no == 2
+    assert page.sample_table.active_row == 0 and page.batch_scan_status.text() == "批量 #2"
 
 
 def test_changing_the_template_asks_before_discarding_entered_samples(
@@ -493,7 +615,8 @@ def test_changing_the_template_asks_before_discarding_entered_samples(
     assert asked == ["更换模板？"] and page.draft().template.name == "限度试验"  # type: ignore[union-attr]
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_a, **_k: True))
     choose_template(qapp, page, "限度试验（复试）")
-    assert page.draft().template.name == "限度试验（复试）" and page.draft().selected == []  # type: ignore[union-attr]
+    assert page.draft().template.name == "限度试验（复试）"  # type: ignore[union-attr]
+    assert page.draft().selected == list(range(1, 11))
     assert page.reagents_ok()  # 试剂不受模板影响
 
 

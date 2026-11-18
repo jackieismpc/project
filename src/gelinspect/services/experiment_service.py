@@ -33,7 +33,7 @@ from gelinspect.domain.errors import InvalidPlatePositionError
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
-from gelinspect.domain.templates import spike_from_lambda
+from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem, spike_from_lambda
 from gelinspect.interfaces.storage import (
     ExperimentRepository,
     NotFoundError,
@@ -197,11 +197,7 @@ class ExperimentService:
                         f"模板不可用于新实验：{source_id}", ServiceErrorCode.TEMPLATE_NOT_FOUND
                     )
             configured = sorted(template.items, key=lambda item: item.tube_no)
-            if (
-                not configured
-                or len(configured) > TUBE_COUNT
-                or [item.tube_no for item in configured] != list(range(1, len(configured) + 1))
-            ):
+            if not configured or len(configured) > TUBE_COUNT:
                 raise ServiceError("本次配置的管号无效", ServiceErrorCode.DRAFT_TUBES_INVALID)
             template = build_template_config(request.template_id, draft_of(template))
         inactive = not ad_hoc and (
@@ -291,6 +287,62 @@ class ExperimentService:
                 "这个模板按鲎试剂的标示灵敏度 λ 计算外加内毒素，但试剂没有标示灵敏度",
                 ServiceErrorCode.LAMBDA_REQUIRED,
             )
+        tube_assignments = tuple(
+            TubeAssignment(
+                tube_no=a.tube_no,
+                sample=Sample(
+                    sample_id=f"{experiment_id}-{a.tube_no:02d}",
+                    name=a.name.strip(),
+                    batch_no=a.batch_no.strip() or None,
+                ),
+                role=item.role,
+                dilution_factor=a.dilution_factor,
+                # 按倍数的管位由这里按 λ 算出并固化，不信任界面传来的值。
+                spiked_endotoxin=(
+                    None
+                    if a.lambda_multiple_overridden and a.lambda_multiple is None
+                    else spike_from_lambda(labeled, a.lambda_multiple)
+                    if a.lambda_multiple_overridden
+                    and a.lambda_multiple is not None
+                    and labeled is not None
+                    and labeled > 0
+                    else a.spiked_endotoxin
+                    if item.lambda_multiple is None and not a.lambda_multiple_overridden
+                    else item.spike_for(labeled)
+                ),
+            )
+            for a, item in zip(assignments, ordered_items, strict=True)
+        )
+        snapshot_items: list[TemplateTubeItem] = []
+        for persisted_assignment, user_assignment, template_item in zip(
+            tube_assignments, assignments, ordered_items, strict=True
+        ):
+            effective_multiple = (
+                user_assignment.lambda_multiple
+                if user_assignment.lambda_multiple_overridden
+                else template_item.lambda_multiple
+            )
+            snapshot_items.append(
+                TemplateTubeItem(
+                    tube_no=persisted_assignment.tube_no,
+                    sample_name=persisted_assignment.sample.name,
+                    role=persisted_assignment.role,
+                    dilution_factor=persisted_assignment.dilution_factor,
+                    spiked_endotoxin=(
+                        None
+                        if effective_multiple is not None
+                        else persisted_assignment.spiked_endotoxin
+                    ),
+                    lambda_multiple=effective_multiple,
+                )
+            )
+        snapshot = ExperimentTemplate(
+            template_id=template.template_id,
+            name=template.name,
+            experiment_type=template.experiment_type,
+            items=tuple(snapshot_items),
+            needs_confirmation=template.needs_confirmation,
+        )
         experiment = Experiment(
             experiment_id=experiment_id,
             experiment_type=template.experiment_type,
@@ -298,36 +350,12 @@ class ExperimentService:
             instrument_no=self._instrument_no,
             operator=user.username,
             created_at=now,
-            assignments=tuple(
-                TubeAssignment(
-                    tube_no=a.tube_no,
-                    sample=Sample(
-                        sample_id=f"{experiment_id}-{a.tube_no:02d}",
-                        name=a.name.strip(),
-                        batch_no=a.batch_no.strip() or None,
-                    ),
-                    role=item.role,
-                    dilution_factor=a.dilution_factor,
-                    # 按倍数的管位由这里按 λ 算出并固化，不信任界面传来的值。
-                    spiked_endotoxin=(
-                        None
-                        if a.lambda_multiple_overridden and a.lambda_multiple is None
-                        else spike_from_lambda(labeled, a.lambda_multiple)
-                        if a.lambda_multiple_overridden
-                        and a.lambda_multiple is not None
-                        and labeled is not None
-                        and labeled > 0
-                        else a.spiked_endotoxin
-                        if item.lambda_multiple is None and not a.lambda_multiple_overridden
-                        else item.spike_for(labeled)
-                    ),
-                )
-                for a, item in zip(assignments, ordered_items, strict=True)
-            ),
+            assignments=tube_assignments,
             reagents=tuple(batches),
             mvd=mvd,
             endotoxin_limit=endotoxin_limit,
             layout_confirmed=not template.needs_confirmation,
+            template_snapshot=snapshot,
         )
         experiment.apply(ExperimentEvent.SUBMIT_FOR_REAGENT_CHECK)
         if not report.passed:  # 领域规则复核：理论上不会发生，发生就是不放行

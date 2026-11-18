@@ -18,6 +18,7 @@ from typing import Any
 
 from PySide6.QtCore import QEvent, Qt, Signal, Slot
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QGridLayout,
     QHBoxLayout,
@@ -40,7 +41,7 @@ from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.engine_types import AlertCode, EngineAlert, StateChanged
 from gelinspect.services.errors import ServiceError
-from gelinspect.services.experiment_draft import ExperimentDraft
+from gelinspect.services.experiment_draft import ExperimentDraft, SampleRow
 from gelinspect.services.reagent_service import ReagentLockedError, ReagentScan
 from gelinspect.services.template_service import (
     TemplateDraft,
@@ -130,7 +131,9 @@ class NewExperimentPage(QWidget):
         self._start_error: str | None = None
         self._confirm_error: Callable[[], str] | None = None
         self._syncing = False
-        self._batch_scan_row = 0
+        self._batch_scan_active = False
+        self._batch_scan_row_id: str | None = None
+        self._batch_single_row_id: str | None = None
 
         self.setProperty("role", "root")
         outer = QVBoxLayout(self)
@@ -283,35 +286,55 @@ class NewExperimentPage(QWidget):
         work.setSpacing(14)
         self.sample_card = Card(" ")
         self.sample_table = EditTable(self._sample_columns())
-        self.sample_table.horizontalHeader().setSectionsClickable(True)
         self.sample_table.setMaximumHeight(TABLE_MAX_HEIGHT)
         self.sample_table.setMinimumHeight(200)
         self.sample_table.setSelectionMode(self.sample_table.SelectionMode.ExtendedSelection)
         self.sample_table.setSelectionBehavior(self.sample_table.SelectionBehavior.SelectRows)
+        self._sample_edit_triggers = self.sample_table.editTriggers()
         self.sample_table.cellEdited.connect(self._on_cell_edited)
-        self.sample_table.horizontalHeader().sectionClicked.connect(self._on_sample_header_clicked)
-        self.sample_table.itemSelectionChanged.connect(self._update_batch_fill_target)
+        self.sample_table.cellClicked.connect(self._on_sample_cell_clicked)
         self.sample_card.body.addWidget(self.sample_table, 1)
-        self.batch_fill_label = Label("", "lab")
-        self.sample_card.body.addWidget(self.batch_fill_label)
+
+        sample_controls = QHBoxLayout()
+        sample_controls.setSpacing(8)
+        self.sample_sort = QComboBox()
+        self.sample_sort.addItem("", "sequence_no")
+        self.sample_sort.addItem("", "tube_no")
+        self.sample_sort.currentIndexChanged.connect(self._on_sample_sort_changed)
+        sample_controls.addWidget(self.sample_sort, 1)
+        self.add_tube_button = Button("", ButtonVariant.SECONDARY)
+        self.remove_tube_button = Button("", ButtonVariant.SECONDARY)
+        self.add_tube_button.clicked.connect(self._add_sample_tube)
+        self.remove_tube_button.clicked.connect(self._remove_sample_tubes)
+        sample_controls.addWidget(self.add_tube_button)
+        sample_controls.addWidget(self.remove_tube_button)
+        self.sample_card.body.addLayout(sample_controls)
+
         self.batch_fill = QLineEdit()
-        self.batch_fill.setMinimumHeight(38)
-        self.batch_fill.setAccessibleName(self.tr("样品批号扫码填入"))
-        self.batch_fill.setPlaceholderText(self.tr("输入或扫描批号"))
-        self.batch_fill.returnPressed.connect(self._fill_selected_batches)
-        self.batch_fill_button = Button("", ButtonVariant.SECONDARY)
-        self.batch_fill_button.clicked.connect(self._fill_selected_batches)
-        fill_row = QHBoxLayout()
-        fill_row.setSpacing(8)
-        fill_row.addWidget(self.batch_fill, 1)
-        fill_row.addWidget(self.batch_fill_button)
-        self.sample_card.body.addLayout(fill_row)
-        self.batch_fill_target = Label("", "meta")
-        self.batch_fill_target.setWordWrap(True)
-        self.sample_card.body.addWidget(self.batch_fill_target)
-        self.batch_fill_hint = Label("", "meta")
-        self.batch_fill_hint.setWordWrap(True)
-        self.sample_card.body.addWidget(self.batch_fill_hint)
+        self.batch_fill.setMaximumWidth(210)
+        self.batch_fill.setMinimumWidth(80)
+        self.batch_fill.setMinimumHeight(32)
+        self.batch_fill.setAccessibleName(self.tr("样品批号扫码输入"))
+        self.batch_fill.setPlaceholderText(self.tr("扫码批号"))
+        self.batch_fill.returnPressed.connect(self._accept_sample_scan)
+        self.batch_fill.hide()
+        self.batch_scan_status = Label("", "meta")
+        self.batch_scan_status.setWordWrap(True)
+        self.batch_scan_status.setMinimumWidth(0)
+        self.batch_scan_status.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
+        )
+        self.batch_scan_status.hide()
+        self._scan_highlighting = False
+        scan_controls = QHBoxLayout()
+        scan_controls.setSpacing(8)
+        self.batch_scan_button = Button("", ButtonVariant.SECONDARY)
+        self.batch_scan_button.clicked.connect(self._toggle_sample_scan)
+        scan_controls.addWidget(self.batch_scan_button)
+        scan_controls.addWidget(self.batch_fill)
+        scan_controls.addWidget(self.batch_scan_status, 1)
+        scan_controls.addStretch(1)
+        self.sample_card.body.addLayout(scan_controls)
         self.sample_problem = Label("", "warn")
         self.sample_problem.setWordWrap(True)
         self.sample_problem.setVisible(False)
@@ -365,7 +388,7 @@ class NewExperimentPage(QWidget):
         layout.addLayout(work)
         layout.addStretch(1)
         self.auto_button.clicked.connect(self._auto_select)
-        self.clear_button.clicked.connect(self.plate.clear_selection)
+        self.clear_button.clicked.connect(self._clear_tube_positions)
         self.save_template_button.clicked.connect(self._save_as_template)
         self.sample_back.clicked.connect(lambda: self._go(STEP_REAGENTS))
         self.sample_next.clicked.connect(lambda: self._go(STEP_CONFIRM))
@@ -463,24 +486,22 @@ class NewExperimentPage(QWidget):
         self.limit_edit.setPlaceholderText(self.tr("留空则报告里不填"))
         self.limit_hint.setText(self.tr("录入后写入实验记录并显示在报告里；实验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
-        self.batch_fill.setAccessibleName(self.tr("样品批号扫码填入"))
-        self.batch_fill.setPlaceholderText(self.tr("输入或扫描批号"))
-        self.batch_fill_label.setText(self.tr("扫码填入样品批号"))
-        self.batch_fill_button.setText(self.tr("填入批号"))
-        self.batch_fill_hint.setText(
-            self.tr(
-                "在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。"
-                "扫码枪按键盘输入并自动回车。"
-                "手输示例：BATCH-2026-001，按回车或点“填入批号”。"
-            )
+        self.sample_sort.setItemText(0, self.tr("按序号"))
+        self.sample_sort.setItemText(1, self.tr("按管号"))
+        self.add_tube_button.setText(self.tr("新增试管"))
+        self.remove_tube_button.setText(self.tr("删除选中"))
+        self.batch_fill.setAccessibleName(self.tr("样品批号扫码输入"))
+        self.batch_fill.setPlaceholderText(self.tr("扫码批号"))
+        self.batch_scan_button.setText(
+            self.tr("结束扫码") if self._batch_scan_active else self.tr("扫码录入")
         )
-        self._update_batch_fill_target()
+        self._update_sample_scan_status()
         self.plate_card.set_title(self.tr("管位"))
         self.plate.setAccessibleName(
             self.tr("{rows} 排 × {holes} 支管位").format(rows=ROW_COUNT, holes=HOLES_PER_ROW)
         )
         self.auto_button.setText(self.tr("自动选择"))
-        self.clear_button.setText(self.tr("全部清除"))
+        self.clear_button.setText(self.tr("清空管位"))
         self.save_template_button.setText(self.tr("另存为模板"))
         self.save_template_button.setVisible(
             self._session is not None and self._session.can(Permission.TEMPLATE_MANAGE)
@@ -594,7 +615,7 @@ class NewExperimentPage(QWidget):
         """丢弃向导里的全部内容回到第一步；已创建但没启动的试验一并放弃。"""
         self._discard_created()
         self._draft = ExperimentDraft()
-        self._batch_scan_row = 0
+        self._stop_sample_scan()
         self._scans.clear()
         self._start_error = None
         self._confirm_error = None
@@ -666,7 +687,7 @@ class NewExperimentPage(QWidget):
         ):
             return
         self._draft.choose_template(info.template)
-        self._batch_scan_row = 0
+        self._set_scan_cursor_to_first()
         for option in self._options:
             option.set_selected(option.template.template_id == template_id)
         self._sync_lambda()
@@ -722,7 +743,7 @@ class NewExperimentPage(QWidget):
                     else None
                 ),
             )
-            self._batch_scan_row = 0
+            self._set_scan_cursor_to_first()
             self._sync_samples()
             self._render()
 
@@ -731,32 +752,47 @@ class NewExperimentPage(QWidget):
         return build_template_config("draft.pending", draft)
 
     def _current_configuration_draft(self, template: ExperimentTemplate) -> TemplateDraft:
-        """把当前样品行与原管用途、稀释和 λ 配置合并为编辑器初值。"""
+        """从当前样品行生成编辑器初值，保留排序、增删后的管位配置。"""
         self.sample_table.commit_editor()
-        items = sorted(template.items, key=lambda item: item.tube_no)
+        rows = sorted(self._draft.rows, key=lambda row: row.sequence_no)
+        used_tubes = {row.tube_no for row in rows if row.tube_no is not None}
+        tube_numbers: list[int] = []
+        next_tube = 1
+        for row in rows:
+            if row.tube_no is not None:
+                tube_numbers.append(row.tube_no)
+                continue
+            while next_tube in used_tubes:
+                next_tube += 1
+            tube_numbers.append(next_tube)
+            used_tubes.add(next_tube)
+            next_tube += 1
         return TemplateDraft(
             template.name,
             template.experiment_type,
             tuple(
                 TemplateItemInput(
                     sample_name=row.name,
-                    role=item.role,
-                    dilution_factor=item.dilution_factor,
+                    role=row.role,
+                    dilution_factor=row.dilution_factor,
                     spiked_endotoxin=row.spiked_endotoxin,
-                    lambda_multiple=item.lambda_multiple,
+                    lambda_multiple=row.lambda_multiple,
                 )
-                for row, item in zip(self._draft.rows, items, strict=True)
+                for row in rows
             ),
+            tube_numbers=tuple(tube_numbers),
         )
 
     def _save_as_template(self) -> None:
         if self._session is None or not self._session.can(Permission.TEMPLATE_MANAGE):
             return
         current = self._draft.template
-        if current is None:
+        if current is None or not self._draft.rows:
             return
         original = self._current_configuration_draft(current)
-        initial = TemplateDraft("", original.experiment_type, original.items)
+        initial = TemplateDraft(
+            "", original.experiment_type, original.items, tube_numbers=original.tube_numbers
+        )
         dialog = TemplateEditorDialog(
             lambda draft: self._services.templates.create_template(self._session, draft),
             initial=initial,
@@ -934,18 +970,20 @@ class NewExperimentPage(QWidget):
         """按草稿重建样品表并同步孔板。"""
         self._syncing = True
         try:
+            sort_key = str(self.sample_sort.currentData())
+            self._draft.sort_rows(sort_key)
             rows = self._draft.rows
             self.sample_table.set_rows(
                 [
                     [
-                        str(i),
+                        str(row.sequence_no),
                         row.name,
                         row.batch_no,
                         _format_number(row.lambda_multiple),
                         _format_number(row.spiked_endotoxin),
-                        self._tube_text(i - 1),
+                        "–" if row.tube_no is None else str(row.tube_no),
                     ]
-                    for i, row in enumerate(rows, start=1)
+                    for row in rows
                 ]
             )
             for i, _row in enumerate(rows):
@@ -961,8 +999,10 @@ class NewExperimentPage(QWidget):
                     edit.setText(text)
         finally:
             self._syncing = False
-        self._batch_scan_row = self._next_empty_batch_row(self._batch_scan_row)
-        self._update_batch_fill_target()
+        self._repair_scan_cursor()
+        self._update_sample_scan_status()
+        if self._batch_scan_active:
+            self._highlight_sample_scan_target()
 
     def _on_limits_edited(self) -> None:
         if self._syncing:
@@ -1012,119 +1052,264 @@ class NewExperimentPage(QWidget):
         self._render()
 
     @Slot(int)
-    def _on_sample_header_clicked(self, column: int) -> None:
-        keys = {
-            COL_NAME: "name",
-            COL_BATCH: "batch_no",
-            COL_TUBE: "tube_no",
-            COL_LAMBDA: "lambda_multiple",
-        }
-        key = keys.get(column)
-        if key is not None:
-            self._draft.sort_rows(key)
-            self._batch_scan_row = 0
-            self._sync_samples()
-            self._render()
+    def _on_sample_sort_changed(self, index: int) -> None:
+        """按用户选择的稳定序号或管号重排整行。"""
+        if self._syncing or index < 0:
+            return
+        self.sample_table.commit_editor()
+        self._draft.sort_rows(str(self.sample_sort.itemData(index)))
+        self._sync_samples()
+
+    def _ordered_sample_rows(self) -> list[SampleRow]:
+        """返回稳定序号顺序的样品行，不受当前表格排序影响。"""
+        return sorted(self._draft.rows, key=lambda row: row.sequence_no)
+
+    def _set_scan_cursor_to_first(self) -> None:
+        rows = self._ordered_sample_rows()
+        self._batch_scan_row_id = rows[0].row_id if rows else None
+
+    def _scan_row(self, row_id: str | None) -> SampleRow | None:
+        return next((row for row in self._draft.rows if row.row_id == row_id), None)
+
+    def _toggle_sample_scan(self) -> None:
+        if self._batch_scan_active:
+            self._stop_sample_scan()
+            return
+        if not self._draft.rows:
+            self.batch_scan_status.setText(self.tr("没有试管，请先新增试管。"))
+            self.batch_scan_status.show()
+            return
+        self.sample_table.commit_editor()
+        self.sample_table.setEditTriggers(self.sample_table.EditTrigger.NoEditTriggers)
+        self._batch_scan_active = True
+        self._batch_single_row_id = None
+        self._set_scan_cursor_to_first()
+        self.batch_fill.clear()
+        self.batch_fill.show()
+        self.batch_fill.setEnabled(True)
+        self._update_sample_scan_status()
+        self._highlight_sample_scan_target()
+        self.batch_fill.setFocus()
+
+    def _stop_sample_scan(self) -> None:
+        self._batch_scan_active = False
+        self._batch_single_row_id = None
+        self.batch_fill.clear()
+        self.batch_fill.hide()
+        self.batch_scan_status.clear()
+        self.batch_scan_status.hide()
+        self.batch_scan_button.setText(self.tr("扫码录入"))
+        self.sample_table.set_active_row(None)
+        self.sample_table.setEditTriggers(self._sample_edit_triggers)
+
+    @Slot(int, int)
+    def _on_sample_cell_clicked(self, row_index: int, _column: int) -> None:
+        if not self._batch_scan_active or self._scan_highlighting:
+            return
+        if not 0 <= row_index < len(self._draft.rows):
+            return
+        self._batch_single_row_id = self._draft.rows[row_index].row_id
+        self._update_sample_scan_status()
+        self._highlight_sample_scan_target()
+        self.batch_fill.setFocus()
+
+    def _update_sample_scan_status(self) -> None:
+        if not self._batch_scan_active:
+            return
+        if self._batch_single_row_id is not None:
+            target = self._scan_row(self._batch_single_row_id)
+            if target is None:
+                self._batch_single_row_id = None
+            else:
+                self.batch_scan_status.setText(
+                    self.tr("单扫 #{sequence}").format(sequence=target.sequence_no)
+                )
+                self.batch_scan_status.show()
+                self.batch_scan_button.setText(self.tr("结束扫码"))
+                self.batch_fill.setEnabled(True)
+                return
+        target = self._scan_row(self._batch_scan_row_id)
+        if target is None:
+            self.batch_scan_status.setText(self.tr("已扫完；点结束"))
+            self.batch_scan_status.show()
+            self.batch_scan_button.setText(self.tr("结束扫码"))
+            self.batch_fill.setDisabled(True)
+            return
+        self.batch_scan_status.setText(
+            self.tr("批量 #{sequence}").format(sequence=target.sequence_no)
+        )
+        self.batch_scan_status.show()
+        self.batch_scan_button.setText(self.tr("结束扫码"))
+        self.batch_fill.setEnabled(True)
+
+    def _highlight_sample_scan_target(self) -> None:
+        row = self._scan_row(self._batch_single_row_id or self._batch_scan_row_id)
+        if row is None:
+            self.sample_table.set_active_row(None)
+            return
+        row_index = self._draft.rows.index(row)
+        self._scan_highlighting = True
+        try:
+            self.sample_table.set_active_row(row_index)
+            self.sample_table.selectRow(row_index)
+            self.sample_table.setCurrentCell(row_index, COL_BATCH)
+            if row.tube_no is not None:
+                self.plate.set_current_tube(row.tube_no)
+        finally:
+            self._scan_highlighting = False
 
     @Slot()
-    def _fill_selected_batches(self) -> None:
+    def _accept_sample_scan(self) -> None:
         value = self.batch_fill.text().strip()
-        if not value:
+        if not self._batch_scan_active or not value:
             return
-        selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
-        if selected:
-            targets = selected
-        else:
-            next_row = self._next_empty_batch_row(self._batch_scan_row)
-            if next_row >= len(self._draft.rows):
-                self.batch_fill_target.setText(
-                    self.tr("目标：没有空批号行，请在样品表中选中要替换的行。")
-                )
-                self.batch_fill.selectAll()
-                self.batch_fill.setFocus()
-                return
-            targets = [next_row]
-        targets = [index for index in targets if 0 <= index < len(self._draft.rows)]
-        if not targets:
+        target_id = self._batch_single_row_id or self._batch_scan_row_id
+        row = self._scan_row(target_id)
+        if row is None:
+            self._update_sample_scan_status()
             return
-        for row_index in targets:
-            self._draft.rows[row_index].batch_no = value
-            self.sample_table.set_cell_text(row_index, COL_BATCH, value)
+        row.batch_no = value
+        self.sample_table.set_cell_text(self._draft.rows.index(row), COL_BATCH, value)
         self.batch_fill.clear()
-        self._batch_scan_row = self._next_empty_batch_row(max(targets) + 1, excluded=set(targets))
-        self.sample_table.clearSelection()
-        if self._batch_scan_row < len(self._draft.rows):
-            self.sample_table.setCurrentCell(self._batch_scan_row, COL_BATCH)
-        filled_targets = join_items(self._row_target_text(index) for index in targets)
-        self.batch_fill_target.setText(
-            self._batch_fill_result_text(filled_targets, self._batch_scan_row)
-        )
-        self.batch_fill.setFocus()
+        if (
+            self._batch_single_row_id is None
+            or self._batch_single_row_id == self._batch_scan_row_id
+        ):
+            rows = self._ordered_sample_rows()
+            current = next(i for i, item in enumerate(rows) if item.row_id == row.row_id)
+            self._batch_scan_row_id = rows[current + 1].row_id if current + 1 < len(rows) else None
+        self._batch_single_row_id = None
+        self._update_sample_scan_status()
+        self._highlight_sample_scan_target()
+        if self.batch_fill.isEnabled():
+            self.batch_fill.setFocus()
         self._render()
 
-    def _row_target_text(self, row_index: int) -> str:
-        """明确显示管位绑定和表格行号；尚未绑定位时只显示表格行号。"""
-        tube_no = self._draft.rows[row_index].tube_no
+    def _add_sample_tube(self) -> None:
+        used = set(self._draft.selected)
+        tube_no = next((tube for tube in range(1, 97) if tube not in used), None)
         if tube_no is None:
-            return self.tr("第 {row} 行（未分配管号）").format(row=row_index + 1)
-        return self.tr("管号 {tube}（第 {row} 行）").format(
-            tube=tube_no,
-            row=row_index + 1,
-        )
-
-    def _batch_fill_result_text(self, filled_targets: str, next_row: int) -> str:
-        """生成扫码成功反馈，并说明下一空批号所在管位。"""
-        if next_row < len(self._draft.rows):
-            return self.tr("已填入 {filled}；下一目标为 {next}。").format(
-                filled=filled_targets,
-                next=self._row_target_text(next_row),
-            )
-        return self.tr("已填入 {filled}；目前没有其他空批号行。").format(filled=filled_targets)
-
-    def _next_empty_batch_row(self, start: int, *, excluded: set[int] | None = None) -> int:
-        """从指定位置循环查找首个尚未填写样品批号的行。"""
-        row_count = len(self._draft.rows)
-        if not row_count:
-            return 0
-        skipped = excluded or set()
-        first = max(0, start) % row_count
-        order: list[int] = [*range(first, row_count), *range(0, first)]
-        for row_index in order:
-            if row_index not in skipped and not self._draft.rows[row_index].batch_no.strip():
-                return row_index
-        return row_count
-
-    @Slot()
-    def _update_batch_fill_target(self) -> None:
-        """显示手动选择的管号，或自动扫描时将要填入的下一空行。"""
-        selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
-        if selected:
-            targets = join_items(self._row_target_text(index) for index in selected)
-            self.batch_fill_target.setText(
-                self.tr("目标：样品表已选 {targets}。").format(targets=targets)
-            )
+            self.batch_scan_status.setText(self.tr("已达到96支试管上限。"))
+            self.batch_scan_status.show()
             return
-        next_row = self._next_empty_batch_row(self._batch_scan_row)
-        if next_row < len(self._draft.rows):
-            self.batch_fill_target.setText(
-                self.tr("目标：{target}。").format(target=self._row_target_text(next_row))
-            )
+        self.sample_table.commit_editor()
+        unassigned = min(
+            (row for row in self._draft.rows if row.tube_no is None),
+            key=lambda row: row.sequence_no,
+            default=None,
+        )
+        if unassigned is None:
+            self._draft.add_row(name=self.tr("样品"), tube_no=tube_no)
         else:
-            self.batch_fill_target.setText(
-                self.tr("目标：没有空批号行，请在样品表中选中要替换的行。")
+            self._draft.assign_tube(unassigned.row_id, tube_no)
+        self._sync_samples()
+        self._render()
+        if self._batch_scan_active:
+            self._update_sample_scan_status()
+        else:
+            self.batch_scan_status.hide()
+
+    def _remove_sample_tubes(self) -> None:
+        self.sample_table.commit_editor()
+        selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
+        if not selected and self.sample_table.currentRow() >= 0:
+            selected = [self.sample_table.currentRow()]
+        rows: list[SampleRow] = [self._draft.rows[i] for i in selected if i < len(self._draft.rows)]
+        if not rows:
+            return
+        if any(
+            self._draft.row_has_user_edits(row.row_id) for row in rows
+        ) and not ConfirmDialog.ask(
+            self,
+            self.tr("删除样品行？"),
+            self.tr("选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？"),
+            confirm_text=self.tr("删除"),
+            cancel_text=self.tr("取消"),
+            danger=True,
+        ):
+            return
+        cursor = self._scan_row(self._batch_scan_row_id)
+        removed_cursor_sequence = (
+            cursor.sequence_no if cursor is not None and cursor in rows else None
+        )
+        for row in rows:
+            self._draft.remove_row(row.row_id)
+        self._repair_scan_cursor(removed_cursor_sequence=removed_cursor_sequence)
+        self._sync_samples()
+        self._render()
+
+    def _repair_scan_cursor(self, *, removed_cursor_sequence: int | None = None) -> None:
+        row_ids = {row.row_id for row in self._draft.rows}
+        if self._batch_scan_row_id is not None and self._batch_scan_row_id not in row_ids:
+            next_row = next(
+                (
+                    row
+                    for row in self._ordered_sample_rows()
+                    if removed_cursor_sequence is None or row.sequence_no > removed_cursor_sequence
+                ),
+                None,
             )
+            self._batch_scan_row_id = next_row.row_id if next_row is not None else None
+        if self._batch_single_row_id not in row_ids:
+            self._batch_single_row_id = None
 
     @Slot(list)
     def _on_selection_changed(self, tubes: list[int]) -> None:
         if self._syncing:
             return
-        self._draft.set_selected(tubes)
-        for i in range(self._draft.expected_count):
-            self.sample_table.set_cell_text(i, COL_TUBE, self._tube_text(i))
+        self.sample_table.commit_editor()
+        previous = set(self._draft.selected)
+        current = set(tubes)
+        removed = sorted(previous - current)
+        added = sorted(current - previous)
+        rows_to_remove = [
+            row for row in self._draft.rows if row.tube_no is not None and row.tube_no in removed
+        ]
+        if any(
+            self._draft.row_has_user_edits(row.row_id) for row in rows_to_remove
+        ) and not ConfirmDialog.ask(
+            self,
+            self.tr("删除样品行？"),
+            self.tr("该试管已录入样品名称或批号。删除试管也会删除这行资料，确定继续吗？"),
+            confirm_text=self.tr("删除"),
+            cancel_text=self.tr("取消"),
+            danger=True,
+        ):
+            self._syncing = True
+            try:
+                self.plate.set_selected(previous)
+            finally:
+                self._syncing = False
+            return
+        cursor = self._scan_row(self._batch_scan_row_id)
+        removed_cursor_sequence = (
+            cursor.sequence_no if cursor is not None and cursor in rows_to_remove else None
+        )
+        for tube_no in removed:
+            self._draft.remove_tube(tube_no)
+        for tube_no in added:
+            unassigned = min(
+                (row for row in self._draft.rows if row.tube_no is None),
+                key=lambda row: row.sequence_no,
+                default=None,
+            )
+            if unassigned is None:
+                self._draft.add_tube(tube_no, name=self.tr("样品"))
+            else:
+                self._draft.assign_tube(unassigned.row_id, tube_no)
+        self._repair_scan_cursor(removed_cursor_sequence=removed_cursor_sequence)
+        self._sync_samples()
         self._render()
 
     def _auto_select(self) -> None:
-        self.plate.set_selected(self._draft.auto_select())
+        self._draft.auto_select()
+        self._sync_samples()
+        self._render()
+
+    def _clear_tube_positions(self) -> None:
+        self._draft.clear_selection()
+        self._sync_samples()
+        self._render()
 
     def _render_samples(self) -> None:
         draft = self._draft
@@ -1139,7 +1324,7 @@ class NewExperimentPage(QWidget):
             )
             self.summary_line.setText(
                 f"{builtin_name_text(template.name)}"
-                + self.tr(" · {count} 管").format(count=template.tube_count)
+                + self.tr(" · {count} 管").format(count=draft.expected_count)
                 + sensitivity
             )
         else:
@@ -1153,7 +1338,7 @@ class NewExperimentPage(QWidget):
         )
         diff = draft.difference
         if total == 0:
-            text, role = self.tr("请先选择模板"), "warn"
+            text, role = self.tr("请新增试管"), "warn"
         elif picked == 0:
             text, role = self.tr("请在孔板上选择管位"), "warn"
         elif diff == 0:
@@ -1164,7 +1349,7 @@ class NewExperimentPage(QWidget):
             text, role = self.tr("多选了 {n} 个").format(n=diff), "warn"
         self.match_label.setText(text)
         self.match_label.set_role(role)
-        empty = draft.sample_problems()
+        empty = sorted(row.sequence_no for row in draft.rows if not row.name.strip())
         if empty:
             self.sample_problem.setText(
                 self.tr("第 {rows} 行的样品名称为空，请填写").format(rows=join_items(empty))
@@ -1195,8 +1380,9 @@ class NewExperimentPage(QWidget):
         self.sample_problem.setText("\n".join(problems))
         self.sample_problem.setVisible(bool(problems))
         self.sample_next.setEnabled(draft.tubes_match and not empty and not bad_limits)
+        self.save_template_button.setEnabled(bool(draft.rows))
         if not self.sample_next.isEnabled():
-            self.sample_next.setToolTip(self.tr("管位数量要与模板一致，样品名称不能为空"))
+            self.sample_next.setToolTip(self.tr("试管数量应与已选管位一致，样品名称不能为空"))
         else:
             self.sample_next.setToolTip("")
 
@@ -1267,7 +1453,7 @@ class NewExperimentPage(QWidget):
         self.summary_table.set_rows(
             [
                 {
-                    "i": i,
+                    "i": row.sequence_no,
                     "name": row.name,
                     "batch": row.batch_no,
                     "spike": _format_number(row.spiked_endotoxin),
@@ -1278,7 +1464,7 @@ class NewExperimentPage(QWidget):
                         else ""
                     ),
                 }
-                for i, row in enumerate(draft.rows, start=1)
+                for row in sorted(draft.rows, key=lambda item: item.sequence_no)
             ]
         )
         self._render_start_state()
@@ -1430,6 +1616,8 @@ class NewExperimentPage(QWidget):
         self._show_step(step)
 
     def _show_step(self, step: int) -> None:
+        if step != STEP_SAMPLES and self._batch_scan_active:
+            self._stop_sample_scan()
         self._step = step
         # 栈的高度只取当前步骤的，否则最高的第 3 步会让其他步骤也出现滚动条。
         for index in range(self.stack.count()):

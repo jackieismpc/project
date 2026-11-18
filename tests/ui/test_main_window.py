@@ -245,6 +245,8 @@ def test_quick_actions_navigate_to_their_pages(qapp: QApplication, window: MainW
     assert window.current_route == "templates"
     window.shell.toolbar.action("reports").trigger()
     assert window.current_route == "reports"
+    window.shell.toolbar.action("history").trigger()
+    assert window.current_route == "history"
     settings_button = window.shell.toolbar.button("instrument_settings")
     assert settings_button.menu() is None
     settings_button.click()

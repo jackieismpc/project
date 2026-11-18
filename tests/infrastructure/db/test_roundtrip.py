@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -15,11 +16,17 @@ from gelinspect.domain.enums import (
     ReviewStatus,
     Role,
     TubeAnalysisStatus,
+    TubeRole,
 )
 from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.plate import ROW_COUNT
 from gelinspect.domain.state_machine import ExperimentState
-from gelinspect.domain.templates import ALL_BUILTIN_TEMPLATES, BUILTIN_TEMPLATES
+from gelinspect.domain.templates import (
+    ALL_BUILTIN_TEMPLATES,
+    BUILTIN_TEMPLATES,
+    ExperimentTemplate,
+    TemplateTubeItem,
+)
 from gelinspect.infrastructure.db import Database
 from gelinspect.infrastructure.db.passwords import hash_password, verify_password
 from gelinspect.interfaces.storage import (
@@ -119,6 +126,23 @@ def test_experiment_roundtrip_with_results_and_review(database: Database) -> Non
     assert loaded.results[3].review_status is ReviewStatus.PENDING
     assert loaded.results[3].gel_state is None
     assert database.experiments.get("nope") is None
+
+
+def test_experiment_template_snapshot_roundtrip(database: Database) -> None:
+    experiment = make_experiment("snapshot")
+    snapshot = ExperimentTemplate(
+        template_id="draft.snapshot",
+        name="本次配置",
+        experiment_type=ExperimentType.LIMIT,
+        needs_confirmation=True,
+        items=(
+            TemplateTubeItem(17, "用户样品甲", TubeRole.TEST, 2.0, lambda_multiple=0.5),
+            TemplateTubeItem(25, "阴性对照", TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0),
+        ),
+    )
+    saved = replace(experiment, template_snapshot=snapshot)
+    database.experiments.save(saved)
+    assert database.experiments.get("snapshot") == saved
 
 
 def test_experiment_resave_overwrites_children(database: Database) -> None:

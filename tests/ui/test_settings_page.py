@@ -101,24 +101,47 @@ def test_diagnostics_description_can_grow_when_wrapped(
 def test_personal_appearance_entry_does_not_save_device_draft(
     qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from gelinspect.ui.pages import settings_page
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+    from gelinspect.ui.theme.tokens import current_tokens
 
     page = open_settings(qapp, window)
     set_text(page, "instrument_no", "UNSAVED-DRAFT")
-    calls: list[tuple[str, object]] = []
+    before = current_tokens()
+    page.palette_box.setCurrentIndex(page.palette_box.findData("blue"))
+    page.font_scale_box.setCurrentIndex(page.font_scale_box.findData("large"))
+    assert current_tokens() == before  # 编辑选择时不预览
 
-    class FakeDialog:
-        def __init__(self, username: str, service: object, parent: object, *, app: object) -> None:
-            calls.append((username, service))
+    save = window.services.appearance.save
+    appearance_path = window.services.data_dir / "appearance_settings.json"
+    old_appearance_file = appearance_path.read_bytes() if appearance_path.exists() else None
+    failed_once = False
 
-        def exec(self) -> int:
-            return 0
+    def fail_once(username: str, preferences: AppearancePreferences) -> None:
+        nonlocal failed_once
+        if not failed_once:
+            failed_once = True
+            raise OSError("disk full")
+        save(username, preferences)
 
-    monkeypatch.setattr(settings_page, "AppearanceDialog", FakeDialog)
-    page.appearance_button.click()
-    assert calls == [("admin", window.services.appearance)]
+    monkeypatch.setattr(window.services.appearance, "save", fail_once)
+    assert not page.save_appearance()
+    assert "无法保存" in page.appearance_message.text()
+    assert current_tokens() == before
+    assert window.services.appearance.get("admin") == AppearancePreferences()
+    if old_appearance_file is None:
+        assert not appearance_path.exists()
+    else:
+        assert appearance_path.read_bytes() == old_appearance_file
+    assert page.save_appearance()
+    assert window.services.appearance.get("admin") == AppearancePreferences(
+        palette="blue", font_scale="large"
+    )
+    assert current_tokens().type.body == 16
+    assert current_tokens().colors.primary == "#315F9B"
     assert page.fields["instrument_no"].edit.text() == "UNSAVED-DRAFT"
     assert not settings_file(window.services.data_dir).exists()
+    apply_appearance(qapp, AppearancePreferences())
 
 
 def test_the_video_card_offers_only_real_inputs_and_mentions_the_industrial_camera(
@@ -148,7 +171,8 @@ def test_other_roles_see_a_read_only_page(
     page = window.page("settings")
     assert isinstance(page, SettingsPage)
     assert page.personal_card.isVisibleTo(page)
-    assert page.appearance_button.isEnabled()
+    assert page.palette_box.isEnabled() and page.font_scale_box.isEnabled()
+    assert page.appearance_save_button.isEnabled()
     assert not page.configuration_area.isVisibleTo(page)
     assert not page.save_bar_area.isVisibleTo(page)
     assert not page.previewing

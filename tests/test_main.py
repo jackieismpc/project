@@ -177,6 +177,35 @@ def test_ui_runtime_selection_is_loaded_and_explicit_paths_take_precedence(
     assert resolve_runtime_paths(None, None, selection_file=selector) == (None, None, None)
 
 
+def test_missing_optional_runtime_selection_is_silent(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    missing = tmp_path / "not-created" / "runtime-selection.json"
+    assert resolve_runtime_paths(None, None, selection_file=missing) == (None, None, None)
+    assert "忽略无效的界面启动路径设置" not in caplog.text
+
+
+def test_broken_optional_runtime_selection_remains_logged(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    selector = tmp_path / "runtime-selection.json"
+    selector.write_bytes(b"\xff")
+    assert resolve_runtime_paths(None, None, selection_file=selector) == (None, None, None)
+    assert "忽略无效的界面启动路径设置" in caplog.text
+
+
+def test_missing_selected_analysis_file_remains_logged(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    selector = tmp_path / "runtime-selection.json"
+    selector.write_text(
+        json.dumps({"analysis_config_path": str(tmp_path / "missing-analysis.yaml")}),
+        encoding="utf-8",
+    )
+    assert resolve_runtime_paths(None, None, selection_file=selector) == (None, None, None)
+    assert "忽略无效的界面启动路径设置" in caplog.text
+
+
 # ---------------------------------------------------------------- 首次启动与再次启动
 
 

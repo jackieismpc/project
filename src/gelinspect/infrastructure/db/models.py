@@ -120,6 +120,7 @@ class ExperimentRow(Base):
     layout_confirmed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=sql_text("0")
     )
+    template_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class ExperimentConclusionRow(Base):

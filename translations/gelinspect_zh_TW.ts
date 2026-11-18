@@ -233,77 +233,6 @@
     </message>
 </context>
 <context>
-    <name>AppearanceDialog</name>
-    <message>
-        <source>外观设置</source>
-        <translation>外觀設定</translation>
-    </message>
-    <message>
-        <source>按账号保存外观。选择固定配色和字号档位，更改立即预览；取消可恢复原设置。</source>
-        <translation>外觀設定依帳號儲存。選擇固定配色與字級，變更會立即預覽；取消可還原原設定。</translation>
-    </message>
-    <message>
-        <source>配色</source>
-        <translation>配色</translation>
-    </message>
-    <message>
-        <source>石青</source>
-        <translation>石青</translation>
-    </message>
-    <message>
-        <source>沉静蓝</source>
-        <translation>沉靜藍</translation>
-    </message>
-    <message>
-        <source>字号</source>
-        <translation>字級</translation>
-    </message>
-    <message>
-        <source>跟随系统</source>
-        <translation>跟隨系統</translation>
-    </message>
-    <message>
-        <source>较小</source>
-        <translation>較小</translation>
-    </message>
-    <message>
-        <source>较大</source>
-        <translation>較大</translation>
-    </message>
-    <message>
-        <source>预览</source>
-        <translation>預覽</translation>
-    </message>
-    <message>
-        <source>报告中心</source>
-        <translation>報告中心</translation>
-    </message>
-    <message>
-        <source>这是界面内容和正文文字的预览。</source>
-        <translation>這是介面內容與正文文字的預覽。</translation>
-    </message>
-    <message>
-        <source>主要操作</source>
-        <translation>主要操作</translation>
-    </message>
-    <message>
-        <source>恢复默认</source>
-        <translation>還原預設值</translation>
-    </message>
-    <message>
-        <source>保存</source>
-        <translation>儲存</translation>
-    </message>
-    <message>
-        <source>取消</source>
-        <translation>取消</translation>
-    </message>
-    <message>
-        <source>无法保存外观设置，请检查数据目录后重试。</source>
-        <translation>無法儲存外觀設定，請檢查資料目錄後重試。</translation>
-    </message>
-</context>
-<context>
     <name>AuditPage</name>
     <message>
         <source>没有符合条件的审计记录</source>
@@ -2012,6 +1941,10 @@
         <translation>先選擇一個實驗。</translation>
     </message>
     <message>
+        <source>已另存模板：{name}</source>
+        <translation>已另存範本：{name}</translation>
+    </message>
+    <message>
         <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
         <translation>這個實驗已簽署，可以預覽、列印、驗章和匯出已簽章的 PDF。</translation>
     </message>
@@ -2126,6 +2059,10 @@
     <message>
         <source>这个实验没有录像</source>
         <translation>這個實驗沒有錄影</translation>
+    </message>
+    <message>
+        <source>另存为模板…</source>
+        <translation>另存為範本…</translation>
     </message>
     <message>
         <source>已请求停止，正在收尾</source>
@@ -2334,8 +2271,80 @@
         <translation>留空則報告裡不填</translation>
     </message>
     <message>
+        <source>按序号</source>
+        <translation>依序號</translation>
+    </message>
+    <message>
+        <source>按管号</source>
+        <translation>依管號</translation>
+    </message>
+    <message>
+        <source>新增试管</source>
+        <translation>新增試管</translation>
+    </message>
+    <message>
+        <source>删除选中</source>
+        <translation>刪除所選</translation>
+    </message>
+    <message>
+        <source>结束扫码</source>
+        <translation>結束掃描</translation>
+    </message>
+    <message>
+        <source>扫码录入</source>
+        <translation>掃描輸入</translation>
+    </message>
+    <message>
+        <source>清空管位</source>
+        <translation>清除管位</translation>
+    </message>
+    <message>
         <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>實驗流程已鎖定，不能進入下一步。請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
+    </message>
+    <message>
+        <source>没有试管，请先新增试管。</source>
+        <translation>沒有試管，請先新增試管。</translation>
+    </message>
+    <message>
+        <source>单扫 #{sequence}</source>
+        <translation>單掃 #{sequence}</translation>
+    </message>
+    <message>
+        <source>已扫完；点结束</source>
+        <translation>已掃完；點結束</translation>
+    </message>
+    <message>
+        <source>批量 #{sequence}</source>
+        <translation>批量 #{sequence}</translation>
+    </message>
+    <message>
+        <source>已达到96支试管上限。</source>
+        <translation>已達 96 支試管上限。</translation>
+    </message>
+    <message>
+        <source>删除样品行？</source>
+        <translation>刪除樣品列？</translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation>所選列包含已輸入的樣品名稱或批號，刪除後無法復原。確定要刪除嗎？</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <source>该试管已录入样品名称或批号。删除试管也会删除这行资料，确定继续吗？</source>
+        <translation>此試管已輸入樣品名稱或批號。刪除試管也會刪除這筆資料，確定繼續嗎？</translation>
+    </message>
+    <message>
+        <source>请新增试管</source>
+        <translation>請新增試管</translation>
+    </message>
+    <message>
+        <source>试管数量应与已选管位一致，样品名称不能为空</source>
+        <translation>試管數量應與已選管位一致，且樣品名稱不可空白</translation>
     </message>
     <message>
         <source>实验类型</source>
@@ -2350,24 +2359,12 @@
         <translation>管位</translation>
     </message>
     <message>
-        <source>样品批号扫码填入</source>
-        <translation>掃描輸入樣品批號</translation>
-    </message>
-    <message>
-        <source>输入或扫描批号</source>
-        <translation>輸入或掃描批號</translation>
-    </message>
-    <message>
         <source>{rows} 排 × {holes} 支管位</source>
         <translation>{rows} 排 × {holes} 支管位</translation>
     </message>
     <message>
         <source>自动选择</source>
         <translation>自動選擇</translation>
-    </message>
-    <message>
-        <source>全部清除</source>
-        <translation>全部清除</translation>
     </message>
     <message>
         <source>另存为模板</source>
@@ -2394,24 +2391,20 @@
         <translation>λ 倍數</translation>
     </message>
     <message>
+        <source>样品批号扫码输入</source>
+        <translation>樣品批號掃描輸入</translation>
+    </message>
+    <message>
+        <source>扫码批号</source>
+        <translation>掃描批號</translation>
+    </message>
+    <message>
         <source>新建实验</source>
         <translation>新增實驗</translation>
     </message>
     <message>
         <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
         <translation>輸入後寫入實驗紀錄並顯示在報告裡；實驗章署後不能再修改。</translation>
-    </message>
-    <message>
-        <source>扫码填入样品批号</source>
-        <translation>掃描填入樣品批號</translation>
-    </message>
-    <message>
-        <source>填入批号</source>
-        <translation>填入批號</translation>
-    </message>
-    <message>
-        <source>在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。扫码枪按键盘输入并自动回车。手输示例：BATCH-2026-001，按回车或点“填入批号”。</source>
-        <translation>請先在樣品表中選取一列或多列再填入；未選取時，會依序填入下一個空白批號。條碼掃描器會像鍵盤一樣輸入並自動按下 Enter。手動輸入範例：BATCH-2026-001，按 Enter 或點選「填入批號」。</translation>
     </message>
     <message>
         <source>实验信息</source>
@@ -2506,34 +2499,6 @@
         <translation>請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
     </message>
     <message>
-        <source>目标：没有空批号行，请在样品表中选中要替换的行。</source>
-        <translation>目標：沒有空白批號列。請在樣品表中選取要替換批號的列。</translation>
-    </message>
-    <message>
-        <source>第 {row} 行（未分配管号）</source>
-        <translation>第 {row} 列（尚未分配管號）</translation>
-    </message>
-    <message>
-        <source>管号 {tube}（第 {row} 行）</source>
-        <translation>管號 {tube}（第 {row} 列）</translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；下一目标为 {next}。</source>
-        <translation>已填入 {filled}；下一個目標為 {next}。</translation>
-    </message>
-    <message>
-        <source>已填入 {filled}；目前没有其他空批号行。</source>
-        <translation>已填入 {filled}；目前沒有其他空白批號列。</translation>
-    </message>
-    <message>
-        <source>目标：样品表已选 {targets}。</source>
-        <translation>目標：樣品表已選取 {targets}。</translation>
-    </message>
-    <message>
-        <source>目标：{target}。</source>
-        <translation>目標：{target}。</translation>
-    </message>
-    <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
         <translation> · 標示靈敏度 {value:g} EU/mL</translation>
     </message>
@@ -2544,10 +2509,6 @@
     <message>
         <source>已选 {picked} / {total} ·</source>
         <translation>已選 {picked} / {total} ·</translation>
-    </message>
-    <message>
-        <source>请先选择模板</source>
-        <translation>請先選擇範本</translation>
     </message>
     <message>
         <source>请在孔板上选择管位</source>
@@ -2588,10 +2549,6 @@
     <message>
         <source>缺少鲎试剂标示灵敏度 λ，外加内毒素无法计算；请完成有效试剂校验。</source>
         <translation>缺少鱟試劑標示靈敏度 λ，無法計算外加內毒素；請完成有效的試劑驗證。</translation>
-    </message>
-    <message>
-        <source>管位数量要与模板一致，样品名称不能为空</source>
-        <translation>管位數量要與範本一致，樣品名稱不能為空</translation>
     </message>
     <message>
         <source>试管</source>
@@ -2921,6 +2878,10 @@
     <message>
         <source>报告中心</source>
         <translation>報告中心</translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation>歷史記錄</translation>
     </message>
     <message>
         <source>当前实验</source>
@@ -3989,6 +3950,10 @@
         <translation>實驗不存在：{id}</translation>
     </message>
     <message>
+        <source>该实验没有保存完整模板配置，无法另存为模板</source>
+        <translation>此實驗沒有儲存完整的範本設定，無法另存為範本。</translation>
+    </message>
+    <message>
         <source>实验 {id} 不是就绪状态，不能启动</source>
         <translation>實驗 {id} 不是就緒狀態，不能啟動</translation>
     </message>
@@ -4291,14 +4256,6 @@
         <translation>個人外觀</translation>
     </message>
     <message>
-        <source>仅影响当前账号的界面配色和字号，不会修改仪器参数。</source>
-        <translation>僅影響目前帳號的介面配色與字級，不會修改儀器參數。</translation>
-    </message>
-    <message>
-        <source>外观设置…</source>
-        <translation>外觀設定…</translation>
-    </message>
-    <message>
         <source>运行参数改动对之后启动的实验生效。</source>
         <translation>執行參數的變更會套用至之後啟動的實驗。</translation>
     </message>
@@ -4371,10 +4328,6 @@
         <translation>瀏覽…</translation>
     </message>
     <message>
-        <source>无法读取外观设置，请检查数据目录后重试。</source>
-        <translation>無法讀取外觀設定，請檢查資料目錄後再試。</translation>
-    </message>
-    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>目前帳號僅能檢視設定；修改需要儀器與維護權限。</translation>
     </message>
@@ -4389,6 +4342,38 @@
     <message>
         <source>设置</source>
         <translation>設定</translation>
+    </message>
+    <message>
+        <source>配色</source>
+        <translation>配色</translation>
+    </message>
+    <message>
+        <source>石青</source>
+        <translation>石青</translation>
+    </message>
+    <message>
+        <source>沉静蓝</source>
+        <translation>沉靜藍</translation>
+    </message>
+    <message>
+        <source>字号</source>
+        <translation>字級</translation>
+    </message>
+    <message>
+        <source>跟随系统</source>
+        <translation>跟隨系統</translation>
+    </message>
+    <message>
+        <source>较小</source>
+        <translation>較小</translation>
+    </message>
+    <message>
+        <source>较大</source>
+        <translation>較大</translation>
+    </message>
+    <message>
+        <source>保存外观设置</source>
+        <translation>儲存外觀設定</translation>
     </message>
     <message>
         <source>启动配置与数据目录</source>
@@ -4421,6 +4406,18 @@
     <message>
         <source>配置文件</source>
         <translation>設定檔</translation>
+    </message>
+    <message>
+        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
+        <translation>無法讀取已儲存的外觀設定。請重新選擇後儲存。</translation>
+    </message>
+    <message>
+        <source>外观设置无法保存，请检查数据目录后重试。</source>
+        <translation>無法儲存外觀設定，請檢查資料目錄後再試。</translation>
+    </message>
+    <message>
+        <source>外观设置已保存。</source>
+        <translation>外觀設定已儲存。</translation>
     </message>
     <message>
         <source>还原</source>

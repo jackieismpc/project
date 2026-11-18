@@ -80,6 +80,11 @@ class TemplateEditorDialog(QDialog):
         draft = initial or TemplateDraft(
             "", ExperimentType.SENSITIVITY_CONFIRMATION, [TemplateItemInput("")]
         )
+        self._tube_numbers = list(
+            draft.tube_numbers if draft.tube_numbers is not None else range(1, len(draft.items) + 1)
+        )
+        if len(self._tube_numbers) != len(draft.items):
+            self._tube_numbers = list(range(1, len(draft.items) + 1))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 22, 24, 20)
@@ -116,9 +121,8 @@ class TemplateEditorDialog(QDialog):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setMinimumHeight(220)
         layout.addWidget(self.table, 1)
-        for i, item in enumerate(draft.items, start=1):
-            self._append(i, item)
-
+        for tube_no, item in zip(self._tube_numbers, draft.items, strict=True):
+            self._append(tube_no, item)
         tools = QHBoxLayout()
         tools.setSpacing(8)
         self.add_button = Button("", ButtonVariant.SECONDARY, icon="plus")
@@ -171,10 +175,10 @@ class TemplateEditorDialog(QDialog):
             ),
         ]
 
-    def _append(self, number: int, item: TemplateItemInput) -> None:
+    def _append(self, tube_no: int, item: TemplateItemInput) -> None:
         self.table.append_row(
             [
-                str(number),
+                str(tube_no),
                 item.sample_name,
                 "" if item.dilution_factor is None else f"{item.dilution_factor:g}",
                 "" if item.spiked_endotoxin is None else f"{item.spiked_endotoxin:g}",
@@ -187,7 +191,15 @@ class TemplateEditorDialog(QDialog):
     def _add_row(self) -> None:
         if self.table.rowCount() >= TUBE_COUNT:
             return
-        self._append(self.table.rowCount() + 1, TemplateItemInput(""))
+        used = set(self._tube_numbers)
+        next_after_last = max(used, default=0) + 1
+        tube_no = (
+            next_after_last
+            if next_after_last <= TUBE_COUNT
+            else next(number for number in range(1, TUBE_COUNT + 1) if number not in used)
+        )
+        self._tube_numbers.append(tube_no)
+        self._append(tube_no, TemplateItemInput(""))
         self.table.scrollToBottom()
         self._refresh_count()
 
@@ -199,6 +211,7 @@ class TemplateEditorDialog(QDialog):
         removable = max(0, self.table.rowCount() - 1)
         for row in rows[:removable]:
             self.table.removeRow(row)
+            self._tube_numbers.pop(row)
         self._refresh_count()
 
     def _refresh_count(self) -> None:
@@ -213,7 +226,7 @@ class TemplateEditorDialog(QDialog):
         """读取对话框里当前的内容。
 
         Returns:
-            模板输入，管号按行顺序从 1 编。
+            模板输入，保留每行对应的物理管号。
         """
         self.table.commit_editor()
         items = [
@@ -230,6 +243,7 @@ class TemplateEditorDialog(QDialog):
             name=self.name.text(),
             experiment_type=ExperimentType(str(self.type_box.currentData())),
             items=items,
+            tube_numbers=tuple(self._tube_numbers),
         )
 
     # ------------------------------------------------------------------ 保存

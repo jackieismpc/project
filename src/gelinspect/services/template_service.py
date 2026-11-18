@@ -17,10 +17,11 @@ from typing import Protocol
 
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, ExperimentType, TubeRole
+from gelinspect.domain.errors import InvalidPlatePositionError
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.plate import TUBE_COUNT
+from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem
-from gelinspect.interfaces.storage import TemplateRepository, UnitOfWork
+from gelinspect.interfaces.storage import ExperimentRepository, TemplateRepository, UnitOfWork
 from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 
@@ -39,6 +40,11 @@ class TemplateStorage(Protocol):
     @property
     def templates(self) -> TemplateRepository:
         """模板仓储。"""
+        ...
+
+    @property
+    def experiments(self) -> ExperimentRepository:
+        """已保存试验仓储。"""
         ...
 
     def unit_of_work(self) -> AbstractContextManager[UnitOfWork]:
@@ -86,12 +92,14 @@ class TemplateDraft:
     Attributes:
         name: 名称。
         experiment_type: 类型。
-        items: 每支试管，管号按顺序从 1 开始编。
+        items: 每支试管的样品和判定配置。
+        tube_numbers: 可选物理管号序列；省略时按 1 到 N 编号，提供时保留稀疏布局。
     """
 
     name: str
     experiment_type: ExperimentType
     items: Sequence[TemplateItemInput]
+    tube_numbers: Sequence[int] | None = None
 
 
 def draft_of(template: ExperimentTemplate) -> TemplateDraft:
@@ -113,6 +121,7 @@ def draft_of(template: ExperimentTemplate) -> TemplateDraft:
             )
             for i in ordered
         ),
+        tube_numbers=tuple(item.tube_no for item in ordered),
     )
 
 
@@ -134,7 +143,26 @@ def build_template_config(template_id: str, draft: TemplateDraft) -> ExperimentT
             max=TUBE_COUNT,
         )
     items: list[TemplateTubeItem] = []
-    for index, item in enumerate(draft.items, start=1):
+    try:
+        tube_numbers = (
+            tuple(draft.tube_numbers)
+            if draft.tube_numbers is not None
+            else tuple(range(1, len(draft.items) + 1))
+        )
+    except TypeError as error:
+        raise ServiceError("模板管位列表无效", ServiceErrorCode.TEMPLATE_VALUE_INVALID) from error
+    if any(type(tube_no) is not int for tube_no in tube_numbers):
+        raise ServiceError("模板管号必须是整数", ServiceErrorCode.TEMPLATE_VALUE_INVALID)
+    if len(tube_numbers) != len(draft.items) or len(set(tube_numbers)) != len(tube_numbers):
+        raise ServiceError(
+            "模板管位必须唯一且与试管数一致", ServiceErrorCode.TEMPLATE_VALUE_INVALID
+        )
+    try:
+        for tube_no in tube_numbers:
+            tube_to_position(tube_no)
+    except InvalidPlatePositionError as error:
+        raise ServiceError(str(error), ServiceErrorCode.TEMPLATE_VALUE_INVALID) from error
+    for index, (item, tube_no) in enumerate(zip(draft.items, tube_numbers, strict=True), start=1):
         sample = item.sample_name.strip()
         if not sample:
             raise ServiceError(
@@ -152,7 +180,7 @@ def build_template_config(template_id: str, draft: TemplateDraft) -> ExperimentT
         try:
             items.append(
                 TemplateTubeItem(
-                    index,
+                    tube_no,
                     sample,
                     item.role,
                     item.dilution_factor,
@@ -189,6 +217,35 @@ class TemplateService:
         self._storage = storage
 
     # ------------------------------------------------------------------ 查询
+
+    def template_draft_from_experiment(
+        self, session: Session | None, experiment_id: str
+    ) -> TemplateDraft:
+        """基于试验自身快照构造可另存的模板，不读取当前模板库记录。
+
+        Args:
+            session: 调用者会话，需要模板管理和试验查看权限。
+            experiment_id: 已保存试验标识。
+
+        Returns:
+            创建试验时保存的模板配置。
+
+        Raises:
+            ServiceError: 试验不存在或缺少创建时模板快照。
+        """
+        self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
+        self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
+        experiment = self._storage.experiments.get(experiment_id)
+        if experiment is None:
+            raise ServiceError(
+                f"试验不存在：{experiment_id}", ServiceErrorCode.EXPERIMENT_NOT_FOUND
+            )
+        if experiment.template_snapshot is None:
+            raise ServiceError(
+                "该试验没有保存完整模板快照，不能另存为模板",
+                ServiceErrorCode.EXPERIMENT_TEMPLATE_SNAPSHOT_MISSING,
+            )
+        return draft_of(experiment.template_snapshot)
 
     def list_templates(
         self, session: Session | None, *, include_hidden: bool = False
@@ -288,7 +345,7 @@ class TemplateService:
             raise ServiceError("模板已隐藏，恢复后才能复制", ServiceErrorCode.TEMPLATE_NOT_FOUND)
         base = draft_of(source)
         new_name = (name or "").strip() or self._free_name(f"{source.name} 副本")
-        draft = TemplateDraft(new_name, base.experiment_type, base.items)
+        draft = TemplateDraft(new_name, base.experiment_type, base.items, base.tube_numbers)
         template = self._build(f"{CUSTOM_PREFIX}{self._new_id()}", draft)
         self._check_name(template.name, template.template_id)
         self._save(user, template, f"复制模板 {source.name} 为 {template.name}")

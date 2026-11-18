@@ -519,7 +519,9 @@ class MonitorService:
     def _build_view(
         self, experiment: Experiment, snapshot: EngineSnapshot | None, live: bool
     ) -> ExperimentView:
-        template = self._storage.templates.get(experiment.template_id)
+        template = experiment.template_snapshot or self._storage.templates.get(
+            experiment.template_id
+        )
         user = self._storage.users.get_by_username(experiment.operator)
         phases = {row.row_index: row for row in snapshot.rows} if snapshot is not None else {}
         tubes: list[TubeRow] = []
@@ -574,8 +576,7 @@ class MonitorService:
             experiment_id=experiment.experiment_id,
             experiment_type=experiment.experiment_type,
             template_name=template.name if template is not None else "",
-            template_builtin=template is not None
-            and self._storage.templates.is_builtin(experiment.template_id),
+            template_builtin=self._storage.templates.is_builtin(experiment.template_id),
             state=experiment.state,
             operator=experiment.operator,
             operator_name=user.display_name if user is not None else experiment.operator,

@@ -23,6 +23,7 @@ from gelinspect.services.engine_types import (
 from gelinspect.services.video.events import VideoEvent, VideoEventCode, VideoEventLevel
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.monitor_page import MonitorPage
+from gelinspect.ui.pages.template_editor import TemplateEditorDialog
 from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.marks import WellState
 from simulation.sim_device import SimDevice
@@ -30,6 +31,7 @@ from simulation.sim_video import SimVideoSource
 from tests.ui.conftest import DEMO_PASSWORDS, settle, sign_in, wait_for
 from tests.ui.monitor_helpers import (
     start_sensitivity,
+    wait_finished,
 )
 
 
@@ -184,6 +186,42 @@ def test_other_alerts_database_busy_and_algorithm_failure_and_video_events(
     post_from_thread(bridge.handle_event, other)
     settle(qapp, 8)
     assert "engine:device_fault" not in monitor.alerts.active_keys()
+
+
+def test_completed_experiment_can_be_saved_as_a_new_sparse_template(
+    qapp: QApplication,
+    fast_window: MainWindow,
+    fast_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monitor = start_sensitivity(qapp, fast_window, tubes=range(17, 35))
+    experiment_id = monitor.experiment_id
+    assert experiment_id is not None
+    assert not monitor.save_template_button.isVisibleTo(monitor)
+    wait_finished(qapp, fast_context)
+
+    assert fast_window.logout(confirm=False)
+    sign_in(qapp, fast_window, "admin")
+    assert fast_window.open_experiment(experiment_id)
+    page = fast_window.page("monitor")
+    assert isinstance(page, MonitorPage)
+    assert page.save_template_button.isVisibleTo(page)
+
+    captured: list[TemplateEditorDialog] = []
+
+    def save_dialog(dialog: TemplateEditorDialog) -> int:
+        captured.append(dialog)
+        dialog.name.setText("从已完成实验另存")
+        dialog._save()
+        return int(dialog.result())
+
+    monkeypatch.setattr(TemplateEditorDialog, "exec", save_dialog)
+    page.save_template_button.click()
+
+    assert len(captured) == 1
+    saved = captured[0].saved
+    assert saved is not None and saved.name == "从已完成实验另存"
+    assert [item.tube_no for item in saved.items] == list(range(17, 35))
 
 
 def test_banners_can_be_dismissed_and_are_capped(

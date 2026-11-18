@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from gelinspect.domain.enums import AuditAction, ExperimentType, TubeRole
-from gelinspect.domain.templates import BUILTIN_TEMPLATES
+from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate, TemplateTubeItem
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
@@ -14,6 +14,7 @@ from gelinspect.services.template_service import (
     TemplateItemInput,
     draft_of,
 )
+from tests.services.engine_helpers import ready_experiment
 
 from .conftest import Stack
 
@@ -248,3 +249,74 @@ def test_builtin_cannot_be_soft_deleted(stack: Stack) -> None:
     with pytest.raises(ServiceError) as caught:
         stack.templates.delete_template(stack.login("admin"), SENSITIVITY.template_id)
     assert caught.value.code is ServiceErrorCode.TEMPLATE_READ_ONLY
+
+
+def test_experiment_template_draft_uses_persisted_snapshot_not_current_template(
+    stack: Stack,
+) -> None:
+    experiment = ready_experiment([17, 25], "EXP-SNAPSHOT")
+    experiment.template_snapshot = ExperimentTemplate(
+        "builtin.limit",
+        "原试验配置",
+        ExperimentType.LIMIT,
+        (
+            TemplateTubeItem(17, "本次供试品", TubeRole.SAMPLE, 4.0, lambda_multiple=0.5),
+            TemplateTubeItem(25, "本次阴性", TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0),
+        ),
+    )
+    stack.database.experiments.save(experiment)
+    draft = stack.templates.template_draft_from_experiment(
+        stack.login("admin"), experiment.experiment_id
+    )
+    assert draft.name == "原试验配置"
+    assert tuple(draft.tube_numbers or ()) == (17, 25)
+    assert [item.lambda_multiple for item in draft.items] == [0.5, 0.0]
+
+
+def test_experiment_without_template_snapshot_cannot_be_saved_as_template(
+    stack: Stack,
+) -> None:
+    experiment = ready_experiment([17, 25], "EXP-LEGACY-SNAPSHOT")
+    stack.database.experiments.save(experiment)
+    with pytest.raises(ServiceError) as caught:
+        stack.templates.template_draft_from_experiment(
+            stack.login("admin"), experiment.experiment_id
+        )
+    assert caught.value.code is ServiceErrorCode.EXPERIMENT_TEMPLATE_SNAPSHOT_MISSING
+
+
+def test_experiment_template_draft_requires_template_manager(stack: Stack) -> None:
+    experiment = ready_experiment([1, 2], "EXP-SNAPSHOT-PERM")
+    stack.database.experiments.save(experiment)
+    with pytest.raises(PermissionDeniedError):
+        stack.templates.template_draft_from_experiment(
+            stack.login("analyst"), experiment.experiment_id
+        )
+
+
+@pytest.mark.parametrize("numbers", [[True], ["4"], [0], [97], [1, 1]])
+def test_custom_template_tube_numbers_are_validated(stack: Stack, numbers: list[object]) -> None:
+    draft = TemplateDraft(
+        "坏管位",
+        ExperimentType.GENERAL,
+        [TemplateItemInput("样品") for _ in range(len(numbers))],
+        tube_numbers=numbers,  # type: ignore[arg-type]
+    )
+    with pytest.raises(ServiceError) as caught:
+        stack.templates.create_template(stack.login("admin"), draft)
+    assert caught.value.code is ServiceErrorCode.TEMPLATE_VALUE_INVALID
+
+
+def test_custom_template_preserves_sparse_tube_numbers(stack: Stack) -> None:
+    created = stack.templates.create_template(
+        stack.login("admin"),
+        TemplateDraft(
+            "稀疏布局",
+            ExperimentType.GENERAL,
+            [TemplateItemInput("甲"), TemplateItemInput("乙")],
+            tube_numbers=(17, 25),
+        ),
+    )
+    assert [item.tube_no for item in created.items] == [17, 25]
+    copied = stack.templates.copy_template(stack.login("admin"), created.template_id)
+    assert [item.tube_no for item in copied.items] == [17, 25]

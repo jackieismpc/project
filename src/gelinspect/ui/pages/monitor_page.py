@@ -17,6 +17,7 @@ from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QHBoxLayout,
     QScrollArea,
     QStackedWidget,
@@ -28,6 +29,7 @@ from gelinspect.domain.enums import ReagentKind
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.plate import ROW_COUNT, row_label
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.engine_types import (
@@ -51,6 +53,7 @@ from gelinspect.ui.labels import (
     describe_alert,
     describe_auth_error,
     describe_service_error,
+    describe_storage_busy,
     describe_video_event,
     format_concentration,
     reagent_kind_label,
@@ -66,6 +69,7 @@ from gelinspect.ui.pages.monitor_format import (
 from gelinspect.ui.pages.monitor_images import ImagesTab
 from gelinspect.ui.pages.monitor_report import MonitorReportPreview
 from gelinspect.ui.pages.replay_dialog import ReplayDialog
+from gelinspect.ui.pages.template_editor import TemplateEditorDialog
 from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.widgets.alert_stack import AlertStack
 from gelinspect.ui.widgets.badge import StatusBadge
@@ -351,9 +355,13 @@ class MonitorPage(QWidget):
         self.report_summary.setWordWrap(True)
         self.report_open = Button("", ButtonVariant.PRIMARY, icon="printer")
         self.report_open.clicked.connect(self._open_report)
+        self.save_template_button = Button("", ButtonVariant.SECONDARY, icon="copy")
+        self.save_template_button.clicked.connect(self.save_as_template)
+        self.save_template_button.hide()
         for widget in (icon, self.report_headline, self.report_summary):
             card.body.addWidget(widget)
         card.body.addWidget(self.report_open, 0, Qt.AlignmentFlag.AlignLeft)
+        card.body.addWidget(self.save_template_button, 0, Qt.AlignmentFlag.AlignLeft)
         self.report_preview = MonitorReportPreview(self._services.reports)
         card.body.addWidget(self.report_preview)
         return card
@@ -362,6 +370,54 @@ class MonitorPage(QWidget):
         view = self._view
         if view is not None:
             self.reportRequested.emit(view.experiment_id)
+
+    def save_as_template(self) -> None:
+        """从结束试验的保存快照另存为新模板。"""
+        session = self._session
+        view = self._view
+        if (
+            session is None
+            or view is None
+            or view.live
+            or view.state
+            not in {
+                ExperimentState.PENDING_REVIEW,
+                ExperimentState.COMPLETED,
+                ExperimentState.SIGNED,
+            }
+            or not session.can(Permission.TEMPLATE_MANAGE)
+            or not session.can(Permission.EXPERIMENT_VIEW)
+        ):
+            return
+        try:
+            draft = self._services.templates.template_draft_from_experiment(
+                session, view.experiment_id
+            )
+        except AuthError as error:
+            Toast.show_message(self.window(), describe_auth_error(error), ToastKind.WARNING)
+            return
+        except ServiceError as error:
+            Toast.show_message(self.window(), describe_service_error(error), ToastKind.WARNING)
+            return
+        except StorageBusyError:
+            Toast.show_message(self.window(), describe_storage_busy(), ToastKind.WARNING)
+            return
+        dialog = TemplateEditorDialog(
+            lambda draft: self._services.templates.create_template(session, draft),
+            initial=draft,
+            parent=self,
+        )
+        try:
+            accepted = dialog.exec() == QDialog.DialogCode.Accepted
+            saved = dialog.saved
+        finally:
+            dialog.deleteLater()
+        if accepted and saved is not None:
+            Toast.show_message(
+                self.window(),
+                self.tr("已另存模板：{name}").format(name=saved.name),
+                ToastKind.SUCCESS,
+            )
 
     def _render_report_tabs(self) -> None:
         """按当前试验刷新报告预览标签。"""
@@ -453,6 +509,7 @@ class MonitorPage(QWidget):
             self.report_preview.set_context(self._session, None, None)
             self._show_empty(True)
             self.images_tab.set_experiment(self._session, None)
+            self._render_permissions()
             return False
         self._show_empty(False)
         self._adopt(view)
@@ -704,6 +761,21 @@ class MonitorPage(QWidget):
         self.retry_button.setToolTip(
             denied or (self.tr("全部排读完后才能重试分析") if waiting else "")
         )
+        can_save_template = (
+            self._session is not None
+            and self._session.can(Permission.TEMPLATE_MANAGE)
+            and self._session.can(Permission.EXPERIMENT_VIEW)
+            and view is not None
+            and not view.live
+            and view.state
+            in {
+                ExperimentState.PENDING_REVIEW,
+                ExperimentState.COMPLETED,
+                ExperimentState.SIGNED,
+            }
+        )
+        self.save_template_button.setVisible(can_save_template)
+        self.save_template_button.setEnabled(can_save_template)
 
     def _render_recovery_hint(self) -> None:
         view = self._view
@@ -1075,6 +1147,7 @@ class MonitorPage(QWidget):
         self.table.set_empty_text(self.tr("没有试管"))
         self.report_headline.setText(self.tr("报告打印预览"))
         self.report_open.setText(self.tr("在报告中心打开"))
+        self.save_template_button.setText(self.tr("另存为模板…"))
         self._render_report_tabs()
         self._signature = None
         if self._view is not None:
