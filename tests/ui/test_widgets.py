@@ -1,3 +1,4 @@
+import pytest
 from PySide6.QtWidgets import QApplication, QWidget
 from pytestqt.qtbot import QtBot
 
@@ -8,6 +9,7 @@ from gelinspect.ui.widgets.icons import IconLoader, available_icons
 from gelinspect.ui.widgets.marks import WellState
 from gelinspect.ui.widgets.side_nav import DEFAULT_NAV, SideNav
 from gelinspect.ui.widgets.sparkline import Sparkline
+from gelinspect.ui.widgets.stat_card import ReadoutCard
 from gelinspect.ui.widgets.step_indicator import StepIndicator
 from gelinspect.ui.widgets.tabs import Tabs
 from gelinspect.ui.widgets.toast import Toast
@@ -64,6 +66,26 @@ def test_step_tabs_badge_sparkline_paint(qtbot: QtBot) -> None:
         qtbot.addWidget(w)
         w.resize(w.sizeHint())
         assert not w.grab().isNull()
+
+
+@pytest.mark.parametrize("font_scale", ["small", "system", "large"])
+def test_readout_value_keeps_its_font_metrics_height(
+    qtbot: QtBot, qapp: QApplication, font_scale: str
+) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    apply_appearance(qapp, AppearancePreferences(font_scale=font_scale))
+    try:
+        card = ReadoutCard("室温", "37.1", "℃")
+        qtbot.addWidget(card)
+        card.resize(560, card.sizeHint().height())
+        card.show()
+        qtbot.wait(20)
+        assert "37.1" in card._value.text() and "℃" in card._value.text()
+        assert card._value.height() >= card._value.sizeHint().height()
+    finally:
+        apply_appearance(qapp, AppearancePreferences())
 
 
 def test_all_icons_load(qapp: QApplication) -> None:

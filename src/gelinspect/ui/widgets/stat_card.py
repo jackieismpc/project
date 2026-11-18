@@ -5,7 +5,7 @@ from __future__ import annotations
 from html import escape
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.card import Card
@@ -89,8 +89,8 @@ class ReadoutCard(Card):
         left.setSpacing(0)
         self._label = Label(label, "lab")
         self._value = Label("", "hero", mono=True)
-        # 设计稿 line-height 1.1：避免大字号默认行高留出过多空白。
-        self._value.setFixedHeight(round(current_tokens().type.hero * 1.1))
+        # 大号读数按字体实际字形自然取高，避免被横向卡片布局压扁。
+        self._value.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self._note = Label(note, note_role)
         left.addWidget(self._label)
         left.addWidget(self._value)

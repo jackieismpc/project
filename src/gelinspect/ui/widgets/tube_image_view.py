@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import NDArray
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPaintEvent, QPen
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from gelinspect.ui.theme.fonts import sans_font
@@ -48,20 +48,31 @@ MAX_HEIGHT = 380
 class TubeImageView(QWidget):
     """一张单管裁剪图，可叠加掩码。"""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    clicked = Signal()
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        min_height: int = 240,
+        max_height: int = MAX_HEIGHT,
+    ) -> None:
         """创建视图。
 
         Args:
             parent: 父控件。
+            min_height: 视图最小高度。
+            max_height: 视图最大高度，用于按图像比例计算建议尺寸。
         """
         super().__init__(parent)
         self._image: QImage | None = None
+        self._max_height = max_height
         self._gel = QPainterPath()
         self._tube = QPainterPath()
         self._overlay = True
         self._text = ""
-        self.setMinimumSize(MIN_WIDTH, 240)
-        self.setMaximumHeight(MAX_HEIGHT)
+        self.setMinimumSize(MIN_WIDTH, min_height)
+        self.setMaximumHeight(max_height)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_content(
@@ -82,9 +93,11 @@ class TubeImageView(QWidget):
         self._tube = polygons_path(tube)
         if self._image is None:
             self.setMaximumWidth(_UNLIMITED)
+            self.setCursor(Qt.CursorShape.ArrowCursor)
         else:
             aspect = self._image.width() / max(1, self._image.height())
-            self.setMaximumWidth(max(MIN_WIDTH, round(MAX_HEIGHT * aspect)))
+            self.setMaximumWidth(max(MIN_WIDTH, round(self._max_height * aspect)))
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.updateGeometry()
         self.update()
 
@@ -95,6 +108,18 @@ class TubeImageView(QWidget):
             有图像时为 True。
         """
         return self._image is not None
+
+    def image(self) -> QImage | None:
+        """返回当前裁剪图，供放大查看。"""
+        return self._image
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """点击有图像的视图时发出放大查看信号。"""
+        if event.button() == Qt.MouseButton.LeftButton and self._image is not None:
+            self.clicked.emit()
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
     def has_overlay_data(self) -> bool:
         """是否有可叠加的掩码。
@@ -139,7 +164,7 @@ class TubeImageView(QWidget):
         if self._image is None:
             return QSize(240, 340)
         aspect = self._image.width() / max(1, self._image.height())
-        return QSize(max(MIN_WIDTH, round(MAX_HEIGHT * aspect)), MAX_HEIGHT)
+        return QSize(max(MIN_WIDTH, round(self._max_height * aspect)), self._max_height)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         """绘制图像和叠加层。

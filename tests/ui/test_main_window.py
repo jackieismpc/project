@@ -171,6 +171,7 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
                 "settings",
                 "reports",
                 "history",
+                "reagents",
                 "about",
             },
             set(),
@@ -184,9 +185,10 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
                 "reports",
                 "history",
                 "reagents",
+                "settings",
                 "about",
             },
-            {"audit", "users", "settings"},
+            {"audit", "users"},
         ),
         (
             "analyst",
@@ -198,9 +200,10 @@ def test_lock_policy_comes_from_the_config(tmp_path: Path) -> None:
                 "templates",
                 "new",
                 "reagents",
+                "settings",
                 "about",
             },
-            {"users", "settings"},
+            {"users"},
         ),
     ],
 )
@@ -210,8 +213,8 @@ def test_entries_follow_the_role(
     sign_in(qapp, window, username)
     nav = window.shell.nav
     items = {item.entry.key: item for item in nav.items()}
-    enabled -= {"new", "monitor", "settings", "about"}
-    disabled -= {"new", "monitor", "settings", "about"}
+    enabled -= {"monitor"}
+    disabled -= {"monitor"}
     for key in enabled:
         assert items[key].isEnabledTo(nav), key
     for key in disabled:
@@ -242,6 +245,10 @@ def test_quick_actions_navigate_to_their_pages(qapp: QApplication, window: MainW
     assert window.current_route == "templates"
     window.shell.toolbar.action("reports").trigger()
     assert window.current_route == "reports"
+    settings_button = window.shell.toolbar.button("instrument_settings")
+    assert settings_button.menu() is None
+    settings_button.click()
+    assert window.current_route == "settings"
 
 
 def test_every_designed_page_has_a_route_and_a_working_page(

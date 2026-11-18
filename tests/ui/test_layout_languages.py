@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 
 import pytest
 from PySide6.QtCore import QPoint, QRect
@@ -18,11 +19,14 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.app_context import AppContext
+from gelinspect.services.appearance_service import AppearancePreferences
+from gelinspect.services.engine_types import TemperatureChanged
 from gelinspect.ui.i18n import Language, LanguageManager
 from gelinspect.ui.main_window import MainWindow, Screen
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog
 from gelinspect.ui.pages.dashboard import DashboardPage
 from gelinspect.ui.routes import PAGE_ROUTES
+from gelinspect.ui.theme.appearance import apply_appearance
 from gelinspect.ui.widgets.dialog import ConfirmDialog, ErrorDialog
 from tests.ui.conftest import screen_of, settle, sign_in
 
@@ -175,6 +179,39 @@ def test_dashboard_with_data_fits(
     dashboard.refresh()
     assert wait_for(qapp, lambda: dashboard.recent_table.row_count() == 3)
     assert overflow_report(window) == []
+
+
+@pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)
+@pytest.mark.parametrize("font_scale", ["small", "system", "large"])
+def test_dashboard_readout_keeps_value_and_unit_visible(
+    qapp: QApplication,
+    window: MainWindow,
+    language: LanguageManager,
+    lang: Language,
+    font_scale: str,
+) -> None:
+    try:
+        use(window, language, lang, (1280, 828))
+        sign_in(qapp, window, "experimenter")
+        apply_appearance(qapp, AppearancePreferences(font_scale=font_scale))
+        settle(qapp)
+        dashboard = window.page("dashboard")
+        assert isinstance(dashboard, DashboardPage)
+        dashboard.on_temperature(
+            TemperatureChanged(
+                experiment_id="LAYOUT",
+                at=datetime.now().astimezone(),
+                celsius=37.1,
+                in_range=True,
+            )
+        )
+        settle(qapp)
+        value = dashboard.temperature._value
+        assert "37.1" in value.text() and "℃" in value.text()
+        assert value.height() >= value.sizeHint().height()
+    finally:
+        apply_appearance(qapp, AppearancePreferences())
+        language.set_language(Language.ZH_CN, persist=False)
 
 
 @pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)

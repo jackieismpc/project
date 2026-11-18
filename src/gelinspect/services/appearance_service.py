@@ -1,53 +1,45 @@
-"""Validated, per-account storage for personal appearance preferences."""
+"""按账号保存受限的外观风格偏好。"""
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-_COLORS = ("primary", "bg", "surface", "ink")
-_COLOR = re.compile(r"#[0-9A-Fa-f]{6}\Z")
+PALETTES = ("teal", "blue")
+FONT_SCALES = ("system", "small", "large")
 _VERSION = 1
 
 
 @dataclass(frozen=True, slots=True)
 class AppearancePreferences:
-    """Validated per-account colors and optional fixed font size."""
+    """每个账号可选的完整配色与字号档位。"""
 
-    primary: str | None = None
-    bg: str | None = None
-    surface: str | None = None
-    ink: str | None = None
-    font_size: int | None = None
+    palette: str = "teal"
+    font_scale: str = "system"
 
 
 class AppearanceSettingsError(ValueError):
-    """Stored or submitted personal appearance settings are invalid."""
+    """已保存或提交的外观设置无效。"""
 
 
 def validate_preferences(preferences: AppearancePreferences) -> AppearancePreferences:
-    """Validate color values and restrict manual font size to a readable range."""
-    for name in _COLORS:
-        value = getattr(preferences, name)
-        if value is not None and (not isinstance(value, str) or not _COLOR.fullmatch(value)):
-            raise AppearanceSettingsError(f"{name} must be a #RRGGBB color")
-    if preferences.font_size is not None and (
-        type(preferences.font_size) is not int or not 12 <= preferences.font_size <= 22
-    ):
-        raise AppearanceSettingsError("font_size must be between 12 and 22 pixels")
+    """只允许受支持的完整配色及字号档位。"""
+    if preferences.palette not in PALETTES:
+        raise AppearanceSettingsError("palette must be teal or blue")
+    if preferences.font_scale not in FONT_SCALES:
+        raise AppearanceSettingsError("font_scale must be system, small, or large")
     return preferences
 
 
 class AppearanceService:
-    """Read and write personal appearance JSON without requiring business permissions."""
+    """读写个人外观 JSON；旧版任意颜色偏好读取时归一为默认风格。"""
 
     def __init__(self, data_dir: Path) -> None:
-        """Create service rooted in the application's data directory."""
+        """以应用数据目录创建服务。"""
         self._path = data_dir / "appearance_settings.json"
 
     @staticmethod
@@ -55,24 +47,27 @@ class AppearanceService:
         return username.strip()
 
     def get(self, username: str) -> AppearancePreferences:
-        """Load one account's preferences, using defaults when no override exists."""
+        """读取一个账号的偏好。旧自由颜色和字号字段会安全回退为默认值。"""
         data = self._read()
         raw = data.get(self._account_key(username), {})
+        if not isinstance(raw, dict):
+            raise AppearanceSettingsError(f"appearance settings for {username!r} must be an object")
+        # 旧版记录含颜色或 font_size 时忽略它们，不把任意值应用到当前主题。
+        if any(key in raw for key in ("primary", "bg", "surface", "ink", "font_size")):
+            return AppearancePreferences()
         try:
-            if not isinstance(raw, dict):
-                raise AppearanceSettingsError("account preferences must be an object")
-            prefs = AppearancePreferences(
-                **{name: raw.get(name) for name in _COLORS},
-                font_size=raw.get("font_size"),
+            preferences = AppearancePreferences(
+                palette=raw.get("palette", "teal"),
+                font_scale=raw.get("font_scale", "system"),
             )
-            return validate_preferences(prefs)
+            return validate_preferences(preferences)
         except (TypeError, AppearanceSettingsError) as exc:
             raise AppearanceSettingsError(
                 f"appearance settings for {username!r} are invalid: {exc}"
             ) from exc
 
     def save(self, username: str, preferences: AppearancePreferences) -> None:
-        """Validate and atomically save one account's appearance preferences."""
+        """校验并原子保存一个账号的外观设置。"""
         name = username.strip()
         if not name:
             raise AppearanceSettingsError("username is required")

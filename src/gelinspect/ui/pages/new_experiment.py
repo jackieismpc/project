@@ -290,12 +290,28 @@ class NewExperimentPage(QWidget):
         self.sample_table.setSelectionBehavior(self.sample_table.SelectionBehavior.SelectRows)
         self.sample_table.cellEdited.connect(self._on_cell_edited)
         self.sample_table.horizontalHeader().sectionClicked.connect(self._on_sample_header_clicked)
+        self.sample_table.itemSelectionChanged.connect(self._update_batch_fill_target)
         self.sample_card.body.addWidget(self.sample_table, 1)
+        self.batch_fill_label = Label("", "lab")
+        self.sample_card.body.addWidget(self.batch_fill_label)
         self.batch_fill = QLineEdit()
-        self.batch_fill.setMinimumHeight(40)
-        self.batch_fill.setPlaceholderText(self.tr("扫码或输入样品批号，回车填入选中行"))
+        self.batch_fill.setMinimumHeight(38)
+        self.batch_fill.setAccessibleName(self.tr("样品批号扫码填入"))
+        self.batch_fill.setPlaceholderText(self.tr("输入或扫描批号"))
         self.batch_fill.returnPressed.connect(self._fill_selected_batches)
-        self.sample_card.body.addWidget(self.batch_fill)
+        self.batch_fill_button = Button("", ButtonVariant.SECONDARY)
+        self.batch_fill_button.clicked.connect(self._fill_selected_batches)
+        fill_row = QHBoxLayout()
+        fill_row.setSpacing(8)
+        fill_row.addWidget(self.batch_fill, 1)
+        fill_row.addWidget(self.batch_fill_button)
+        self.sample_card.body.addLayout(fill_row)
+        self.batch_fill_target = Label("", "meta")
+        self.batch_fill_target.setWordWrap(True)
+        self.sample_card.body.addWidget(self.batch_fill_target)
+        self.batch_fill_hint = Label("", "meta")
+        self.batch_fill_hint.setWordWrap(True)
+        self.sample_card.body.addWidget(self.batch_fill_hint)
         self.sample_problem = Label("", "warn")
         self.sample_problem.setWordWrap(True)
         self.sample_problem.setVisible(False)
@@ -447,7 +463,18 @@ class NewExperimentPage(QWidget):
         self.limit_edit.setPlaceholderText(self.tr("留空则报告里不填"))
         self.limit_hint.setText(self.tr("录入后写入实验记录并显示在报告里；实验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
-        self.batch_fill.setPlaceholderText(self.tr("扫码或输入样品批号，回车填入选中行"))
+        self.batch_fill.setAccessibleName(self.tr("样品批号扫码填入"))
+        self.batch_fill.setPlaceholderText(self.tr("输入或扫描批号"))
+        self.batch_fill_label.setText(self.tr("扫码填入样品批号"))
+        self.batch_fill_button.setText(self.tr("填入批号"))
+        self.batch_fill_hint.setText(
+            self.tr(
+                "在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。"
+                "扫码枪按键盘输入并自动回车。"
+                "手输示例：BATCH-2026-001，按回车或点“填入批号”。"
+            )
+        )
+        self._update_batch_fill_target()
         self.plate_card.set_title(self.tr("管位"))
         self.plate.setAccessibleName(
             self.tr("{rows} 排 × {holes} 支管位").format(rows=ROW_COUNT, holes=HOLES_PER_ROW)
@@ -934,6 +961,8 @@ class NewExperimentPage(QWidget):
                     edit.setText(text)
         finally:
             self._syncing = False
+        self._batch_scan_row = self._next_empty_batch_row(self._batch_scan_row)
+        self._update_batch_fill_target()
 
     def _on_limits_edited(self) -> None:
         if self._syncing:
@@ -993,6 +1022,7 @@ class NewExperimentPage(QWidget):
         key = keys.get(column)
         if key is not None:
             self._draft.sort_rows(key)
+            self._batch_scan_row = 0
             self._sync_samples()
             self._render()
 
@@ -1004,22 +1034,85 @@ class NewExperimentPage(QWidget):
         selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
         if selected:
             targets = selected
-        elif self._batch_scan_row < len(self._draft.rows):
-            targets = [self._batch_scan_row]
         else:
-            self.batch_fill.clear()
+            next_row = self._next_empty_batch_row(self._batch_scan_row)
+            if next_row >= len(self._draft.rows):
+                self.batch_fill_target.setText(
+                    self.tr("目标：没有空批号行，请在样品表中选中要替换的行。")
+                )
+                self.batch_fill.selectAll()
+                self.batch_fill.setFocus()
+                return
+            targets = [next_row]
+        targets = [index for index in targets if 0 <= index < len(self._draft.rows)]
+        if not targets:
             return
         for row_index in targets:
-            if 0 <= row_index < len(self._draft.rows):
-                self._draft.rows[row_index].batch_no = value
-                self.sample_table.set_cell_text(row_index, COL_BATCH, value)
+            self._draft.rows[row_index].batch_no = value
+            self.sample_table.set_cell_text(row_index, COL_BATCH, value)
         self.batch_fill.clear()
-        self._batch_scan_row = max(targets) + 1
+        self._batch_scan_row = self._next_empty_batch_row(max(targets) + 1, excluded=set(targets))
         self.sample_table.clearSelection()
         if self._batch_scan_row < len(self._draft.rows):
             self.sample_table.setCurrentCell(self._batch_scan_row, COL_BATCH)
+        filled_targets = join_items(self._row_target_text(index) for index in targets)
+        self.batch_fill_target.setText(
+            self._batch_fill_result_text(filled_targets, self._batch_scan_row)
+        )
         self.batch_fill.setFocus()
         self._render()
+
+    def _row_target_text(self, row_index: int) -> str:
+        """明确显示管位绑定和表格行号；尚未绑定位时只显示表格行号。"""
+        tube_no = self._draft.rows[row_index].tube_no
+        if tube_no is None:
+            return self.tr("第 {row} 行（未分配管号）").format(row=row_index + 1)
+        return self.tr("管号 {tube}（第 {row} 行）").format(
+            tube=tube_no,
+            row=row_index + 1,
+        )
+
+    def _batch_fill_result_text(self, filled_targets: str, next_row: int) -> str:
+        """生成扫码成功反馈，并说明下一空批号所在管位。"""
+        if next_row < len(self._draft.rows):
+            return self.tr("已填入 {filled}；下一目标为 {next}。").format(
+                filled=filled_targets,
+                next=self._row_target_text(next_row),
+            )
+        return self.tr("已填入 {filled}；目前没有其他空批号行。").format(filled=filled_targets)
+
+    def _next_empty_batch_row(self, start: int, *, excluded: set[int] | None = None) -> int:
+        """从指定位置循环查找首个尚未填写样品批号的行。"""
+        row_count = len(self._draft.rows)
+        if not row_count:
+            return 0
+        skipped = excluded or set()
+        first = max(0, start) % row_count
+        order: list[int] = [*range(first, row_count), *range(0, first)]
+        for row_index in order:
+            if row_index not in skipped and not self._draft.rows[row_index].batch_no.strip():
+                return row_index
+        return row_count
+
+    @Slot()
+    def _update_batch_fill_target(self) -> None:
+        """显示手动选择的管号，或自动扫描时将要填入的下一空行。"""
+        selected = sorted({index.row() for index in self.sample_table.selectedIndexes()})
+        if selected:
+            targets = join_items(self._row_target_text(index) for index in selected)
+            self.batch_fill_target.setText(
+                self.tr("目标：样品表已选 {targets}。").format(targets=targets)
+            )
+            return
+        next_row = self._next_empty_batch_row(self._batch_scan_row)
+        if next_row < len(self._draft.rows):
+            self.batch_fill_target.setText(
+                self.tr("目标：{target}。").format(target=self._row_target_text(next_row))
+            )
+        else:
+            self.batch_fill_target.setText(
+                self.tr("目标：没有空批号行，请在样品表中选中要替换的行。")
+            )
 
     @Slot(list)
     def _on_selection_changed(self, tubes: list[int]) -> None:

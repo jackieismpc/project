@@ -235,36 +235,40 @@
 <context>
     <name>AppearanceDialog</name>
     <message>
-        <source>主色</source>
-        <translation>主色</translation>
-    </message>
-    <message>
-        <source>背景</source>
-        <translation>背景</translation>
-    </message>
-    <message>
-        <source>内容区</source>
-        <translation>內容區</translation>
-    </message>
-    <message>
-        <source>文字</source>
-        <translation>文字</translation>
-    </message>
-    <message>
         <source>外观设置</source>
         <translation>外觀設定</translation>
     </message>
     <message>
-        <source>按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。</source>
-        <translation>依帳號儲存。字級跟隨系統或手動調整，均限制在12–22像素內。變更會立即預覽，取消可還原原設定。</translation>
+        <source>按账号保存外观。选择固定配色和字号档位，更改立即预览；取消可恢复原设置。</source>
+        <translation>外觀設定依帳號儲存。選擇固定配色與字級，變更會立即預覽；取消可還原原設定。</translation>
     </message>
     <message>
-        <source>选择颜色</source>
-        <translation>選擇顏色</translation>
+        <source>配色</source>
+        <translation>配色</translation>
     </message>
     <message>
-        <source>跟随系统字号</source>
-        <translation>跟隨系統字型大小</translation>
+        <source>石青</source>
+        <translation>石青</translation>
+    </message>
+    <message>
+        <source>沉静蓝</source>
+        <translation>沉靜藍</translation>
+    </message>
+    <message>
+        <source>字号</source>
+        <translation>字級</translation>
+    </message>
+    <message>
+        <source>跟随系统</source>
+        <translation>跟隨系統</translation>
+    </message>
+    <message>
+        <source>较小</source>
+        <translation>較小</translation>
+    </message>
+    <message>
+        <source>较大</source>
+        <translation>較大</translation>
     </message>
     <message>
         <source>预览</source>
@@ -293,14 +297,6 @@
     <message>
         <source>取消</source>
         <translation>取消</translation>
-    </message>
-    <message>
-        <source>系统</source>
-        <translation>系統</translation>
-    </message>
-    <message>
-        <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
-        <translation>部分文字與背景的對比度較低，請調整顏色以確保可讀性。</translation>
     </message>
     <message>
         <source>无法保存外观设置，请检查数据目录后重试。</source>
@@ -1891,10 +1887,6 @@
         <translation>目前角色無此權限：{page}</translation>
     </message>
     <message>
-        <source>无法读取外观设置，请检查数据目录后重试。</source>
-        <translation>無法讀取外觀設定，請檢查資料目錄後重試。</translation>
-    </message>
-    <message>
         <source>密码已修改</source>
         <translation>密碼已修改</translation>
     </message>
@@ -2358,6 +2350,14 @@
         <translation>管位</translation>
     </message>
     <message>
+        <source>样品批号扫码填入</source>
+        <translation>掃描輸入樣品批號</translation>
+    </message>
+    <message>
+        <source>输入或扫描批号</source>
+        <translation>輸入或掃描批號</translation>
+    </message>
+    <message>
         <source>{rows} 排 × {holes} 支管位</source>
         <translation>{rows} 排 × {holes} 支管位</translation>
     </message>
@@ -2390,10 +2390,6 @@
         <translation>沒有樣品</translation>
     </message>
     <message>
-        <source>扫码或输入样品批号，回车填入选中行</source>
-        <translation>掃描或輸入樣品批號，按 Enter 填入選取的列</translation>
-    </message>
-    <message>
         <source>λ倍数</source>
         <translation>λ 倍數</translation>
     </message>
@@ -2404,6 +2400,18 @@
     <message>
         <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
         <translation>輸入後寫入實驗紀錄並顯示在報告裡；實驗章署後不能再修改。</translation>
+    </message>
+    <message>
+        <source>扫码填入样品批号</source>
+        <translation>掃描填入樣品批號</translation>
+    </message>
+    <message>
+        <source>填入批号</source>
+        <translation>填入批號</translation>
+    </message>
+    <message>
+        <source>在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。扫码枪按键盘输入并自动回车。手输示例：BATCH-2026-001，按回车或点“填入批号”。</source>
+        <translation>請先在樣品表中選取一列或多列再填入；未選取時，會依序填入下一個空白批號。條碼掃描器會像鍵盤一樣輸入並自動按下 Enter。手動輸入範例：BATCH-2026-001，按 Enter 或點選「填入批號」。</translation>
     </message>
     <message>
         <source>实验信息</source>
@@ -2496,6 +2504,34 @@
     <message>
         <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
+    </message>
+    <message>
+        <source>目标：没有空批号行，请在样品表中选中要替换的行。</source>
+        <translation>目標：沒有空白批號列。請在樣品表中選取要替換批號的列。</translation>
+    </message>
+    <message>
+        <source>第 {row} 行（未分配管号）</source>
+        <translation>第 {row} 列（尚未分配管號）</translation>
+    </message>
+    <message>
+        <source>管号 {tube}（第 {row} 行）</source>
+        <translation>管號 {tube}（第 {row} 列）</translation>
+    </message>
+    <message>
+        <source>已填入 {filled}；下一目标为 {next}。</source>
+        <translation>已填入 {filled}；下一個目標為 {next}。</translation>
+    </message>
+    <message>
+        <source>已填入 {filled}；目前没有其他空批号行。</source>
+        <translation>已填入 {filled}；目前沒有其他空白批號列。</translation>
+    </message>
+    <message>
+        <source>目标：样品表已选 {targets}。</source>
+        <translation>目標：樣品表已選取 {targets}。</translation>
+    </message>
+    <message>
+        <source>目标：{target}。</source>
+        <translation>目標：{target}。</translation>
     </message>
     <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
@@ -2901,22 +2937,6 @@
     <message>
         <source>菜单</source>
         <translation>選單</translation>
-    </message>
-    <message>
-        <source>外观设置</source>
-        <translation>外觀設定</translation>
-    </message>
-    <message>
-        <source>仪器与维护</source>
-        <translation>儀器與維護</translation>
-    </message>
-    <message>
-        <source>关于</source>
-        <translation>關於</translation>
-    </message>
-    <message>
-        <source>公司与版权设置</source>
-        <translation>公司與版權設定</translation>
     </message>
     <message>
         <source>更多</source>
@@ -4267,6 +4287,18 @@
         <translation>已取消產生診斷套件；未留下不完整的 ZIP 檔案。</translation>
     </message>
     <message>
+        <source>个人外观</source>
+        <translation>個人外觀</translation>
+    </message>
+    <message>
+        <source>仅影响当前账号的界面配色和字号，不会修改仪器参数。</source>
+        <translation>僅影響目前帳號的介面配色與字級，不會修改儀器參數。</translation>
+    </message>
+    <message>
+        <source>外观设置…</source>
+        <translation>外觀設定…</translation>
+    </message>
+    <message>
         <source>运行参数改动对之后启动的实验生效。</source>
         <translation>執行參數的變更會套用至之後啟動的實驗。</translation>
     </message>
@@ -4297,6 +4329,14 @@
     <message>
         <source>导出诊断包…</source>
         <translation>匯出診斷套件…</translation>
+    </message>
+    <message>
+        <source>收集实验摘要、审计和可用媒体，并附校验清单。不含数据库、密码、令牌或私钥；生成过程可取消。</source>
+        <translation>收集實驗摘要、稽核紀錄與可用媒體，並附上校驗清單。不含資料庫、密碼、權杖或私鑰；可隨時取消產生程序。</translation>
+    </message>
+    <message>
+        <source>诊断包还包含算法输出、复核记录和轮转日志；缺失或校验失败的媒体会列入清单。</source>
+        <translation>診斷套件也包含演算法輸出、複核紀錄與輪替記錄檔；缺少或校驗失敗的媒體會列入清單。</translation>
     </message>
     <message>
         <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
@@ -4331,6 +4371,10 @@
         <translation>瀏覽…</translation>
     </message>
     <message>
+        <source>无法读取外观设置，请检查数据目录后重试。</source>
+        <translation>無法讀取外觀設定，請檢查資料目錄後再試。</translation>
+    </message>
+    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>目前帳號僅能檢視設定；修改需要儀器與維護權限。</translation>
     </message>
@@ -4361,10 +4405,6 @@
     <message>
         <source>保存启动配置</source>
         <translation>儲存啟動設定</translation>
-    </message>
-    <message>
-        <source>收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
-        <translation>收集實驗參數、演算法輸出、複核記錄、稽核、輪替記錄檔及可用媒體，並附上檔案驗證清單。不會包含資料庫、密碼、權杖或私密金鑰。產生過程可取消；缺少或驗證失敗的媒體會列入清單。</translation>
     </message>
     <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
@@ -4488,12 +4528,24 @@
         <translation>試劑記錄</translation>
     </message>
     <message>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
+    </message>
+    <message>
         <source>报告中心</source>
         <translation>報告中心</translation>
     </message>
     <message>
+        <source>设置</source>
+        <translation>設定</translation>
+    </message>
+    <message>
         <source>审计追踪</source>
         <translation>稽核軌跡</translation>
+    </message>
+    <message>
+        <source>关于</source>
+        <translation>關於</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -5082,14 +5134,6 @@
         <translation>複核已提交</translation>
     </message>
     <message>
-        <source>收起 3 帧序列</source>
-        <translation>收起 3 影格序列</translation>
-    </message>
-    <message>
-        <source>查看 3 帧序列</source>
-        <translation>查看 3 影格序列</translation>
-    </message>
-    <message>
         <source>返回孔板</source>
         <translation>返回孔板</translation>
     </message>
@@ -5102,16 +5146,16 @@
         <translation>顯示演算法遮罩</translation>
     </message>
     <message>
-        <source>回放翻转视频</source>
-        <translation>回放翻轉影片</translation>
-    </message>
-    <message>
         <source>融合评分 Score</source>
         <translation>融合評分 Score</translation>
     </message>
     <message>
         <source>{no} 号管不属于这个实验</source>
         <translation>{no} 號管不屬於這個實驗</translation>
+    </message>
+    <message>
+        <source>点击图像放大查看</source>
+        <translation>點擊影像以放大檢視</translation>
     </message>
     <message>
         <source>实验 {id}</source>
@@ -5140,6 +5184,22 @@
     <message>
         <source>全部待复核的试管已处理，实验可以签署</source>
         <translation>全部待複核的試管已處理，實驗可以簽署</translation>
+    </message>
+    <message>
+        <source>序列帧 {index}</source>
+        <translation>序列影格 {index}</translation>
+    </message>
+    <message>
+        <source>放大查看：{title}</source>
+        <translation>放大檢視：{title}</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>關閉</translation>
+    </message>
+    <message>
+        <source>3帧序列：翻转前3帧、翻转后3帧</source>
+        <translation>3 格序列：翻轉前 3 格、翻轉後 3 格</translation>
     </message>
     <message>
         <source>判读过程</source>

@@ -1,4 +1,4 @@
-"""页面路由表：设计稿里的 12 个页面加“关于”，每页的标题和进入所需的权限。"""
+"""页面路由表：声明应用页面、导航位置和进入权限。"""
 
 from __future__ import annotations
 
@@ -36,7 +36,6 @@ PAGE_ROUTES: tuple[Route, ...] = (
         "new",
         str(QT_TRANSLATE_NOOP("Routes", "新建实验")),
         Permission.EXPERIMENT_CREATE,
-        in_nav=False,
     ),
     Route(
         "monitor",
@@ -72,13 +71,11 @@ PAGE_ROUTES: tuple[Route, ...] = (
         str(QT_TRANSLATE_NOOP("Routes", "用户管理")),
         Permission.USER_MANAGE,
     ),
-    # 所有角色可以查看；修改需要 instrument_configure，由页面和服务层判断。
-    Route(
-        "settings", str(QT_TRANSLATE_NOOP("Routes", "设置")), Permission.SETTINGS_VIEW, in_nav=False
-    ),
-    Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于")), in_nav=False),
+    # 所有登录用户可进入统一设置页；设备设置区按现有权限显示和编辑。
+    Route("settings", str(QT_TRANSLATE_NOOP("Routes", "设置")), in_nav=True),
+    Route("about", str(QT_TRANSLATE_NOOP("Routes", "关于"))),
 )
-"""外壳里的页面。设计稿的 12 个页面是登录加上其中的 11 个，“关于”属于仪器设置和关于页。"""
+"""登录后的应用页面路由。"""
 
 ROUTES: tuple[Route, ...] = (LOGIN_ROUTE, *PAGE_ROUTES)
 """全部路由。"""

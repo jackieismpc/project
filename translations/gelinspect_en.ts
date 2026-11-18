@@ -235,36 +235,40 @@
 <context>
     <name>AppearanceDialog</name>
     <message>
-        <source>主色</source>
-        <translation>Primary color</translation>
-    </message>
-    <message>
-        <source>背景</source>
-        <translation>Background</translation>
-    </message>
-    <message>
-        <source>内容区</source>
-        <translation>Content area</translation>
-    </message>
-    <message>
-        <source>文字</source>
-        <translation>Text color</translation>
-    </message>
-    <message>
         <source>外观设置</source>
         <translation>Appearance</translation>
     </message>
     <message>
-        <source>按账号保存。字号跟随系统或手动调整，均限制在12–22像素内。更改会立即预览，取消可恢复原设置。</source>
-        <translation>Saved per account. Font size follows the system or is adjusted manually, within 12–22 pixels. Changes preview immediately; cancel restores saved settings.</translation>
+        <source>按账号保存外观。选择固定配色和字号档位，更改立即预览；取消可恢复原设置。</source>
+        <translation>Appearance is saved per account. Choose a color palette and text size; changes preview immediately, and Cancel restores the previous settings.</translation>
     </message>
     <message>
-        <source>选择颜色</source>
-        <translation>Choose color</translation>
+        <source>配色</source>
+        <translation>Color palette</translation>
     </message>
     <message>
-        <source>跟随系统字号</source>
-        <translation>Use system font size</translation>
+        <source>石青</source>
+        <translation>Teal</translation>
+    </message>
+    <message>
+        <source>沉静蓝</source>
+        <translation>Calm blue</translation>
+    </message>
+    <message>
+        <source>字号</source>
+        <translation>Text size</translation>
+    </message>
+    <message>
+        <source>跟随系统</source>
+        <translation>Follow system</translation>
+    </message>
+    <message>
+        <source>较小</source>
+        <translation>Smaller</translation>
+    </message>
+    <message>
+        <source>较大</source>
+        <translation>Larger</translation>
     </message>
     <message>
         <source>预览</source>
@@ -293,14 +297,6 @@
     <message>
         <source>取消</source>
         <translation>Cancel</translation>
-    </message>
-    <message>
-        <source>系统</source>
-        <translation>System</translation>
-    </message>
-    <message>
-        <source>部分文字与背景的对比度较低，请调整颜色以确保可读性。</source>
-        <translation>Some text has low contrast against its background. Adjust the colors for readability.</translation>
     </message>
     <message>
         <source>无法保存外观设置，请检查数据目录后重试。</source>
@@ -1891,10 +1887,6 @@
         <translation>Your role cannot open: {page}</translation>
     </message>
     <message>
-        <source>无法读取外观设置，请检查数据目录后重试。</source>
-        <translation>Unable to read appearance settings. Check the data folder and try again.</translation>
-    </message>
-    <message>
         <source>密码已修改</source>
         <translation>Password changed</translation>
     </message>
@@ -2358,6 +2350,14 @@
         <translation>Tubes</translation>
     </message>
     <message>
+        <source>样品批号扫码填入</source>
+        <translation>Scan to enter sample lot</translation>
+    </message>
+    <message>
+        <source>输入或扫描批号</source>
+        <translation>Enter or scan a lot</translation>
+    </message>
+    <message>
         <source>{rows} 排 × {holes} 支管位</source>
         <translation>{rows} rows × {holes} tubes</translation>
     </message>
@@ -2390,10 +2390,6 @@
         <translation>No samples</translation>
     </message>
     <message>
-        <source>扫码或输入样品批号，回车填入选中行</source>
-        <translation>Scan or enter a sample lot number and press Enter to fill the selected row</translation>
-    </message>
-    <message>
         <source>λ倍数</source>
         <translation>λ multiple</translation>
     </message>
@@ -2404,6 +2400,18 @@
     <message>
         <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
         <translation>Saved with the experiment record and shown in the report; it cannot be changed after signing.</translation>
+    </message>
+    <message>
+        <source>扫码填入样品批号</source>
+        <translation>Scan sample lot</translation>
+    </message>
+    <message>
+        <source>填入批号</source>
+        <translation>Enter lot</translation>
+    </message>
+    <message>
+        <source>在样品表中选中一行或多行后填入；未选中时依次填入下一空批号。扫码枪按键盘输入并自动回车。手输示例：BATCH-2026-001，按回车或点“填入批号”。</source>
+        <translation>Select one or more rows in the sample table before entering a lot. With no selection, lots go to the next empty row. A barcode scanner types like a keyboard and presses Enter automatically. Example for manual entry: BATCH-2026-001; press Enter or click “Enter lot”.</translation>
     </message>
     <message>
         <source>实验信息</source>
@@ -2496,6 +2504,34 @@
     <message>
         <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>Replace it with a valid lot and scan again. This check was written to the audit trail.</translation>
+    </message>
+    <message>
+        <source>目标：没有空批号行，请在样品表中选中要替换的行。</source>
+        <translation>Target: no empty lot rows. Select rows in the sample table to replace their lots.</translation>
+    </message>
+    <message>
+        <source>第 {row} 行（未分配管号）</source>
+        <translation>Row {row} (no tube assigned)</translation>
+    </message>
+    <message>
+        <source>管号 {tube}（第 {row} 行）</source>
+        <translation>Tube {tube} (row {row})</translation>
+    </message>
+    <message>
+        <source>已填入 {filled}；下一目标为 {next}。</source>
+        <translation>Entered {filled}; next target: {next}.</translation>
+    </message>
+    <message>
+        <source>已填入 {filled}；目前没有其他空批号行。</source>
+        <translation>Entered {filled}; there are no other empty lot rows.</translation>
+    </message>
+    <message>
+        <source>目标：样品表已选 {targets}。</source>
+        <translation>Target: selected in the sample table: {targets}.</translation>
+    </message>
+    <message>
+        <source>目标：{target}。</source>
+        <translation>Target: {target}.</translation>
     </message>
     <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
@@ -2901,22 +2937,6 @@
     <message>
         <source>菜单</source>
         <translation>Menu</translation>
-    </message>
-    <message>
-        <source>外观设置</source>
-        <translation>Appearance</translation>
-    </message>
-    <message>
-        <source>仪器与维护</source>
-        <translation>Instrument &amp; Maintenance</translation>
-    </message>
-    <message>
-        <source>关于</source>
-        <translation>About</translation>
-    </message>
-    <message>
-        <source>公司与版权设置</source>
-        <translation>Company and copyright settings</translation>
     </message>
     <message>
         <source>更多</source>
@@ -4267,6 +4287,18 @@
         <translation>Diagnostic package creation was cancelled; no partial ZIP file was left behind.</translation>
     </message>
     <message>
+        <source>个人外观</source>
+        <translation>Personal appearance</translation>
+    </message>
+    <message>
+        <source>仅影响当前账号的界面配色和字号，不会修改仪器参数。</source>
+        <translation>Changes the interface colors and text size for this account only. Instrument settings are not affected.</translation>
+    </message>
+    <message>
+        <source>外观设置…</source>
+        <translation>Appearance settings…</translation>
+    </message>
+    <message>
         <source>运行参数改动对之后启动的实验生效。</source>
         <translation>Changes to run parameters apply to experiments started afterward.</translation>
     </message>
@@ -4297,6 +4329,14 @@
     <message>
         <source>导出诊断包…</source>
         <translation>Export Diagnostic Package…</translation>
+    </message>
+    <message>
+        <source>收集实验摘要、审计和可用媒体，并附校验清单。不含数据库、密码、令牌或私钥；生成过程可取消。</source>
+        <translation>Collects experiment summaries, audit records, available media, and a verification manifest. Excludes databases, passwords, tokens, and private keys. You can cancel at any time.</translation>
+    </message>
+    <message>
+        <source>诊断包还包含算法输出、复核记录和轮转日志；缺失或校验失败的媒体会列入清单。</source>
+        <translation>The diagnostic package also includes algorithm output, review records, and rotated logs. Missing or failed media checks are listed in the manifest.</translation>
     </message>
     <message>
         <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
@@ -4331,6 +4371,10 @@
         <translation>Browse…</translation>
     </message>
     <message>
+        <source>无法读取外观设置，请检查数据目录后重试。</source>
+        <translation>Could not read appearance settings. Check the data folder and try again.</translation>
+    </message>
+    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>Your account can view settings only. Instrument maintenance permission is required to make changes.</translation>
     </message>
@@ -4361,10 +4405,6 @@
     <message>
         <source>保存启动配置</source>
         <translation>Save startup settings</translation>
-    </message>
-    <message>
-        <source>收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
-        <translation>Collects experiment settings, algorithm output, review records, audit entries, rotated logs, and available media with a file verification manifest. It excludes databases, passwords, tokens, and private keys. Creation can be cancelled; missing or unverifiable media is listed in the manifest.</translation>
     </message>
     <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
@@ -4488,12 +4528,24 @@
         <translation>Reagent Records</translation>
     </message>
     <message>
+        <source>新建实验</source>
+        <translation>New experiment</translation>
+    </message>
+    <message>
         <source>报告中心</source>
         <translation>Report Center</translation>
     </message>
     <message>
+        <source>设置</source>
+        <translation>Settings</translation>
+    </message>
+    <message>
         <source>审计追踪</source>
         <translation>Audit trail</translation>
+    </message>
+    <message>
+        <source>关于</source>
+        <translation>About</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -5082,14 +5134,6 @@ Correct the configuration file and restart the application.</translation>
         <translation>Review submitted</translation>
     </message>
     <message>
-        <source>收起 3 帧序列</source>
-        <translation>Hide 3-frame sequence</translation>
-    </message>
-    <message>
-        <source>查看 3 帧序列</source>
-        <translation>View 3-frame sequence</translation>
-    </message>
-    <message>
         <source>返回孔板</source>
         <translation>Back to plate</translation>
     </message>
@@ -5102,16 +5146,16 @@ Correct the configuration file and restart the application.</translation>
         <translation>Show algorithm masks</translation>
     </message>
     <message>
-        <source>回放翻转视频</source>
-        <translation>Replay flip video</translation>
-    </message>
-    <message>
         <source>融合评分 Score</source>
         <translation>Fused score</translation>
     </message>
     <message>
         <source>{no} 号管不属于这个实验</source>
         <translation>Tube {no} is not part of this experiment</translation>
+    </message>
+    <message>
+        <source>点击图像放大查看</source>
+        <translation>Click an image to enlarge</translation>
     </message>
     <message>
         <source>实验 {id}</source>
@@ -5140,6 +5184,22 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>全部待复核的试管已处理，实验可以签署</source>
         <translation>All tubes reviewed; the experiment can be signed</translation>
+    </message>
+    <message>
+        <source>序列帧 {index}</source>
+        <translation>Sequence frame {index}</translation>
+    </message>
+    <message>
+        <source>放大查看：{title}</source>
+        <translation>Enlarged view: {title}</translation>
+    </message>
+    <message>
+        <source>关闭</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <source>3帧序列：翻转前3帧、翻转后3帧</source>
+        <translation>3-frame sequence: 3 before and 3 after flipping</translation>
     </message>
     <message>
         <source>判读过程</source>

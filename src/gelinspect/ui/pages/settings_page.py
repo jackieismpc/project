@@ -1,7 +1,7 @@
-"""设置页：运行参数、视频输入和受维护权限保护的启动路径。
+"""统一设置页：个人外观对所有账号开放，设备配置按权限提供查看和修改。
 
-所有角色可以查看；修改需要 ``instrument_configure``（管理员），其他角色看到置灰的输入框和“只读”
-标记。试验进行中，影响运行的项（孵育、读数、温度、视频输入）置灰，其余项仍可改。
+查看设备配置需要 ``settings_view``，修改需要 ``instrument_configure``。
+实验进行中，影响运行的项（孵育、读数、温度、视频输入）置灰，其余项仍可改。
 校验和保存都在服务层：非法值逐项提示原因，一项都不会写；保存后写审计（旧值和新值），
 改动保存在数据目录的用户配置文件里，不改仓库里的默认配置，对之后启动的试验生效。
 视频输入支持视频文件和图片文件夹。
@@ -16,12 +16,14 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLineEdit,
     QProgressDialog,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -29,6 +31,7 @@ from PySide6.QtWidgets import (
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.app_services import AppServices
+from gelinspect.services.appearance_service import AppearanceSettingsError
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.diagnostics_service import (
     DiagnosticCancelledError,
@@ -51,6 +54,7 @@ from gelinspect.ui.labels import (
     describe_storage_busy,
     setting_label,
 )
+from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
 from gelinspect.ui.pages.page_frame import build_page_column
 from gelinspect.ui.pages.wizard_widgets import Banner
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
@@ -154,7 +158,18 @@ class SettingsPage(QWidget):
         self.banner = Banner()
         column.addWidget(self.banner)
 
-        work = QHBoxLayout()
+        self.personal_card = Card(" ")
+        self.appearance_hint = Label("", "meta")
+        self.appearance_hint.setWordWrap(True)
+        self.appearance_button = Button("", ButtonVariant.SECONDARY)
+        self.appearance_button.clicked.connect(self._open_appearance)
+        self.personal_card.body.addWidget(self.appearance_hint)
+        self.personal_card.body.addWidget(self.appearance_button, 0, Qt.AlignmentFlag.AlignLeft)
+        column.addWidget(self.personal_card)
+
+        self.configuration_area = QWidget(self)
+        work = QHBoxLayout(self.configuration_area)
+        work.setContentsMargins(0, 0, 0, 0)
         work.setSpacing(14)
         left = QVBoxLayout()
         left.setSpacing(14)
@@ -245,6 +260,9 @@ class SettingsPage(QWidget):
         self.diagnostics_card = Card(" ")
         self.diagnostics_hint = Label("", "meta")
         self.diagnostics_hint.setWordWrap(True)
+        self.diagnostics_hint.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
+        )
         self.diagnostics_button = Button("", ButtonVariant.SECONDARY)
         self.diagnostics_card.body.addWidget(self.diagnostics_hint)
         self.diagnostics_card.body.addWidget(self.diagnostics_button)
@@ -254,9 +272,11 @@ class SettingsPage(QWidget):
 
         work.addLayout(left, 1)
         work.addLayout(right, 1)
-        column.addLayout(work)
+        column.addWidget(self.configuration_area)
 
-        bar = QHBoxLayout()
+        self.save_bar_area = QWidget(self)
+        bar = QHBoxLayout(self.save_bar_area)
+        bar.setContentsMargins(0, 0, 0, 0)
         bar.setSpacing(8)
         self.save_message = Label("", "meta")
         self.save_message.setWordWrap(True)
@@ -265,7 +285,7 @@ class SettingsPage(QWidget):
         bar.addWidget(self.save_message, 1)
         bar.addWidget(self.revert_button)
         bar.addWidget(self.save_button)
-        column.addLayout(bar)
+        column.addWidget(self.save_bar_area)
         column.addStretch(1)
 
         self.type_box.currentIndexChanged.connect(self._on_type_changed)
@@ -318,6 +338,21 @@ class SettingsPage(QWidget):
         """重新读取生效的设置、后端信息，并预览当前视频源。"""
         session = self._session
         if session is None:
+            self.personal_card.hide()
+            self.configuration_area.hide()
+            self.save_bar_area.hide()
+            return
+        self.personal_card.show()
+        can_view_settings = session.can(Permission.SETTINGS_VIEW)
+        self.configuration_area.setVisible(can_view_settings)
+        self.save_bar_area.setVisible(can_view_settings)
+        if not can_view_settings:
+            # 普通账号仍能使用个人外观偏好；设备设置服务继续独立执行权限校验。
+            self._view = None
+            self._editable = False
+            self._locked = False
+            self.banner.clear()
+            self.readonly_badge.hide()
             return
         try:
             self._view = self._services.settings.current(session)
@@ -333,6 +368,24 @@ class SettingsPage(QWidget):
         self._fill_runtime_selection()
         self._apply_enabled()
         self.preview_current()
+
+    def _open_appearance(self) -> None:
+        """打开个人外观设置，不刷新设备草稿或写入设备配置。"""
+        session = self._session
+        app = QApplication.instance()
+        if session is None or not isinstance(app, QApplication):
+            return
+        try:
+            dialog = AppearanceDialog(
+                session.user.username, self._services.appearance, self, app=app
+            )
+        except (OSError, AppearanceSettingsError):
+            _log.exception("APPEARANCE_OPEN_FAILED")
+            Toast.show_message(
+                self, self.tr("无法读取外观设置，请检查数据目录后重试。"), ToastKind.DANGER
+            )
+            return
+        dialog.exec()
 
     def draft(self) -> SettingsDraft:
         """按输入框当前内容生成草稿（保存前由服务层校验）。
@@ -727,6 +780,9 @@ class SettingsPage(QWidget):
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("设置"))
+        self.personal_card.set_title(self.tr("个人外观"))
+        self.appearance_hint.setText(self.tr("仅影响当前账号的界面配色和字号，不会修改仪器参数。"))
+        self.appearance_button.setText(self.tr("外观设置…"))
         self.readonly_badge.set_text(self.tr("只读"))
         self.hint.setText(self.tr("运行参数改动对之后启动的实验生效。"))
         self.instrument_card.set_title(self.tr("仪器与数据"))
@@ -754,7 +810,10 @@ class SettingsPage(QWidget):
 
     def _refresh_diagnostics_hint(self) -> None:
         base = self.tr(
-            "收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。"
+            "收集实验摘要、审计和可用媒体，并附校验清单。不含数据库、密码、令牌或私钥；生成过程可取消。"
+        )
+        self.diagnostics_hint.setToolTip(
+            self.tr("诊断包还包含算法输出、复核记录和轮转日志；缺失或校验失败的媒体会列入清单。")
         )
         try:
             log_dir = self._services.log_dir

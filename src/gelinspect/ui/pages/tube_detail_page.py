@@ -10,9 +10,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from PySide6.QtCore import QEvent, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPaintEvent
+from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QCheckBox,
+    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -49,7 +50,6 @@ from gelinspect.ui.pages.monitor_format import (
     number,
 )
 from gelinspect.ui.pages.monitor_images import warning_text
-from gelinspect.ui.pages.replay_dialog import ReplayDialog
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -95,6 +95,29 @@ class StateMark(QWidget):
         p = QPainter(self)
         paint_well(p, QRectF(0, 0, 36, 36), self._state, current_tokens())
         p.end()
+
+
+class _ZoomableVideoView(VideoView):
+    """单管页的序列帧视图；点击图像时请求放大查看。"""
+
+    clicked = Signal()
+
+    def set_image(self, image: QImage | None) -> None:
+        super().set_image(image)
+        self.setCursor(
+            Qt.CursorShape.PointingHandCursor
+            if image is not None and not image.isNull()
+            else Qt.CursorShape.ArrowCursor
+        )
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """点击有效图像时发出放大查看请求。"""
+        image = self.image()
+        if event.button() == Qt.MouseButton.LeftButton and image is not None and not image.isNull():
+            self.clicked.emit()
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
 
 class ScoreBar(QWidget):
@@ -230,20 +253,19 @@ class TubeDetailPage(QWidget):
         self._runner = BackgroundRunner(self)
         self._token: int | None = None
         self._pick: Interpretation | None = None
-        self._replay_dialog: ReplayDialog | None = None
         self._submitted_note = ""
         self._guide_dialog: JudgmentGuideDialog | None = None
 
         self.setProperty("role", "root")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(scroll.Shape.NoFrame)
-        outer.addWidget(scroll)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(self.scroll_area.Shape.NoFrame)
+        outer.addWidget(self.scroll_area)
         page = QWidget()
         page.setProperty("role", "root")
-        scroll.setWidget(page)
+        self.scroll_area.setWidget(page)
         col = QVBoxLayout(page)
         col.setContentsMargins(24, 20, 24, 28)
         col.setSpacing(14)
@@ -286,8 +308,14 @@ class TubeDetailPage(QWidget):
         col.addStretch(1)
 
         self.mask_toggle.toggled.connect(self._on_mask_toggled)
-        self.sequence_button.clicked.connect(self._toggle_sequence)
-        self.replay_button.clicked.connect(self.open_replay)
+        self.before_view.clicked.connect(
+            lambda: self._show_zoom(self.before_view.image(), self.tr("翻转前"))
+        )
+        self.after_view.clicked.connect(
+            lambda: self._show_zoom(self.after_view.image(), self.tr("翻转后"))
+        )
+        for index, frame_view in enumerate(self.sequence_views):
+            frame_view.clicked.connect(lambda i=index: self._zoom_sequence_frame(i))
         self.positive_button.clicked.connect(lambda: self._choose(Interpretation.POSITIVE))
         self.negative_button.clicked.connect(lambda: self._choose(Interpretation.NEGATIVE))
         self.submit_button.clicked.connect(self.submit_review)
@@ -307,8 +335,10 @@ class TubeDetailPage(QWidget):
         card.header.addWidget(self.mask_toggle)
         pair = QHBoxLayout()
         pair.setSpacing(12)
-        self.before_view = TubeImageView()
-        self.after_view = TubeImageView()
+        self.before_view = TubeImageView(min_height=110, max_height=250)
+        self.after_view = TubeImageView(min_height=110, max_height=250)
+        self.before_view.setToolTip(self.tr("点击图像放大查看"))
+        self.after_view.setToolTip(self.tr("点击图像放大查看"))
         self.before_view.set_overlay_visible(False)
         self.after_view.set_overlay_visible(False)
         self.before_caption = Label("", "meta", mono=True)
@@ -327,24 +357,23 @@ class TubeDetailPage(QWidget):
         self.image_warning.setWordWrap(True)
         self.image_warning.setVisible(False)
         card.body.addWidget(self.image_warning)
-        buttons = QHBoxLayout()
-        buttons.setSpacing(8)
-        self.replay_button = Button("")
-        self.sequence_button = Button("")
-        buttons.addWidget(self.replay_button)
-        buttons.addWidget(self.sequence_button)
-        buttons.addStretch(1)
-        card.body.addLayout(buttons)
         self.sequence_box = QWidget()
-        grid = QGridLayout(self.sequence_box)
+        sequence_layout = QVBoxLayout(self.sequence_box)
+        sequence_layout.setContentsMargins(0, 0, 0, 0)
+        sequence_layout.setSpacing(4)
+        grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setSpacing(8)
-        self.sequence_views: list[VideoView] = []
+        self.sequence_views: list[_ZoomableVideoView] = []
         for index in range(6):
-            frame_view = VideoView(min_height=120)
+            frame_view = _ZoomableVideoView(min_height=72, max_height=100)
+            frame_view.setToolTip(self.tr("点击图像放大查看"))
             self.sequence_views.append(frame_view)
             grid.addWidget(frame_view, index // 3, index % 3)
-        self.sequence_box.setVisible(True)
+        sequence_layout.addLayout(grid)
+        self.sequence_caption = Label("", "meta")
+        self.sequence_caption.setWordWrap(True)
+        sequence_layout.addWidget(self.sequence_caption)
         card.body.addWidget(self.sequence_box)
         card.body.addStretch(1)
         return card
@@ -530,8 +559,6 @@ class TubeDetailPage(QWidget):
         self.note.clear()
         self.positive_button.setChecked(False)
         self.negative_button.setChecked(False)
-        self.sequence_box.setVisible(True)
-        self._retext_sequence_button()
         self.before_view.set_content(None)
         self.after_view.set_content(None)
         self._clear_error()
@@ -830,18 +857,6 @@ class TubeDetailPage(QWidget):
             after += f"    {_clock(images.after.recorded_at)}"
         self.before_caption.setText(before)
         self.after_caption.setText(after)
-        self.replay_button.setEnabled(self._has_recording())
-
-    def _has_recording(self) -> bool:
-        row = self._row()
-        if self._view is None or row is None:
-            return False
-        try:
-            return row.row_index in self._services.media.recordings(
-                self._session, self._view.experiment_id
-            )
-        except AuthError:
-            return False
 
     # ------------------------------------------------------------------ 复核
 
@@ -981,6 +996,35 @@ class TubeDetailPage(QWidget):
         self.before_view.set_overlay_visible(checked)
         self.after_view.set_overlay_visible(checked)
 
+    def _zoom_sequence_frame(self, index: int) -> None:
+        image = self.sequence_views[index].image()
+        title = self.tr("序列帧 {index}").format(index=index + 1)
+        self._show_zoom(image, title)
+
+    def _show_zoom(self, image: QImage | None, title: str) -> None:
+        """在屏幕可用尺寸内保持比例显示图像。"""
+        if image is None or image.isNull():
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr("放大查看：{title}").format(title=title))
+        layout = QVBoxLayout(dialog)
+        view = VideoView(dialog, min_height=100)
+        view.set_image(image)
+        layout.addWidget(view, 1)
+        close_button = Button(self.tr("关闭"), ButtonVariant.SECONDARY)
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button, 0, Qt.AlignmentFlag.AlignRight)
+        screen = self.screen() or self.window().screen()
+        bounds = screen.availableGeometry() if screen is not None else self.geometry()
+        width = max(1, min(1200, bounds.width() - 48))
+        height = max(1, min(760, bounds.height() - 48))
+        dialog.resize(width, height)
+        try:
+            dialog.exec()
+        finally:
+            view.set_image(None)
+            dialog.deleteLater()
+
     def mask_overlay_visible(self) -> bool:
         """掩码叠加开关的状态。
 
@@ -989,37 +1033,6 @@ class TubeDetailPage(QWidget):
         """
         return self.mask_toggle.isChecked()
 
-    def _toggle_sequence(self) -> None:
-        self.sequence_box.setVisible(not self.sequence_box.isVisible())
-        self._retext_sequence_button()
-
-    def _retext_sequence_button(self) -> None:
-        self.sequence_button.setText(
-            self.tr("收起 3 帧序列") if self.sequence_box.isVisible() else self.tr("查看 3 帧序列")
-        )
-
-    def open_replay(self) -> None:
-        """回放这支试管所在排的翻转录像。"""
-        view, row = self._view, self._row()
-        if view is None or row is None:
-            return
-        rows = sorted(self._services.media.recordings(self._session, view.experiment_id))
-        if row.row_index not in rows:
-            return
-        dialog = ReplayDialog(
-            self._services.media, self._session, view.experiment_id, rows, row.row_index, self
-        )
-        self._replay_dialog = dialog
-        dialog.show()
-
-    def replay_dialog(self) -> ReplayDialog | None:
-        """最近打开的回放对话框。
-
-        Returns:
-            对话框，没有时为 None。
-        """
-        return self._replay_dialog
-
     # ------------------------------------------------------------------ 文字
 
     def retranslate(self) -> None:
@@ -1027,8 +1040,9 @@ class TubeDetailPage(QWidget):
         self.back_button.setText(self.tr("返回孔板"))
         self.compare_card.set_title(self.tr("翻转前后对比"))
         self.mask_toggle.setText(self.tr("显示算法掩码"))
-        self.replay_button.setText(self.tr("回放翻转视频"))
-        self._retext_sequence_button()
+        self.sequence_caption.setText(self.tr("3帧序列：翻转前3帧、翻转后3帧"))
+        for view in (self.before_view, self.after_view, *self.sequence_views):
+            view.setToolTip(self.tr("点击图像放大查看"))
         self.score_label.setText(self.tr("融合评分 Score"))
         self.judgment_card.set_title(self.tr("判读过程"))
         for header, text in zip(
@@ -1081,8 +1095,6 @@ class TubeDetailPage(QWidget):
             self.retranslate()
 
     def shutdown(self) -> None:
-        """页面销毁前取消后台任务并关闭回放。"""
+        """页面销毁前取消后台图像任务。"""
         self._runner.cancel()
         self._runner.wait(2000)
-        if self._replay_dialog is not None:
-            self._replay_dialog.close()

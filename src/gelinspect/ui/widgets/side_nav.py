@@ -23,7 +23,7 @@ from gelinspect.ui.widgets.icons import IconLoader
 from gelinspect.ui.widgets.label import Label
 
 NAV_WIDTH = 208
-"""侧栏宽度（px），与设计稿一致。"""
+"""侧栏宽度（px）。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,12 +47,15 @@ def _nav(key: str, label: str, icon: str) -> NavEntry:
 
 DEFAULT_NAV: tuple[NavEntry, ...] = (
     _nav("dashboard", str(QT_TRANSLATE_NOOP("SideNav", "工作台")), "layout-dashboard"),
+    _nav("new", str(QT_TRANSLATE_NOOP("SideNav", "新建实验")), "circle-plus"),
     _nav("history", str(QT_TRANSLATE_NOOP("SideNav", "历史记录")), "history"),
     _nav("templates", str(QT_TRANSLATE_NOOP("SideNav", "模板管理")), "columns-2"),
     _nav("reagents", str(QT_TRANSLATE_NOOP("SideNav", "试剂记录")), "flask-conical"),
     _nav("reports", str(QT_TRANSLATE_NOOP("SideNav", "报告中心")), "file-text"),
+    _nav("settings", str(QT_TRANSLATE_NOOP("SideNav", "设置")), "settings"),
     _nav("audit", str(QT_TRANSLATE_NOOP("SideNav", "审计追踪")), "text-align-start"),
     _nav("users", str(QT_TRANSLATE_NOOP("SideNav", "用户管理")), "user"),
+    _nav("about", str(QT_TRANSLATE_NOOP("SideNav", "关于")), "info"),
 )
 """主要业务导航项。label 是简体中文源文本，显示时经翻译。"""
 

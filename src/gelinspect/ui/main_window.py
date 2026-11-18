@@ -20,11 +20,10 @@ from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QStackedWidget, QWidget
 
-from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.domain.templates import ExperimentTemplate
 from gelinspect.services.app_services import AppServices
-from gelinspect.services.appearance_service import AppearancePreferences, AppearanceSettingsError
+from gelinspect.services.appearance_service import AppearancePreferences
 from gelinspect.services.auth import AccountLockedError, AuthError, Session
 from gelinspect.services.engine_types import (
     AlertLevel,
@@ -38,7 +37,6 @@ from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.idle import IdleWatcher
 from gelinspect.ui.labels import describe_alert, role_label
 from gelinspect.ui.pages.about import AboutPage
-from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
 from gelinspect.ui.pages.audit_page import AuditPage
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog, LoginMode, LoginPage, SetupPage
 from gelinspect.ui.pages.dashboard import DashboardPage
@@ -640,16 +638,6 @@ class MainWindow(QMainWindow):
         self._tube_return_context = None
 
     def _on_quick_action(self, action_id: str) -> None:
-        if action_id == "company_settings":
-            if (
-                self._session is not None
-                and self._session.can(Permission.COMPANY_CONFIGURE)
-                and self.navigate("settings")
-            ):
-                settings = self._pages.get("settings")
-                if isinstance(settings, SettingsPage):
-                    settings.fields["copyright_holder"].edit.setFocus()
-            return
         if action_id == "current_experiment":
             active = self._services.monitor.active_experiment_id()
             if active is not None:
@@ -670,21 +658,6 @@ class MainWindow(QMainWindow):
             self.lock_screen()
         elif action == "change_password":
             self.change_password()
-        elif action == "appearance":
-            session = self._session
-            app = QApplication.instance()
-            if session is not None and isinstance(app, QApplication):
-                try:
-                    dialog = AppearanceDialog(
-                        session.user.username, self._services.appearance, self, app=app
-                    )
-                except (OSError, AppearanceSettingsError):
-                    _log.exception("APPEARANCE_OPEN_FAILED")
-                    Toast.show_message(
-                        self, self.tr("无法读取外观设置，请检查数据目录后重试。"), ToastKind.DANGER
-                    )
-                    return
-                dialog.exec()
 
     def change_password(self) -> None:
         """打开修改密码对话框。"""

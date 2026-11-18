@@ -201,25 +201,16 @@ def test_current_experiment_is_hidden_without_an_active_run(qtbot: QtBot) -> Non
     assert all("当前实验" not in action.text() for action in toolbar.more_menu.actions())
 
 
-def test_settings_keep_personal_options_and_restrict_company_settings(qtbot: QtBot) -> None:
-    toolbar = make_toolbar(qtbot, allow_all=False)
-    assert toolbar.action("instrument_settings").isEnabled()
-    assert toolbar._settings_actions["appearance"].isEnabled()
-    assert not toolbar._settings_actions["instrument_settings"].isEnabled()
-    assert not toolbar._settings_actions["company_settings"].isVisible()
-    toolbar.set_user_permissions(permissions_of(Role.ADMIN))
-    assert toolbar._settings_actions["instrument_settings"].isEnabled()
-    assert not toolbar._settings_actions["company_settings"].isVisible()
-    toolbar.set_user_permissions(permissions_of(Role.DEVELOPER))
-    assert toolbar._settings_actions["company_settings"].isVisible()
-
-
-def test_collapsed_settings_preserve_personal_menu(qtbot: QtBot) -> None:
+def test_settings_button_is_a_direct_action_without_a_menu(qtbot: QtBot) -> None:
     toolbar = make_overflow_toolbar(qtbot, allow_all=False)
+    assert toolbar.button("instrument_settings").menu() is None
+    assert toolbar.action("instrument_settings").isEnabled()
     toolbar._rebuild_more_menu()
-    settings = next(a for a in toolbar.more_menu.actions() if a.text().startswith("设置"))
-    assert settings.isEnabled() and settings.menu() is toolbar._settings_menu
-    assert toolbar._settings_actions["appearance"].isEnabled()
+    settings = toolbar.more_menu.actions()[-1]
+    assert settings.menu() is None and settings.isEnabled()
+    with qtbot.waitSignal(toolbar.actionTriggered) as blocker:
+        settings.trigger()
+    assert blocker.args == ["instrument_settings"]
 
 
 def test_live_font_change_reflows_status_and_actions(qtbot: QtBot, qapp: QApplication) -> None:
@@ -229,7 +220,7 @@ def test_live_font_change_reflows_status_and_actions(qtbot: QtBot, qapp: QApplic
     toolbar = make_toolbar(qtbot, 1024)
     toolbar.set_user("Alex Chen", "管理员")
     try:
-        apply_appearance(qapp, AppearancePreferences(font_size=22))
+        apply_appearance(qapp, AppearancePreferences(font_scale="large"))
         qtbot.waitUntil(lambda: not toolbar._layout_timer.isActive())
         _assert_layout_ok(toolbar)
         assert toolbar._user.width() >= toolbar._user.sizeHint().width() - 2

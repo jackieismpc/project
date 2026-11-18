@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -9,42 +11,66 @@ from gelinspect.services.appearance_service import (
 )
 
 
-def test_preferences_are_persisted_per_account_and_validated(tmp_path: Path) -> None:
+def test_preferences_are_persisted_per_account_and_restricted(tmp_path: Path) -> None:
     service = AppearanceService(tmp_path)
     assert service.get("alice") == AppearancePreferences()
-    preferences = AppearancePreferences(primary="#123456", bg="#eeeeee", font_size=18)
+    preferences = AppearancePreferences(palette="blue", font_scale="large")
     service.save("alice", preferences)
 
     assert service.get("alice") == preferences
     assert service.get("ALICE") == AppearancePreferences()
-    service.save("ALICE", AppearancePreferences(font_size=20))
+    service.save("ALICE", AppearancePreferences(font_scale="small"))
     assert service.get("alice") == preferences
-    assert service.get("ALICE").font_size == 20
+    assert service.get("ALICE").font_scale == "small"
     assert service.get("bob") == AppearancePreferences()
     with pytest.raises(AppearanceSettingsError):
-        service.save("alice", AppearancePreferences(primary="red"))
+        service.save("alice", AppearancePreferences(palette="#123456"))
     with pytest.raises(AppearanceSettingsError):
-        service.save("alice", AppearancePreferences(font_size=80))
+        service.save("alice", AppearancePreferences(font_scale="custom"))
 
 
-@pytest.mark.parametrize("value", [True, "16", 16.5, [], {}])
-def test_invalid_stored_font_size_is_reported(tmp_path: Path, value: object) -> None:
-    import json
+def test_legacy_free_colors_and_font_size_are_read_as_defaults_without_touching_other_accounts(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "appearance_settings.json"
+    legacy = {
+        "version": 1,
+        "accounts": {
+            "alice": {"primary": "#123456", "font_size": 22},
+            "bob": {"palette": "blue", "font_scale": "small"},
+        },
+    }
+    path.write_text(json.dumps(legacy), encoding="utf-8")
 
+    service = AppearanceService(tmp_path)
+
+    assert service.get("alice") == AppearancePreferences()
+    assert service.get("bob") == AppearancePreferences(palette="blue", font_scale="small")
+    service.save("alice", AppearancePreferences(palette="blue"))
+    saved = cast(dict[str, object], json.loads(path.read_text(encoding="utf-8")))
+    accounts = cast(dict[str, object], saved["accounts"])
+    legacy_accounts = cast(dict[str, object], legacy["accounts"])
+    assert accounts["bob"] == legacy_accounts["bob"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("palette", "purple"),
+        ("font_scale", "giant"),
+        ("palette", True),
+        ("palette", 123),
+        ("palette", []),
+        ("palette", {}),
+        ("font_scale", True),
+        ("font_scale", 123),
+        ("font_scale", []),
+        ("font_scale", {}),
+    ],
+)
+def test_invalid_new_stored_values_are_reported(tmp_path: Path, field: str, value: object) -> None:
     (tmp_path / "appearance_settings.json").write_text(
-        json.dumps({"version": 1, "accounts": {"alice": {"font_size": value}}}),
-        encoding="utf-8",
-    )
-    with pytest.raises(AppearanceSettingsError):
-        AppearanceService(tmp_path).get("alice")
-
-
-@pytest.mark.parametrize("value", [True, 123, [], {}])
-def test_invalid_stored_color_is_reported(tmp_path: Path, value: object) -> None:
-    import json
-
-    (tmp_path / "appearance_settings.json").write_text(
-        json.dumps({"version": 1, "accounts": {"alice": {"primary": value}}}),
+        json.dumps({"version": 1, "accounts": {"alice": {field: value}}}),
         encoding="utf-8",
     )
     with pytest.raises(AppearanceSettingsError):

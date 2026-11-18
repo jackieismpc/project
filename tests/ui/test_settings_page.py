@@ -7,7 +7,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics
+from PySide6.QtWidgets import QApplication, QFileDialog, QSizePolicy
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.entities import User
@@ -17,6 +19,7 @@ from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.user_settings import VideoInput, settings_file
+from gelinspect.ui.i18n import Language, LanguageManager
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.settings_page import SettingsPage
 from tests.ui.conftest import settle, sign_in, wait_for
@@ -64,6 +67,60 @@ def test_shows_every_setting_with_the_effective_values(
     assert all(page.fields[n].edit.isEnabled() == (n != "copyright_holder") for n in page.fields)
 
 
+@pytest.mark.parametrize("lang", ["zh_CN", "zh_TW", "en"])
+def test_diagnostics_description_can_grow_when_wrapped(
+    qapp: QApplication,
+    window: MainWindow,
+    language: LanguageManager,
+    lang: str,
+) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    language.set_language(Language(lang), persist=False)
+    page = open_settings(qapp, window)
+    apply_appearance(qapp, AppearancePreferences(font_scale="large"))
+    try:
+        settle(qapp)
+        window.resize(1280, 828)
+        settle(qapp)
+        hint = page.diagnostics_hint
+        metrics = QFontMetrics(hint.font())
+        measured = metrics.boundingRect(
+            0, 0, hint.width(), 2000, int(Qt.TextFlag.TextWordWrap), hint.text()
+        )
+        assert hint.wordWrap()
+        assert hint.hasHeightForWidth()
+        assert hint.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Minimum
+        assert hint.height() >= measured.height()
+    finally:
+        apply_appearance(qapp, AppearancePreferences())
+        language.set_language(Language.ZH_CN, persist=False)
+
+
+def test_personal_appearance_entry_does_not_save_device_draft(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gelinspect.ui.pages import settings_page
+
+    page = open_settings(qapp, window)
+    set_text(page, "instrument_no", "UNSAVED-DRAFT")
+    calls: list[tuple[str, object]] = []
+
+    class FakeDialog:
+        def __init__(self, username: str, service: object, parent: object, *, app: object) -> None:
+            calls.append((username, service))
+
+        def exec(self) -> int:
+            return 0
+
+    monkeypatch.setattr(settings_page, "AppearanceDialog", FakeDialog)
+    page.appearance_button.click()
+    assert calls == [("admin", window.services.appearance)]
+    assert page.fields["instrument_no"].edit.text() == "UNSAVED-DRAFT"
+    assert not settings_file(window.services.data_dir).exists()
+
+
 def test_the_video_card_offers_only_real_inputs_and_mentions_the_industrial_camera(
     qapp: QApplication, window: MainWindow
 ) -> None:
@@ -87,7 +144,14 @@ def test_other_roles_see_a_read_only_page(
     qapp: QApplication, window: MainWindow, app_context: AppContext, who: str
 ) -> None:
     sign_in(qapp, window, who)
-    assert not window.navigate("settings")
+    assert window.navigate("settings")
+    page = window.page("settings")
+    assert isinstance(page, SettingsPage)
+    assert page.personal_card.isVisibleTo(page)
+    assert page.appearance_button.isEnabled()
+    assert not page.configuration_area.isVisibleTo(page)
+    assert not page.save_bar_area.isVisibleTo(page)
+    assert not page.previewing
     with pytest.raises(PermissionDeniedError):
         app_context.settings.current(window.session)
 

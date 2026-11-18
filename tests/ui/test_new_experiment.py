@@ -439,14 +439,39 @@ def test_sample_sort_lambda_edit_and_batch_scanner_fill_selected_rows(
     assert page._draft.rows[0].spiked_endotoxin == 0.25
     page.sample_table.selectRow(0)
     page.batch_fill.setText("LOT-SCAN-1")
-    page._fill_selected_batches()
+    assert page.batch_fill_label.text() == "扫码填入样品批号"
+    assert page.batch_fill_button.text() == "填入批号"
+    assert "扫码枪按键盘输入并自动回车" in page.batch_fill_hint.text()
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
     assert page._draft.rows[0].batch_no == "LOT-SCAN-1"
     assert page._draft.rows[1].batch_no == ""
+    assert "已填入" in page.batch_fill_target.text() and "下一目标" in page.batch_fill_target.text()
+    assert QApplication.focusWidget() is page.batch_fill
     page.sample_table.clearSelection()
     page.batch_fill.setText("LOT-SCAN-2")
-    page._fill_selected_batches()
+    page.batch_fill_button.click()
     assert page._draft.rows[1].batch_no == "LOT-SCAN-2"
     assert page.sample_table.currentRow() == 2
+
+
+def test_batch_scanner_wraps_to_earlier_empty_sample_row(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    for row in page._draft.rows[1:]:
+        row.batch_no = "ALREADY-FILLED"
+    page._sync_samples()
+    page.sample_table.selectRow(3)
+    assert "样品表已选" in page.batch_fill_target.text()
+
+    page.batch_fill.setText("LOT-LATE-ROW")
+    page.batch_fill_button.click()
+
+    assert page._draft.rows[3].batch_no == "LOT-LATE-ROW"
+    assert page._draft.rows[0].batch_no == ""
+    assert "第 4 行（未分配管号）" in page.batch_fill_target.text()
+    assert "第 1 行（未分配管号）" in page.batch_fill_target.text()
 
 
 def test_changing_the_template_asks_before_discarding_entered_samples(
