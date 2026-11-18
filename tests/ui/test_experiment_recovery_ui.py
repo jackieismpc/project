@@ -1,4 +1,4 @@
-"""结论界面和恢复入口：端到端的 λc、结论卡、恢复和重试、向导 λ、单管图比例、开发用语。"""
+"""恢复和重试、向导 λ、单管图比例、开发用语。"""
 
 from __future__ import annotations
 
@@ -11,11 +11,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.conclusions import NOTE_TEMPLATES, RULES, NoteCode
 from gelinspect.domain.enums import (
     AuditAction,
-    ConclusionVerdict,
-    Interpretation,
     ReagentKind,
 )
 from gelinspect.domain.state_machine import ExperimentState
@@ -23,14 +20,11 @@ from gelinspect.interfaces.analysis import AnalyzerError
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
-from gelinspect.ui import labels
-from gelinspect.ui.i18n import Language, LanguageManager
+from gelinspect.ui.i18n import LanguageManager
 from gelinspect.ui.main_window import MainWindow
-from gelinspect.ui.pages.conclusion_card import ConclusionCard
 from gelinspect.ui.pages.monitor_page import MonitorPage
 from gelinspect.ui.pages.new_experiment import NewExperimentPage
 from gelinspect.ui.pages.tube_detail_page import TubeDetailPage
-from simulation.sample_data import SENSITIVITY_STATES, sensitivity_experiment
 from tests.ui.conftest import DEMO_PASSWORDS, settle, sign_in, wait_for
 from tests.ui.monitor_helpers import (
     close_context,
@@ -52,167 +46,10 @@ from tests.ui.wizard_helpers import (
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.fixture
-def conclusions_enabled() -> bool:
-    """这个模块验证结论功能打开时的行为（默认配置是关闭的，见 test_conclusions_off_ui.py）。"""
-    return True
-
-
 def monitor_of(window: MainWindow) -> MonitorPage:
     page = window.page("monitor")
     assert isinstance(page, MonitorPage)
     return page
-
-
-def review_all_pending(context: AppContext, experiment_id: str) -> None:
-    session = context.auth.login("analyst", DEMO_PASSWORDS["analyst"])
-    stored = context.database.experiments.get(experiment_id)
-    assert stored is not None
-    for tube_no in stored.pending_review_tubes:
-        context.reviews.review_tube(
-            session, experiment_id, tube_no, Interpretation.POSITIVE, "人工判阳性"
-        )
-
-
-def test_simulated_sensitivity_run_gets_a_reasonable_lambda_c(
-    qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
-) -> None:
-    window, context = fast_window, fast_context
-    monitor = start_sensitivity(qapp, window)
-    experiment_id = monitor.experiment_id
-    assert experiment_id is not None
-    # 还在跑的时候只有待定，不产生数值
-    view = monitor.view_model
-    assert view is not None and view.conclusions_enabled and view.conclusion is not None
-    assert view.conclusion.verdict is ConclusionVerdict.PENDING and view.conclusion.value is None
-    assert not view.conclusion_recorded
-
-    wait_finished(qapp, context)
-    assert context.engine.wait(30.0)
-    stored = context.database.experiments.get(experiment_id)
-    assert stored is not None
-    # 剂量关系成立：最高浓度阳性、最低浓度和阴性对照阴性
-    assert {stored.results[n].final_interpretation for n in range(1, 5)} == {
-        Interpretation.POSITIVE
-    }
-    assert {stored.results[n].final_interpretation for n in range(13, 18)} == {
-        Interpretation.NEGATIVE
-    }
-    assert stored.pending_review_tubes, "默认场景边界附近应有部分凝固"
-    assert stored.conclusion is None  # 待复核没处理完不产生最终结论
-
-    review_all_pending(context, experiment_id)
-    monitor.reload()
-    settle(qapp)
-    stored = context.database.experiments.get(experiment_id)
-    assert stored is not None
-    assert stored.state is ExperimentState.COMPLETED
-    conclusion = stored.conclusion
-    assert conclusion is not None
-    assert conclusion.verdict is ConclusionVerdict.PASS
-    lam = 0.25  # 模拟白名单的 λ
-    assert conclusion.labeled_sensitivity == lam
-    assert conclusion.value is not None and lam / 2 <= conclusion.value <= lam * 2
-    assert stored.measured_sensitivity == conclusion.value
-    assert stored.completed_at is not None
-
-    # 界面：真实 λc、合格徽标、依据
-    assert monitor._fact_values["lambda_c"].text().endswith("EU/ml")  # noqa: SLF001
-    assert not monitor._fact_values["lambda_c"].text().startswith("–")  # noqa: SLF001
-    card = monitor.conclusion_card
-    assert card.badge.text() == "合格"
-    assert "antilg" in card.basis_label.text()
-    assert "第 1 系列" in card.basis_label.text()
-    assert "sensitivity-v1" in card.rule_label.text()
-    assert card.unmet_label.isHidden()
-
-
-def test_conclusion_is_shown_again_after_a_restart(
-    qapp: QApplication, tmp_path: Path, language: LanguageManager
-) -> None:
-    from tests.services.test_new_experiment_engine import request_for_tubes
-
-    first = open_context(tmp_path, conclusions=True)
-    session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
-    experiment_id = first.experiments.create_experiment(
-        session, request_for_tubes(list(range(1, 19)))
-    )
-    first.experiments.start_experiment(session, experiment_id)
-    wait_finished(qapp, first)
-    assert first.engine.wait(30.0)
-    review_all_pending(first, experiment_id)
-    before = first.database.experiments.get(experiment_id)
-    assert before is not None and before.conclusion is not None
-    close_context(first)
-
-    second = open_context(tmp_path, conclusions=True)
-    window = open_window(qapp, second, language)
-    try:
-        sign_in(qapp, window, "analyst")
-        window.navigate("monitor")
-        monitor = monitor_of(window)
-        assert monitor.open_experiment(experiment_id)
-        settle(qapp)
-        view = monitor.view_model
-        assert view is not None and view.conclusion_recorded
-        assert view.conclusion == before.conclusion
-        assert monitor.conclusion_card.badge.text() == "合格"
-        assert view.completed_at == before.completed_at
-    finally:
-        close_window(qapp, window)
-        close_context(second)
-
-
-def test_invalid_conclusion_shows_the_reason(qapp: QApplication) -> None:
-    from gelinspect.domain.conclusions import evaluate_conclusion
-    from gelinspect.domain.entities import TubeResult
-    from gelinspect.domain.enums import GelState, TubeAnalysisStatus
-    from gelinspect.domain.interpretation import GelStateMapping
-
-    experiment = sensitivity_experiment()
-    results = {
-        no: TubeResult.from_analysis(
-            tube_no=no,
-            status=TubeAnalysisStatus.OK,
-            state=GelState.FULLY_GELLED,
-            mapping=GelStateMapping(),
-        )
-        for no in SENSITIVITY_STATES
-    }
-    conclusion = evaluate_conclusion(
-        experiment.experiment_type, experiment.assignments, results, 0.5, layout_confirmed=True
-    )
-    card = ConclusionCard()
-    card.set_conclusion(conclusion, recorded=True)
-    assert card.badge.text() == "无效"
-    assert card.unmet_title.text() == "无效原因"
-    assert "最低浓度" in card.unmet_label.text()
-    assert "阴性对照" in card.unmet_label.text()
-    assert card.value_cell.isHidden()
-    card.deleteLater()
-
-
-def test_every_note_has_the_same_source_text_in_the_ui() -> None:
-    """界面翻译用的原文必须和领域层一字不差，否则英文下找不到译文。"""
-    assert set(labels._NOTE_SOURCES) == set(NOTE_TEMPLATES.values())  # noqa: SLF001
-    assert {rule.source for rule in RULES.values()} == set(labels._RULE_SOURCES)  # noqa: SLF001
-    assert NoteCode.LAYOUT_PRESUMED in NOTE_TEMPLATES
-
-
-def test_english_note_text_translates_and_fills_parameters(
-    qapp: QApplication, language: LanguageManager
-) -> None:
-    language.set_language(Language.EN, persist=False)
-    try:
-        experiment = sensitivity_experiment()
-        from gelinspect.domain.conclusions import conclude_experiment
-
-        conclusion = conclude_experiment(experiment)
-        text = labels.conclusion_note_text(conclusion.unmet[0])
-        assert "号管" not in text and "{" not in text
-        assert labels.conclusion_verdict_label(ConclusionVerdict.PASS) != "合格"
-    finally:
-        language.set_language(Language.ZH_CN, persist=False)
 
 
 # ---------------------------------------------------------------- 恢复和重试
@@ -342,7 +179,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
 ) -> None:
     from tests.services.test_new_experiment_engine import request_for_tubes
 
-    first = open_context(tmp_path, conclusions=True)
+    first = open_context(tmp_path)
     break_analyzer(first)
     session = first.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     experiment_id = first.experiments.create_experiment(
@@ -356,7 +193,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
     )
     close_context(first)
 
-    second = open_context(tmp_path, conclusions=True)
+    second = open_context(tmp_path)
     window = open_window(qapp, second, language)
     try:
         sign_in(qapp, window, "experimenter")
@@ -478,36 +315,3 @@ def test_no_development_phase_in_visible_texts() -> None:
         source = (ROOT / "translations" / name).read_text(encoding="utf-8")
         for text in re.findall(r"<source>(.*?)</source>", source, flags=re.S):
             assert not re.search(r"\bP\d+\b", text), text
-
-
-def test_report_center_mentions_the_verdict_and_needs_a_conclusion_when_on(
-    qapp: QApplication,
-    fast_window: MainWindow,
-    fast_context: AppContext,
-) -> None:
-    """开关打开：报告中心的提示写出结论；没有入库结论的试验不能签署（行为与关闭前一致）。"""
-    from tests.ui.test_report_center import finish_experiment, reports_of
-
-    experiment_id = finish_experiment(qapp, fast_window, fast_context)
-    sign_in(qapp, fast_window, "analyst")
-    assert fast_window.navigate("reports")
-    page = reports_of(fast_window)
-    assert page.open_experiment(experiment_id)
-    preview = page.current_preview
-    assert preview is not None and preview.can_sign and preview.conclusions_enabled
-    assert preview.conclusion is not None
-    assert page.status_text.text() == "可以签署：实验结论为“合格”"
-    # 抹掉入库的结论（模拟关闭期间完成的旧试验）：打开时不能签署
-    assert fast_context.database.experiments.get(experiment_id) is not None
-    with fast_context.database._sessions.begin() as session:  # noqa: SLF001
-        from sqlalchemy import delete
-
-        from gelinspect.infrastructure.db.models import ExperimentConclusionRow
-
-        session.execute(delete(ExperimentConclusionRow))
-    page.refresh()
-    settle(qapp)
-    blocked = page.current_preview
-    assert blocked is not None and not blocked.can_sign
-    assert not page.sign_button.isEnabled()
-    assert "没有入库的结论" in page.reasons_label.text()

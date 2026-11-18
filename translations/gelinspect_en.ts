@@ -573,292 +573,6 @@
     </message>
 </context>
 <context>
-    <name>Conclusion</name>
-    <message>
-        <source>合格</source>
-        <translation>Pass</translation>
-    </message>
-    <message>
-        <source>不合格</source>
-        <translation>Fail</translation>
-    </message>
-    <message>
-        <source>无效</source>
-        <translation>Invalid</translation>
-    </message>
-    <message>
-        <source>待定</source>
-        <translation>Pending</translation>
-    </message>
-    <message>
-        <source>不适用</source>
-        <translation>Not applicable</translation>
-    </message>
-    <message>
-        <source>标示灵敏度 λ = {lam} EU/mL</source>
-        <translation>Labeled sensitivity λ = {lam} EU/mL</translation>
-    </message>
-    <message>
-        <source>第 {series} 系列（{tubes} 号管）：{readings}</source>
-        <translation>Series {series} (tubes {tubes}): {readings}</translation>
-    </message>
-    <message>
-        <source>第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL（{multiple}λ）</source>
-        <translation>Series {series} (tubes {tubes}): {readings}, endpoint {endpoint} EU/mL ({multiple}λ)</translation>
-    </message>
-    <message>
-        <source>阴性对照（{tubes} 号管）：全部阴性</source>
-        <translation>Negative control (tube {tubes}): all negative</translation>
-    </message>
-    <message>
-        <source>λc = antilg(mean(lg 终点)) = antilg(({terms}) / {count}) ≈ {value}</source>
-        <translation>λc = antilg(mean(lg endpoint)) = antilg(({terms}) / {count}) ≈ {value}</translation>
-    </message>
-    <message>
-        <source>λc = {value} EU/mL，判定范围 0.5λ–2λ（含）= {low}–{high} EU/mL</source>
-        <translation>λc = {value} EU/mL; acceptance range 0.5λ–2λ (inclusive) = {low}–{high} EU/mL</translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}</source>
-        <translation>{role} (tubes {tubes}): positive {positive}, negative {negative}, undetermined {other}</translation>
-    </message>
-    <message>
-        <source>中国药典通则 1143</source>
-        <translation>Chinese Pharmacopoeia General Chapter 1143</translation>
-    </message>
-    <message>
-        <source>通用检测，按每管阴阳性出具结果</source>
-        <translation>General test: results are reported per tube</translation>
-    </message>
-    <message>
-        <source>共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定</source>
-        <translation>{total} tubes: {positive} positive, {negative} negative. A general test reports each tube&apos;s result; there is no test-level verdict</translation>
-    </message>
-    <message>
-        <source>没有安排试管</source>
-        <translation>No tubes are assigned</translation>
-    </message>
-    <message>
-        <source>试验使用的旧模板没有标明每管用途，不能判定</source>
-        <translation>The experiment uses an old template without tube roles, so no conclusion can be given</translation>
-    </message>
-    <message>
-        <source>{tubes} 号管没有指定用途</source>
-        <translation>Tubes {tubes} have no role assigned</translation>
-    </message>
-    <message>
-        <source>旧版本软件没有这类试验的判定规则，不给出合格或不合格</source>
-        <translation>An older software version had no rule for this test type; no pass or fail is given</translation>
-    </message>
-    <message>
-        <source>{tubes} 号管还没有结果</source>
-        <translation>Tubes {tubes} have no result yet</translation>
-    </message>
-    <message>
-        <source>{tubes} 号管等待人工复核</source>
-        <translation>Tubes {tubes} are awaiting manual review</translation>
-    </message>
-    <message>
-        <source>没有可用的鲎试剂标示灵敏度 λ</source>
-        <translation>No usable labeled sensitivity λ for the LAL reagent</translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：阴性对照 {tubes} 号管加了内毒素</source>
-        <translation>Layout does not match the rule: negative control tube {tubes} has endotoxin added</translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：{tubes} 号管的外加内毒素不是 2λ、λ、λ/2、λ/4 之一</source>
-        <translation>Layout does not match the rule: the spiked endotoxin of tube {tubes} is not one of 2λ, λ, λ/2, λ/4</translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：{multiple}λ 应有 {expected} 管，实际 {actual} 管</source>
-        <translation>Layout does not match the rule: {multiple}λ should have {expected} tubes, found {actual}</translation>
-    </message>
-    <message>
-        <source>模板没有标记阴性对照</source>
-        <translation>The template has no negative control marked</translation>
-    </message>
-    <message>
-        <source>最大浓度 {level} EU/mL 不是全部阳性（{tubes} 号管不是阳性）</source>
-        <translation>The highest concentration {level} EU/mL is not all positive (tubes {tubes} are not positive)</translation>
-    </message>
-    <message>
-        <source>最低浓度 {level} EU/mL 不是全部阴性（{tubes} 号管不是阴性）</source>
-        <translation>The lowest concentration {level} EU/mL is not all negative (tubes {tubes} are not negative)</translation>
-    </message>
-    <message>
-        <source>阴性对照不是阴性（{tubes} 号管）</source>
-        <translation>The negative control is not negative (tubes {tubes})</translation>
-    </message>
-    <message>
-        <source>第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考</source>
-        <translation>Series {series} is discontinuous (positive after negative) and needs a manual decision; the λc is for reference only</translation>
-    </message>
-    <message>
-        <source>模板没有标记{role}</source>
-        <translation>The template has no tubes marked as {role}</translation>
-    </message>
-    <message>
-        <source>{role}不是全部阴性（{tubes} 号管）</source>
-        <translation>{role} is not all negative (tubes {tubes})</translation>
-    </message>
-    <message>
-        <source>{role}不是全部阳性（{tubes} 号管）</source>
-        <translation>{role} is not all positive (tubes {tubes})</translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：全部阴性</source>
-        <translation>{role} (tubes {tubes}): all negative</translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：全部阳性</source>
-        <translation>{role} (tubes {tubes}): all positive</translation>
-    </message>
-    <message>
-        <source>{role}：各浓度或稀释度的管数应相同，实际为 {counts}</source>
-        <translation>{role}: every concentration or dilution needs the same number of tubes; found {counts}</translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL</source>
-        <translation>{role} series {series} (tubes {tubes}): {readings}, endpoint {endpoint} EU/mL</translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性</source>
-        <translation>{role} series {series} (tubes {tubes}): {readings}, no positive</translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定</source>
-        <translation>{role} series {series} is discontinuous (positive after negative) and needs a manual decision</translation>
-    </message>
-    <message>
-        <source>Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内</source>
-        <translation>Es = antilg(mean(lg endpoint)) ≈ {value} EU/mL; must be within 0.5λ–2λ ({low}–{high} EU/mL)</translation>
-    </message>
-    <message>
-        <source>Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
-        <translation>Es = {value} EU/mL is outside 0.5λ–2λ ({low}–{high} EU/mL)</translation>
-    </message>
-    <message>
-        <source>Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）</source>
-        <translation>Et = antilg(mean(lg endpoint)) ≈ {value} EU/mL; acceptance range 0.5Es–2Es ({low}–{high} EU/mL)</translation>
-    </message>
-    <message>
-        <source>Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用</source>
-        <translation>Et is within 0.5Es–2Es: the sample does not interfere at this concentration</translation>
-    </message>
-    <message>
-        <source>Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用</source>
-        <translation>Et is outside 0.5Es–2Es: the sample interferes at this concentration</translation>
-    </message>
-    <message>
-        <source>供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用</source>
-        <translation>Spiked sample series {series} has no positive, so Et cannot be calculated: the sample interferes at this concentration</translation>
-    </message>
-    <message>
-        <source>供试品（{tubes} 号管）全部阴性：符合规定</source>
-        <translation>Sample (tubes {tubes}) all negative: complies</translation>
-    </message>
-    <message>
-        <source>供试品（{tubes} 号管）有阳性：不符合规定</source>
-        <translation>Sample (tubes {tubes}) has a positive: does not comply</translation>
-    </message>
-    <message>
-        <source>供试品两管一阳一阴，需用“限度试验（复试）”模板复试</source>
-        <translation>One of the two sample tubes is positive: retest with the “Limit test (retest)” template</translation>
-    </message>
-    <message>
-        <source>供试品 {tubes} 号管没有稀释倍数</source>
-        <translation>Sample tubes {tubes} have no dilution factor</translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，浓度 {value} EU/mL</source>
-        <translation>Sample series {series} (tubes {tubes}): {readings}, endpoint dilution {dilution}×, concentration {value} EU/mL</translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 &lt; {value} EU/mL</source>
-        <translation>Sample series {series} (tubes {tubes}): all negative, concentration &lt; {value} EU/mL</translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL</source>
-        <translation>Sample series {series} (tubes {tubes}): all positive, concentration ≥ {value} EU/mL</translation>
-    </message>
-    <message>
-        <source>供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL</source>
-        <translation>Sample endotoxin concentration = antilg(mean(lg series concentrations)) ≈ {value} EU/mL</translation>
-    </message>
-    <message>
-        <source>没有录入内毒素限值，无法判定是否符合规定</source>
-        <translation>No endotoxin limit was entered, so compliance cannot be judged</translation>
-    </message>
-    <message>
-        <source>各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定</source>
-        <translation>Every series is below the endotoxin limit {limit} EU/mL: complies</translation>
-    </message>
-    <message>
-        <source>第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定</source>
-        <translation>Series {series} is not below the endotoxin limit {limit} EU/mL: does not comply</translation>
-    </message>
-    <message>
-        <source>第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验</source>
-        <translation>Series {series} cannot be compared with the endotoxin limit {limit} EU/mL; adjust the dilutions and repeat the test</translation>
-    </message>
-    <message>
-        <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
-        <translation>λc = {value} EU/mL is outside 0.5λ–2λ ({low}–{high} EU/mL)</translation>
-    </message>
-    <message>
-        <source>这个试验完成时还没有结论功能，没有入库的结论</source>
-        <translation>This experiment finished before conclusions were recorded; no conclusion is stored</translation>
-    </message>
-    <message>
-        <source>试验已停止，不产生结论</source>
-        <translation>The experiment was stopped; no conclusion is produced</translation>
-    </message>
-</context>
-<context>
-    <name>ConclusionCard</name>
-    <message>
-        <source>规则版本 {version}</source>
-        <translation>Rule version {version}</translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc</source>
-        <translation>Measured sensitivity λc</translation>
-    </message>
-    <message>
-        <source>λc（参考值，不是最终结论）</source>
-        <translation>λc (reference only, not a final conclusion)</translation>
-    </message>
-    <message>
-        <source>标示灵敏度 λ {value} EU/ml</source>
-        <translation>Labeled sensitivity λ {value} EU/ml</translation>
-    </message>
-    <message>
-        <source>无效原因</source>
-        <translation>Why it is invalid</translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
-        <translation>Unmet prerequisites</translation>
-    </message>
-    <message>
-        <source>规则来源：{source}</source>
-        <translation>Rule source: {source}</translation>
-    </message>
-    <message>
-        <source>实验完成后才会固化结论。</source>
-        <translation>The conclusion is fixed when the experiment completes.</translation>
-    </message>
-    <message>
-        <source>实验结论</source>
-        <translation>Conclusion</translation>
-    </message>
-    <message>
-        <source>依据（+ 阳性，− 阴性）</source>
-        <translation>Basis (+ positive, − negative)</translation>
-    </message>
-</context>
-<context>
     <name>ConfirmDialog</name>
     <message>
         <source>取消</source>
@@ -1134,10 +848,6 @@
         <translation>Tube results</translation>
     </message>
     <message>
-        <source>结论依据</source>
-        <translation>Conclusion basis</translation>
-    </message>
-    <message>
         <source>历史列表</source>
         <translation>History</translation>
     </message>
@@ -1204,22 +914,6 @@
     <message>
         <source>内毒素限值</source>
         <translation>Endotoxin limit</translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc（EU/mL）</source>
-        <translation>Measured sensitivity λc (EU/mL)</translation>
-    </message>
-    <message>
-        <source>结论</source>
-        <translation>Conclusion</translation>
-    </message>
-    <message>
-        <source>结论数值</source>
-        <translation>Conclusion value</translation>
-    </message>
-    <message>
-        <source>规则版本</source>
-        <translation>Rule version</translation>
     </message>
     <message>
         <source>管数</source>
@@ -1348,14 +1042,6 @@
     <message>
         <source>内容</source>
         <translation>Content</translation>
-    </message>
-    <message>
-        <source>依据</source>
-        <translation>Basis</translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
-        <translation>Unmet preconditions</translation>
     </message>
     <message>
         <source>序号</source>
@@ -2103,10 +1789,6 @@
     <message>
         <source>标示灵敏度 λ</source>
         <translation>Labeled sensitivity λ</translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc</source>
-        <translation>Measured sensitivity λc</translation>
     </message>
     <message>
         <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
@@ -3423,64 +3105,8 @@
         <translation> (reviewed)</translation>
     </message>
     <message>
-        <source>结论</source>
-        <translation>Conclusion</translation>
-    </message>
-    <message>
-        <source>无</source>
-        <translation>None</translation>
-    </message>
-    <message>
-        <source>这个试验完成时还没有结论功能，没有入库的结论。</source>
-        <translation>This experiment was completed before conclusions were introduced, so no conclusion was recorded.</translation>
-    </message>
-    <message>
-        <source>实测灵敏度</source>
-        <translation>measured sensitivity</translation>
-    </message>
-    <message>
-        <source>（不是最终结论，不能作为放行依据）</source>
-        <translation> (not a final conclusion; it must not be used as a release basis)</translation>
-    </message>
-    <message>
-        <source>λc 参考值</source>
-        <translation>λc reference value</translation>
-    </message>
-    <message>
-        <source>不是最终结论</source>
-        <translation>not a final conclusion</translation>
-    </message>
-    <message>
         <source>标示灵敏度 λ</source>
         <translation>Labeled sensitivity λ</translation>
-    </message>
-    <message>
-        <source>无效原因</source>
-        <translation>Reason for invalid</translation>
-    </message>
-    <message>
-        <source>待定原因</source>
-        <translation>Reason for pending</translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
-        <translation>Unmet prerequisites</translation>
-    </message>
-    <message>
-        <source>依据（+ 阳性，− 阴性）</source>
-        <translation>Basis (+ positive, − negative)</translation>
-    </message>
-    <message>
-        <source>规则版本</source>
-        <translation>Rule version</translation>
-    </message>
-    <message>
-        <source>规则来源</source>
-        <translation>Rule source</translation>
-    </message>
-    <message>
-        <source>标注“已复核”的结果经分析员人工复核，以复核结果为准。</source>
-        <translation>Results marked “reviewed” were reviewed manually by the analyst; the review result prevails.</translation>
     </message>
     <message>
         <source>8 连图（每排翻转前、翻转后代表帧）</source>
@@ -3640,10 +3266,6 @@
     <message>
         <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
         <translation>The PDF status could not be confirmed. Check file access and contact support for review.</translation>
-    </message>
-    <message>
-        <source>可以签署：实验结论为“{verdict}”</source>
-        <translation>Ready to sign: the experiment conclusion is “{verdict}”</translation>
     </message>
     <message>
         <source>可以签署：全部待复核已处理，实验已完成</source>
@@ -4610,18 +4232,6 @@
         <source>{tubes} 号管还没有结果。</source>
         <translation>Tube(s) {tubes} have no result yet.</translation>
     </message>
-    <message>
-        <source>这个实验没有入库的结论，不能签署。</source>
-        <translation>This experiment has no recorded conclusion and cannot be signed.</translation>
-    </message>
-    <message>
-        <source>实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
-        <translation>The conclusion is “Pending”, not final, so it cannot be signed: an undecided result must not become a release basis.</translation>
-    </message>
-    <message>
-        <source>实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。</source>
-        <translation>The conclusion is “Invalid”, so it cannot be signed and must not be used for release. Address the reasons below and repeat the test.</translation>
-    </message>
 </context>
 <context>
     <name>Sparkline</name>
@@ -4874,6 +4484,14 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>来源</source>
         <translation>Source</translation>
+    </message>
+    <message>
+        <source>创建人</source>
+        <translation>Creator</translation>
+    </message>
+    <message>
+        <source>创建时间</source>
+        <translation>Created</translation>
     </message>
     <message>
         <source>管号</source>

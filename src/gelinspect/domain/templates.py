@@ -1,16 +1,17 @@
-"""试验模板和内置模板（四类试验，限度试验另有复试模板）。
+"""试验模板和内置起始配置（四类试验，限度试验另有复试配置）。
 
 内置模板的管位布局按中国药典通则 1143 凝胶法的表 1–3 和灵敏度复核的要求排列，每管标明用途。
-``needs_confirmation`` 字段保留给旧数据，内置模板都为 False。
+``needs_confirmation`` 字段保留给旧数据，内置配置都为 False。
 
 模板存**标示灵敏度 λ 的倍数**（2、1、0.5、0.25，阴性对照 0），创建试验时才按鲎试剂的 λ
-算出外加内毒素并固化到试验记录，见 :func:`spike_from_lambda`。判定规则在 ``conclusions.py``。
+算出外加内毒素并固化到试验记录，见 :func:`spike_from_lambda`。
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from types import MappingProxyType
 
@@ -98,7 +99,9 @@ class ExperimentTemplate:
         name: 显示名称。
         experiment_type: 试验类型。
         items: 管位项，管号不重复。
-        needs_confirmation: 布局是否为推定、等待甲方确认。
+        needs_confirmation: 兼容标记；当前内置起始配置均为 False。
+        created_by: 创建者用户名；内置配置或历史未知时为 None。
+        created_at: 创建时间（带时区）；内置配置或历史未知时为 None。
     """
 
     template_id: str
@@ -106,6 +109,8 @@ class ExperimentTemplate:
     experiment_type: ExperimentType
     items: tuple[TemplateTubeItem, ...]
     needs_confirmation: bool = False
+    created_by: str | None = None
+    created_at: datetime | None = None
 
     def __post_init__(self) -> None:
         """校验模板至少有一个管位且管号不重复。
@@ -118,6 +123,10 @@ class ExperimentTemplate:
             raise ValueError("模板至少需要一个管位")
         if len(set(tube_nos)) != len(tube_nos):
             raise ValueError(f"模板 {self.template_id} 的管号重复")
+        if self.created_at is not None and (
+            self.created_at.tzinfo is None or self.created_at.utcoffset() is None
+        ):
+            raise ValueError("模板创建时间必须带时区")
 
     @property
     def tube_count(self) -> int:

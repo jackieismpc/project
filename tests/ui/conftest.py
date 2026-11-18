@@ -78,15 +78,9 @@ FIXED_NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture
-def conclusions_enabled() -> bool:
-    """结论功能测试开关；本夹具默认关闭，需要结论的模块覆盖为True，独立于产品默认值。"""
-    return False
-
-
-@pytest.fixture
-def app_context(tmp_path: Path, conclusions_enabled: bool) -> Iterator[AppContext]:
+def app_context(tmp_path: Path) -> Iterator[AppContext]:
     """用模拟后端装配好的应用，退出时有序关闭并确认没有线程残留。"""
-    config = make_config(tmp_path, conclusions={"enabled": conclusions_enabled})
+    config = make_config(tmp_path)
     context = build_app_context(parse_config(config), clock=lambda: FIXED_NOW)
     yield context
     context.close()

@@ -176,7 +176,7 @@ def test_review_overrides_auto_and_can_be_repeated() -> None:
     assert again.auto_interpretation is Interpretation.PENDING_REVIEW
 
 
-def test_review_rejects_pending_conclusion_and_naive_time() -> None:
+def test_review_rejects_pending_interpretation_and_naive_time() -> None:
     tube = result(1, GelState.PARTIALLY_GELLED)
     with pytest.raises(ValueError):
         tube.with_review(

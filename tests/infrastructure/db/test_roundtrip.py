@@ -135,6 +135,8 @@ def test_experiment_template_snapshot_roundtrip(database: Database) -> None:
         name="本次配置",
         experiment_type=ExperimentType.LIMIT,
         needs_confirmation=True,
+        created_by="alice",
+        created_at=T0,
         items=(
             TemplateTubeItem(17, "用户样品甲", TubeRole.TEST, 2.0, lambda_multiple=0.5),
             TemplateTubeItem(25, "阴性对照", TubeRole.NEGATIVE_CONTROL, lambda_multiple=0.0),

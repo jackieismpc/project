@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
-from gelinspect.domain.enums import AuditAction, ExperimentType, TubeRole
+from gelinspect.domain.entities import User
+from gelinspect.domain.enums import AuditAction, ExperimentType, Role, TubeRole
 from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate, TemplateTubeItem
+from gelinspect.infrastructure.db.passwords import hash_password
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
@@ -16,7 +20,7 @@ from gelinspect.services.template_service import (
 )
 from tests.services.engine_helpers import ready_experiment
 
-from .conftest import Stack
+from .conftest import NOW, Stack
 
 SENSITIVITY = BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION]
 
@@ -61,6 +65,7 @@ def test_builtin_templates_are_read_only_but_can_be_copied(stack: Stack) -> None
 
     copy = stack.templates.copy_template(admin, SENSITIVITY.template_id)
     assert copy.name == "灵敏度复核 (2λ:1) 副本"
+    assert copy.created_by == "admin" and copy.created_at == NOW
     assert copy.template_id.startswith("custom.") and copy.tube_count == 18
     assert [i.spiked_endotoxin for i in sorted(copy.items, key=lambda i: i.tube_no)] == [
         i.spiked_endotoxin for i in sorted(SENSITIVITY.items, key=lambda i: i.tube_no)
@@ -95,6 +100,8 @@ def test_copy_names_do_not_collide(stack: Stack) -> None:
 def test_create_and_edit_a_custom_template(stack: Stack) -> None:
     admin = stack.login("admin")
     created = stack.templates.create_template(admin, custom_draft())
+    assert created.created_by == "admin"
+    assert created.created_at == NOW
     assert created.tube_count == 3
     assert [i.tube_no for i in created.items] == [1, 2, 3]  # 管号按顺序从 1 编
     assert [i.dilution_factor for i in created.items] == [2.0, 4.0, 6.0]
@@ -113,6 +120,26 @@ def test_create_and_edit_a_custom_template(stack: Stack) -> None:
     assert updated.name == "改名了" and updated.experiment_type is ExperimentType.LIMIT
     assert updated.items[0].role is TubeRole.NEGATIVE_CONTROL
     assert updated.items[0].dilution_factor is None
+    assert updated.created_by == created.created_by
+    assert updated.created_at == created.created_at
+
+
+def test_edit_keeps_creator_and_copy_stamps_the_new_creator_and_time(stack: Stack) -> None:
+    admin = stack.login("admin")
+    created = stack.templates.create_template(admin, custom_draft())
+    second_user = User("admin-2", "admin-2", "第二管理员", Role.ADMIN)
+    stack.database.users.add(
+        second_user, password_hash=hash_password("test-password"), must_change_password=False
+    )
+    second_session = stack.auth.login("admin-2", "test-password")
+    later = datetime(2026, 11, 18, 5, 30, tzinfo=UTC)
+    stack.templates._clock = lambda: later
+    edited = stack.templates.update_template(
+        second_session, created.template_id, custom_draft("另一个名称")
+    )
+    assert (edited.created_by, edited.created_at) == ("admin", NOW)
+    copied = stack.templates.copy_template(second_session, created.template_id, "第二人复制")
+    assert (copied.created_by, copied.created_at) == ("admin-2", later)
 
 
 @pytest.mark.parametrize(

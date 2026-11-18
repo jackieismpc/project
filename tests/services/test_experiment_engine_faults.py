@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-from gelinspect.domain.conclusions import conclude_experiment
 from gelinspect.domain.entities import TubeResult
 from gelinspect.domain.enums import (
     AuditAction,
@@ -63,7 +62,7 @@ NO_RECONNECT = ReconnectConfig(enabled=False, stall_disconnect_s=None)
 def test_review_committed_during_later_row_analysis_controls_completion(
     tmp_path: Path, thread_baseline: None
 ) -> None:
-    """后续排分析期间提交的复核须参与收尾状态和结论计算。"""
+    """后续排分析期间提交的复核须参与完成状态计算。"""
     tube_nos = tuple(range(1, 17))
     scene = gelled_scenario(tube_nos)
     states = dict(scene.tube_states)
@@ -73,7 +72,6 @@ def test_review_committed_during_later_row_analysis_controls_completion(
         tmp_path,
         tube_nos,
         scenario=scene,
-        conclusions_enabled=True,
         use_scaled_schedule=True,
         config=fast_config(time_scale=36000.0),
     )
@@ -99,7 +97,6 @@ def test_review_committed_during_later_row_analysis_controls_completion(
         ReviewService(
             AuthorizedReview(),  # type: ignore[arg-type]
             h.database,
-            conclusions_enabled=True,
         ).review_tube(None, EXP_ID, 1, Interpretation.POSITIVE, "后续排分析时复核")
 
         gate.release.set()
@@ -110,9 +107,8 @@ def test_review_committed_during_later_row_analysis_controls_completion(
         assert reviewed.review_status is ReviewStatus.REVIEWED
         assert reviewed.final_interpretation is Interpretation.POSITIVE
         assert len(reviewed.review_history) == 1
-        expected = conclude_experiment(stored)
-        assert stored.conclusion is not None
-        assert replace(stored.conclusion, computed_at=None) == expected
+        assert stored.completed_at is not None
+        assert stored.conclusion is None and stored.measured_sensitivity is None
     finally:
         gate.release.set()
         h.close()

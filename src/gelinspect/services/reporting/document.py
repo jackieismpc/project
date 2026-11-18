@@ -17,7 +17,6 @@ from typing import Any
 
 from PySide6.QtGui import QImage
 
-from gelinspect.domain.conclusions import ExperimentConclusion, conclusion_payload
 from gelinspect.domain.entities import Experiment
 from gelinspect.domain.enums import (
     ExperimentType,
@@ -75,9 +74,6 @@ class ExperimentSection:
         mvd: 最大有效稀释倍数（录入项，未录入为 None）。
         endotoxin_limit: 内毒素限值（录入项，未录入为 None）。
         rows: 结果表，按管号升序。
-        conclusion: 入库的结论；没有（旧试验）为 None；结论功能关闭时恒为 None。
-        conclusions_enabled: 结论功能是否打开。关闭时报告不含结论区、λc、规则版本，
-            内容摘要也不含结论。
     """
 
     experiment_id: str
@@ -96,8 +92,6 @@ class ExperimentSection:
     mvd: float | None
     endotoxin_limit: float | None
     rows: tuple[ReportRowData, ...]
-    conclusion: ExperimentConclusion | None
-    conclusions_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,17 +183,6 @@ def _section_payload(section: ExperimentSection) -> dict[str, Any]:
             for row in section.rows
         ],
     }
-    if section.conclusions_enabled:
-        payload["conclusion"] = (
-            None
-            if section.conclusion is None
-            else {
-                "verdict": section.conclusion.verdict.value,
-                "value": section.conclusion.value,
-                "rule_version": section.conclusion.rule_version,
-                "payload": conclusion_payload(section.conclusion),
-            }
-        )
     return payload
 
 
@@ -210,7 +193,6 @@ def build_section(
     signer_name: str | None,
     started_at: datetime | None,
     temperature_range: tuple[float, float] | None,
-    conclusions_enabled: bool = False,
 ) -> ExperimentSection:
     """由试验聚合生成报告里的一节。
 
@@ -220,7 +202,6 @@ def build_section(
         signer_name: 签署人显示名。
         started_at: 开始检测的时间。
         temperature_range: 温度日志的最低和最高温度。
-        conclusions_enabled: 结论功能是否打开；关闭时这一节不带结论。
 
     Returns:
         报告内容的一节。
@@ -228,8 +209,6 @@ def build_section(
     batches = {reagent.kind: reagent for reagent in experiment.reagents}
     lal = batches.get(ReagentKind.LAL_REAGENT)
     labeled = lal.labeled_sensitivity if lal is not None else None
-    if labeled is None and experiment.conclusion is not None:
-        labeled = experiment.conclusion.labeled_sensitivity
     rows: list[ReportRowData] = []
     for assignment in sorted(experiment.assignments, key=lambda a: a.tube_no):
         result = experiment.results.get(assignment.tube_no)
@@ -264,6 +243,4 @@ def build_section(
         mvd=experiment.mvd,
         endotoxin_limit=experiment.endotoxin_limit,
         rows=tuple(rows),
-        conclusion=experiment.conclusion if conclusions_enabled else None,
-        conclusions_enabled=conclusions_enabled,
     )

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+from datetime import UTC, datetime
+
 import pytest
 
 from gelinspect.domain.enums import ExperimentType, ReagentKind, TubeRole
@@ -27,6 +30,17 @@ def test_rows_come_from_the_template_in_tube_order() -> None:
     draft.set_labeled_sensitivity(0.5)
     assert [r.spiked_endotoxin for r in draft.rows[:5]] == [1.0, 1.0, 1.0, 1.0, 0.5]
     assert draft.rows[16].name == "阴性对照" and draft.rows[16].spiked_endotoxin == 0.0
+
+
+def test_customized_snapshot_preserves_template_creator_metadata() -> None:
+    created_at = datetime(2026, 11, 18, 1, 2, tzinfo=UTC)
+    source = replace(LIMIT, created_by="admin", created_at=created_at)
+    draft = draft_with(source)
+    draft.assign_tube(draft.rows[0].row_id, 9)
+    request = draft.to_request()
+    assert request.template_snapshot is not None
+    assert request.template_snapshot.created_by == "admin"
+    assert request.template_snapshot.created_at == created_at
 
 
 def test_count_difference_and_match() -> None:

@@ -1,22 +1,10 @@
-"""默认场景的剂量关系：高浓度阳性、低浓度阴性、阴性对照阴性，边界有部分凝固，可复现。"""
+"""默认场景的剂量关系：高浓度阳性、低浓度阴性，边界有部分凝固，可复现。"""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 import pytest
 
-from gelinspect.domain.conclusions import evaluate_conclusion
-from gelinspect.domain.entities import Sample, TubeAssignment, TubeResult
-from gelinspect.domain.enums import (
-    ConclusionVerdict,
-    ExperimentType,
-    GelState,
-    Interpretation,
-    TubeAnalysisStatus,
-    TubeRole,
-)
-from gelinspect.domain.interpretation import GelStateMapping
+from gelinspect.domain.enums import ExperimentType, GelState, TubeRole
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.interfaces.device import PlatePlan, PlateTube
 from simulation.scenario import Scenario, dose_response_states
@@ -44,41 +32,6 @@ def test_dose_relation_holds_for_every_seed(seed: int, labeled: float) -> None:
         readings = [states[level * 4 + offset + 1] for level in range(4)]
         first_negative = readings.index(GelState.NOT_GELLED)
         assert GelState.FULLY_GELLED not in readings[first_negative:]
-
-
-@pytest.mark.parametrize("seed", range(40))
-def test_every_seed_gives_a_valid_lambda_c_after_review(seed: int) -> None:
-    """部分凝固无论人工判阳还是判阴，默认场景都算得出有效的 λc。"""
-    p = plan(0.25)
-    states = dose_response_states(p, seed)
-    assignments = [
-        TubeAssignment(t.tube_no, Sample(str(t.tube_no), "样品"), t.role, None, t.spiked_endotoxin)
-        for t in p.tubes
-    ]
-    for reviewed in (Interpretation.POSITIVE, Interpretation.NEGATIVE):
-        results: dict[int, TubeResult] = {}
-        for no, state in states.items():
-            result = TubeResult.from_analysis(
-                tube_no=no, status=TubeAnalysisStatus.OK, state=state, mapping=GelStateMapping()
-            )
-            results[no] = (
-                result.with_review(
-                    interpretation=reviewed,
-                    reviewed_by="a",
-                    reviewed_at=datetime(2026, 1, 1, tzinfo=UTC),
-                )
-                if result.needs_review
-                else result
-            )
-        conclusion = evaluate_conclusion(
-            ExperimentType.SENSITIVITY_CONFIRMATION,
-            assignments,
-            results,
-            0.25,
-            layout_confirmed=True,
-        )
-        assert conclusion.verdict in (ConclusionVerdict.PASS, ConclusionVerdict.PENDING)
-        assert conclusion.value is not None and 0.125 <= conclusion.value <= 0.5
 
 
 def test_default_seed_has_tubes_for_review() -> None:

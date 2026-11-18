@@ -124,7 +124,7 @@ def test_the_note_is_required(stack: Stack, note: str) -> None:
     assert stored(stack).results[3].reviewed_by is None
 
 
-def test_the_conclusion_must_be_positive_or_negative(stack: Stack) -> None:
+def test_review_interpretation_must_be_positive_or_negative(stack: Stack) -> None:
     make_pending(stack)
     with pytest.raises(ServiceError) as caught:
         service(stack).review_tube(
@@ -228,7 +228,7 @@ def test_a_concurrent_same_state_review_is_not_allowed_to_overwrite_history(stac
     assert [entry.reason for entry in result.review_history] == ["并发复核"]
 
 
-def test_completed_result_can_be_re_reviewed_without_changing_conclusion_and_keeps_history(
+def test_completed_result_can_be_re_reviewed_and_keeps_history(
     stack: Stack,
 ) -> None:
     make_pending(stack)
@@ -239,10 +239,10 @@ def test_completed_result_can_be_re_reviewed_without_changing_conclusion_and_kee
     assert stored(stack).state is ExperimentState.COMPLETED
 
     result = reviews.review_tube(
-        reviewer, "EXP-REV-1", 3, Interpretation.POSITIVE, "结论未变，再核原因"
+        reviewer, "EXP-REV-1", 3, Interpretation.POSITIVE, "再次核对原因"
     ).result
     assert result.final_interpretation is Interpretation.POSITIVE
-    assert [entry.reason for entry in result.review_history] == ["首次原因", "结论未变，再核原因"]
+    assert [entry.reason for entry in result.review_history] == ["首次原因", "再次核对原因"]
     assert [entry.reviewed_by for entry in result.review_history] == ["analyst", "analyst"]
     assert len(stack.audit(AuditAction.TUBE_REVIEWED)) == 3
     assert stored(stack).state is ExperimentState.COMPLETED

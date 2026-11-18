@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from gelinspect.domain.conclusions import finalize_conclusion
 from gelinspect.domain.entities import (
     Experiment,
     ReagentBatch,
@@ -38,7 +37,7 @@ from .pdftext import flat_text, has_text, pdf_font_report, pdf_page_count, pdf_p
 def big_experiment(
     tubes: int = TUBE_COUNT, *, name: str = "供试品", batch: str = "批号-2606"
 ) -> Experiment:
-    """整板（全部管位）的限度试验（规则待 QA 核对，结论是待定），用来测多页排版。"""
+    """整板结果用来测多页排版。"""
     assignments = tuple(
         TubeAssignment(
             tube_no=no,
@@ -82,7 +81,7 @@ def big_experiment(
             )
         )
     experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
-    finalize_conclusion(experiment, NOW)
+    experiment.completed_at = NOW
     return experiment
 
 
@@ -91,7 +90,6 @@ def document_of(
     *,
     holder: str = "[版权方名称]",
     operator: str = "张工",
-    conclusions_enabled: bool = True,
 ) -> ReportDocument:
     section = build_section(
         experiment,
@@ -99,7 +97,6 @@ def document_of(
         signer_name=None,
         started_at=None,
         temperature_range=(36.9, 37.2),
-        conclusions_enabled=conclusions_enabled,
     )
     return ReportDocument(
         scope=ReportScope.EXPERIMENT, sections=(section,), copyright_holder=holder
@@ -153,6 +150,7 @@ def test_english_report_has_no_chinese_and_no_missing_translation() -> None:
     experiment.experiment_type = ExperimentType.SENSITIVITY_CONFIRMATION
     data, _ = ReportRenderer(zone=UTC).render_pdf(document_of(experiment, operator="Wang"), texts)
     text = flat_text(data)
+    assert "Conclusion" not in text and "合格" not in text and "规则版本" not in text
     for expected in (
         "Automated Gel-Clot Test Report",
         "File name (Exp. ID)",
@@ -162,7 +160,6 @@ def test_english_report_has_no_chinese_and_no_missing_translation() -> None:
         "Tube No.",
         "Serial No.",
         "Spiked endotoxin (EU/mL)",
-        "Conclusion",
         "Page 1 / 1",
         "Reproduction without permission is prohibited.",
         "Content digest SHA-256",
@@ -187,15 +184,6 @@ def test_every_report_string_has_an_english_translation() -> None:
     for key in S:
         english = texts.tr(SOURCES[key])
         assert not any("一" <= ch <= "鿿" for ch in english), (key, english)
-
-
-def test_conclusion_notes_and_roles_are_translated_in_english() -> None:
-    texts = ReportTexts(ReportLanguage.EN)
-    from gelinspect.domain.conclusions import NOTE_TEMPLATES
-
-    for code, template in NOTE_TEMPLATES.items():
-        assert texts.tr(template, "Conclusion") != template or code, code
-    assert texts.missing == frozenset(), sorted(texts.missing)
 
 
 def test_copyright_holder_comes_from_configuration_and_defaults_to_a_placeholder() -> None:

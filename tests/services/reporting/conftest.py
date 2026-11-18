@@ -57,13 +57,9 @@ def make_completed(
     layout_confirmed: bool = True,
     operator: str = "operator01",
     sample_batch: str = "SB2606",
-    conclusions_enabled: bool = True,
     reviewer: str = "analyst",
 ) -> Experiment:
-    """造一个已完成的灵敏度复核试验：先写入分析结果，再由指定用户复核全部待复核的管。
-
-    ``conclusions_enabled`` 为 False 时模拟结论功能关闭：完成时不计算、不入库结论。
-    """
+    """造一个已完成的灵敏度复核试验：先写入分析结果，再由指定用户复核全部待复核的管。"""
     experiment = sensitivity_experiment()
     experiment.experiment_id = experiment_id
     experiment.layout_confirmed = layout_confirmed
@@ -100,17 +96,13 @@ def make_completed(
     if experiment.pending_review_tubes:
         experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
         stack.database.experiments.save(experiment)
-        service = ReviewService(
-            stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=conclusions_enabled
-        )
+        service = ReviewService(stack.auth, stack.database, clock=lambda: NOW)
         for tube in experiment.pending_review_tubes:
             service.review_tube(stack.login(reviewer), experiment_id, tube, review_to, "复核")
     else:
-        # 没有待复核的管：引擎直接完成并固化结论（与引擎的做法一致）。
-        from gelinspect.domain.conclusions import finalize_completion
-
+        # 没有待复核的管：直接记录完成时间，不计算试验级结论。
         experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
-        finalize_completion(experiment, NOW, conclusions_enabled=conclusions_enabled)
+        experiment.completed_at = NOW
         stack.database.experiments.save(experiment)
     stored = stack.database.experiments.get(experiment_id)
     assert stored is not None
@@ -129,7 +121,6 @@ def make_service(
         "keystore": keystore,
         "clock": lambda: SIGN_TIME,
         "zone": UTC,
-        "conclusions_enabled": True,  # 这里的测试都在结论功能打开的条件下做；关闭的用例显式传 False
     }
     options.update(overrides)
     service = ReportService(stack.auth, stack.database, **options)  # type: ignore[arg-type]

@@ -34,6 +34,8 @@ def _to_template(row: TemplateRow, items: list[TemplateItemRow]) -> ExperimentTe
             for item in sorted(items, key=lambda item: item.tube_no)
         ),
         needs_confirmation=row.needs_confirmation,
+        created_by=row.created_by,
+        created_at=row.created_at,
     )
 
 
@@ -63,6 +65,8 @@ class SqlTemplateRepository(TemplateRepository):
             row.name = template.name
             row.experiment_type = template.experiment_type.value
             row.needs_confirmation = template.needs_confirmation
+            row.created_by = template.created_by
+            row.created_at = template.created_at
             row.builtin = builtin
             session.execute(
                 delete(TemplateItemRow).where(TemplateItemRow.template_id == template.template_id)

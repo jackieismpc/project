@@ -267,7 +267,6 @@ class GalleryPage(QWidget):
         row.addWidget(readout, 3)
         stats = QVBoxLayout()
         stats.setSpacing(14)
-        stats.addWidget(StatCard("实测灵敏度 λc", "0.59", unit="EU/ml", note="标示 0.5 EU/ml"))
         stats.addWidget(StatCard("视频存储", "62%", note="剩余 3.1 TB"))
         row.addLayout(stats, 1)
         return row

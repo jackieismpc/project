@@ -22,7 +22,6 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TypeVar
 
-from gelinspect.domain.conclusions import finalize_completion, labeled_sensitivity_of
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -173,6 +172,19 @@ _SHUTDOWN = object()
 T = TypeVar("T")
 
 
+def _labeled_sensitivity(experiment: Experiment) -> float | None:
+    """取本次试验唯一且有效的鲎试剂标示灵敏度。"""
+    values = {
+        batch.labeled_sensitivity
+        for batch in experiment.reagents
+        if batch.kind is ReagentKind.LAL_REAGENT
+    }
+    if len(values) != 1:
+        return None
+    value = next(iter(values))
+    return value if value is not None and value > 0 else None
+
+
 class _CancelledError(Exception):
     """收到了停止请求，当前步骤不再继续。"""
 
@@ -196,7 +208,6 @@ class EngineDeps:
         schedule_clock: 调度时钟，读数是设备时间，只用 ``monotonic``。
         analyzer_config_path: 传给 ``GelAnalyzer.load`` 的配置。
         events: 事件分发器。
-        conclusions_enabled: 是否计算并入库试验结论（配置 ``conclusions.enabled``，默认关闭）。
     """
 
     device: DeviceController
@@ -209,7 +220,6 @@ class EngineDeps:
     schedule_clock: Clock
     analyzer_config_path: Path | None
     events: EventDispatcher
-    conclusions_enabled: bool = False
 
 
 @dataclass(slots=True)
@@ -618,7 +628,7 @@ class EngineRun:
             self._device.load_plate_plan(
                 PlatePlan(
                     experiment_id=self.experiment_id,
-                    labeled_sensitivity=labeled_sensitivity_of(self._exp),
+                    labeled_sensitivity=_labeled_sensitivity(self._exp),
                     tubes=tuple(
                         PlateTube(a.tube_no, a.role, a.spiked_endotoxin)
                         for a in self._exp.assignments
@@ -1538,7 +1548,7 @@ class EngineRun:
     ) -> None:
         """在一个事务里提交状态、结果、媒体、审计和温度。
 
-        写锁内先从数据库读取最新单管结果，再按领域规则更新内存聚合并决定状态与结论。
+        写锁内先从数据库读取最新单管结果，再更新内存聚合并决定完成状态。
         提交失败时恢复原内存，提交成功后才发事件，事件入队后才发布快照。
 
         Args:
@@ -1631,18 +1641,9 @@ class EngineRun:
                 and state_before is not ExperimentState.COMPLETED
             )
             if completed:
-                # 结论与完成状态在同一写事务内，根据已锁定的最新复核结果计算。
-                concluded = finalize_completion(
-                    exp, self._clock.now(), conclusions_enabled=self._deps.conclusions_enabled
-                )
-                if concluded is not None:
-                    records.append(
-                        self._audit_event(
-                            AuditAction.CONCLUSION_RECORDED,
-                            concluded.summary_text(),
-                            user=user,
-                        )
-                    )
+                exp.conclusion = None
+                exp.measured_sensitivity = None
+                exp.completed_at = self._clock.now()
 
             if exp.state is not state_before:
                 uow.experiments.update_state(exp.experiment_id, exp.state, expected=state_before)
@@ -1653,8 +1654,6 @@ class EngineRun:
                 uow.experiments.record_completion(
                     exp.experiment_id,
                     completed_at=exp.completed_at,
-                    measured_sensitivity=exp.measured_sensitivity,
-                    conclusion=exp.conclusion,
                 )
             for item in media:
                 uow.media.add(item)

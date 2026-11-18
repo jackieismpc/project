@@ -51,7 +51,6 @@ def restart(h: Harness, log: EventLog | None = None) -> ExperimentEngine:
         config=fast_config(),
         schedule_clock=h.schedule,
         on_event=log,
-        conclusions_enabled=True,  # 这里验证完成时结论入库，所以打开结论功能
     )
 
 
@@ -87,7 +86,7 @@ def test_retry_after_restart_finishes_from_disk_without_flipping(faulted: Harnes
     retried = h.analyzer.requests[-1]
     assert retried.flip_angle_deg is not None
     assert all(frame.captured_at is not None for frame in retried.frames_after)
-    assert stored.conclusion is not None and stored.completed_at is not None
+    assert stored.completed_at is not None and stored.conclusion is None
     details = h.audit_details(AuditAction.EXPERIMENT_STATE_CHANGED)
     assert any("人工恢复" in d and "Row01" in d for d in details)
     assert any(

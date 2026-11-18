@@ -32,7 +32,6 @@ from numpy.typing import NDArray
 from pyhanko.pdf_utils.reader import PdfFileReader
 from PySide6.QtGui import QImage, QPagedPaintDevice, QPaintEngine
 
-from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -143,22 +142,17 @@ class SigningNotAllowedError(ServiceError):
 
     Attributes:
         blocks: 不能签署的原因。
-        conclusion: 试验的结论（用于说明无效或待定的原因），没有时为 None。
     """
 
-    def __init__(
-        self, blocks: tuple[SigningBlock, ...], conclusion: ExperimentConclusion | None = None
-    ) -> None:
+    def __init__(self, blocks: tuple[SigningBlock, ...]) -> None:
         """创建异常。
 
         Args:
             blocks: 不能签署的原因，非空。
-            conclusion: 试验的结论。
         """
         names = "、".join(block.blocker.value for block in blocks)
         super().__init__(f"现在不能签署：{names}", ServiceErrorCode.SIGN_NOT_ALLOWED)
         self.blocks = blocks
-        self.conclusion = conclusion
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,10 +165,8 @@ class ReportPreview:
         scope: 单个试验。
         experiment_id: 试验标识。
         blocks: 不能签署的原因，空表示可以签署。
-        conclusion: 试验结论；结论功能关闭时为 None。
         record: 已签署的报告记录（最新一份），没有为 None。
         digest: 页脚的内容摘要。
-        conclusions_enabled: 结论功能是否打开；关闭时界面不提试验结论。
     """
 
     document: ReportDocument
@@ -182,10 +174,8 @@ class ReportPreview:
     scope: ReportScope
     experiment_id: str | None
     blocks: tuple[SigningBlock, ...]
-    conclusion: ExperimentConclusion | None
     record: ReportRecord | None
     digest: str
-    conclusions_enabled: bool = False
 
     @property
     def can_sign(self) -> bool:
@@ -313,7 +303,6 @@ class ReportService:
         clock: Callable[[], datetime] | None = None,
         zone: tzinfo | None = None,
         export_policy: ExportPolicy | None = None,
-        conclusions_enabled: bool = False,
     ) -> None:
         """创建服务。
 
@@ -330,9 +319,7 @@ class ReportService:
             clock: 返回带时区当前时间的函数，测试注入。
             zone: 报告里显示时间用的时区，默认本机时区。
             export_policy: 批量导出的加密策略（与 Excel 导出共用），默认不要求加密。
-            conclusions_enabled: 是否在报告里显示试验结论、签署时要求有结论，默认关闭。
         """
-        self._conclusions_enabled = conclusions_enabled
         self._auth = auth
         self._export_policy = export_policy or ExportPolicy()
         self._storage = storage
@@ -544,13 +531,10 @@ class ReportService:
             experiment_id=experiment_id,
             blocks=signing_blocks(
                 experiment,
-                conclusions_enabled=self._conclusions_enabled,
                 allow_signed_revision=allow_revision,
             ),
-            conclusion=experiment.conclusion if self._conclusions_enabled else None,
             record=record,
             digest=document.content_digest(),
-            conclusions_enabled=self._conclusions_enabled,
         )
 
     def paint(
@@ -631,7 +615,7 @@ class ReportService:
 
         Raises:
             PermissionDeniedError: 没有权限。
-            SigningNotAllowedError: 有待复核、结论待定或无效、状态不对。
+            SigningNotAllowedError: 有待复核、缺少结果或状态不对。
             InvalidCredentialsError: 密码错误（计入登录失败次数，写审计）。
             ServiceError: 试验不存在、签署失败（``SIGN_FAILED``）、
                 试验被别处改过（``SIGN_CONFLICT``）。
@@ -647,19 +631,13 @@ class ReportService:
             experiment, latest.signed_at, latest
         )
         if is_revision and (latest is None or not (has_new_review or language_revision)):
-            raise SigningNotAllowedError(
-                (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
-                experiment.conclusion if self._conclusions_enabled else None,
-            )
+            raise SigningNotAllowedError((SigningBlock(SigningBlocker.ALREADY_SIGNED),))
         blocks = signing_blocks(
             experiment,
-            conclusions_enabled=self._conclusions_enabled,
             allow_signed_revision=is_revision,
         )
         if blocks:
-            raise SigningNotAllowedError(
-                blocks, experiment.conclusion if self._conclusions_enabled else None
-            )
+            raise SigningNotAllowedError(blocks)
         self._auth.confirm_password(session, password, purpose="签署")
         before = experiment.state
         now = self._clock()
@@ -676,10 +654,7 @@ class ReportService:
             or (latest.signed_at is not None and now <= latest.signed_at)
             or (has_new_review and latest_review_at is not None and now <= latest_review_at)
         ):
-            raise SigningNotAllowedError(
-                (SigningBlock(SigningBlocker.ALREADY_SIGNED),),
-                experiment.conclusion if self._conclusions_enabled else None,
-            )
+            raise SigningNotAllowedError((SigningBlock(SigningBlocker.ALREADY_SIGNED),))
         if is_revision:
             experiment.revise_signature(user.username, now)
         else:
@@ -740,11 +715,6 @@ class ReportService:
             revision=revision,
             supersedes_report_id=latest.report_id if is_revision and latest is not None else None,
         )
-        # 结论功能关闭时审计里不写任何结论内容。
-        verdict_text = ""
-        if self._conclusions_enabled:
-            verdict = experiment.conclusion.verdict.value if experiment.conclusion else "-"
-            verdict_text = f"：结论 {verdict}"
         events = [
             audit_event(
                 user,
@@ -756,7 +726,7 @@ class ReportService:
             audit_event(
                 user,
                 AuditAction.EXPERIMENT_SIGNED,
-                f"{'签署修订版' if is_revision else '签署试验'}并生成报告 {name}{verdict_text}；"
+                f"{'签署修订版' if is_revision else '签署试验'}并生成报告 {name}；"
                 f"版本 {record.revision}；前版 {record.supersedes_report_id or '-'}；"
                 f"语言 {language.value}；"
                 f"文件 SHA-256 {record.sha256}；内容摘要 {record.content_sha256}；"
@@ -1245,7 +1215,6 @@ class ReportService:
             signer_name=signer_name,
             started_at=self._started_at(experiment.experiment_id),
             temperature_range=self._storage.telemetry.temperature_range(experiment.experiment_id),
-            conclusions_enabled=self._conclusions_enabled,
         )
 
     def _wants_images(self, flag: bool | None) -> bool:

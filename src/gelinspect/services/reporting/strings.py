@@ -42,21 +42,7 @@ class S(StrEnum):
     PENDING = "pending"
     NO_RESULT = "no_result"
     REVIEWED = "reviewed"
-    CONCLUSION = "conclusion"
-    NONE = "none"
-    NO_CONCLUSION = "no_conclusion"
-    MEASURED = "measured"
-    NOT_FINAL_HINT = "not_final_hint"
-    LAMBDA_C_REFERENCE = "lambda_c_reference"
-    NOT_FINAL = "not_final"
     LABELED_LAMBDA = "labeled_lambda"
-    REASON_INVALID = "reason_invalid"
-    REASON_PENDING = "reason_pending"
-    REASON_UNMET = "reason_unmet"
-    BASIS = "basis"
-    RULE_VERSION = "rule_version"
-    RULE_SOURCE = "rule_source"
-    REVIEWED_NOTE = "reviewed_note"
     IMAGES_TITLE = "images_title"
     ROW_N = "row_n"
     BEFORE = "before"
@@ -102,25 +88,7 @@ SOURCES: dict[S, str] = {
     S.PENDING: str(QT_TRANSLATE_NOOP("Report", "待复核")),
     S.NO_RESULT: str(QT_TRANSLATE_NOOP("Report", "无结果")),
     S.REVIEWED: str(QT_TRANSLATE_NOOP("Report", "（已复核）")),
-    S.CONCLUSION: str(QT_TRANSLATE_NOOP("Report", "结论")),
-    S.NONE: str(QT_TRANSLATE_NOOP("Report", "无")),
-    S.NO_CONCLUSION: str(
-        QT_TRANSLATE_NOOP("Report", "这个试验完成时还没有结论功能，没有入库的结论。")
-    ),
-    S.MEASURED: str(QT_TRANSLATE_NOOP("Report", "实测灵敏度")),
-    S.NOT_FINAL_HINT: str(QT_TRANSLATE_NOOP("Report", "（不是最终结论，不能作为放行依据）")),
-    S.LAMBDA_C_REFERENCE: str(QT_TRANSLATE_NOOP("Report", "λc 参考值")),
-    S.NOT_FINAL: str(QT_TRANSLATE_NOOP("Report", "不是最终结论")),
     S.LABELED_LAMBDA: str(QT_TRANSLATE_NOOP("Report", "标示灵敏度 λ")),
-    S.REASON_INVALID: str(QT_TRANSLATE_NOOP("Report", "无效原因")),
-    S.REASON_PENDING: str(QT_TRANSLATE_NOOP("Report", "待定原因")),
-    S.REASON_UNMET: str(QT_TRANSLATE_NOOP("Report", "未满足的前提")),
-    S.BASIS: str(QT_TRANSLATE_NOOP("Report", "依据（+ 阳性，− 阴性）")),
-    S.RULE_VERSION: str(QT_TRANSLATE_NOOP("Report", "规则版本")),
-    S.RULE_SOURCE: str(QT_TRANSLATE_NOOP("Report", "规则来源")),
-    S.REVIEWED_NOTE: str(
-        QT_TRANSLATE_NOOP("Report", "标注“已复核”的结果经分析员人工复核，以复核结果为准。")
-    ),
     S.IMAGES_TITLE: str(QT_TRANSLATE_NOOP("Report", "8 连图（每排翻转前、翻转后代表帧）")),
     S.ROW_N: str(QT_TRANSLATE_NOOP("Report", "第 {row} 排")),
     S.BEFORE: str(QT_TRANSLATE_NOOP("Report", "翻转前")),

@@ -1,15 +1,15 @@
-"""检测模板管理：列表、新建、复制、编辑，内置模板只读。
+"""检测模板管理：列表、新建、复制、编辑，内置起始配置只读。
 
 权限：所有角色可查看（``template_view``）；新建、复制、编辑需要 ``template_manage``（管理员）。
 每次改动在同一事务里写审计（``template_changed``）。服务层再校验权限和内置只读，
-界面被绕过也不能改内置模板。本模块不含药典判定规则，布局待确认的模板照常保存和使用。
+界面被绕过也不能改内置起始配置。本模块不含药典判定规则。
 """
 
 from __future__ import annotations
 
 import math
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -125,7 +125,13 @@ def draft_of(template: ExperimentTemplate) -> TemplateDraft:
     )
 
 
-def build_template_config(template_id: str, draft: TemplateDraft) -> ExperimentTemplate:
+def build_template_config(
+    template_id: str,
+    draft: TemplateDraft,
+    *,
+    created_by: str | None = None,
+    created_at: datetime | None = None,
+) -> ExperimentTemplate:
     """统一构建并校验可复用模板或单次实验的试管配置。"""
     name = draft.name.strip()
     if not name:
@@ -200,21 +206,31 @@ def build_template_config(template_id: str, draft: TemplateDraft) -> ExperimentT
         experiment_type=draft.experiment_type,
         items=tuple(items),
         needs_confirmation=False,
+        created_by=created_by,
+        created_at=created_at,
     )
 
 
 class TemplateService:
     """模板管理服务。"""
 
-    def __init__(self, auth: AuthService, storage: TemplateStorage) -> None:
+    def __init__(
+        self,
+        auth: AuthService,
+        storage: TemplateStorage,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         """创建服务。
 
         Args:
             auth: 认证服务，用于校验权限。
             storage: 存储。
+            clock: 可注入时钟，用于模板创建时间和审计时间。
         """
         self._auth = auth
         self._storage = storage
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     # ------------------------------------------------------------------ 查询
 
@@ -314,9 +330,20 @@ class TemplateService:
             StorageBusyError: 数据库忙，什么都没有写入。
         """
         user = self._auth.authorize(session, Permission.TEMPLATE_MANAGE)
-        template = self._build(f"{CUSTOM_PREFIX}{self._new_id()}", draft)
+        created_at = self._now()
+        template = self._build(
+            f"{CUSTOM_PREFIX}{self._new_id()}",
+            draft,
+            created_by=user.username,
+            created_at=created_at,
+        )
         self._check_name(template.name, template.template_id)
-        self._save(user, template, f"新建模板 {template.name}（{template.tube_count} 管）")
+        self._save(
+            user,
+            template,
+            f"新建模板 {template.name}（{template.tube_count} 管）",
+            occurred_at=created_at,
+        )
         return template
 
     def copy_template(
@@ -346,9 +373,17 @@ class TemplateService:
         base = draft_of(source)
         new_name = (name or "").strip() or self._free_name(f"{source.name} 副本")
         draft = TemplateDraft(new_name, base.experiment_type, base.items, base.tube_numbers)
-        template = self._build(f"{CUSTOM_PREFIX}{self._new_id()}", draft)
+        created_at = self._now()
+        template = self._build(
+            f"{CUSTOM_PREFIX}{self._new_id()}",
+            draft,
+            created_by=user.username,
+            created_at=created_at,
+        )
         self._check_name(template.name, template.template_id)
-        self._save(user, template, f"复制模板 {source.name} 为 {template.name}")
+        self._save(
+            user, template, f"复制模板 {source.name} 为 {template.name}", occurred_at=created_at
+        )
         return template
 
     def update_template(
@@ -377,7 +412,12 @@ class TemplateService:
                 ServiceErrorCode.TEMPLATE_READ_ONLY,
                 name=info.template.name,
             )
-        template = self._build(template_id, draft)
+        template = self._build(
+            template_id,
+            draft,
+            created_by=info.template.created_by,
+            created_at=info.template.created_at,
+        )
         self._check_name(template.name, template_id)
         self._save(user, template, f"编辑模板 {template.name}（{template.tube_count} 管）")
         return template
@@ -432,7 +472,7 @@ class TemplateService:
         deleted: bool = False,
     ) -> None:
         event = AuditEvent(
-            occurred_at=datetime.now(UTC),
+            occurred_at=self._now(),
             actor=user.username,
             actor_role=user.role,
             action=AuditAction.TEMPLATE_CHANGED,
@@ -443,7 +483,7 @@ class TemplateService:
                 template_id,
                 hidden=hidden,
                 deleted=deleted,
-                deleted_at=datetime.now(UTC) if deleted else None,
+                deleted_at=self._now() if deleted else None,
                 deleted_by=user.username if deleted else None,
             )
             uow.audit.append(event)
@@ -480,12 +520,35 @@ class TemplateService:
             index += 1
         return f"{wanted} {index}"
 
-    def _build(self, template_id: str, draft: TemplateDraft) -> ExperimentTemplate:
-        return build_template_config(template_id, draft)
+    def _now(self) -> datetime:
+        """获取带时区的 UTC 时间。"""
+        value = self._clock()
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("模板服务时钟必须返回带时区的时间")
+        return value.astimezone(UTC)
 
-    def _save(self, user: User, template: ExperimentTemplate, detail: str) -> None:
+    def _build(
+        self,
+        template_id: str,
+        draft: TemplateDraft,
+        *,
+        created_by: str | None = None,
+        created_at: datetime | None = None,
+    ) -> ExperimentTemplate:
+        return build_template_config(
+            template_id, draft, created_by=created_by, created_at=created_at
+        )
+
+    def _save(
+        self,
+        user: User,
+        template: ExperimentTemplate,
+        detail: str,
+        *,
+        occurred_at: datetime | None = None,
+    ) -> None:
         event = AuditEvent(
-            occurred_at=datetime.now(UTC),
+            occurred_at=occurred_at or self._now(),
             actor=user.username,
             actor_role=user.role,
             action=AuditAction.TEMPLATE_CHANGED,

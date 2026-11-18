@@ -197,7 +197,6 @@ class ExportService:
         *,
         clock: Callable[[], datetime] | None = None,
         policy: ExportPolicy | None = None,
-        conclusions_enabled: bool = False,
     ) -> None:
         """创建服务。
 
@@ -206,9 +205,7 @@ class ExportService:
             storage: 存储。
             clock: 返回带时区当前时间的函数，测试注入。
             policy: 导出加密策略，默认不要求加密。
-            conclusions_enabled: Excel 是否包含试验结论，默认关闭。
         """
-        self._conclusions_enabled = conclusions_enabled
         self._auth = auth
         self._storage = storage
         self._clock = clock or (lambda: datetime.now(UTC))
@@ -235,7 +232,7 @@ class ExportService:
         *,
         password: str | None = None,
     ) -> ExportSummary:
-        """导出试验结果：试验汇总、单管结果（含单管特征和复核），结论功能打开时再含结论、λc、结论依据。
+        """导出试验汇总、单管结果及复核明细。
 
         Args:
             session: 调用者的会话，需要 ``data_export`` 权限。
@@ -259,11 +256,7 @@ class ExportService:
         started = time.perf_counter()
         experiments = list(self._load(experiment_ids))
         path, rows = self._write(
-            lambda dest: write_results(
-                experiments, dest, labels, conclusions_enabled=self._conclusions_enabled
-            ),
-            destination,
-            password,
+            lambda dest: write_results(experiments, dest, labels), destination, password
         )
         elapsed = time.perf_counter() - started
         self._audit(

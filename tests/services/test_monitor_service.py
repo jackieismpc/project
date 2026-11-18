@@ -32,7 +32,7 @@ def test_view_of_a_stored_experiment_is_read_only_and_complete(real_app: AppCont
     assert view.state is ExperimentState.READY and not view.live and not view.can_stop
     assert len(view.tubes) == 18 and [r.row_index for r in view.rows] == [1, 2, 3]
     assert view.reagent_batches[ReagentKind.LAL_REAGENT] == "LAL2606A"
-    assert view.labeled_sensitivity == 0.25 and view.measured_sensitivity is None
+    assert view.labeled_sensitivity == 0.25
     assert view.operator == "experimenter" and view.operator_name
     assert view.template_builtin and view.started_at is None
     assert all(t.status is None and t.result is None for t in view.tubes)

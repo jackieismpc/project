@@ -33,7 +33,7 @@ def test_excel_headers_and_values_are_traditional_chinese(
     stack: Stack, traditional: LanguageManager, tmp_path: Path
 ) -> None:
     make_completed(stack)
-    exports = ExportService(stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=True)
+    exports = ExportService(stack.auth, stack.database, clock=lambda: NOW)
     admin = stack.login("admin")
     labels = export_labels()
     exports.export_results(admin, ["EXP-SAMPLE-0001"], tmp_path / "r.xlsx", labels)

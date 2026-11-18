@@ -199,7 +199,12 @@ class ExperimentService:
             configured = sorted(template.items, key=lambda item: item.tube_no)
             if not configured or len(configured) > TUBE_COUNT:
                 raise ServiceError("本次配置的管号无效", ServiceErrorCode.DRAFT_TUBES_INVALID)
-            template = build_template_config(request.template_id, draft_of(template))
+            template = build_template_config(
+                request.template_id,
+                draft_of(template),
+                created_by=template.created_by,
+                created_at=template.created_at,
+            )
         inactive = not ad_hoc and (
             self._storage.templates.is_hidden(request.template_id)
             or self._storage.templates.is_deleted(request.template_id)
@@ -342,6 +347,8 @@ class ExperimentService:
             experiment_type=template.experiment_type,
             items=tuple(snapshot_items),
             needs_confirmation=template.needs_confirmation,
+            created_by=template.created_by,
+            created_at=template.created_at,
         )
         experiment = Experiment(
             experiment_id=experiment_id,

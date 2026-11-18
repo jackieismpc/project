@@ -86,6 +86,16 @@ def test_create_saves_a_ready_experiment_with_the_template_mapping(stack: Stack)
     assert stack.engine.started == []  # 创建不启动
 
 
+def test_experiment_template_snapshot_keeps_creation_metadata(stack: Stack) -> None:
+    source = dataclasses.replace(SENSITIVITY, created_by="admin", created_at=NOW)
+    request = request_for(source, tubes=range(20, 38))
+    experiment_id = stack.experiments.create_experiment(stack.login("experimenter"), request)
+    experiment = stack.database.experiments.get(experiment_id)
+    assert experiment is not None and experiment.template_snapshot is not None
+    assert experiment.template_snapshot.created_by == "admin"
+    assert experiment.template_snapshot.created_at == NOW
+
+
 def test_create_recalculates_an_overridden_lambda_multiple_from_trusted_sensitivity(
     stack: Stack,
 ) -> None:

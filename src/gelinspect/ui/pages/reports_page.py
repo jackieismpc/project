@@ -33,7 +33,6 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.signing import SigningBlocker
 from gelinspect.interfaces.storage import ExperimentSummary, ReportRecord, StorageBusyError
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
@@ -50,7 +49,6 @@ from gelinspect.services.reporting.texts import ReportLanguage, report_language_
 from gelinspect.services.reporting.verify import SignatureVerification
 from gelinspect.ui.export_labels import export_labels
 from gelinspect.ui.labels import (
-    conclusion_verdict_label,
     describe_auth_error,
     describe_service_error,
     describe_storage_busy,
@@ -745,25 +743,15 @@ class ReportsPage(QWidget):
     def _render_status(self, preview: ReportPreview) -> None:
         record = self._record
         signed = record is not None
-        verdict_text = ""
-        if preview.conclusion is not None:
-            verdict_text = conclusion_verdict_label(preview.conclusion.verdict)
         reasons: list[str] = []
         if signed:
             self._tone("success", self.tr("已签署"))
         elif preview.can_sign:
-            if preview.conclusions_enabled:
-                text = self.tr("可以签署：实验结论为“{verdict}”").format(verdict=verdict_text)
-            else:
-                text = self.tr("可以签署：全部待复核已处理，实验已完成")
+            text = self.tr("可以签署：全部待复核已处理，实验已完成")
             self._tone("info", text)
         else:
-            reasons = describe_signing_blocks(preview.blocks, preview.conclusion)
-            danger = any(
-                b.blocker in (SigningBlocker.VERDICT_INVALID, SigningBlocker.VERDICT_PENDING)
-                for b in preview.blocks
-            )
-            self._tone("danger" if danger else "warning", self.tr("现在不能签署"))
+            reasons = describe_signing_blocks(preview.blocks)
+            self._tone("warning", self.tr("现在不能签署"))
         self.reasons_label.setText("\n".join(reasons))
         self.reasons_label.setVisible(bool(reasons))
         who = None if record is None else record.signed_by
@@ -959,7 +947,7 @@ class ReportsPage(QWidget):
         self._toast(self.tr("已导出：{name}").format(name=written.name), ToastKind.SUCCESS)
 
     def export_excel(self) -> None:
-        """选择文件并把当前试验的结果导出为 Excel（含结论、λc、单管特征和复核）。"""
+        """选择文件并把当前试验的逐管结果、特征和复核记录导出为 Excel。"""
         experiment_id = self.experiment_id
         if experiment_id is None or self._session is None:
             return

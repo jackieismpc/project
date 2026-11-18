@@ -27,10 +27,8 @@ from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from gelinspect.domain.conclusions import ConclusionNote
 from gelinspect.domain.entities import Experiment, TubeResult
 from gelinspect.domain.enums import (
-    ConclusionVerdict,
     ExperimentType,
     GelState,
     Interpretation,
@@ -126,13 +124,11 @@ class ExportLabels:
         state: 试验状态。
         experiment_type: 试验类型。
         role: 试管用途。
-        verdict: 结论。
         interpretation: 阴阳性判读。
         gel_state: 算法三态。
         review_status: 复核状态。
         analysis_status: 算法处理状态。
         user_role: 用户角色（审计的“权限”列）。
-        note: 结论依据里的一条。
         reagent: 试剂种类。
     """
 
@@ -140,20 +136,17 @@ class ExportLabels:
     state: Callable[[ExperimentState], str] = _enum_value
     experiment_type: Callable[[ExperimentType], str] = _enum_value
     role: Callable[[TubeRole], str] = _enum_value
-    verdict: Callable[[ConclusionVerdict], str] = _enum_value
     interpretation: Callable[[Interpretation], str] = _enum_value
     gel_state: Callable[[GelState], str] = _enum_value
     review_status: Callable[[ReviewStatus], str] = _enum_value
     analysis_status: Callable[[TubeAnalysisStatus], str] = _enum_value
     user_role: Callable[[Role], str] = _enum_value
-    note: Callable[[ConclusionNote], str] = lambda n: n.text  # noqa: E731
     reagent: Callable[[ReagentKind], str] = _enum_value
 
 
 EXPORT_TEXTS: tuple[str, ...] = (
     "试验",
     "单管结果",
-    "结论依据",
     "历史列表",
     "审计追踪",
     "试验编号",
@@ -171,10 +164,6 @@ EXPORT_TEXTS: tuple[str, ...] = (
     "标示灵敏度 λ（EU/mL）",
     "MVD",
     "内毒素限值",
-    "实测灵敏度 λc（EU/mL）",
-    "结论",
-    "结论数值",
-    "规则版本",
     "管数",
     "待复核管数",
     "管号",
@@ -289,17 +278,13 @@ def write_results(
     experiments: Iterable[Experiment],
     destination: Path,
     labels: ExportLabels | None = None,
-    *,
-    conclusions_enabled: bool = False,
 ) -> tuple[Path, int]:
-    """导出试验结果：试验汇总、单管结果（含特征和复核），结论功能打开时再加结论依据表。
+    """导出试验结果：试验汇总和单管结果（含特征和复核）。
 
     Args:
         experiments: 试验。
         destination: 目标文件，扩展名不是 ``.xlsx`` 时补上。
         labels: 文字翻译，默认简体中文。
-        conclusions_enabled: 结论功能是否打开。关闭时没有实测灵敏度、结论、结论数值、
-            规则版本四列，也没有结论依据表。
 
     Returns:
         ``(写出的文件, 单管结果行数)``。
@@ -324,11 +309,6 @@ def write_results(
         "标示灵敏度 λ（EU/mL）",
         "MVD",
         "内毒素限值",
-        *(
-            ("实测灵敏度 λc（EU/mL）", "结论", "结论数值", "规则版本")
-            if conclusions_enabled
-            else ()
-        ),
         "管数",
         "待复核管数",
     )
@@ -371,18 +351,10 @@ def write_results(
             )
         ],
     )
-    basis = (
-        _SheetWriter(workbook, t("结论依据"), [t(h) for h in ("试验编号", "类别", "内容")])
-        if conclusions_enabled
-        else None
-    )
     for experiment in experiments:
         batches = {b.kind: b for b in experiment.reagents}
-        conclusion = experiment.conclusion
         lal = batches.get(ReagentKind.LAL_REAGENT)
         labeled = lal.labeled_sensitivity if lal is not None else None
-        if labeled is None and conclusion is not None:
-            labeled = conclusion.labeled_sensitivity
         summary.add(
             [
                 experiment.experiment_id,
@@ -401,16 +373,6 @@ def write_results(
                 labeled,
                 experiment.mvd,
                 experiment.endotoxin_limit,
-                *(
-                    (
-                        experiment.measured_sensitivity,
-                        "" if conclusion is None else lab.verdict(conclusion.verdict),
-                        None if conclusion is None else conclusion.value,
-                        "" if conclusion is None else conclusion.rule_version,
-                    )
-                    if conclusions_enabled
-                    else ()
-                ),
                 len(experiment.assignments),
                 len(experiment.pending_review_tubes),
             ]
@@ -457,11 +419,6 @@ def write_results(
                     result.message or "",
                 ]
             )
-        if basis is not None and conclusion is not None:
-            for note in conclusion.basis:
-                basis.add([experiment.experiment_id, t("依据"), lab.note(note)])
-            for note in conclusion.unmet:
-                basis.add([experiment.experiment_id, t("未满足的前提"), lab.note(note)])
     return _write_atomically(workbook, target), tubes.rows
 
 

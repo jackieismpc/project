@@ -573,292 +573,6 @@
     </message>
 </context>
 <context>
-    <name>Conclusion</name>
-    <message>
-        <source>合格</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>不合格</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无效</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>不适用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>标示灵敏度 λ = {lam} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {series} 系列（{tubes} 号管）：{readings}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL（{multiple}λ）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>阴性对照（{tubes} 号管）：全部阴性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>λc = antilg(mean(lg 终点)) = antilg(({terms}) / {count}) ≈ {value}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>λc = {value} EU/mL，判定范围 0.5λ–2λ（含）= {low}–{high} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：阳性 {positive}，阴性 {negative}，待定 {other}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>中国药典通则 1143</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>通用检测，按每管阴阳性出具结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>共 {total} 管：阳性 {positive}，阴性 {negative}；通用检测按每管阴阳性出具结果，不做试验级判定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>没有安排试管</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验使用的旧模板没有标明每管用途，不能判定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{tubes} 号管没有指定用途</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>旧版本软件没有这类试验的判定规则，不给出合格或不合格</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{tubes} 号管还没有结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{tubes} 号管等待人工复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>没有可用的鲎试剂标示灵敏度 λ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：阴性对照 {tubes} 号管加了内毒素</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：{tubes} 号管的外加内毒素不是 2λ、λ、λ/2、λ/4 之一</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>管位与规则要求的布局不符：{multiple}λ 应有 {expected} 管，实际 {actual} 管</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>模板没有标记阴性对照</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>最大浓度 {level} EU/mL 不是全部阳性（{tubes} 号管不是阳性）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>最低浓度 {level} EU/mL 不是全部阴性（{tubes} 号管不是阴性）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>阴性对照不是阴性（{tubes} 号管）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {series} 系列不连续（阴性之后又出现阳性），需人工判定；上面的 λc 只作参考</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>模板没有标记{role}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}不是全部阴性（{tubes} 号管）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}不是全部阳性（{tubes} 号管）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：全部阴性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}（{tubes} 号管）：全部阳性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}：各浓度或稀释度的管数应相同，实际为 {counts}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，终点 {endpoint} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列（{tubes} 号管）：{readings}，没有阳性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{role}第 {series} 系列不连续（阴性之后又出现阳性），需人工判定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Es = antilg(mean(lg 终点)) ≈ {value} EU/mL，应在 0.5λ–2λ（{low}–{high} EU/mL）内</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Es = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Et = antilg(mean(lg 终点)) ≈ {value} EU/mL，判定范围 0.5Es–2Es（{low}–{high} EU/mL）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Et 在 0.5Es–2Es 内：供试品在该浓度下无干扰作用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Et 超出 0.5Es–2Es：供试品在该浓度下存在干扰作用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品内毒素系列第 {series} 系列没有阳性，无法计算 Et：供试品在该浓度下存在干扰作用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品（{tubes} 号管）全部阴性：符合规定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品（{tubes} 号管）有阳性：不符合规定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品两管一阳一阴，需用“限度试验（复试）”模板复试</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品 {tubes} 号管没有稀释倍数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：{readings}，终点稀释 {dilution} 倍，浓度 {value} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：全部阴性，浓度 &lt; {value} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品第 {series} 系列（{tubes} 号管）：全部阳性，浓度 ≥ {value} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>供试品内毒素浓度 = antilg(mean(lg 各系列浓度)) ≈ {value} EU/mL</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>没有录入内毒素限值，无法判定是否符合规定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>各系列浓度均小于内毒素限值 {limit} EU/mL：符合规定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {series} 系列浓度不小于内毒素限值 {limit} EU/mL：不符合规定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>第 {series} 系列无法与内毒素限值 {limit} EU/mL 比较，需调整稀释倍数后重新试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>λc = {value} EU/mL 超出 0.5λ–2λ（{low}–{high} EU/mL）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验完成时还没有结论功能，没有入库的结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验已停止，不产生结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>ConclusionCard</name>
-    <message>
-        <source>规则版本 {version}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>λc（参考值，不是最终结论）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>标示灵敏度 λ {value} EU/ml</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无效原因</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>规则来源：{source}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实验完成后才会固化结论。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实验结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>依据（+ 阳性，− 阴性）</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>ConfirmDialog</name>
     <message>
         <source>取消</source>
@@ -1134,10 +848,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>结论依据</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>历史列表</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1203,22 +913,6 @@
     </message>
     <message>
         <source>内毒素限值</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc（EU/mL）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>结论数值</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>规则版本</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1347,14 +1041,6 @@
     </message>
     <message>
         <source>内容</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>依据</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2102,10 +1788,6 @@
     </message>
     <message>
         <source>标示灵敏度 λ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实测灵敏度 λc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3423,63 +3105,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验完成时还没有结论功能，没有入库的结论。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实测灵敏度</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>（不是最终结论，不能作为放行依据）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>λc 参考值</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>不是最终结论</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>标示灵敏度 λ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无效原因</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待定原因</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>未满足的前提</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>依据（+ 阳性，− 阴性）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>规则版本</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>规则来源</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>标注“已复核”的结果经分析员人工复核，以复核结果为准。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3639,10 +3265,6 @@
     </message>
     <message>
         <source>无法确认 PDF 状态，请检查文件权限并联系后台检查。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>可以签署：实验结论为“{verdict}”</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4610,18 +4232,6 @@
         <source>{tubes} 号管还没有结果。</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <source>这个实验没有入库的结论，不能签署。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>Sparkline</name>
@@ -4766,7 +4376,7 @@
     </message>
     <message>
         <source>删除选中试管</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">删除选中试管</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4871,6 +4481,14 @@
     </message>
     <message>
         <source>来源</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>创建人</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>创建时间</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

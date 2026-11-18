@@ -473,7 +473,6 @@ def _experiment_json(experiment: Experiment) -> dict[str, object]:
         "settings": {
             "mvd": experiment.mvd,
             "endotoxin_limit": experiment.endotoxin_limit,
-            "measured_sensitivity": experiment.measured_sensitivity,
             "layout_confirmed": experiment.layout_confirmed,
         },
         "reagents": [_safe_mapping(asdict(batch)) for batch in experiment.reagents],

@@ -36,10 +36,33 @@ def test_open_creates_parent_dirs_and_latest_schema(tmp_path: Path) -> None:
                     text("SELECT name FROM sqlite_master WHERE type='table'")
                 )
             }
-        assert version == "0010"
+        assert version == "0011"
         assert set(Base.metadata.tables) <= tables
     finally:
         db.close()
+
+
+def test_template_metadata_migration_leaves_existing_rows_unknown(tmp_path: Path) -> None:
+    path = tmp_path / "legacy-template.db"
+    database = open_database(path)
+    database.close()
+    _alembic(path, "downgrade", "0010")
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "INSERT INTO templates (template_id, name, experiment_type, needs_confirmation, "
+            "builtin, hidden) VALUES ('custom.old', '旧模板', 'limit', 0, 0, 0)"
+        )
+        connection.execute(
+            "INSERT INTO template_items (template_id, tube_no, sample_name, role) "
+            "VALUES ('custom.old', 1, '样品', 'test')"
+        )
+    upgraded = open_database(path)
+    try:
+        template = upgraded.templates.get("custom.old")
+        assert template is not None
+        assert template.created_by is None and template.created_at is None
+    finally:
+        upgraded.close()
 
 
 def test_reopen_is_idempotent_and_keeps_data(tmp_path: Path) -> None:

@@ -560,6 +560,8 @@ class ExperimentDraft:
                     for index, row in enumerate(assigned_rows, start=1)
                 ),
                 needs_confirmation=self._template.needs_confirmation,
+                created_by=self._template.created_by,
+                created_at=self._template.created_at,
             )
         return NewExperimentRequest(
             template_id=template_id,

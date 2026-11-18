@@ -16,8 +16,6 @@ from gelinspect.domain.enums import (
 )
 from gelinspect.services.excel_export import ExportLabels
 from gelinspect.ui.labels import (
-    conclusion_note_text,
-    conclusion_verdict_label,
     experiment_state_label,
     experiment_type_label,
     role_label,
@@ -27,7 +25,6 @@ from gelinspect.ui.labels import (
 _SOURCES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("Export", "试验")),
     str(QT_TRANSLATE_NOOP("Export", "单管结果")),
-    str(QT_TRANSLATE_NOOP("Export", "结论依据")),
     str(QT_TRANSLATE_NOOP("Export", "历史列表")),
     str(QT_TRANSLATE_NOOP("Export", "审计追踪")),
     str(QT_TRANSLATE_NOOP("Export", "试验编号")),
@@ -45,10 +42,6 @@ _SOURCES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("Export", "标示灵敏度 λ（EU/mL）")),
     str(QT_TRANSLATE_NOOP("Export", "MVD")),
     str(QT_TRANSLATE_NOOP("Export", "内毒素限值")),
-    str(QT_TRANSLATE_NOOP("Export", "实测灵敏度 λc（EU/mL）")),
-    str(QT_TRANSLATE_NOOP("Export", "结论")),
-    str(QT_TRANSLATE_NOOP("Export", "结论数值")),
-    str(QT_TRANSLATE_NOOP("Export", "规则版本")),
     str(QT_TRANSLATE_NOOP("Export", "管数")),
     str(QT_TRANSLATE_NOOP("Export", "待复核管数")),
     str(QT_TRANSLATE_NOOP("Export", "管号")),
@@ -81,8 +74,6 @@ _SOURCES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("Export", "算法说明")),
     str(QT_TRANSLATE_NOOP("Export", "类别")),
     str(QT_TRANSLATE_NOOP("Export", "内容")),
-    str(QT_TRANSLATE_NOOP("Export", "依据")),
-    str(QT_TRANSLATE_NOOP("Export", "未满足的前提")),
     str(QT_TRANSLATE_NOOP("Export", "序号")),
     str(QT_TRANSLATE_NOOP("Export", "时间")),
     str(QT_TRANSLATE_NOOP("Export", "操作者")),
@@ -133,11 +124,9 @@ def export_labels() -> ExportLabels:
         state=experiment_state_label,
         experiment_type=experiment_type_label,
         role=tube_role_label,
-        verdict=conclusion_verdict_label,
         interpretation=lambda v: QCoreApplication.translate("ExportValue", _INTERPRETATIONS[v]),
         gel_state=lambda v: QCoreApplication.translate("ExportValue", _GEL_STATES[v]),
         review_status=lambda v: QCoreApplication.translate("ExportValue", _REVIEW[v]),
         analysis_status=lambda v: QCoreApplication.translate("ExportValue", _ANALYSIS[v]),
         user_role=role_label,
-        note=conclusion_note_text,
     )

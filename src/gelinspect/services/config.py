@@ -64,7 +64,6 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
     },
     "device": {"backend": "simulation.sim_device:SimDevice"},
     "engine": {"incubation_minutes": 60, "time_scale": 60},
-    "conclusions": {"enabled": True},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
     "traceability": {
         "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},
@@ -259,17 +258,6 @@ class ReportSection(_Section):
     include_images: bool = False
 
 
-class ConclusionsSection(_Section):
-    """试验结论（合格、不合格、无效、待定）的开关。
-
-    Attributes:
-        enabled: 是否计算、入库和显示试验结论（按中国药典通则 1143，默认打开）。关闭时只显示
-            每支管的凝固状态、阴阳性和复核标注，签署不要求有结论，也不计算、不入库结论。
-    """
-
-    enabled: bool = True
-
-
 class AppConfig(_Section):
     """软件的完整配置。加载后路径都已是绝对路径。
 
@@ -287,7 +275,6 @@ class AppConfig(_Section):
         traceability: 试剂码解析、备案清单和政府溯源平台。
         instrument_no: 仪器编号，写入每个新试验。
         reports: 报告与数字签名。
-        conclusions: 试验结论开关，默认关闭。
         retention_days: 视频和图像的保留天数，None 表示不自动删除（默认）。
         exports: 导出（是否加密）。
         license: 设备绑定授权（默认不启用）。
@@ -305,7 +292,6 @@ class AppConfig(_Section):
     traceability: TraceabilitySection = TraceabilitySection()
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
     reports: ReportSection = ReportSection()
-    conclusions: ConclusionsSection = ConclusionsSection()
     retention_days: int | None = Field(default=None, ge=1, le=36500)
     exports: ExportSection = ExportSection()
     license: LicenseSection = LicenseSection()

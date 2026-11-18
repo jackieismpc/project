@@ -398,7 +398,7 @@ class HistoryPage(QWidget):
     # ------------------------------------------------------------------ 导出
 
     def request_export_selected(self) -> None:
-        """选择文件并导出选中试验的结果（含结论、λc、单管特征和复核）。"""
+        """选择文件并导出选中试验的逐管结果、特征和复核记录。"""
         if not self.table.selected_rows():
             return
         target, _ = QFileDialog.getSaveFileName(

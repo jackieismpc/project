@@ -16,13 +16,7 @@ from tests.ui.conftest import sign_in
 from tests.ui.test_report_center import finish_experiment, reports_of
 
 
-@pytest.fixture
-def conclusions_enabled() -> bool:
-    """这个模块验证结论功能打开时的导出（关闭时的见 test_conclusions_off_ui.py）。"""
-    return True
-
-
-def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(
+def test_excel_button_exports_per_tube_results_and_review_without_rule_summary(
     qapp: QApplication,
     fast_window: MainWindow,
     fast_context: AppContext,
@@ -40,9 +34,11 @@ def test_excel_button_exports_the_current_experiment_with_conclusion_and_review(
     page.excel_button.click()
     assert target.is_file()
     book = load_workbook(target)
-    assert book.sheetnames == ["试验", "单管结果", "结论依据"]
+    assert book.sheetnames == ["试验", "单管结果"]
     summary = [c.value for c in book["试验"][2]]
-    assert summary[0] == experiment_id and summary[16] is not None  # 结论列有值
+    headers = [c.value for c in book["试验"][1]]
+    assert summary[0] == experiment_id
+    assert not {"结论", "结论数值", "规则版本", "实测灵敏度 λc（EU/mL）"} & set(headers)
     tubes = book["单管结果"]
     header = [c.value for c in tubes[1]]
     reviewed = [

@@ -85,6 +85,8 @@ def _template_payload(template: ExperimentTemplate | None) -> dict[str, Any] | N
         "name": template.name,
         "experiment_type": template.experiment_type.value,
         "needs_confirmation": template.needs_confirmation,
+        "created_by": template.created_by,
+        "created_at": template.created_at.isoformat() if template.created_at else None,
         "items": [
             {
                 "tube_no": item.tube_no,
@@ -108,6 +110,8 @@ def _template_from_payload(raw: dict[str, Any] | None) -> ExperimentTemplate | N
         name=str(raw["name"]),
         experiment_type=ExperimentType(raw["experiment_type"]),
         needs_confirmation=bool(raw.get("needs_confirmation", False)),
+        created_by=raw.get("created_by"),
+        created_at=(datetime.fromisoformat(raw["created_at"]) if raw.get("created_at") else None),
         items=tuple(
             TemplateTubeItem(
                 tube_no=int(item["tube_no"]),
@@ -395,29 +399,21 @@ class SqlExperimentRepository(ExperimentRepository):
         experiment_id: str,
         *,
         completed_at: datetime,
-        measured_sensitivity: float | None,
-        conclusion: ExperimentConclusion | None,
     ) -> None:
-        """写入完成时间、实测灵敏度和结论，与“已完成”状态在同一事务调用。
+        """写入完成时间，与“已完成”状态在同一事务调用。
 
         Args:
             experiment_id: 试验标识。
             completed_at: 完成时间。
-            measured_sensitivity: 实测灵敏度，结论不是合格或不合格时为 None。
-            conclusion: 已固化的结论；结论功能关闭时为 None，只写完成时间。
 
         Raises:
             NotFoundError: 试验不存在。
-            ValueError: 结论没有计算时间。
         """
         with translate_lock_errors(), self._sessions() as session:
             row = session.get(ExperimentRow, experiment_id)
             if row is None:
                 raise NotFoundError(f"试验不存在：{experiment_id}")
             row.completed_at = completed_at
-            row.measured_sensitivity = measured_sensitivity
-            if conclusion is not None:
-                _write_conclusion(session, experiment_id, conclusion)
 
     def update_state(
         self,

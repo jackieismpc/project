@@ -483,7 +483,6 @@ def _assemble_app_context(
         mapping=settings.mapping(),
         analyzer_config_path=settings.analysis.config_path,
         on_event=on_event,
-        conclusions_enabled=settings.conclusions.enabled,
     )
     resources.callback(_cleanup_engine_startup, engine, 30.0, engine_stopped)
     recovered = engine.recover_interrupted()
@@ -495,9 +494,7 @@ def _assemble_app_context(
         government=government,
         clock=clock,
     )
-    monitor = MonitorService(
-        auth, database, engine, pipeline, conclusions_enabled=settings.conclusions.enabled
-    )
+    monitor = MonitorService(auth, database, engine, pipeline)
     media = MediaService(auth, database)
     reports = settings.reports
     keystore = LocalKeyStore(
@@ -520,7 +517,6 @@ def _assemble_app_context(
         copyright_holder=reports.copyright_holder,
         include_images=reports.include_images,
         clock=clock,
-        conclusions_enabled=settings.conclusions.enabled,
     )
     experiments = ExperimentService(
         auth, database, reagents, engine, instrument_no=settings.instrument_no, clock=clock
@@ -545,9 +541,7 @@ def _assemble_app_context(
         experiments=experiments,
         monitor=monitor,
         media=media,
-        reviews=ReviewService(
-            auth, database, clock=clock, conclusions_enabled=settings.conclusions.enabled
-        ),
+        reviews=ReviewService(auth, database, clock=clock),
         dashboard=DashboardService(auth, database, monitor, reagents),
         reports=report_service,
         users=UserService(auth, database, clock=clock),
@@ -557,7 +551,6 @@ def _assemble_app_context(
             database,
             clock=clock,
             policy=export_policy,
-            conclusions_enabled=settings.conclusions.enabled,
         ),
         settings=InstrumentSettingsService(
             auth,

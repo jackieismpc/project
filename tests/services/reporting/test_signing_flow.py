@@ -117,15 +117,13 @@ def test_pdf_has_chinese_text_key_fields_and_embedded_bundled_font(
         "稀释倍数",
         "外加内毒素",
         "阳性（已复核）",
-        "结论：合格",
-        "λc = 0.5946",
-        "sensitivity-v1",
         "本报告已使用数字签名，任何修改都会导致验签失败。",
         "© 厦门鲎试剂生物科技股份有限公司，未经许可不得复制。",
         "SHA-256",
         "第 1 页 / 共 1 页",
     ):
         assert expected in text, expected
+    assert "结论" not in text and "λc" not in text and "规则版本" not in text
     assert "�" not in text  # 没有缺字
     # 报告字体由系统提供，PDF 文件嵌入了实际使用的字体子集。
     fonts = pdf_font_report(data)
@@ -511,7 +509,6 @@ def test_a_review_during_rendering_cannot_be_signed_as_an_older_snapshot(
         keystore=service._keystore,
         clock=lambda: SIGN_TIME,
         zone=UTC,
-        conclusions_enabled=True,
     )
     analyst = stack.login("analyst")
     with pytest.raises(ServiceError) as caught:
@@ -562,7 +559,6 @@ def test_concurrent_language_revisions_cannot_replace_the_same_revision_file(
         keystore=service._keystore,
         clock=lambda: clock_value[0],
         zone=UTC,
-        conclusions_enabled=True,
     )
     with pytest.raises(ServiceError) as caught:
         guarded.sign(
@@ -657,15 +653,15 @@ def test_review_after_signature_is_a_revision_even_when_its_timestamp_ties_or_re
     experiment = stack.database.experiments.get("EXP-SAMPLE-0001")
     assert experiment is not None
     tube_no = next(iter(experiment.results))
-    conclusion = experiment.results[tube_no].final_interpretation
-    assert conclusion in {Interpretation.POSITIVE, Interpretation.NEGATIVE}
+    interpretation = experiment.results[tube_no].final_interpretation
+    assert interpretation in {Interpretation.POSITIVE, Interpretation.NEGATIVE}
     from gelinspect.services.review_service import ReviewService
 
     ReviewService(stack.auth, stack.database, clock=lambda: SIGN_TIME + review_offset).review_tube(
         analyst,
         experiment.experiment_id,
         tube_no,
-        conclusion,
+        interpretation,
         "签署后复核，检验审计顺序",
     )
 

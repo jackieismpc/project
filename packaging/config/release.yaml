@@ -13,8 +13,6 @@ device:
 engine:
   incubation_minutes: 60
   time_scale: 60
-conclusions:
-  enabled: true
 bootstrap:
   hook: simulation.demo_accounts:DemoAccounts
 traceability:

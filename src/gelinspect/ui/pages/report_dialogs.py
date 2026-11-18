@@ -42,7 +42,7 @@ def _error_text(error: Exception) -> str:
     if isinstance(error, AuthError):
         return describe_auth_error(error)
     if isinstance(error, SigningNotAllowedError):
-        return "\n".join(describe_signing_blocks(error.blocks, error.conclusion))
+        return "\n".join(describe_signing_blocks(error.blocks))
     if isinstance(error, ServiceError):
         return describe_service_error(error)
     if isinstance(error, StorageBusyError):

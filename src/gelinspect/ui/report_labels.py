@@ -7,10 +7,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
-from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.signing import SigningBlock, SigningBlocker
 from gelinspect.services.reporting.verify import SignatureVerification, VerifyFailure
-from gelinspect.ui.labels import conclusion_note_text, experiment_state_label
+from gelinspect.ui.labels import experiment_state_label
 from gelinspect.ui.punctuation import join_items
 
 _BLOCKS: dict[SigningBlocker, str] = {
@@ -24,35 +23,14 @@ _BLOCKS: dict[SigningBlocker, str] = {
         QT_TRANSLATE_NOOP("Signing", "{tubes} 号管等待人工复核，复核全部完成后才能签署。")
     ),
     SigningBlocker.RESULT_MISSING: str(QT_TRANSLATE_NOOP("Signing", "{tubes} 号管还没有结果。")),
-    SigningBlocker.NO_CONCLUSION: str(
-        QT_TRANSLATE_NOOP("Signing", "这个实验没有入库的结论，不能签署。")
-    ),
-    SigningBlocker.VERDICT_PENDING: str(
-        QT_TRANSLATE_NOOP(
-            "Signing",
-            "实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。",
-        )
-    ),
-    SigningBlocker.VERDICT_INVALID: str(
-        QT_TRANSLATE_NOOP(
-            "Signing",
-            "实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。",
-        )
-    ),
 }
 
 
-def describe_signing_blocks(
-    blocks: tuple[SigningBlock, ...],
-    conclusion: ExperimentConclusion | None = None,
-) -> list[str]:
+def describe_signing_blocks(blocks: tuple[SigningBlock, ...]) -> list[str]:
     """不能签署的原因，每条一行，当前语言。
-
-    结论为“无效”或“待定”时，把结论里的原因逐条列在后面，让操作人知道为什么。
 
     Args:
         blocks: 不能签署的原因。
-        conclusion: 试验的结论（单个试验），用来说明无效或待定的原因。
 
     Returns:
         文字行。
@@ -62,11 +40,6 @@ def describe_signing_blocks(
         template = QCoreApplication.translate("Signing", _BLOCKS[block.blocker])
         state = "" if block.state is None else experiment_state_label(block.state)
         lines.append(template.format(tubes=join_items(block.tubes), state=state))
-        if (
-            block.blocker in (SigningBlocker.VERDICT_INVALID, SigningBlocker.VERDICT_PENDING)
-            and conclusion is not None
-        ):
-            lines.extend(f"· {conclusion_note_text(note)}" for note in conclusion.unmet)
     return lines
 
 

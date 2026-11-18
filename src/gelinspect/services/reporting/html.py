@@ -12,18 +12,7 @@ from html import escape
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP
 
-from gelinspect.domain.conclusions import (
-    NOTE_TEMPLATES,
-    ConclusionNote,
-    ExperimentConclusion,
-    format_quantity,
-)
-from gelinspect.domain.enums import (
-    ConclusionVerdict,
-    ExperimentType,
-    Interpretation,
-    TubeRole,
-)
+from gelinspect.domain.enums import ExperimentType, Interpretation, TubeRole
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.reporting.document import (
     ExperimentSection,
@@ -58,13 +47,6 @@ _STATE_SOURCES = {
     ExperimentState.COMPLETED: str(QT_TRANSLATE_NOOP("ExperimentState", "已完成")),
     ExperimentState.SIGNED: str(QT_TRANSLATE_NOOP("ExperimentState", "已签署")),
 }
-_VERDICT_SOURCES = {
-    ConclusionVerdict.PASS: str(QT_TRANSLATE_NOOP("Conclusion", "合格")),
-    ConclusionVerdict.FAIL: str(QT_TRANSLATE_NOOP("Conclusion", "不合格")),
-    ConclusionVerdict.INVALID: str(QT_TRANSLATE_NOOP("Conclusion", "无效")),
-    ConclusionVerdict.PENDING: str(QT_TRANSLATE_NOOP("Conclusion", "待定")),
-    ConclusionVerdict.NOT_APPLICABLE: str(QT_TRANSLATE_NOOP("Conclusion", "不适用")),
-}
 _ROLE_SOURCES = {
     TubeRole.TEST: str(QT_TRANSLATE_NOOP("TubeRole", "内毒素标准系列")),
     TubeRole.NEGATIVE_CONTROL: str(QT_TRANSLATE_NOOP("TubeRole", "阴性对照")),
@@ -82,35 +64,6 @@ def _e(value: object) -> str:
 
 def _mono(value: str) -> str:
     return f"<span style=\"font-family:'{MONO}'\">{_e(value)}</span>"
-
-
-def note_text(texts: ReportTexts, note: ConclusionNote) -> str:
-    """一条依据或前提的报告语言文字。
-
-    Args:
-        texts: 报告文字。
-        note: 依据或前提。
-
-    Returns:
-        翻译并代入参数后的文字（未转义）。
-    """
-    params = dict(note.params)
-    if "role" in params:
-        params["role"] = texts.tr(_ROLE_SOURCES[TubeRole(params["role"])], "TubeRole")
-    return texts.tr(NOTE_TEMPLATES[note.code], "Conclusion").format(**params)
-
-
-def verdict_text(texts: ReportTexts, verdict: ConclusionVerdict) -> str:
-    """结论的报告语言名称。
-
-    Args:
-        texts: 报告文字。
-        verdict: 结论。
-
-    Returns:
-        例如“合格”。
-    """
-    return texts.tr(_VERDICT_SOURCES[verdict], "Conclusion")
 
 
 def _stamp(value: datetime | None, zone: tzinfo | None, fmt: str = "%Y-%m-%d %H:%M") -> str:
@@ -293,72 +246,6 @@ class _Builder:
             f"<thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
         )
 
-    # ------------------------------------------------------------------ 结论区
-
-    def _notes(self, notes: tuple[ConclusionNote, ...]) -> list[str]:
-        return [
-            f'<span style="font-size:8.5pt">{_e(note_text(self.t, note))}</span>' for note in notes
-        ]
-
-    def conclusion(self, section: ExperimentSection) -> str:
-        t = self.t
-        conclusion: ExperimentConclusion | None = section.conclusion
-        parts: list[str] = []
-        label = _e(self.s(S.CONCLUSION))
-        if not section.conclusions_enabled:
-            # 结论功能关闭：不出现结论、λc、依据、规则版本，只保留复核说明。
-            pass
-        elif conclusion is None:
-            parts.append(
-                f'<span style="font-size:10.5pt;font-weight:700">{label}：'
-                f"{_e(self.s(S.NONE))}</span>"
-            )
-            parts.append(f'<span style="font-size:8.5pt">{_e(self.s(S.NO_CONCLUSION))}</span>')
-        else:
-            verdict = verdict_text(t, conclusion.verdict)
-            final = conclusion.verdict in (ConclusionVerdict.PASS, ConclusionVerdict.FAIL)
-            headline = f"{label}：{_e(verdict)}"
-            if final and conclusion.value is not None:
-                headline += (
-                    f"　λc = {_mono(format_quantity(conclusion.value))} EU/mL"
-                    f"（{_e(self.s(S.MEASURED))}）"
-                )
-            if conclusion.verdict is ConclusionVerdict.PENDING:
-                headline += _e(self.s(S.NOT_FINAL_HINT))
-            parts.append(f'<span style="font-size:10.5pt;font-weight:700">{headline}</span>')
-            if not final and conclusion.value is not None:
-                parts.append(
-                    f'<span style="font-size:8.5pt">'
-                    f"{_e(self.s(S.LAMBDA_C_REFERENCE))} {_mono(format_quantity(conclusion.value))}"
-                    f" EU/mL（{_e(self.s(S.NOT_FINAL))}）</span>"
-                )
-            if conclusion.unmet:
-                title = {
-                    ConclusionVerdict.INVALID: S.REASON_INVALID,
-                    ConclusionVerdict.PENDING: S.REASON_PENDING,
-                }.get(conclusion.verdict, S.REASON_UNMET)
-                parts.append(
-                    f'<span style="font-size:8.5pt;font-weight:700;color:{WARN}">'
-                    f"{_e(self.s(title))}</span>"
-                )
-                parts.extend(self._notes(conclusion.unmet))
-            if conclusion.basis:
-                parts.append(
-                    f'<span style="font-size:8.5pt;font-weight:700">{_e(self.s(S.BASIS))}</span>'
-                )
-                parts.extend(self._notes(conclusion.basis))
-            parts.append(
-                f'<span style="font-size:7.5pt;color:{MUTED}">'
-                f"{_e(self.s(S.RULE_VERSION))} {_mono(conclusion.rule_version)} · "
-                f"{_e(self.s(S.RULE_SOURCE))}："
-                f"{_e(self.t.tr(conclusion.rule_source, 'Conclusion'))}</span>"
-            )
-        if any(row.reviewed for row in section.rows):
-            parts.append(
-                f'<span style="font-size:7.5pt;color:{MUTED}">{_e(self.s(S.REVIEWED_NOTE))}</span>'
-            )
-        return self._box(parts) if parts else ""
-
     def _box(self, lines: list[str]) -> str:
         """把若干行放进带边框的表格：每行一个表格行，分页时在行之间断开。"""
         side = f"border-left:{self.px(1)}px solid {INK};border-right:{self.px(1)}px solid {INK};"
@@ -417,12 +304,10 @@ class _Builder:
     # ------------------------------------------------------------------ 整份报告
 
     def section_body(self, section: ExperimentSection, width_px: int) -> str:
-        conclusion = self.conclusion(section)
         return (
             self.header(section)
             + self.gap(10)
             + self.results(section)
-            + (self.gap(10) + conclusion if conclusion else "")
             + self.images(section, width_px)
         )
 

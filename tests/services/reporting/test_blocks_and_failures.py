@@ -11,7 +11,6 @@ import pytest
 from gelinspect.domain.entities import TubeResult
 from gelinspect.domain.enums import (
     AuditAction,
-    ConclusionVerdict,
     GelState,
     Interpretation,
     TubeAnalysisStatus,
@@ -22,8 +21,10 @@ from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.reporting.report_service import SigningNotAllowedError
+from gelinspect.services.review_service import ReviewService
 from simulation.sample_data import SENSITIVITY_STATES, sensitivity_experiment
-from tests.services.conftest import PASSWORDS, Stack
+from tests.services.conftest import NOW, PASSWORDS, Stack
+from tests.services.engine_helpers import ready_experiment
 
 from .conftest import make_completed, make_service
 
@@ -69,47 +70,6 @@ def test_pending_review_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -
     assert stored is not None and stored.state is ExperimentState.PENDING_REVIEW
 
 
-def test_pending_conclusion_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -> None:
-    stack = signing_stack
-    # 模板布局未确认：规则读不了，结论是“待定”
-    make_completed(stack, layout_confirmed=False)
-    stored = stack.database.experiments.get("EXP-SAMPLE-0001")
-    assert stored is not None and stored.state is ExperimentState.COMPLETED
-    assert stored.conclusion is not None and stored.conclusion.verdict is ConclusionVerdict.PENDING
-    error = sign_blocked(stack, tmp_path, "EXP-SAMPLE-0001")
-    assert blockers(error) == [SigningBlocker.VERDICT_PENDING]
-    assert error.conclusion is not None and error.conclusion.unmet  # 说明原因
-
-
-def test_invalid_conclusion_cannot_be_signed_and_explains_why(
-    signing_stack: Stack, tmp_path: Path
-) -> None:
-    stack = signing_stack
-    states = {**SENSITIVITY_STATES, 17: GelState.FULLY_GELLED}  # 阴性对照出现阳性
-    make_completed(stack, states=states)
-    stored = stack.database.experiments.get("EXP-SAMPLE-0001")
-    assert stored is not None and stored.conclusion is not None
-    assert stored.conclusion.verdict is ConclusionVerdict.INVALID
-    error = sign_blocked(stack, tmp_path, "EXP-SAMPLE-0001")
-    assert blockers(error) == [SigningBlocker.VERDICT_INVALID]
-    assert error.conclusion is not None
-    assert any("阴性对照" in note.text for note in error.conclusion.unmet)
-    # 预览里同样给出原因，界面据此提示
-    service, _ = make_service(stack, tmp_path)
-    preview = service.preview(stack.login("analyst"), "EXP-SAMPLE-0001")
-    assert not preview.can_sign
-    assert preview.conclusion is not None and preview.conclusion.verdict is (
-        ConclusionVerdict.INVALID
-    )
-
-
-def test_there_is_no_switch_that_bypasses_the_verdict_rule() -> None:
-    from gelinspect.services.config import ReportSection
-
-    names = set(ReportSection.model_fields)
-    assert not {n for n in names if "sign" in n or "bypass" in n or "allow" in n}
-
-
 def test_running_and_stopped_experiments_cannot_be_signed(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
@@ -120,17 +80,43 @@ def test_running_and_stopped_experiments_cannot_be_signed(
     assert blockers(error) == [SigningBlocker.NOT_COMPLETED]
 
 
-def test_completed_without_a_recorded_conclusion_cannot_be_signed(
+def test_sparse_ten_tube_experiment_needs_review_then_can_be_signed(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
-    from sqlalchemy import text
-
     stack = signing_stack
-    make_completed(stack)
-    with stack.database.session() as session:  # 模拟 P10 之前完成、没有结论的旧试验
-        session.execute(text("DELETE FROM experiment_conclusions"))
-    error = sign_blocked(stack, tmp_path, "EXP-SAMPLE-0001")
-    assert blockers(error) == [SigningBlocker.NO_CONCLUSION]
+    tube_nos = (1, 3, 8, 10, 17, 22, 42, 64, 80, 96)
+    experiment = ready_experiment(tube_nos, "EXP-CUSTOM-10")
+    for event in (ExperimentEvent.START, ExperimentEvent.ROW_DUE, ExperimentEvent.ROW_CAPTURED):
+        experiment.apply(event)
+    for tube_no in tube_nos:
+        state = GelState.PARTIALLY_GELLED if tube_no == 42 else GelState.FULLY_GELLED
+        experiment.record_result(
+            TubeResult.from_analysis(
+                tube_no=tube_no,
+                status=TubeAnalysisStatus.OK,
+                state=state,
+                mapping=GelStateMapping(),
+            )
+        )
+    experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
+    stack.database.experiments.save(experiment)
+
+    error = sign_blocked(stack, tmp_path, experiment.experiment_id)
+    assert blockers(error) == [SigningBlocker.PENDING_REVIEW]
+    assert error.blocks[0].tubes == (42,)
+
+    ReviewService(stack.auth, stack.database, clock=lambda: NOW).review_tube(
+        stack.login("analyst"), experiment.experiment_id, 42, Interpretation.POSITIVE, "人工确认"
+    )
+    stored = stack.database.experiments.get(experiment.experiment_id)
+    assert stored is not None and stored.state is ExperimentState.COMPLETED
+    assert stored.conclusion is None and len(stored.assignments) == 10
+
+    service, _ = make_service(stack, tmp_path, clock=lambda: NOW)
+    signed = service.sign(stack.login("analyst"), experiment.experiment_id, PASSWORDS["analyst"])
+    assert signed.path.is_file()
+    signed_experiment = stack.database.experiments.get(experiment.experiment_id)
+    assert signed_experiment is not None and signed_experiment.state is ExperimentState.SIGNED
 
 
 # ---------------------------------------------------------------------------- 中途失败

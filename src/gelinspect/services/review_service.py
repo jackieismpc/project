@@ -1,7 +1,7 @@
 """人工复核：分析员对单管结果判阳性或阴性，意见必填，写审计。
 
 遵守试验状态机：只有“待复核”状态（全部排已分析）才能复核；最后一支待复核的试管处理完，
-同一个事务里把试验转为“已完成”（可签署）并固化试验结论，签署由报告服务实现。算法的原始结果不被
+同一个事务里把试验转为“已完成”（可签署），签署由报告服务实现。算法的原始结果不被
 覆盖：复核结论存在 ``reviewed_*`` 字段，``final_interpretation`` 以它为准。
 """
 
@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
-from gelinspect.domain.conclusions import finalize_completion
 from gelinspect.domain.entities import TubeResult
 from gelinspect.domain.enums import AuditAction, Interpretation
 from gelinspect.domain.errors import TransitionGuardError
@@ -70,7 +69,6 @@ class ReviewService:
         storage: ReviewStorage,
         *,
         clock: Callable[[], datetime] | None = None,
-        conclusions_enabled: bool = False,
     ) -> None:
         """创建服务。
 
@@ -78,11 +76,9 @@ class ReviewService:
             auth: 认证服务，用于校验权限。
             storage: 存储。
             clock: 返回带时区当前时间的函数，测试注入，默认系统时间。
-            conclusions_enabled: 最后一管复核后是否计算并入库试验结论，默认关闭。
         """
         self._auth = auth
         self._storage = storage
-        self._conclusions_enabled = conclusions_enabled
         self._clock = clock or (lambda: datetime.now(UTC))
 
     def review_tube(
@@ -163,10 +159,6 @@ class ReviewService:
         completed_now = (
             before is ExperimentState.PENDING_REVIEW and not experiment.pending_review_tubes
         )
-        recalculated_existing = (
-            before in {ExperimentState.COMPLETED, ExperimentState.SIGNED}
-            and self._conclusions_enabled
-        )
         if completed_now:
             current = experiment.apply(ExperimentEvent.REVIEW_COMPLETED)
             events.append(
@@ -179,52 +171,22 @@ class ReviewService:
                     now,
                 )
             )
-            concluded = finalize_completion(
-                experiment, now, conclusions_enabled=self._conclusions_enabled
-            )
-            if concluded is not None:
-                events.append(
-                    audit_event(
-                        user,
-                        AuditAction.CONCLUSION_RECORDED,
-                        concluded.summary_text(),
-                        experiment_id,
-                        now,
-                    )
-                )
-        elif recalculated_existing:
-            completed_at = experiment.completed_at
-            experiment.state = ExperimentState.COMPLETED
-            concluded = finalize_completion(experiment, now, conclusions_enabled=True)
-            experiment.state = before
-            experiment.completed_at = completed_at
-            if concluded is not None:
-                events.append(
-                    audit_event(
-                        user,
-                        AuditAction.CONCLUSION_RECORDED,
-                        concluded.summary_text(),
-                        experiment_id,
-                        now,
-                    )
-                )
+            experiment.completed_at = now
         try:
             with self._storage.unit_of_work() as uow:
                 # 总是带上“预期状态”写一次：别处改过试验状态时在这里发现，整个事务回滚。
                 uow.experiments.update_state(experiment_id, experiment.state, expected=before)
                 # 状态不会因复核而改变时，单靠状态比较无法发现同一状态下的并发复核。
                 # BEGIN IMMEDIATE 使此处读取与后续写入处于同一写事务，比较完整复核历史，
-                # 防止同管覆盖、重复审计，以及并发复核覆盖已计算的试验结论。
+                # 防止同管覆盖和重复审计。
                 persisted = uow.experiments.get(experiment_id)
                 if persisted is None or review_snapshot(persisted) != expected_reviews:
                     raise StateConflictError(f"试验 {experiment_id} 的复核历史已被其他操作修改")
                 uow.experiments.save_results(experiment_id, [reviewed])
-                if (completed_now or recalculated_existing) and experiment.completed_at is not None:
+                if completed_now and experiment.completed_at is not None:
                     uow.experiments.record_completion(
                         experiment_id,
                         completed_at=experiment.completed_at,
-                        measured_sensitivity=experiment.measured_sensitivity,
-                        conclusion=experiment.conclusion,
                     )
                 uow.audit.append_many(events)
         except StateConflictError as exc:

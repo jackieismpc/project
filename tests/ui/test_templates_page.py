@@ -82,6 +82,7 @@ def test_lists_builtin_templates_with_type_count_and_state(
     ]  # fmt: skip
     assert [r["count"] for r in rows] == [18, 28, 20, 8, 10, 96]
     assert [r["source"] for r in rows] == ["内置"] * 6
+    assert all(r["created_by"] == "—" and r["created_at"] == "—" for r in rows)
     assert all("state" not in r for r in rows)  # 没有“布局待确认”列
     assert page.detail_table.row_count() == 18  # 默认选中第一个，显示它的管位
     select_row(qapp, page, "限度试验")
@@ -167,6 +168,10 @@ def test_create_a_template_with_the_editor(
     info = page.selected()
     assert info is not None and info.template.name == "我的灵敏度" and not info.builtin
     template = info.template
+    assert template.created_by == "admin" and template.created_at is not None
+    assert template.created_at.utcoffset() is not None
+    row = next(r for r in page.list_table.model.rows if r["name"] == "我的灵敏度")
+    assert row["created_by"] == "admin" and row["created_at"] != "—"
     assert template.experiment_type is ExperimentType.LIMIT and template.tube_count == 2
     first, second = sorted(template.items, key=lambda i: i.tube_no)
     assert (first.sample_name, first.dilution_factor, first.spiked_endotoxin) == (

@@ -71,6 +71,8 @@ class TemplateRow(Base):
     name: Mapped[str] = mapped_column(String(128))
     experiment_type: Mapped[str] = mapped_column(String(32))
     needs_confirmation: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False)
     deleted_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)

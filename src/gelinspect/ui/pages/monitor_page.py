@@ -55,10 +55,8 @@ from gelinspect.ui.labels import (
     describe_service_error,
     describe_storage_busy,
     describe_video_event,
-    format_concentration,
     reagent_kind_label,
 )
-from gelinspect.ui.pages.conclusion_card import ConclusionCard
 from gelinspect.ui.pages.monitor_format import (
     countdown,
     experiment_title,
@@ -140,7 +138,6 @@ class MonitorPage(QWidget):
         self._bridge = bridge
         self._session: Session | None = None
         self._view: ExperimentView | None = None
-        self._conclusions_enabled = False
         self._status: dict[int, WellStatus | None] = {}
         self._rows: dict[int, tuple[RowPhase | None, float | None]] = {}
         self._recordings: list[int] = []
@@ -177,8 +174,6 @@ class MonitorPage(QWidget):
         self.alerts = AlertStack()
         self._column.addWidget(self.alerts)
         self._build_facts()
-        self.conclusion_card = ConclusionCard()
-        self._column.addWidget(self.conclusion_card)
         self.tabs = Tabs(["", "", ""])
         self._column.addWidget(self.tabs)
         self.stack = QStackedWidget()
@@ -263,14 +258,11 @@ class MonitorPage(QWidget):
         row.setSpacing(20)
         self._fact_labels: dict[str, Label] = {}
         self._fact_values: dict[str, Label] = {}
-        self._fact_cells: dict[str, QVBoxLayout] = {}
-        self._fact_row = row
         for key, mono in (
             ("lal", True),
             ("endotoxin", True),
             ("water", True),
             ("lambda", True),
-            ("lambda_c", True),
             ("operator", False),
             ("started", True),
         ):
@@ -283,7 +275,6 @@ class MonitorPage(QWidget):
             row.addLayout(cell, 1)
             self._fact_labels[key] = label
             self._fact_values[key] = value
-            self._fact_cells[key] = cell
         self.facts_card.body.addLayout(row)
         self._column.addWidget(self.facts_card)
 
@@ -553,7 +544,6 @@ class MonitorPage(QWidget):
         self.empty_card.setVisible(empty)
         for widget in (self.header, self.facts_card, self.tabs, self.stack):
             widget.setVisible(not empty)
-        self.conclusion_card.setVisible(not empty and self._conclusions_enabled)
         if empty:
             self.recovery_hint.setVisible(False)
         self.alerts.setVisible(not empty and bool(self.alerts.active_keys()))
@@ -822,31 +812,11 @@ class MonitorPage(QWidget):
             "lambda": "–"
             if view.labeled_sensitivity is None
             else f"{view.labeled_sensitivity:g} EU/ml",
-            "lambda_c": "–"
-            if view.measured_sensitivity is None
-            else f"{format_concentration(view.measured_sensitivity)} EU/ml",
             "operator": view.operator_name,
             "started": _clock(view.started_at),
         }
-        enabled = view.conclusions_enabled and view.conclusion is not None
-        self._set_conclusions_enabled(enabled)
-        if not enabled:
-            values["lambda_c"] = ""
         for key, value in values.items():
             self._fact_values[key].setText(value)
-        if enabled and view.conclusion is not None:
-            self.conclusion_card.set_conclusion(view.conclusion, recorded=view.conclusion_recorded)
-
-    def _set_conclusions_enabled(self, enabled: bool) -> None:
-        """结论功能关闭时不显示结论卡和实测灵敏度一栏（文字也清空）。"""
-        changed = enabled != self._conclusions_enabled
-        self._conclusions_enabled = enabled
-        self.conclusion_card.setVisible(enabled)
-        self._fact_labels["lambda_c"].setVisible(enabled)
-        self._fact_values["lambda_c"].setVisible(enabled)
-        self._fact_row.setStretchFactor(self._fact_cells["lambda_c"], 1 if enabled else 0)
-        if changed:
-            self._fact_labels["lambda_c"].setText(self.tr("实测灵敏度 λc") if enabled else "")
 
     def _render_video(self) -> None:
         view = self._view
@@ -1133,7 +1103,6 @@ class MonitorPage(QWidget):
             ),
             ("water", self.tr("{kind}批号").format(kind=reagent_kind_label(ReagentKind.WATER))),
             ("lambda", self.tr("标示灵敏度 λ")),
-            ("lambda_c", self.tr("实测灵敏度 λc") if self._conclusions_enabled else ""),
             ("operator", self.tr("操作人")),
             ("started", self.tr("开始时间")),
         ):

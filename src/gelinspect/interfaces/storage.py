@@ -18,7 +18,6 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Generic, Protocol, TypeVar
 
-from gelinspect.domain.conclusions import ExperimentConclusion
 from gelinspect.domain.entities import AuditEvent, Experiment, TubeResult, User
 from gelinspect.domain.enums import (
     AuditAction,
@@ -587,16 +586,11 @@ class ExperimentRepository(Protocol):
         experiment_id: str,
         *,
         completed_at: datetime,
-        measured_sensitivity: float | None,
-        conclusion: ExperimentConclusion | None,
     ) -> None:
-        """写入完成时间、实测灵敏度和结论，与“已完成”状态在同一事务调用。
-
-        结论功能关闭时 ``conclusion`` 为 None，只写完成时间。
+        """写入完成时间，与“已完成”状态在同一事务调用。
 
         Raises:
             NotFoundError: 试验不存在。
-            ValueError: 结论没有计算时间。
         """
         ...
 

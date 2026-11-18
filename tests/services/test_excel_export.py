@@ -34,7 +34,7 @@ PAYLOADS = ["=1+1", "+1+1", "-2+3", "@SUM(A1)", '=HYPERLINK("http://x","点击")
 
 @pytest.fixture
 def exports(stack: Stack) -> ExportService:
-    return ExportService(stack.auth, stack.database, clock=lambda: NOW, conclusions_enabled=True)
+    return ExportService(stack.auth, stack.database, clock=lambda: NOW)
 
 
 def test_formula_like_text_is_escaped_and_other_values_are_untouched() -> None:
@@ -89,28 +89,27 @@ def dirty_experiment(stack: Stack, experiment_id: str = "EXP-X-0001") -> None:
     stack.database.experiments.save(experiment)
 
 
-def test_results_workbook_has_conclusion_lambda_c_features_and_review(
+def test_results_workbook_contains_samples_and_review_without_experiment_conclusion(
     stack: Stack, exports: ExportService, tmp_path: Path
 ) -> None:
     dirty_experiment(stack)
     stored = stack.database.experiments.get("EXP-X-0001")
-    assert stored is not None and stored.conclusion is not None
+    assert stored is not None and stored.completed_at is not None
+    assert stored.conclusion is None and stored.measured_sensitivity is None
     target = tmp_path / "out" / "结果.xlsx"
     summary = exports.export_results(stack.login("analyst"), ["EXP-X-0001"], target)
     assert summary.path == target and summary.rows == 18 and target.is_file()
     assert not list(target.parent.glob(".export-*"))  # 临时文件已清理
 
     book = load_workbook(target)
-    assert book.sheetnames == ["试验", "单管结果", "结论依据"]
+    assert book.sheetnames == ["试验", "单管结果"]
     head = [c.value for c in book["试验"][1]]
     row = dict(zip(head, [c.value for c in book["试验"][2]], strict=True))
     assert row["试验编号"] == "EXP-X-0001" and row["管数"] == 18
-    assert row["结论"] == stored.conclusion.verdict.value
-    assert row["结论数值"] == pytest.approx(stored.conclusion.value)  # λc
-    assert row["实测灵敏度 λc（EU/mL）"] == pytest.approx(stored.measured_sensitivity)
     assert row["MVD"] == 1280 and row["内毒素限值"] == 0.25
-    assert row["鲎试剂批号"] == "LAL2606A" and row["规则版本"] == stored.conclusion.rule_version
+    assert row["鲎试剂批号"] == "LAL2606A"
     assert row["标示灵敏度 λ（EU/mL）"] == 0.5
+    assert not {"结论", "结论数值", "规则版本", "实测灵敏度 λc（EU/mL）"} & set(head)
 
     tubes = book["单管结果"]
     columns = [c.value for c in tubes[1]]
@@ -126,7 +125,6 @@ def test_results_workbook_has_conclusion_lambda_c_features_and_review(
     ]
     assert reviewed and all(r["复核人"] == "analyst" and r["复核备注"] == "复核" for r in reviewed)
     assert first["管号"] == 1 and first["排"] == "Row01"
-    assert book["结论依据"].max_row >= 2  # 有依据行
 
 
 def test_every_user_text_is_neutralised_in_the_file(

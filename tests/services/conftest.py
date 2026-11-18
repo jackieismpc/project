@@ -115,7 +115,7 @@ def build_stack(tmp_path: Path, *, registry: SimReagentRegistry | None = None) -
         database=database,
         auth=auth,
         reagents=reagents,
-        templates=TemplateService(auth, database),
+        templates=TemplateService(auth, database, clock=lambda: NOW),
         experiments=ExperimentService(auth, database, reagents, engine, clock=lambda: NOW),
         engine=engine,
     )

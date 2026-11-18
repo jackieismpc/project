@@ -105,12 +105,12 @@ class TemplatesPage(QWidget):
         self.list_table = DataTable(self._list_columns())
         self.list_table.setMinimumHeight(260)
         self.list_card.body.addWidget(self.list_table)
-        work.addWidget(self.list_card, 1)
+        work.addWidget(self.list_card, 5)
         self.detail_card = Card(" ")
         self.detail_table = DataTable(self._detail_columns())
         self.detail_table.setMinimumHeight(260)
         self.detail_card.body.addWidget(self.detail_table)
-        work.addWidget(self.detail_card, 1)
+        work.addWidget(self.detail_card, 3)
         column.addLayout(work, 1)
 
         self.list_table.view.selectionModel().currentRowChanged.connect(self._on_row_changed)
@@ -130,6 +130,8 @@ class TemplatesPage(QWidget):
             Column("type", self.tr("类型")),
             Column("count", self.tr("管数"), mono=True, align_right=True),
             Column("source", self.tr("来源")),
+            Column("created_by", self.tr("创建人")),
+            Column("created_at", self.tr("创建时间"), mono=True),
         ]
 
     def _detail_columns(self) -> list[Column]:
@@ -317,6 +319,12 @@ class TemplatesPage(QWidget):
                     "source": (self.tr("内置·已隐藏") if i.hidden else self.tr("内置"))
                     if i.builtin
                     else self.tr("自定义"),
+                    "created_by": i.template.created_by or "—",
+                    "created_at": (
+                        i.template.created_at.astimezone().strftime("%Y-%m-%d %H:%M")
+                        if i.template.created_at is not None
+                        else "—"
+                    ),
                 }
                 for i in self._infos
             ]
