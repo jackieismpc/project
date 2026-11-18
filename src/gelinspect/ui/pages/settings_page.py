@@ -73,8 +73,6 @@ _log = logging.getLogger(__name__)
 _TEXT_FIELDS = (
     "instrument_no",
     "incubation_minutes",
-    "frames_per_side",
-    "settle_s",
     "temperature_target_c",
     "temperature_tolerance_c",
     "temperature_hold_s",
@@ -136,6 +134,8 @@ class SettingsPage(QWidget):
         self._view: SettingsView | None = None
         self._editable = False
         self._locked = False
+        self._loading_appearance = False
+        self._appearance_preferences = AppearancePreferences()
         self._preview_token: int | None = None
         self._previewing = False
         self._runner = BackgroundRunner(self)
@@ -151,10 +151,8 @@ class SettingsPage(QWidget):
         top.setSpacing(12)
         self.title = Label("", "h1")
         self.readonly_badge = StatusBadge("", BadgeTone.NEUTRAL)
-        self.hint = Label("", "meta")
         top.addWidget(self.title)
         top.addWidget(self.readonly_badge)
-        top.addWidget(self.hint)
         top.addStretch(1)
         column.addLayout(top)
 
@@ -174,16 +172,13 @@ class SettingsPage(QWidget):
             self.font_scale_box.addItem("", scale)
         self.appearance_message = Label("", "meta")
         self.appearance_message.setWordWrap(True)
-        self.appearance_save_button = Button("", ButtonVariant.SECONDARY)
-        self.appearance_save_button.clicked.connect(self.save_appearance)
+        self.palette_box.currentIndexChanged.connect(self._on_appearance_changed)
+        self.font_scale_box.currentIndexChanged.connect(self._on_appearance_changed)
         self.personal_card.body.addWidget(self.palette_label)
         self.personal_card.body.addWidget(self.palette_box)
         self.personal_card.body.addWidget(self.font_scale_label)
         self.personal_card.body.addWidget(self.font_scale_box)
         self.personal_card.body.addWidget(self.appearance_message)
-        self.personal_card.body.addWidget(
-            self.appearance_save_button, 0, Qt.AlignmentFlag.AlignLeft
-        )
         column.addWidget(self.personal_card)
 
         self.configuration_area = QWidget(self)
@@ -207,7 +202,7 @@ class SettingsPage(QWidget):
         left.addWidget(self.instrument_card)
 
         self.run_card = Card(" ")
-        for name in ("incubation_minutes", "frames_per_side", "settle_s"):
+        for name in ("incubation_minutes",):
             self.run_card.body.addWidget(self.fields[name])
         left.addWidget(self.run_card)
 
@@ -390,38 +385,59 @@ class SettingsPage(QWidget):
         self.preview_current()
 
     def _load_appearance(self, session: Session) -> None:
-        """读取当前账号偏好；失败时保留默认选项供用户重新保存。"""
+        """读取账号偏好，避免控件初始化触发自动保存。"""
         try:
             preferences = self._services.appearance.get(session.user.username)
         except (OSError, AppearanceSettingsError):
             _log.exception("APPEARANCE_READ_FAILED")
             preferences = AppearancePreferences()
-            self.appearance_message.setText(self.tr("无法读取已保存的外观设置。可重新选择后保存。"))
+            self.appearance_message.setText(self.tr("无法读取外观设置。"))
         else:
             self.appearance_message.setText("")
-        self.palette_box.setCurrentIndex(self.palette_box.findData(preferences.palette))
-        self.font_scale_box.setCurrentIndex(self.font_scale_box.findData(preferences.font_scale))
+        self._appearance_preferences = preferences
+        self._loading_appearance = True
+        try:
+            self.palette_box.setCurrentIndex(self.palette_box.findData(preferences.palette))
+            self.font_scale_box.setCurrentIndex(
+                self.font_scale_box.findData(preferences.font_scale)
+            )
+        finally:
+            self._loading_appearance = False
 
-    def save_appearance(self) -> bool:
-        """保存并应用当前账号外观；选择变更时不即时预览。"""
+    def _on_appearance_changed(self, _index: int = -1) -> None:
+        """选择配色或字号后立即保存并应用；失败时恢复上次保存值。"""
+        if self._loading_appearance:
+            return
         session = self._session
         if session is None:
-            return False
+            return
         preferences = AppearancePreferences(
             palette=str(self.palette_box.currentData()),
             font_scale=str(self.font_scale_box.currentData()),
         )
+        if preferences == self._appearance_preferences:
+            return
         try:
             self._services.appearance.save(session.user.username, preferences)
         except (OSError, AppearanceSettingsError):
             _log.exception("APPEARANCE_SAVE_FAILED")
-            self.appearance_message.setText(self.tr("外观设置无法保存，请检查数据目录后重试。"))
-            return False
+            self._loading_appearance = True
+            try:
+                self.palette_box.setCurrentIndex(
+                    self.palette_box.findData(self._appearance_preferences.palette)
+                )
+                self.font_scale_box.setCurrentIndex(
+                    self.font_scale_box.findData(self._appearance_preferences.font_scale)
+                )
+            finally:
+                self._loading_appearance = False
+            self.appearance_message.setText(self.tr("外观设置保存失败，已恢复上次设置。"))
+            return
+        self._appearance_preferences = preferences
         app = QApplication.instance()
         if isinstance(app, QApplication):
             apply_appearance(app, preferences)
-        self.appearance_message.setText(self.tr("外观设置已保存。"))
-        return True
+        self.appearance_message.setText("")
 
     def draft(self) -> SettingsDraft:
         """按输入框当前内容生成草稿（保存前由服务层校验）。
@@ -433,8 +449,6 @@ class SettingsPage(QWidget):
         return SettingsDraft(
             instrument_no=text["instrument_no"],
             incubation_minutes=text["incubation_minutes"],
-            frames_per_side=text["frames_per_side"],
-            settle_s=text["settle_s"],
             temperature_target_c=text["temperature_target_c"],
             temperature_tolerance_c=text["temperature_tolerance_c"],
             temperature_hold_s=text["temperature_hold_s"],
@@ -823,11 +837,9 @@ class SettingsPage(QWidget):
         self.font_scale_label.setText(self.tr("字号"))
         for index, text in enumerate((self.tr("跟随系统"), self.tr("较小"), self.tr("较大"))):
             self.font_scale_box.setItemText(index, text)
-        self.appearance_save_button.setText(self.tr("保存外观设置"))
         self.readonly_badge.set_text(self.tr("只读"))
-        self.hint.setText(self.tr("运行参数改动对之后启动的实验生效。"))
         self.instrument_card.set_title(self.tr("仪器与数据"))
-        self.run_card.set_title(self.tr("孵育与读数"))
+        self.run_card.set_title(self.tr("孵育"))
         self.temperature_card.set_title(self.tr("温度"))
         self.video_card.set_title(self.tr("视频输入"))
         self.runtime_card.set_title(self.tr("启动配置与数据目录"))

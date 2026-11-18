@@ -209,12 +209,19 @@ class EditTable(QTableWidget):
 
     cellEdited = Signal(int, int)  # noqa: N815
 
-    def __init__(self, columns: Sequence[EditColumn], parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        columns: Sequence[EditColumn],
+        parent: QWidget | None = None,
+        *,
+        clickable_headers: bool = False,
+    ) -> None:
         """创建表格。
 
         Args:
             columns: 列定义。
             parent: 父控件。
+            clickable_headers: 是否允许表头接收点击；排序行为由调用方管理。
         """
         super().__init__(0, len(columns), parent)
         self.columns = list(columns)
@@ -234,7 +241,7 @@ class EditTable(QTableWidget):
         self.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
         header = self.horizontalHeader()
         header.setHighlightSections(False)
-        header.setSectionsClickable(False)
+        header.setSectionsClickable(clickable_headers)
         header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setStretchLastSection(True)

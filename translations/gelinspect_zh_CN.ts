@@ -2271,22 +2271,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>按序号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>按管号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>新增试管</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>删除选中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>结束扫码</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2319,15 +2303,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>已达到96支试管上限。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>删除样品行？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4089,14 +4065,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>翻转前后各取帧数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>翻转后稳定时间（秒）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>目标温度（℃）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4256,15 +4224,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的实验生效。</source>
-        <translation type="unfinished"></translation>
+        <source>孵育</source>
+        <translation>孵育</translation>
     </message>
     <message>
         <source>仪器与数据</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>孵育与读数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4328,6 +4292,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>无法读取外观设置。</source>
+        <translation>无法读取外观设置。</translation>
+    </message>
+    <message>
+        <source>外观设置保存失败，已恢复上次设置。</source>
+        <translation>外观设置保存失败，已恢复上次设置。</translation>
+    </message>
+    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4372,10 +4344,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>保存外观设置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>启动配置与数据目录</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4405,18 +4373,6 @@
     </message>
     <message>
         <source>配置文件</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>外观设置无法保存，请检查数据目录后重试。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>外观设置已保存。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

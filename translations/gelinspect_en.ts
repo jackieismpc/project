@@ -2271,22 +2271,6 @@
         <translation>Leave empty to leave it blank in the report</translation>
     </message>
     <message>
-        <source>按序号</source>
-        <translation>By sequence</translation>
-    </message>
-    <message>
-        <source>按管号</source>
-        <translation>By tube</translation>
-    </message>
-    <message>
-        <source>新增试管</source>
-        <translation>Add tube</translation>
-    </message>
-    <message>
-        <source>删除选中</source>
-        <translation>Delete selected</translation>
-    </message>
-    <message>
         <source>结束扫码</source>
         <translation>End scanning</translation>
     </message>
@@ -2319,16 +2303,8 @@
         <translation>Batch #{sequence}</translation>
     </message>
     <message>
-        <source>已达到96支试管上限。</source>
-        <translation>96-tube limit reached.</translation>
-    </message>
-    <message>
         <source>删除样品行？</source>
         <translation>Delete sample row?</translation>
-    </message>
-    <message>
-        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
-        <translation>The selected row contains an entered sample name or lot. Deletion cannot be undone. Continue?</translation>
     </message>
     <message>
         <source>删除</source>
@@ -4089,14 +4065,6 @@
         <translation>Incubation time (min)</translation>
     </message>
     <message>
-        <source>翻转前后各取帧数</source>
-        <translation>Frames before and after the flip</translation>
-    </message>
-    <message>
-        <source>翻转后稳定时间（秒）</source>
-        <translation>Settle time after the flip (s)</translation>
-    </message>
-    <message>
         <source>目标温度（℃）</source>
         <translation>Target temperature (°C)</translation>
     </message>
@@ -4256,16 +4224,12 @@
         <translation>Personal appearance</translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的实验生效。</source>
-        <translation>Changes to run parameters apply to experiments started afterward.</translation>
+        <source>孵育</source>
+        <translation>Incubation</translation>
     </message>
     <message>
         <source>仪器与数据</source>
         <translation>Instrument and data</translation>
-    </message>
-    <message>
-        <source>孵育与读数</source>
-        <translation>Incubation and readout</translation>
     </message>
     <message>
         <source>温度</source>
@@ -4328,6 +4292,14 @@
         <translation>Browse…</translation>
     </message>
     <message>
+        <source>无法读取外观设置。</source>
+        <translation>Appearance settings could not be read.</translation>
+    </message>
+    <message>
+        <source>外观设置保存失败，已恢复上次设置。</source>
+        <translation>Appearance settings could not be saved; the previous settings were restored.</translation>
+    </message>
+    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>Your account can view settings only. Instrument maintenance permission is required to make changes.</translation>
     </message>
@@ -4372,10 +4344,6 @@
         <translation>Larger</translation>
     </message>
     <message>
-        <source>保存外观设置</source>
-        <translation>Save appearance settings</translation>
-    </message>
-    <message>
         <source>启动配置与数据目录</source>
         <translation>Startup settings and data folder</translation>
     </message>
@@ -4406,18 +4374,6 @@
     <message>
         <source>配置文件</source>
         <translation>Config file</translation>
-    </message>
-    <message>
-        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
-        <translation>Could not read the saved appearance settings. Select the options again and save.</translation>
-    </message>
-    <message>
-        <source>外观设置无法保存，请检查数据目录后重试。</source>
-        <translation>Could not save appearance settings. Check the data folder and try again.</translation>
-    </message>
-    <message>
-        <source>外观设置已保存。</source>
-        <translation>Appearance settings saved.</translation>
     </message>
     <message>
         <source>还原</source>

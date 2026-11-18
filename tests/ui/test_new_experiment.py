@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLineEdit
 
@@ -72,6 +72,24 @@ def reach_samples(
     pass_reagents(app, page)
     click(app, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
+
+
+def click_sample_header(app: QApplication, page: NewExperimentPage, column: int) -> None:
+    page.sample_table.scrollToItem(page.sample_table.cell_item(0, column))
+    settle(app)
+    header = page.sample_table.horizontalHeader()
+    point = QPoint(
+        header.sectionViewportPosition(column) + header.sectionSize(column) // 2,
+        header.height() // 2,
+    )
+    QTest.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=point)
+    settle(app)
+
+
+def sample_header_text(page: NewExperimentPage, column: int) -> str:
+    item = page.sample_table.horizontalHeaderItem(column)
+    assert item is not None
+    return item.text()
 
 
 # ---------------------------------------------------------------------------- 全流程
@@ -434,10 +452,20 @@ def test_sample_sort_keeps_stable_sequence_and_tube_bindings(
     page._sync_samples()
     bindings = {row.sequence_no: (row.row_id, row.tube_no) for row in page._draft.rows}
 
-    page.sample_sort.setCurrentIndex(1)
+    assert page.sample_table.isSortingEnabled() is False
+    assert page.sample_table.horizontalHeader().sectionsClickable()
+    click_sample_header(qapp, page, COL_TUBE)
     assert page.sample_table.cell_text(0, COL_INDEX) == str(len(rows))
     assert page.sample_table.cell_text(len(rows) - 1, COL_INDEX) == "1"
-    page.sample_sort.setCurrentIndex(0)
+    assert sample_header_text(page, COL_TUBE) == "管号 ↑"
+    click_sample_header(qapp, page, COL_TUBE)
+    assert sample_header_text(page, COL_TUBE) == "管号 ↓"
+    click_sample_header(qapp, page, COL_NAME)
+    assert sample_header_text(page, COL_TUBE) == "管号 ↓"
+    assert sample_header_text(page, COL_INDEX) == "序号 ↕"
+    assert page.sample_table.cell_text(0, COL_INDEX) == str(len(rows))
+    click_sample_header(qapp, page, COL_INDEX)
+    assert sample_header_text(page, COL_INDEX) == "序号 ↑"
     assert [page.sample_table.cell_text(i, COL_INDEX) for i in range(len(rows))] == [
         str(i) for i in range(1, len(rows) + 1)
     ]
@@ -452,7 +480,7 @@ def test_adding_tube_keeps_current_tube_sort_order(qapp: QApplication, window: M
     for row, tube in zip(rows[:3], (1, 3, 4), strict=True):
         page._draft.assign_tube(row.row_id, tube)
     page._sync_samples()
-    page.sample_sort.setCurrentIndex(1)
+    click_sample_header(qapp, page, COL_TUBE)
 
     select_tubes(qapp, page, [2])
 
@@ -532,7 +560,29 @@ def test_scanner_overwrites_in_sequence_and_single_row_resumes_batch_pointer(
     assert page.sample_table.active_row is None
 
 
-def test_add_and_remove_sample_tubes_preserves_stable_sequence_ids(
+def test_scanner_sequence_is_independent_of_tube_column_sort(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    click_sample_header(qapp, page, COL_TUBE)
+    click_sample_header(qapp, page, COL_TUBE)
+    first = next(row for row in page._draft.rows if row.sequence_no == 1)
+    first_index = page._draft.rows.index(first)
+    assert page.sample_table.cell_text(first_index, COL_INDEX) == "1"
+
+    page.batch_scan_button.click()
+
+    assert page.batch_scan_status.text() == "批量 #1"
+    assert page.sample_table.active_row == first_index
+    QTest.keyClicks(page.batch_fill, "LOT-FIRST")
+    QTest.keyClick(page.batch_fill, Qt.Key.Key_Return)
+    second = next(row for row in page._draft.rows if row.sequence_no == 2)
+    assert page.batch_scan_status.text() == "批量 #2"
+    assert page.sample_table.active_row == page._draft.rows.index(second)
+
+
+def test_plate_add_and_remove_preserves_stable_sequence_ids(
     qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     page = open_wizard(qapp, window)
@@ -544,21 +594,18 @@ def test_add_and_remove_sample_tubes_preserves_stable_sequence_ids(
     added = next(row for row in page._draft.rows if row.tube_no == 25)
     assert added.sequence_no == 19 and added.name == "样品"
 
-    row_index = page._draft.rows.index(added)
-    page.sample_table.selectRow(row_index)
-    page.remove_tube_button.click()
+    select_tubes(qapp, page, [25])
     assert page.draft().expected_count == 18
     assert 25 not in page.draft().selected
     assert {row.sequence_no: row.row_id for row in page.draft().rows} == before
 
-    page.add_tube_button.click()
+    select_tubes(qapp, page, [19])
     added_again = max(page.draft().rows, key=lambda row: row.sequence_no)
     assert added_again.sequence_no == 20 and added_again.row_id != added.row_id
     assert added_again.tube_no == 19
 
     index = page.draft().rows.index(added_again)
     page.sample_table.cell_item(index, COL_BATCH).setText("LOT-NEEDS-CONFIRM")
-    page.sample_table.selectRow(index)
     asked: list[str] = []
 
     def decline(_parent: object, title: str, *_args: object, **_kwargs: object) -> bool:
@@ -566,12 +613,12 @@ def test_add_and_remove_sample_tubes_preserves_stable_sequence_ids(
         return False
 
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(decline))
-    page.remove_tube_button.click()
+    select_tubes(qapp, page, [19])
     assert any(row.row_id == added_again.row_id for row in page.draft().rows)
     assert asked == ["删除样品行？"]
 
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_args, **_kwargs: True))
-    page.remove_tube_button.click()
+    select_tubes(qapp, page, [19])
     assert all(row.row_id != added_again.row_id for row in page.draft().rows)
     template = page.draft().template
     assert template is not None
@@ -588,8 +635,7 @@ def test_deleting_pending_scan_row_advances_by_stable_sequence(
     page.batch_scan_button.click()
     assert page.sample_table.active_row == 0 and page.batch_scan_status.text() == "批量 #1"
 
-    page.sample_table.selectRow(0)
-    page.remove_tube_button.click()
+    select_tubes(qapp, page, [1])
 
     assert page._batch_scan_row_id == page._draft.rows[0].row_id
     assert page._draft.rows[0].sequence_no == 2

@@ -51,9 +51,10 @@ def test_shows_every_setting_with_the_effective_values(
 ) -> None:
     page = open_settings(qapp, window)
     assert page.editable and not page.locked
+    assert not hasattr(page, "hint")
     text = {name: field.edit.text() for name, field in page.fields.items()}
     assert text["instrument_no"] == "GI-001" and text["incubation_minutes"] == "60"
-    assert text["frames_per_side"] == "3" and text["settle_s"] == "1"
+    assert "frames_per_side" not in text and "settle_s" not in text
     assert text["temperature_target_c"] == "37" and text["temperature_tolerance_c"] == "1"
     assert text["temperature_hold_s"] == "60" and text["retention_days"] == ""  # 默认不自动删除
     assert text["copyright_holder"] == "厦门鲎试剂生物科技股份有限公司"
@@ -98,42 +99,43 @@ def test_diagnostics_description_can_grow_when_wrapped(
         language.set_language(Language.ZH_CN, persist=False)
 
 
-def test_personal_appearance_entry_does_not_save_device_draft(
+def test_appearance_auto_saves_and_failure_restores_controls_without_changing_device_draft(
     qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from gelinspect.services.appearance_service import AppearancePreferences
     from gelinspect.ui.theme.appearance import apply_appearance
     from gelinspect.ui.theme.tokens import current_tokens
 
+    appearance_path = window.services.data_dir / "appearance_settings.json"
+    initial_appearance_file = appearance_path.read_bytes() if appearance_path.exists() else None
     page = open_settings(qapp, window)
+    assert (
+        appearance_path.read_bytes() if appearance_path.exists() else None
+    ) == initial_appearance_file
     set_text(page, "instrument_no", "UNSAVED-DRAFT")
     before = current_tokens()
-    page.palette_box.setCurrentIndex(page.palette_box.findData("blue"))
-    page.font_scale_box.setCurrentIndex(page.font_scale_box.findData("large"))
-    assert current_tokens() == before  # 编辑选择时不预览
-
+    old_preferences = window.services.appearance.get("admin")
     save = window.services.appearance.save
-    appearance_path = window.services.data_dir / "appearance_settings.json"
     old_appearance_file = appearance_path.read_bytes() if appearance_path.exists() else None
-    failed_once = False
 
-    def fail_once(username: str, preferences: AppearancePreferences) -> None:
-        nonlocal failed_once
-        if not failed_once:
-            failed_once = True
-            raise OSError("disk full")
-        save(username, preferences)
+    def fail_save(_username: str, _preferences: AppearancePreferences) -> None:
+        raise OSError("disk full")
 
-    monkeypatch.setattr(window.services.appearance, "save", fail_once)
-    assert not page.save_appearance()
-    assert "无法保存" in page.appearance_message.text()
+    monkeypatch.setattr(window.services.appearance, "save", fail_save)
+    page.palette_box.setCurrentIndex(page.palette_box.findData("blue"))
+    assert page.palette_box.currentData() == old_preferences.palette
+    assert page.font_scale_box.currentData() == old_preferences.font_scale
+    assert "保存失败" in page.appearance_message.text()
     assert current_tokens() == before
-    assert window.services.appearance.get("admin") == AppearancePreferences()
+    assert window.services.appearance.get("admin") == old_preferences
     if old_appearance_file is None:
         assert not appearance_path.exists()
     else:
         assert appearance_path.read_bytes() == old_appearance_file
-    assert page.save_appearance()
+
+    monkeypatch.setattr(window.services.appearance, "save", save)
+    page.palette_box.setCurrentIndex(page.palette_box.findData("blue"))
+    page.font_scale_box.setCurrentIndex(page.font_scale_box.findData("large"))
     assert window.services.appearance.get("admin") == AppearancePreferences(
         palette="blue", font_scale="large"
     )
@@ -141,6 +143,14 @@ def test_personal_appearance_entry_does_not_save_device_draft(
     assert current_tokens().colors.primary == "#315F9B"
     assert page.fields["instrument_no"].edit.text() == "UNSAVED-DRAFT"
     assert not settings_file(window.services.data_dir).exists()
+
+    assert window.logout(confirm=False)
+    sign_in(qapp, window, "experimenter")
+    assert window.navigate("settings")
+    other_page = window.page("settings")
+    assert isinstance(other_page, SettingsPage)
+    assert other_page.palette_box.currentData() == "teal"
+    assert other_page.font_scale_box.currentData() == "system"
     apply_appearance(qapp, AppearancePreferences())
 
 
@@ -172,7 +182,6 @@ def test_other_roles_see_a_read_only_page(
     assert isinstance(page, SettingsPage)
     assert page.personal_card.isVisibleTo(page)
     assert page.palette_box.isEnabled() and page.font_scale_box.isEnabled()
-    assert page.appearance_save_button.isEnabled()
     assert not page.configuration_area.isVisibleTo(page)
     assert not page.save_bar_area.isVisibleTo(page)
     assert not page.previewing
@@ -185,7 +194,6 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
 ) -> None:
     page = open_settings(qapp, window)
     set_text(page, "incubation_minutes", "abc")
-    set_text(page, "frames_per_side", "2")
     set_text(page, "temperature_target_c", "99")
     set_text(page, "retention_days", "1.5")
     set_text(page, "instrument_no", "  ")
@@ -193,18 +201,16 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
     errors = {n: f.error.text() for n, f in page.fields.items() if f.error.isVisibleTo(page)}
     assert errors == {
         "incubation_minutes": "孵育时间（分钟）必须是数字，范围 0.1–1440",
-        "frames_per_side": "翻转前后各取帧数应在 3–20 之间",
         "temperature_target_c": "目标温度（℃）应在 20–45 之间",
         "retention_days": "数据保留天数必须是整数，范围 1–36500",
         "instrument_no": "仪器编号不能为空",
     }
-    assert "5 项设置不合法，没有保存" in page.save_message.text()
+    assert "4 项设置不合法，没有保存" in page.save_message.text()
     assert not settings_file(app_context.config.data_dir).exists()
     assert app_context.engine.config.incubation_minutes == 60
     # 改正后保存成功，错误提示消失
     fixes = {
         "incubation_minutes": "30",
-        "frames_per_side": "4",
         "temperature_target_c": "36.5",
         "retention_days": "",
         "instrument_no": "GI-002",
@@ -280,8 +286,12 @@ def test_while_an_experiment_runs_only_the_non_impacting_fields_can_be_edited(
     page.refresh()
     assert page.locked and page.banner.isVisibleTo(page)
     assert "EXP-RUN-1" in page.banner.title.text()
-    impacting = {"incubation_minutes", "frames_per_side", "settle_s", "temperature_target_c",
-                 "temperature_tolerance_c", "temperature_hold_s"}  # fmt: skip
+    impacting = {
+        "incubation_minutes",
+        "temperature_target_c",
+        "temperature_tolerance_c",
+        "temperature_hold_s",
+    }
     for name, field in page.fields.items():
         assert field.edit.isEnabled() is (name not in impacting and name != "copyright_holder"), (
             name

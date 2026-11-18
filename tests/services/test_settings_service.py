@@ -119,8 +119,6 @@ def test_invalid_values_are_all_reported_with_a_reason_and_nothing_is_written(
         context,
         instrument_no="   ",
         incubation_minutes="abc",
-        frames_per_side="2",
-        settle_s="-1",
         temperature_target_c="99",
         temperature_tolerance_c="nan",
         temperature_hold_s="1e9",
@@ -133,8 +131,6 @@ def test_invalid_values_are_all_reported_with_a_reason_and_nothing_is_written(
     assert reasons == {
         "instrument_no": SettingsProblemCode.REQUIRED,
         "incubation_minutes": SettingsProblemCode.NOT_A_NUMBER,
-        "frames_per_side": SettingsProblemCode.OUT_OF_RANGE,
-        "settle_s": SettingsProblemCode.OUT_OF_RANGE,
         "temperature_target_c": SettingsProblemCode.OUT_OF_RANGE,
         "temperature_tolerance_c": SettingsProblemCode.NOT_A_NUMBER,
         "temperature_hold_s": SettingsProblemCode.OUT_OF_RANGE,
@@ -148,11 +144,11 @@ def test_invalid_values_are_all_reported_with_a_reason_and_nothing_is_written(
 
 def test_number_limits_are_inclusive_and_integers_stay_integers() -> None:
     base = SettingsDraft.from_settings(parse_draft(_good())[0])  # type: ignore[arg-type]
-    low, high = NUMBER_LIMITS["frames_per_side"]
+    low, high = NUMBER_LIMITS["retention_days"]
     for value, ok in ((low, True), (high, True), (low - 1, False), (high + 1, False)):
-        settings, problems = parse_draft(replace(base, frames_per_side=str(int(value))))
+        settings, problems = parse_draft(replace(base, retention_days=str(int(value))))
         assert (settings is not None) is ok and bool(problems) is not ok
-    assert parse_draft(replace(base, frames_per_side="3.0"))[0] is None
+    assert parse_draft(replace(base, retention_days="3.0"))[0] is None
     assert parse_draft(replace(base, retention_days=""))[0] is not None  # 留空 = 不自动删除
 
 
@@ -160,8 +156,6 @@ def _good() -> SettingsDraft:
     return SettingsDraft(
         instrument_no="GI-009",
         incubation_minutes="30",
-        frames_per_side="4",
-        settle_s="1",
         temperature_target_c="37",
         temperature_tolerance_c="1",
         temperature_hold_s="60",
@@ -207,7 +201,6 @@ def test_save_applies_persists_and_audits_old_and_new_values(
             context,
             instrument_no="GI-009",
             incubation_minutes="30",
-            frames_per_side="4",
             temperature_target_c="36.5",
             temperature_hold_s="90",
             retention_days="365",
@@ -217,7 +210,6 @@ def test_save_applies_persists_and_audits_old_and_new_values(
     assert set(result.changed) == {
         "instrument_no",
         "incubation_minutes",
-        "frames_per_side",
         "temperature_target_c",
         "temperature_hold_s",
         "retention_days",
@@ -225,7 +217,11 @@ def test_save_applies_persists_and_audits_old_and_new_values(
     }
     # 运行时立即生效（对之后启动的试验）
     assert context.engine.config.incubation_minutes == 30
-    assert context.engine.config.frames_per_side == 4
+    assert context.engine.config.frames_per_side == context.base_config.engine.frames_per_side
+    assert (
+        context.config.pipeline_config().snapshot.settle_s
+        == context.base_config.video.snapshot.settle_s
+    )
     assert context.engine.config.temperature_target_c == 36.5
     assert context.engine.config.temperature_hold_s == 90
     assert context.experiments.instrument_no == "GI-009"
@@ -234,7 +230,6 @@ def test_save_applies_persists_and_audits_old_and_new_values(
     saved = json.loads(settings_file(context.config.data_dir).read_text(encoding="utf-8"))
     assert saved["settings"] == {
         "copyright_holder": "厦门某某生物科技",
-        "frames_per_side": 4,
         "incubation_minutes": 30.0,
         "instrument_no": "GI-009",
         "retention_days": 365,
@@ -275,7 +270,7 @@ def test_settings_survive_a_restart_and_the_repository_defaults_stay_untouched(
     try:
         first.settings.save(
             admin(first),
-            draft_of(first, instrument_no="GI-777", incubation_minutes="12", frames_per_side="5"),
+            draft_of(first, instrument_no="GI-777", incubation_minutes="12"),
         )
     finally:
         first.close()
@@ -283,8 +278,6 @@ def test_settings_survive_a_restart_and_the_repository_defaults_stay_untouched(
     try:
         assert second.config.instrument_no == "GI-777"
         assert second.config.engine.incubation_minutes == 12
-        assert second.engine.config.frames_per_side == 5
-        assert second.config.pipeline_config().snapshot.frames_per_side == 5
         assert second.base_config.instrument_no == "GI-001"  # 默认配置不变
         view = second.settings.current(admin(second))
         assert view.settings.instrument_no == "GI-777" and view.defaults.instrument_no == "GI-001"
@@ -298,7 +291,7 @@ def test_a_corrupt_settings_file_stops_startup_with_a_clear_message(tmp_path: Pa
     for text, expect in (
         ("{ not json", "不是合法的 JSON"),
         (json.dumps({"version": 1, "settings": {"nope": 1}}), "未知的设置项"),
-        (json.dumps({"version": 1, "settings": {"frames_per_side": 1}}), "内容有误"),
+        (json.dumps({"version": 1, "settings": {"incubation_minutes": "bad"}}), "内容有误"),
         (json.dumps({"version": 9, "settings": {}}), "版本不受支持"),
     ):
         path.write_text(text, encoding="utf-8")
@@ -333,9 +326,7 @@ def test_changes_that_affect_a_run_are_refused_while_an_experiment_runs(
     session = developer(context)
     for changes in (
         {"incubation_minutes": "20"},
-        {"frames_per_side": "6"},
         {"temperature_target_c": "38"},
-        {"settle_s": "2"},
         {"video_input": VideoInput.FILE, "video_path": __file__},
     ):
         with pytest.raises(ServiceError) as caught:

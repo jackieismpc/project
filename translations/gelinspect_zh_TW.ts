@@ -2271,22 +2271,6 @@
         <translation>留空則報告裡不填</translation>
     </message>
     <message>
-        <source>按序号</source>
-        <translation>依序號</translation>
-    </message>
-    <message>
-        <source>按管号</source>
-        <translation>依管號</translation>
-    </message>
-    <message>
-        <source>新增试管</source>
-        <translation>新增試管</translation>
-    </message>
-    <message>
-        <source>删除选中</source>
-        <translation>刪除所選</translation>
-    </message>
-    <message>
         <source>结束扫码</source>
         <translation>結束掃描</translation>
     </message>
@@ -2319,16 +2303,8 @@
         <translation>批量 #{sequence}</translation>
     </message>
     <message>
-        <source>已达到96支试管上限。</source>
-        <translation>已達 96 支試管上限。</translation>
-    </message>
-    <message>
         <source>删除样品行？</source>
         <translation>刪除樣品列？</translation>
-    </message>
-    <message>
-        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
-        <translation>所選列包含已輸入的樣品名稱或批號，刪除後無法復原。確定要刪除嗎？</translation>
     </message>
     <message>
         <source>删除</source>
@@ -4089,14 +4065,6 @@
         <translation>孵育時間（分鐘）</translation>
     </message>
     <message>
-        <source>翻转前后各取帧数</source>
-        <translation>翻轉前後各取影格數</translation>
-    </message>
-    <message>
-        <source>翻转后稳定时间（秒）</source>
-        <translation>翻轉後穩定時間（秒）</translation>
-    </message>
-    <message>
         <source>目标温度（℃）</source>
         <translation>目標溫度（℃）</translation>
     </message>
@@ -4256,16 +4224,12 @@
         <translation>個人外觀</translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的实验生效。</source>
-        <translation>執行參數的變更會套用至之後啟動的實驗。</translation>
+        <source>孵育</source>
+        <translation>孵育</translation>
     </message>
     <message>
         <source>仪器与数据</source>
         <translation>儀器與資料</translation>
-    </message>
-    <message>
-        <source>孵育与读数</source>
-        <translation>孵育與讀數</translation>
     </message>
     <message>
         <source>温度</source>
@@ -4328,6 +4292,14 @@
         <translation>瀏覽…</translation>
     </message>
     <message>
+        <source>无法读取外观设置。</source>
+        <translation>無法讀取外觀設定。</translation>
+    </message>
+    <message>
+        <source>外观设置保存失败，已恢复上次设置。</source>
+        <translation>外觀設定無法儲存，已還原為上次設定。</translation>
+    </message>
+    <message>
         <source>当前账号只能查看设置，修改需要仪器与维护权限。</source>
         <translation>目前帳號僅能檢視設定；修改需要儀器與維護權限。</translation>
     </message>
@@ -4372,10 +4344,6 @@
         <translation>較大</translation>
     </message>
     <message>
-        <source>保存外观设置</source>
-        <translation>儲存外觀設定</translation>
-    </message>
-    <message>
         <source>启动配置与数据目录</source>
         <translation>啟動設定與資料目錄</translation>
     </message>
@@ -4406,18 +4374,6 @@
     <message>
         <source>配置文件</source>
         <translation>設定檔</translation>
-    </message>
-    <message>
-        <source>无法读取已保存的外观设置。可重新选择后保存。</source>
-        <translation>無法讀取已儲存的外觀設定。請重新選擇後儲存。</translation>
-    </message>
-    <message>
-        <source>外观设置无法保存，请检查数据目录后重试。</source>
-        <translation>無法儲存外觀設定，請檢查資料目錄後再試。</translation>
-    </message>
-    <message>
-        <source>外观设置已保存。</source>
-        <translation>外觀設定已儲存。</translation>
     </message>
     <message>
         <source>还原</source>

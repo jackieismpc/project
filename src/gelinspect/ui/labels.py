@@ -750,8 +750,6 @@ def permission_label(permission: Permission) -> str:
 SETTING_LABELS: dict[str, str] = {
     "instrument_no": str(QT_TRANSLATE_NOOP("Settings", "仪器编号")),
     "incubation_minutes": str(QT_TRANSLATE_NOOP("Settings", "孵育时间（分钟）")),
-    "frames_per_side": str(QT_TRANSLATE_NOOP("Settings", "翻转前后各取帧数")),
-    "settle_s": str(QT_TRANSLATE_NOOP("Settings", "翻转后稳定时间（秒）")),
     "temperature_target_c": str(QT_TRANSLATE_NOOP("Settings", "目标温度（℃）")),
     "temperature_tolerance_c": str(QT_TRANSLATE_NOOP("Settings", "允许偏差 ±（℃）")),
     "temperature_hold_s": str(QT_TRANSLATE_NOOP("Settings", "越限告警持续时间（秒）")),

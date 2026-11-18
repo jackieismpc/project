@@ -56,8 +56,6 @@ class InstrumentSettings:
     Attributes:
         instrument_no: 仪器编号，写入每个新试验。
         incubation_minutes: 每排孵育时长（分钟）。
-        frames_per_side: 翻转前后各取多少帧。
-        settle_s: 翻转结束后的稳定时间（秒），之后的帧才算翻转后的帧。
         temperature_target_c: 孵育温度的目标值（℃）。
         temperature_tolerance_c: 允许的温度偏差（℃），范围是目标值 ± 偏差。
         temperature_hold_s: 温度越限持续多久转为异常（秒）。
@@ -70,8 +68,6 @@ class InstrumentSettings:
 
     instrument_no: str
     incubation_minutes: float
-    frames_per_side: int
-    settle_s: float
     temperature_target_c: float
     temperature_tolerance_c: float
     temperature_hold_s: float
@@ -96,8 +92,6 @@ FIELD_NAMES: tuple[str, ...] = tuple(f.name for f in fields(InstrumentSettings))
 IMPACTING_FIELDS: frozenset[str] = frozenset(
     {
         "incubation_minutes",
-        "frames_per_side",
-        "settle_s",
         "temperature_target_c",
         "temperature_tolerance_c",
         "temperature_hold_s",
@@ -109,8 +103,6 @@ IMPACTING_FIELDS: frozenset[str] = frozenset(
 
 NUMBER_LIMITS: dict[str, tuple[float, float]] = {
     "incubation_minutes": (0.1, 1440.0),
-    "frames_per_side": (3, 20),
-    "settle_s": (0.0, 10.0),
     "temperature_target_c": (20.0, 45.0),
     "temperature_tolerance_c": (0.1, 5.0),
     "temperature_hold_s": (0.0, 3600.0),
@@ -118,7 +110,7 @@ NUMBER_LIMITS: dict[str, tuple[float, float]] = {
 }
 """数值项的允许范围（含两端）。"""
 
-_INTEGER_FIELDS = frozenset({"frames_per_side", "retention_days"})
+_INTEGER_FIELDS = frozenset({"retention_days"})
 
 
 class SettingsProblemCode(StrEnum):
@@ -167,8 +159,6 @@ class SettingsDraft:
     Attributes:
         instrument_no: 仪器编号。
         incubation_minutes: 孵育时长（分钟）。
-        frames_per_side: 翻转前后各取的帧数。
-        settle_s: 翻转后稳定时间（秒）。
         temperature_target_c: 目标温度（℃）。
         temperature_tolerance_c: 允许偏差（℃）。
         temperature_hold_s: 越限告警持续时间（秒）。
@@ -181,8 +171,6 @@ class SettingsDraft:
 
     instrument_no: str
     incubation_minutes: str
-    frames_per_side: str
-    settle_s: str
     temperature_target_c: str
     temperature_tolerance_c: str
     temperature_hold_s: str
@@ -205,8 +193,6 @@ class SettingsDraft:
         return cls(
             instrument_no=settings.instrument_no,
             incubation_minutes=f"{settings.incubation_minutes:g}",
-            frames_per_side=str(settings.frames_per_side),
-            settle_s=f"{settings.settle_s:g}",
             temperature_target_c=f"{settings.temperature_target_c:g}",
             temperature_tolerance_c=f"{settings.temperature_tolerance_c:g}",
             temperature_hold_s=f"{settings.temperature_hold_s:g}",
@@ -338,8 +324,6 @@ def parse_draft(
         InstrumentSettings(
             instrument_no=instrument_no,
             incubation_minutes=float(numbers["incubation_minutes"] or 0),
-            frames_per_side=int(numbers["frames_per_side"] or 0),
-            settle_s=float(numbers["settle_s"] or 0),
             temperature_target_c=float(numbers["temperature_target_c"] or 0),
             temperature_tolerance_c=float(numbers["temperature_tolerance_c"] or 0),
             temperature_hold_s=float(numbers["temperature_hold_s"] or 0),
@@ -370,8 +354,6 @@ def settings_of(config: AppConfig) -> InstrumentSettings:
     return InstrumentSettings(
         instrument_no=config.instrument_no,
         incubation_minutes=config.engine.incubation_minutes,
-        frames_per_side=config.engine.frames_per_side,
-        settle_s=video.snapshot.settle_s,
         temperature_target_c=config.engine.temperature_target_c,
         temperature_tolerance_c=config.engine.temperature_tolerance_c,
         temperature_hold_s=config.engine.temperature_hold_s,
@@ -396,17 +378,12 @@ def apply_settings(base: AppConfig, settings: InstrumentSettings) -> AppConfig:
     engine = base.engine.model_copy(
         update={
             "incubation_minutes": settings.incubation_minutes,
-            "frames_per_side": settings.frames_per_side,
             "temperature_target_c": settings.temperature_target_c,
             "temperature_tolerance_c": settings.temperature_tolerance_c,
             "temperature_hold_s": settings.temperature_hold_s,
         }
     )
-    video_update: dict[str, Any] = {
-        "snapshot": base.video.snapshot.model_copy(
-            update={"frames_per_side": settings.frames_per_side, "settle_s": settings.settle_s}
-        )
-    }
+    video_update: dict[str, Any] = {}
     if settings.video_input is not VideoInput.CONFIG:
         video_update.update(
             source=settings.video_input.value,
@@ -437,8 +414,6 @@ class _Overrides(BaseModel):
 
     instrument_no: str = Field(min_length=1, max_length=MAX_INSTRUMENT_NO_LENGTH)
     incubation_minutes: float = Field(ge=0.1, le=1440)
-    frames_per_side: int = Field(ge=3, le=20)
-    settle_s: float = Field(ge=0, le=10)
     temperature_target_c: float = Field(ge=20, le=45)
     temperature_tolerance_c: float = Field(ge=0.1, le=5)
     temperature_hold_s: float = Field(ge=0, le=3600)
@@ -505,8 +480,6 @@ def load_overrides(path: Path) -> dict[str, Any]:
 _FILLERS: dict[str, Any] = {
     "instrument_no": "x",
     "incubation_minutes": 1.0,
-    "frames_per_side": 3,
-    "settle_s": 0.0,
     "temperature_target_c": 37.0,
     "temperature_tolerance_c": 1.0,
     "temperature_hold_s": 0.0,

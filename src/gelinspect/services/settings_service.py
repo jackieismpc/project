@@ -187,8 +187,6 @@ class VideoProbe:
 _FIELD_LABELS: dict[str, str] = {
     "instrument_no": "仪器编号",
     "incubation_minutes": "孵育时间（分钟）",
-    "frames_per_side": "翻转前后各取帧数",
-    "settle_s": "翻转后稳定时间（秒）",
     "temperature_target_c": "目标温度（℃）",
     "temperature_tolerance_c": "允许偏差（℃）",
     "temperature_hold_s": "越限告警持续时间（秒）",
