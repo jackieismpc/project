@@ -436,7 +436,7 @@ class SettingsPage(QWidget):
             self.banner.show_message(
                 "warning",
                 "triangle-alert",
-                self.tr("试验 {id} 正在运行").format(id=view.running_experiment),
+                self.tr("实验 {id} 正在运行").format(id=view.running_experiment),
                 self.tr(
                     "孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。"
                 ),
@@ -494,7 +494,7 @@ class SettingsPage(QWidget):
             return False
         self.refresh()
         if result.changed:
-            message = self.tr("设置已保存，对之后启动的试验生效。")
+            message = self.tr("设置已保存，对之后启动的实验生效。")
             Toast.show_message(self.window(), message, ToastKind.SUCCESS)
         else:
             message = self.tr("没有改动。")
@@ -728,7 +728,7 @@ class SettingsPage(QWidget):
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("设置"))
         self.readonly_badge.set_text(self.tr("只读"))
-        self.hint.setText(self.tr("运行参数改动对之后启动的试验生效。"))
+        self.hint.setText(self.tr("运行参数改动对之后启动的实验生效。"))
         self.instrument_card.set_title(self.tr("仪器与数据"))
         self.run_card.set_title(self.tr("孵育与读数"))
         self.temperature_card.set_title(self.tr("温度"))
@@ -744,7 +744,7 @@ class SettingsPage(QWidget):
             self.runtime_browse[key].setText(self.tr("浏览…"))
         self.runtime_hint.setText(
             self.tr(
-                "仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。"
+                "仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。"
             )
         )
         self.runtime_save.setText(self.tr("保存启动配置"))
@@ -754,8 +754,7 @@ class SettingsPage(QWidget):
 
     def _refresh_diagnostics_hint(self) -> None:
         base = self.tr(
-            "收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。"
-            "不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。"
+            "收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。"
         )
         try:
             log_dir = self._services.log_dir
@@ -783,7 +782,7 @@ class SettingsPage(QWidget):
                 "请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。"
             )
         )
-        self.fields["instrument_no"].set_hint(self.tr("写入之后新建的每个试验和报告。"))
+        self.fields["instrument_no"].set_hint(self.tr("写入之后新建的每个实验和报告。"))
         self.type_label.setText(setting_label("video_input"))
         self.path_label.setText(setting_label("video_path"))
         for index, text in enumerate(

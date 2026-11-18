@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Callable, Iterator, Mapping
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -199,11 +200,55 @@ class AppContext:
 
         顺序：仪器监视线程、试验引擎（还在进行的试验转异常）、视频管线、设备、数据库。
         """
-        self.instrument.stop(5.0)
-        self.engine.shutdown(30.0)
-        self.pipeline.stop()
-        self.device.close()
-        self.database.close()
+        first_error: Exception | None = None
+
+        def failed(name: str, error: Exception) -> None:
+            nonlocal first_error
+            _log.error("关闭%s失败：%s", name, error, exc_info=error)
+            if first_error is None:
+                first_error = error
+
+        try:
+            monitor_stopped = self.instrument.stop(5.0)
+            if not monitor_stopped:
+                failed("仪器监视线程", TimeoutError("等待仪器监视线程退出超时"))
+        except Exception as exc:
+            monitor_stopped = False
+            failed("仪器监视线程", exc)
+
+        try:
+            engine_stopped = self.engine.shutdown(30.0)
+            if not engine_stopped:
+                failed("试验引擎", TimeoutError("等待试验引擎及事件线程退出超时"))
+        except Exception as exc:
+            engine_stopped = False
+            failed("试验引擎", exc)
+
+        # 引擎超时后可能仍在使用视频管线、设备和数据库；保留这些资源，避免和工作线程并发销毁。
+        if not engine_stopped:
+            if first_error is not None:
+                raise first_error
+            return
+
+        try:
+            self.pipeline.stop()
+        except Exception as exc:
+            failed("视频管线", exc)
+
+        # 仪器监视器直接调用设备控制器；探测超时后可能仍在驱动中，因此不在其下方关闭控制器。
+        if monitor_stopped:
+            try:
+                self.device.close()
+            except Exception as exc:
+                failed("设备", exc)
+
+        try:
+            self.database.close()
+        except Exception as exc:
+            failed("数据库", exc)
+
+        if first_error is not None:
+            raise first_error
 
 
 class _LiveBackends(Mapping[str, str]):
@@ -361,17 +406,42 @@ def build_app_context(
         ConfigError: 配置有误，或后端无法加载。
         DatabaseVersionError: 数据库版本比程序新。
     """
+    with ExitStack() as resources:
+        context = _assemble_app_context(
+            config,
+            config_path=config_path,
+            on_event=on_event,
+            clock=clock,
+            resources=resources,
+        )
+        # 构建成功后由 AppContext 接管资源；后续启动失败时由其 close() 负责释放。
+        resources.pop_all()
+        return context
+
+
+def _assemble_app_context(
+    config: AppConfig | None,
+    *,
+    config_path: Path | None,
+    on_event: EngineEventListener | None,
+    clock: Callable[[], datetime] | None,
+    resources: ExitStack,
+) -> AppContext:
+    """构建上下文，并在取得每个外部资源时登记清理操作。"""
     base_config = config if config is not None else load_config(config_path)
     # 用户在“仪器设置”里改过的项保存在数据目录里，叠加到默认配置上；文件有错在这里报错，
     # 此时还没有创建任何后端和文件。
     settings = apply_overrides(base_config, load_overrides(settings_file(base_config.data_dir)))
+    engine_stopped = [True]
     device = load_backend(
         "device.backend",
         settings.device.backend,
         DeviceController,  # type: ignore[type-abstract]
         settings.device.options,
     )
+    resources.callback(_cleanup_startup_resource, "设备", device.close, engine_stopped)
     source = _create_video_source(settings)
+    resources.callback(_cleanup_startup_resource, "视频源", source.close, engine_stopped)
     analyzer = load_backend(
         "analysis.backend",
         settings.analysis.backend,
@@ -381,51 +451,50 @@ def build_app_context(
     hook = load_bootstrap_hook(settings)
     parser, registry, government = _load_traceability(settings)
     pipeline = VideoPipeline(source, settings.pipeline_config())
+    resources.callback(_cleanup_startup_resource, "视频管线", pipeline.stop, engine_stopped)
     try:
         protector = create_key_protector(settings.keys_dir, key_protection_mode(settings))
     except KeyProtectionError as exc:
         raise ConfigError(f"security.key_protection：{exc}") from exc
     database = open_database(settings.database_path)
-    try:
-        audit_keys = activate_audit_hmac(
-            database,
-            AuditKeyRing(settings.keys_dir / AUDIT_KEY_FILE, protector),
-            clock=clock,
-        )
-        first_run = initialize_accounts(database, hook)
-        security = settings.security
-        auth = AuthService(
-            database,
-            Argon2Hasher(),
-            policy=LoginPolicy(
-                max_attempts=security.max_login_attempts,
-                lockout_s=security.lockout_minutes * 60.0,
-            ),
-            seeder=DatabaseFirstAdminSeeder(database),
-        )
-        engine = ExperimentEngine(
-            device,
-            pipeline,
-            analyzer,
-            database,
-            config=settings.engine_config(),
-            mapping=settings.mapping(),
-            analyzer_config_path=settings.analysis.config_path,
-            on_event=on_event,
-            conclusions_enabled=settings.conclusions.enabled,
-        )
-        recovered = engine.recover_interrupted()
-        reagents = ReagentService(
-            auth,
-            database,
-            parser=parser,
-            registry=registry,
-            government=government,
-            clock=clock,
-        )
-    except BaseException:
-        database.close()
-        raise
+    resources.callback(_cleanup_startup_resource, "数据库", database.close, engine_stopped)
+    audit_keys = activate_audit_hmac(
+        database,
+        AuditKeyRing(settings.keys_dir / AUDIT_KEY_FILE, protector),
+        clock=clock,
+    )
+    first_run = initialize_accounts(database, hook)
+    security = settings.security
+    auth = AuthService(
+        database,
+        Argon2Hasher(),
+        policy=LoginPolicy(
+            max_attempts=security.max_login_attempts,
+            lockout_s=security.lockout_minutes * 60.0,
+        ),
+        seeder=DatabaseFirstAdminSeeder(database),
+    )
+    engine = ExperimentEngine(
+        device,
+        pipeline,
+        analyzer,
+        database,
+        config=settings.engine_config(),
+        mapping=settings.mapping(),
+        analyzer_config_path=settings.analysis.config_path,
+        on_event=on_event,
+        conclusions_enabled=settings.conclusions.enabled,
+    )
+    resources.callback(_cleanup_engine_startup, engine, 30.0, engine_stopped)
+    recovered = engine.recover_interrupted()
+    reagents = ReagentService(
+        auth,
+        database,
+        parser=parser,
+        registry=registry,
+        government=government,
+        clock=clock,
+    )
     monitor = MonitorService(
         auth, database, engine, pipeline, conclusions_enabled=settings.conclusions.enabled
     )
@@ -510,6 +579,32 @@ def build_app_context(
     )
     applier.attach(context)
     return context
+
+
+def _cleanup_startup_resource(
+    name: str, cleanup: Callable[[], object], engine_stopped: list[bool]
+) -> None:
+    """释放未完成组装时取得的资源，不覆盖最初的异常。"""
+    if not engine_stopped[0]:
+        _log.error("试验引擎未退出，跳过清理%s以避免与工作线程并发", name)
+        return
+    try:
+        cleanup()
+    except Exception:
+        _log.exception("清理未完成启动时的%s资源失败", name)
+
+
+def _cleanup_engine_startup(
+    engine: ExperimentEngine, timeout_s: float, engine_stopped: list[bool]
+) -> None:
+    """停止未完成组装的引擎；超过时限未退出时记录错误并保留依赖资源。"""
+    try:
+        engine_stopped[0] = engine.shutdown(timeout_s)
+        if not engine_stopped[0]:
+            _log.error("清理未完成启动时的试验引擎超时；仍在使用的资源将保留")
+    except Exception:
+        engine_stopped[0] = False
+        _log.exception("清理未完成启动时的试验引擎失败")
 
 
 def key_protection_mode(config: AppConfig) -> ProtectionMode:

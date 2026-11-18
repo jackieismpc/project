@@ -124,7 +124,7 @@ class MonitorReportPreview(QWidget):
             return
         self.clear()
         if self._session is None or self._experiment_id is None:
-            self.message.setText(self.tr("先选择一个试验。"))
+            self.message.setText(self.tr("先选择一个实验。"))
             return
         self._rendering = True
         self.refresh_button.setEnabled(False)

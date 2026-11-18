@@ -3,8 +3,8 @@
 规则：
 
 - ``Experiment`` 和设备只在引擎线程上访问。算法在分析线程上调用，结局经收件箱送回。
-- 每次写库都走 :meth:`EngineRun._transact`：先改内存聚合，事务提交失败就撤销，
-  提交成功后才发事件。内存、数据库和界面看到的状态不会分叉。
+- 每次写库都走 :meth:`EngineRun._transact`：在写锁内重载持久化结果并更新聚合，
+  事务提交失败就恢复内存，提交成功后才发事件。内存、数据库和界面看到的状态不会分叉。
 - 先入队事件，再发布快照：看到快照新状态的观察者，对应的事件都已经在分发队列里。
 - 写锁被其他写入者占用是暂时的，引擎等到为止（有总时限），不因此转异常或中止运行。
 - 翻转不可逆（翻动过的凝胶不能再读一次），所以翻转前做完所有能做的检查，
@@ -18,7 +18,7 @@ import threading
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, wait
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TypeVar
 
@@ -28,6 +28,7 @@ from gelinspect.domain.enums import (
     AuditAction,
     Interpretation,
     ReagentKind,
+    ReviewStatus,
     TubeAnalysisStatus,
 )
 from gelinspect.domain.interpretation import GelStateMapping
@@ -58,6 +59,7 @@ from gelinspect.interfaces.device import (
 )
 from gelinspect.interfaces.storage import (
     MediaFile,
+    StateConflictError,
     StorageBusyError,
     StorageError,
     TemperatureSample,
@@ -121,6 +123,49 @@ _AUDITED_VIDEO_EVENTS = {
     VideoEventCode.BLACK_FRAME: AlertCode.VIDEO_QUALITY,
     VideoEventCode.FROZEN_FRAME: AlertCode.VIDEO_QUALITY,
 }
+
+
+def _preserve_existing_reviews(result: TubeResult, existing: TubeResult | None) -> TubeResult:
+    """替换算法字段时，完整保留已有人工复核字段与历史顺序。"""
+    if existing is None or (
+        existing.reviewed_interpretation is None and not existing.review_history
+    ):
+        return result
+    latest = existing.review_history[-1] if existing.review_history else None
+    return replace(
+        result,
+        review_status=ReviewStatus.REVIEWED,
+        reviewed_interpretation=(
+            existing.reviewed_interpretation
+            if existing.reviewed_interpretation is not None
+            else latest.interpretation
+            if latest is not None
+            else None
+        ),
+        reviewed_by=(
+            existing.reviewed_by
+            if existing.reviewed_by is not None
+            else latest.reviewed_by
+            if latest is not None
+            else None
+        ),
+        reviewed_at=(
+            existing.reviewed_at
+            if existing.reviewed_at is not None
+            else latest.reviewed_at
+            if latest is not None
+            else None
+        ),
+        review_note=(
+            existing.review_note
+            if existing.review_note is not None
+            else latest.reason
+            if latest is not None
+            else None
+        ),
+        review_history=existing.review_history,
+    )
+
 
 _SHUTDOWN = object()
 """收件箱里的退出命令。"""
@@ -332,6 +377,12 @@ class EngineRun:
     def analyzer_busy(self) -> bool:
         """算法线程是否还没退出。运行结束后算法仍卡着时为 True。"""
         return self._worker.alive
+
+    def shutdown_analyzer(self, timeout_s: float | None) -> bool:
+        """运行线程结束后继续等待算法线程退出；不尝试中断算法调用。"""
+        if self.alive:
+            return False
+        return self._worker.shutdown(timeout_s)
 
     def start(self) -> None:
         """启动引擎线程。"""
@@ -1487,7 +1538,8 @@ class EngineRun:
     ) -> None:
         """在一个事务里提交状态、结果、媒体、审计和温度。
 
-        先改内存聚合（走领域规则），提交失败时撤销，提交成功后才发事件，事件入队后才发布快照。
+        写锁内先从数据库读取最新单管结果，再按领域规则更新内存聚合并决定状态与结论。
+        提交失败时恢复原内存，提交成功后才发事件，事件入队后才发布快照。
 
         Args:
             events: 要应用的状态机事件；是函数时在结果写入内存之后才求值。
@@ -1511,10 +1563,43 @@ class EngineRun:
         media = list(self._pending_media)
         actor = user.username if user is not None else SYSTEM_ACTOR
         changes: list[StateChanged] = []
-        records = list(audit)
-        try:
+        records: list[AuditEvent] = []
+        results_to_save: list[TubeResult] = []
+        completed = False
+
+        def write(uow: UnitOfWork) -> None:
+            nonlocal completed
+            # 每次尝试从固定内存基线开始，在取得写锁后重载结果，纳入后续排分析期间的复核。
+            exp.state = state_before
+            exp.results = dict(results_before)
+            exp.conclusion, exp.completed_at, exp.measured_sensitivity = completion_before
+            changes.clear()
+            records.clear()
+            records.extend(audit)
+            results_to_save.clear()
+            completed = False
+
+            persisted = uow.experiments.get(exp.experiment_id)
+            if persisted is None:
+                raise StorageError(f"试验已不存在：{exp.experiment_id}")
+            if persisted.state is not state_before:
+                raise StateConflictError(
+                    f"试验 {exp.experiment_id} 的状态已从 {state_before.value} 改变"
+                )
+            exp.results = dict(persisted.results)
+            exp.conclusion = persisted.conclusion
+            exp.completed_at = persisted.completed_at
+            exp.measured_sensitivity = persisted.measured_sensitivity
+
             for result in results:
-                exp.record_result(result)
+                existing = exp.results.get(result.tube_no)
+                merged = result
+                if existing is not None:
+                    # 重新分析替换算法字段，但完整保留原结果的复核字段和历史顺序。
+                    merged = _preserve_existing_reviews(merged, existing)
+                exp.record_result(merged)
+                results_to_save.append(merged)
+
             for event in events() if callable(events) else events:
                 previous = exp.state
                 current = exp.apply(event)
@@ -1546,8 +1631,7 @@ class EngineRun:
                 and state_before is not ExperimentState.COMPLETED
             )
             if completed:
-                # 结论和“已完成”状态同一事务：看到已完成的人一定也能读到结论。
-                # 结论功能关闭时只记完成时间，不计算、不入库结论，也不写结论审计。
+                # 结论与完成状态在同一写事务内，根据已锁定的最新复核结果计算。
                 concluded = finalize_completion(
                     exp, self._clock.now(), conclusions_enabled=self._deps.conclusions_enabled
                 )
@@ -1560,28 +1644,26 @@ class EngineRun:
                         )
                     )
 
-            def write(uow: UnitOfWork) -> None:
-                if exp.state is not state_before:
-                    uow.experiments.update_state(
-                        exp.experiment_id, exp.state, expected=state_before
-                    )
-                if results:
-                    uow.experiments.save_results(exp.experiment_id, results)
-                if completed:
-                    assert exp.completed_at is not None
-                    uow.experiments.record_completion(
-                        exp.experiment_id,
-                        completed_at=exp.completed_at,
-                        measured_sensitivity=exp.measured_sensitivity,
-                        conclusion=exp.conclusion,
-                    )
-                for item in media:
-                    uow.media.add(item)
-                if records:
-                    uow.audit.append_many(records)
-                if temperatures:
-                    uow.telemetry.add_temperatures(temperatures)
+            if exp.state is not state_before:
+                uow.experiments.update_state(exp.experiment_id, exp.state, expected=state_before)
+            if results_to_save:
+                uow.experiments.save_results(exp.experiment_id, results_to_save)
+            if completed:
+                assert exp.completed_at is not None
+                uow.experiments.record_completion(
+                    exp.experiment_id,
+                    completed_at=exp.completed_at,
+                    measured_sensitivity=exp.measured_sensitivity,
+                    conclusion=exp.conclusion,
+                )
+            for item in media:
+                uow.media.add(item)
+            if records:
+                uow.audit.append_many(records)
+            if temperatures:
+                uow.telemetry.add_temperatures(temperatures)
 
+        try:
             self._commit(write, patient=not temperatures)
         except Exception:
             exp.state = state_before
@@ -1593,7 +1675,7 @@ class EngineRun:
             self._events.emit(change)
         for extra in then:
             self._events.emit(extra)
-        if changes or results or then:
+        if changes or results_to_save or then:
             self._refresh_snapshot()
 
     def _commit(self, write: Callable[[UnitOfWork], None], *, patient: bool) -> None:

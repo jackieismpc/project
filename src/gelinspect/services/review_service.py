@@ -27,6 +27,7 @@ from gelinspect.interfaces.storage import (
 from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.monitor_service import audit_event
+from gelinspect.services.review_snapshot import review_snapshot
 
 MAX_NOTE_LENGTH = 1000
 """复核意见的最大长度。"""
@@ -134,6 +135,7 @@ class ReviewService:
                 f"管号 {tube_no} 没有结果", ServiceErrorCode.TUBE_NOT_FOUND, tube=tube_no
             )
         before = experiment.state
+        expected_reviews = review_snapshot(experiment)
         now = self._clock()
         auto = experiment.results[tube_no]
         try:
@@ -210,6 +212,12 @@ class ReviewService:
             with self._storage.unit_of_work() as uow:
                 # 总是带上“预期状态”写一次：别处改过试验状态时在这里发现，整个事务回滚。
                 uow.experiments.update_state(experiment_id, experiment.state, expected=before)
+                # 状态不会因复核而改变时，单靠状态比较无法发现同一状态下的并发复核。
+                # BEGIN IMMEDIATE 使此处读取与后续写入处于同一写事务，比较完整复核历史，
+                # 防止同管覆盖、重复审计，以及并发复核覆盖已计算的试验结论。
+                persisted = uow.experiments.get(experiment_id)
+                if persisted is None or review_snapshot(persisted) != expected_reviews:
+                    raise StateConflictError(f"试验 {experiment_id} 的复核历史已被其他操作修改")
                 uow.experiments.save_results(experiment_id, [reviewed])
                 if (completed_now or recalculated_existing) and experiment.completed_at is not None:
                     uow.experiments.record_completion(

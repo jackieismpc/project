@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import stat
-from datetime import timedelta
+from datetime import UTC, timedelta
 from io import BytesIO
 from pathlib import Path
 
 import pytest
 from pyhanko.pdf_utils.reader import PdfFileReader
 
-from gelinspect.domain.enums import AuditAction, PermissionGroup, ReportScope
+from gelinspect.domain.enums import AuditAction, Interpretation, PermissionGroup, ReportScope
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.auth import InvalidCredentialsError, PermissionDeniedError
+from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.reporting.report_service import SigningNotAllowedError
 from gelinspect.services.reporting.texts import ReportLanguage
 from gelinspect.services.reporting.verify import VerifyFailure, verify_pdf_bytes
@@ -469,3 +471,205 @@ def _unsigned_pdf(stack: Stack, tmp_path: Path) -> bytes:
     preview = service.preview(stack.login("analyst"), "EXP-SAMPLE-0001")
     data, _ = service._renderer.render_pdf(preview.document, ReportTexts(ReportLanguage.ZH_CN))
     return data
+
+
+def test_a_review_during_rendering_cannot_be_signed_as_an_older_snapshot(
+    signing_stack: Stack, tmp_path: Path
+) -> None:
+    stack = signing_stack
+    make_completed(stack)
+    service, _ = make_service(stack, tmp_path)
+    real_storage = stack.database
+
+    class ConcurrentReviewStorage:
+        def __getattr__(self, name: str) -> object:
+            return getattr(real_storage, name)
+
+        def unit_of_work(self) -> object:
+            concurrent = real_storage.experiments.get("EXP-SAMPLE-0001")
+            assert concurrent is not None
+            tube_no = next(iter(concurrent.results))
+            previous = concurrent.results[tube_no]
+            concurrent.review_tube(
+                tube_no,
+                interpretation=previous.final_interpretation,
+                reviewed_by="other-reviewer",
+                reviewed_at=SIGN_TIME + timedelta(seconds=1),
+                note="签署并发竞态复核",
+            )
+            real_storage.experiments.save_results(
+                concurrent.experiment_id, [concurrent.results[tube_no]]
+            )
+            return real_storage.unit_of_work()
+
+    from gelinspect.services.reporting.report_service import ReportService
+
+    guarded = ReportService(
+        stack.auth,
+        ConcurrentReviewStorage(),  # type: ignore[arg-type]
+        data_dir=tmp_path / "data",
+        keystore=service._keystore,
+        clock=lambda: SIGN_TIME,
+        zone=UTC,
+        conclusions_enabled=True,
+    )
+    analyst = stack.login("analyst")
+    with pytest.raises(ServiceError) as caught:
+        guarded.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+    assert caught.value.code is ServiceErrorCode.SIGN_CONFLICT
+    stored = stack.database.experiments.get("EXP-SAMPLE-0001")
+    assert stored is not None and stored.state is ExperimentState.COMPLETED
+    assert stack.database.reports.list_for_experiment("EXP-SAMPLE-0001") == []
+    assert not (tmp_path / "data" / "reports" / "EXP-SAMPLE-0001" / "EXP-SAMPLE-0001.pdf").exists()
+
+
+def test_concurrent_language_revisions_cannot_replace_the_same_revision_file(
+    signing_stack: Stack, tmp_path: Path
+) -> None:
+    stack = signing_stack
+    make_completed(stack)
+    revision_at = SIGN_TIME + timedelta(days=30)
+    clock_value = [revision_at]
+    service, _ = make_service(stack, tmp_path, clock=lambda: clock_value[0])
+    analyst = stack.login("analyst")
+    service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+    clock_value[0] += timedelta(minutes=1)
+    real_storage = stack.database
+    raced = False
+
+    class ConcurrentRevisionStorage:
+        def __getattr__(self, name: str) -> object:
+            return getattr(real_storage, name)
+
+        def unit_of_work(self) -> object:
+            nonlocal raced
+            if not raced:
+                raced = True
+                service.sign(
+                    analyst,
+                    "EXP-SAMPLE-0001",
+                    PASSWORDS["analyst"],
+                    language=ReportLanguage.ZH_TW,
+                )
+            return real_storage.unit_of_work()
+
+    from gelinspect.services.reporting.report_service import ReportService
+
+    guarded = ReportService(
+        stack.auth,
+        ConcurrentRevisionStorage(),  # type: ignore[arg-type]
+        data_dir=tmp_path / "data",
+        keystore=service._keystore,
+        clock=lambda: clock_value[0],
+        zone=UTC,
+        conclusions_enabled=True,
+    )
+    with pytest.raises(ServiceError) as caught:
+        guarded.sign(
+            analyst,
+            "EXP-SAMPLE-0001",
+            PASSWORDS["analyst"],
+            language=ReportLanguage.EN,
+        )
+    assert caught.value.code is ServiceErrorCode.SIGN_CONFLICT
+    records = [r for r in stack.database.reports.list_for_experiment("EXP-SAMPLE-0001") if r.signed]
+    assert [record.revision for record in records] == [1, 2]
+    winner = next(record for record in records if record.revision == 2)
+    assert winner.language == ReportLanguage.ZH_TW.value
+    path = service.resolve(winner)
+    assert path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() == winner.sha256
+
+
+def test_stage_removes_partial_file_when_fsync_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gelinspect.services.reporting.report_service import ReportService
+
+    def fail_fsync(_descriptor: int) -> None:
+        raise OSError("simulated fsync failure")
+
+    monkeypatch.setattr(os, "fsync", fail_fsync)
+    with pytest.raises(OSError, match="simulated fsync failure"):
+        ReportService._stage(tmp_path, "report.pdf", b"already written")
+    assert not list(tmp_path.glob(".report.pdf.*.part"))
+
+
+def test_a_file_created_after_preflight_is_never_overwritten(
+    signing_stack: Stack, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stack = signing_stack
+    make_completed(stack)
+    service, _ = make_service(stack, tmp_path)
+    analyst = stack.login("analyst")
+    final = tmp_path / "data" / "reports" / "EXP-SAMPLE-0001" / "EXP-SAMPLE-0001.pdf"
+    real_link = os.link
+    raced = False
+
+    def create_collision(source: Path, destination: Path, *, follow_symlinks: bool = True) -> None:
+        nonlocal raced
+        if not raced:
+            raced = True
+            destination.write_bytes(b"owned by another writer")
+        real_link(source, destination, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(os, "link", create_collision)
+    with pytest.raises(ServiceError) as caught:
+        service.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+    assert caught.value.code is ServiceErrorCode.SIGN_CONFLICT
+    assert final.read_bytes() == b"owned by another writer"
+    assert stack.database.reports.list_for_experiment("EXP-SAMPLE-0001") == []
+
+
+def test_unsupported_hardlinks_fail_cleanly_without_leaving_a_partial_report(
+    signing_stack: Stack, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stack = signing_stack
+    make_completed(stack)
+    service, _ = make_service(stack, tmp_path)
+    final = tmp_path / "data" / "reports" / "EXP-SAMPLE-0001" / "EXP-SAMPLE-0001.pdf"
+
+    def no_hardlinks(_source: Path, _destination: Path) -> None:
+        raise OSError(errno.EOPNOTSUPP, "hard links unsupported")
+
+    monkeypatch.setattr(os, "link", no_hardlinks)
+    with pytest.raises(ServiceError) as caught:
+        service.sign(stack.login("analyst"), "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+    assert caught.value.code is ServiceErrorCode.SIGN_FAILED
+    assert "不支持硬链接" in str(caught.value)
+    assert not final.exists()
+    assert not list(final.parent.glob("*.part"))
+    assert not list(final.parent.glob(".*.part"))
+    assert stack.database.reports.list_for_experiment("EXP-SAMPLE-0001") == []
+    stored = stack.database.experiments.get("EXP-SAMPLE-0001")
+    assert stored is not None and stored.state is ExperimentState.COMPLETED
+
+
+@pytest.mark.parametrize("review_offset", [timedelta(seconds=0), timedelta(seconds=-1)])
+def test_review_after_signature_is_a_revision_even_when_its_timestamp_ties_or_regresses(
+    signing_stack: Stack, tmp_path: Path, review_offset: timedelta
+) -> None:
+    stack = signing_stack
+    make_completed(stack)
+    signer, _ = make_service(stack, tmp_path, clock=lambda: SIGN_TIME)
+    analyst = stack.login("analyst")
+    signer.sign(analyst, "EXP-SAMPLE-0001", PASSWORDS["analyst"])
+
+    experiment = stack.database.experiments.get("EXP-SAMPLE-0001")
+    assert experiment is not None
+    tube_no = next(iter(experiment.results))
+    conclusion = experiment.results[tube_no].final_interpretation
+    assert conclusion in {Interpretation.POSITIVE, Interpretation.NEGATIVE}
+    from gelinspect.services.review_service import ReviewService
+
+    ReviewService(stack.auth, stack.database, clock=lambda: SIGN_TIME + review_offset).review_tube(
+        analyst,
+        experiment.experiment_id,
+        tube_no,
+        conclusion,
+        "签署后复核，检验审计顺序",
+    )
+
+    revised, _ = make_service(stack, tmp_path, clock=lambda: SIGN_TIME + timedelta(seconds=1))
+    result = revised.sign(analyst, experiment.experiment_id, PASSWORDS["analyst"])
+    assert result.record.revision == 2
+    assert result.record.supersedes_report_id is not None

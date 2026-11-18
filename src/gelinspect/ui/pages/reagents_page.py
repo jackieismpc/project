@@ -222,7 +222,7 @@ class ReagentsPage(QWidget):
         self.batch_table.set_rows(rows)
         self.batch_table.set_empty_text(
             self._error or self.tr("还没有录入的试剂批次"),
-            "" if self._error else self.tr("在新试验向导里扫码校验后，批次会显示在这里"),
+            "" if self._error else self.tr("在新实验向导里扫码校验后，批次会显示在这里"),
         )
         check_rows = []
         for record in self._checks:
@@ -254,7 +254,7 @@ class ReagentsPage(QWidget):
         self.query_input.setAccessibleName(self.tr("试剂码"))
         self.query_button.setText(self.tr("查询"))
         self.query_hint.setText(
-            self.tr("查询只检查备案和效期，不会录入批次。批次在新试验向导里扫码校验后录入。")
+            self.tr("查询只检查备案和效期，不会录入批次。批次在新实验向导里扫码校验后录入。")
         )
         self.batch_card.set_title(self.tr("已录入批次"))
         self.batch_table.set_columns(self._batch_columns())

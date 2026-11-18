@@ -257,7 +257,7 @@ class AnalysisWorker:
         else:
             self._on_done(AnalysisOutcome(row_index, attempt, result, None, wall_s, media))
 
-    def shutdown(self, timeout_s: float) -> bool:
+    def shutdown(self, timeout_s: float | None) -> bool:
         """丢弃排队的任务，关闭算法并结束线程。
 
         Args:

@@ -366,28 +366,38 @@ def run_gui(
         return failure.exit_code
 
     if config_error is not None or config is None:
-        return fail(config_error or ConfigError("配置无法读取"))
+        try:
+            return fail(config_error or ConfigError("配置无法读取"))
+        finally:
+            shutdown_logging()
 
     context: AppContext | None = None
     try:
         context = build_app_context(config)
     except Exception as exc:
-        return fail(exc)
+        try:
+            return fail(exc)
+        finally:
+            shutdown_logging()
 
     integrity = check_program_integrity(config)
     if not record_integrity(context, integrity):
         warning = describe_integrity_failure(integrity)
         if smoke_test:
             print(f"{warning.title}\n{warning.message}", file=sys.stderr)
-            context.close()
-            shutdown_logging()
-            return EXIT_ERROR
+            try:
+                return EXIT_ERROR
+            finally:
+                try:
+                    context.close()
+                finally:
+                    shutdown_logging()
         (present_error or show_error_dialog)(warning, log_path)
-
-    from gelinspect.ui.main_window import MainWindow
 
     window: MainWindow | None = None
     try:
+        from gelinspect.ui.main_window import MainWindow
+
         window = MainWindow(
             context.services(log_dir=log_dir),
             language,
@@ -411,12 +421,16 @@ def run_gui(
             return EXIT_ERROR
         return fail(exc)
     finally:
-        if window is not None:
-            window.bridge.close()
-        context.close()
-        shutdown_logging()
-        if owns_app:
-            qapp.processEvents()
+        try:
+            if window is not None:
+                window.bridge.close()
+        finally:
+            try:
+                context.close()
+            finally:
+                shutdown_logging()
+                if owns_app:
+                    qapp.processEvents()
 
 
 def check_program_integrity(config: AppConfig) -> IntegrityReport:

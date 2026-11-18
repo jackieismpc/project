@@ -341,36 +341,36 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
         QT_TRANSLATE_NOOP("ServiceError", "第 {index} 行的样品名称为空")
     ),
     ServiceErrorCode.EXPERIMENT_NOT_FOUND: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验不存在：{id}")
+        QT_TRANSLATE_NOOP("ServiceError", "实验不存在：{id}")
     ),
     ServiceErrorCode.EXPERIMENT_NOT_READY: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验 {id} 不是就绪状态，不能启动")
+        QT_TRANSLATE_NOOP("ServiceError", "实验 {id} 不是就绪状态，不能启动")
     ),
     ServiceErrorCode.ENGINE_BUSY: str(
-        QT_TRANSLATE_NOOP("ServiceError", "已有试验正在运行，设备同一时间只能运行一个试验")
+        QT_TRANSLATE_NOOP("ServiceError", "已有实验正在运行，设备同一时间只能运行一个实验")
     ),
-    ServiceErrorCode.ENGINE_REFUSED: str(QT_TRANSLATE_NOOP("ServiceError", "引擎拒绝启动试验")),
+    ServiceErrorCode.ENGINE_REFUSED: str(QT_TRANSLATE_NOOP("ServiceError", "引擎拒绝启动实验")),
     ServiceErrorCode.STOP_NOT_ALLOWED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验 {id} 当前状态不能停止")
+        QT_TRANSLATE_NOOP("ServiceError", "实验 {id} 当前状态不能停止")
     ),
     ServiceErrorCode.TUBE_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "{tube} 号管没有结果")),
     ServiceErrorCode.REVIEW_NOTE_REQUIRED: str(
         QT_TRANSLATE_NOOP("ServiceError", "复核意见必填，且不超过 {max} 个字符")
     ),
     ServiceErrorCode.REVIEW_NOT_ALLOWED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "全部排读数分析完成、试验进入待复核后才能复核")
+        QT_TRANSLATE_NOOP("ServiceError", "这支管当前没有可复核的结果，请等待结果生成后重试")
     ),
     ServiceErrorCode.REVIEW_CONCLUSION_INVALID: str(
         QT_TRANSLATE_NOOP("ServiceError", "复核结论只能是阳性或阴性")
     ),
     ServiceErrorCode.REVIEW_CONFLICT: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验状态已被其他操作改变，请刷新后重试")
+        QT_TRANSLATE_NOOP("ServiceError", "实验状态已被其他操作改变，请刷新后重试")
     ),
     ServiceErrorCode.RESUME_NOT_ALLOWED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "这个试验现在不能恢复，软件重启后只能重试分析或停止")
+        QT_TRANSLATE_NOOP("ServiceError", "这个实验现在不能恢复，软件重启后只能重试分析或停止")
     ),
     ServiceErrorCode.RETRY_NOT_ALLOWED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "这个试验现在不能重试分析")
+        QT_TRANSLATE_NOOP("ServiceError", "这个实验现在不能重试分析")
     ),
     ServiceErrorCode.LAMBDA_REQUIRED: str(
         QT_TRANSLATE_NOOP("ServiceError", "这个模板需要鲎试剂的标示灵敏度 λ，当前试剂没有提供")
@@ -385,16 +385,18 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
         QT_TRANSLATE_NOOP("ServiceError", "试剂未通过校验，流程已锁定")
     ),
     ServiceErrorCode.EXPERIMENT_SIGNED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验已签署，结果和复核已锁定，不能再修改")
+        QT_TRANSLATE_NOOP(
+            "ServiceError", "已签署的报告版本会保留；后续复核将生成修订版，需重新签署"
+        )
     ),
     ServiceErrorCode.SIGN_NOT_ALLOWED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "现在不能签署这个试验")
+        QT_TRANSLATE_NOOP("ServiceError", "现在不能签署这个实验")
     ),
     ServiceErrorCode.SIGN_FAILED: str(
-        QT_TRANSLATE_NOOP("ServiceError", "签署失败，没有生成报告，试验状态没有改变：{reason}")
+        QT_TRANSLATE_NOOP("ServiceError", "签署失败，没有生成报告，实验状态没有改变：{reason}")
     ),
     ServiceErrorCode.SIGN_CONFLICT: str(
-        QT_TRANSLATE_NOOP("ServiceError", "试验状态已被其他操作改变，请刷新后重试")
+        QT_TRANSLATE_NOOP("ServiceError", "实验状态已被其他操作改变，请刷新后重试")
     ),
     ServiceErrorCode.REPORT_NOT_FOUND: str(QT_TRANSLATE_NOOP("ServiceError", "报告不存在")),
     ServiceErrorCode.REPORT_FILE_MISSING: str(
@@ -432,7 +434,7 @@ _SERVICE_MESSAGES: dict[ServiceErrorCode, str] = {
     ServiceErrorCode.SETTINGS_INVALID: str(QT_TRANSLATE_NOOP("ServiceError", "设置有误，没有保存")),
     ServiceErrorCode.SETTINGS_BUSY: str(
         QT_TRANSLATE_NOOP(
-            "ServiceError", "试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）"
+            "ServiceError", "实验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）"
         )
     ),
     ServiceErrorCode.SETTINGS_SAVE_FAILED: str(
@@ -719,12 +721,12 @@ _PERMISSIONS: dict[Permission, str] = {
     Permission.TEMPLATE_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看检测模板")),
     Permission.TEMPLATE_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "新建和修改检测模板")),
     Permission.REAGENT_MANAGE: str(QT_TRANSLATE_NOOP("Permission", "录入和校验试剂批次")),
-    Permission.EXPERIMENT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看试验和结果")),
-    Permission.EXPERIMENT_CREATE: str(QT_TRANSLATE_NOOP("Permission", "新建试验")),
-    Permission.EXPERIMENT_RUN: str(QT_TRANSLATE_NOOP("Permission", "启动试验")),
-    Permission.EXPERIMENT_STOP: str(QT_TRANSLATE_NOOP("Permission", "停止试验")),
+    Permission.EXPERIMENT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "查看实验和结果")),
+    Permission.EXPERIMENT_CREATE: str(QT_TRANSLATE_NOOP("Permission", "新建实验")),
+    Permission.EXPERIMENT_RUN: str(QT_TRANSLATE_NOOP("Permission", "启动实验")),
+    Permission.EXPERIMENT_STOP: str(QT_TRANSLATE_NOOP("Permission", "停止实验")),
     Permission.RESULT_REVIEW: str(QT_TRANSLATE_NOOP("Permission", "人工复核单管结果")),
-    Permission.EXPERIMENT_SIGN: str(QT_TRANSLATE_NOOP("Permission", "签署试验和报告")),
+    Permission.EXPERIMENT_SIGN: str(QT_TRANSLATE_NOOP("Permission", "签署实验和报告")),
     Permission.REPORT_VIEW: str(QT_TRANSLATE_NOOP("Permission", "预览和打印报告")),
     Permission.DATA_EXPORT: str(QT_TRANSLATE_NOOP("Permission", "导出报告和数据")),
 }

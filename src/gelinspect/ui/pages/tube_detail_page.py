@@ -545,7 +545,7 @@ class TubeDetailPage(QWidget):
             )
             return False
         if view.tube(tube_no) is None:
-            self._show_problem(self.tr("{no} 号管不属于这个试验").format(no=tube_no))
+            self._show_problem(self.tr("{no} 号管不属于这个实验").format(no=tube_no))
             return False
         self._view = view
         self._tube_no = tube_no
@@ -640,7 +640,7 @@ class TubeDetailPage(QWidget):
         name = experiment_title(view)
         self.meta.setText(
             f"{row_label(pos.row_index)} · {name}{spike} · "
-            + self.tr("试验 {id}").format(id=view.experiment_id)
+            + self.tr("实验 {id}").format(id=view.experiment_id)
         )
         result = row.result
         self._render_verdict(result)
@@ -965,7 +965,7 @@ class TubeDetailPage(QWidget):
                 self,
                 self.tr("复核已提交")
                 if outcome.remaining
-                else self.tr("全部待复核的试管已处理，试验可以签署"),
+                else self.tr("全部待复核的试管已处理，实验可以签署"),
                 ToastKind.SUCCESS,
             )
         self.reviewed.emit(view.experiment_id)
@@ -1063,7 +1063,7 @@ class TubeDetailPage(QWidget):
         if self._view is not None:
             self._render()
         else:
-            self.empty.setText(self.tr("从试验监控的孔板或结果表里点一支试管查看详情。"))
+            self.empty.setText(self.tr("从实验监控的孔板或结果表里点一支试管查看详情。"))
             self.empty.setVisible(True)
             self.body.setVisible(False)
             self.title.setText(self.tr("单管详情"))

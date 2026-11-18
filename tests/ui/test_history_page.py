@@ -163,7 +163,7 @@ def test_no_result_shows_an_empty_state_that_says_why(
     page.batch_edit.setText("没有这个批号")
     page.search()
     assert page.total == 0 and page.table.is_empty_state_visible()
-    assert page.empty_title() == "没有符合条件的试验"
+    assert page.empty_title() == "没有符合条件的实验"
     assert not page.pager.next_button.isEnabled() and "共 0 条" in page.pager.summary.text()
     page.reset_filters()
     assert not page.table.is_empty_state_visible()
@@ -174,7 +174,7 @@ def test_empty_database_shows_the_first_run_hint(qapp: QApplication, window: Mai
     window.navigate("history")
     page = window.page("history")
     assert isinstance(page, HistoryPage) and page.table.is_empty_state_visible()
-    assert page.empty_title() == "还没有历史试验"
+    assert page.empty_title() == "还没有历史实验"
     assert not page.export_list_button.isEnabled()
 
 

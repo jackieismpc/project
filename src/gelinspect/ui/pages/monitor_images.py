@@ -177,7 +177,7 @@ class ImagesTab(Card):
         """列出有原图的排，并在后台读取还没有显示的缩略图。"""
         experiment_id = self._experiment_id
         if experiment_id is None:
-            self.empty.setText(self.tr("没有选中的试验"))
+            self.empty.setText(self.tr("没有选中的实验"))
             self.empty.setVisible(True)
             return
         try:
@@ -186,7 +186,7 @@ class ImagesTab(Card):
             # 读不出就显示空状态，不让监控页因此打不开；原因写日志
             _log.exception("读取试验 %s 的抓拍图像列表失败", experiment_id)
             rows = []
-        self.empty.setText(self.tr("这个试验还没有抓拍图像，每排读数后会显示在这里"))
+        self.empty.setText(self.tr("这个实验还没有抓拍图像，每排读数后会显示在这里"))
         self.empty.setVisible(not rows)
         for row in rows:
             widget = self._rows.get(row)
@@ -224,7 +224,7 @@ class ImagesTab(Card):
         for widget in self._rows.values():
             widget.retranslate()
         if self._experiment_id is not None and not self._rows:
-            self.empty.setText(self.tr("这个试验还没有抓拍图像，每排读数后会显示在这里"))
+            self.empty.setText(self.tr("这个实验还没有抓拍图像，每排读数后会显示在这里"))
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802
         """语言切换时刷新文字。

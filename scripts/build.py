@@ -7,7 +7,7 @@
 产物放在 ``dist/``（已被 git 忽略），中间文件在 ``build/``：
 
 * macOS：``GelInspect.app``，再打成 ``.dmg``（``hdiutil`` 不可用时打 ``.zip``）。
-  没有 Apple 签名，只做 ad-hoc 签名，首次打开的放行步骤见 ``docs/deployment.md``。
+  只做 ad-hoc 签名；正式分发仍需 Developer ID 签名与公证。
 * Windows：目录 ``GelInspect/``（内含 ``GelInspect.exe``）和同名 ``.zip``；
   可选再用 ``packaging/windows/gelinspect.iss``（Inno Setup）做安装程序。
 
@@ -245,7 +245,6 @@ def write_notices(target: Path) -> int:
         PACKAGING / "licenses" / "GPL-3.0.txt",
         PACKAGING / "licenses" / "LGPL-NOTICE.md",
         assets / "fonts" / "OFL-NotoSansSC.txt",
-        assets / "fonts" / "OFL-IBMPlexMono.txt",
         assets / "icons" / "LICENSE.lucide.txt",
     ):
         shutil.copy2(source, target / source.name)
@@ -272,7 +271,7 @@ def write_notices(target: Path) -> int:
         "",
         "本软件使用下列开源组件。Qt / PySide6 / Shiboken6 以 LGPL-3.0 提供，",
         "以独立的动态库（目录模式）随软件分发，可以替换，见 LGPL-NOTICE.md。",
-        "字体：Noto Sans SC、IBM Plex Mono（SIL Open Font License 1.1）。",
+        "字体：Noto Sans SC（SIL Open Font License 1.1）。",
         "图标：Lucide（ISC）。编译器运行库：Nuitka Runtime Library Exception（见",
         "Nuitka-LICENSE-RUNTIME.txt）。Python 运行时：PSF License（见 Python-LICENSE.txt，",
         "其中列出了 CPython 附带的第三方组件）。",

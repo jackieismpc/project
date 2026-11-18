@@ -21,7 +21,7 @@ import hashlib
 import logging
 import os
 import threading
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -163,6 +163,10 @@ class SnapshotGrabber:
         self._data_dir = data_dir
         self._config = config
         self._lock = threading.Lock()
+        self._idle = threading.Condition(self._lock)
+        self._close_lock = threading.Lock()
+        self._closing = False
+        self._active_grabs = 0
         self._marks: dict[int | None, _Mark] = {}
         self._io_pool: ThreadPoolExecutor | None = None
         self._job_pool: ThreadPoolExecutor | None = None
@@ -186,6 +190,10 @@ class SnapshotGrabber:
         count = n if n is not None else self._config.frames_per_side
         pin_id = self._buffer.pin_last_before(started_at, count)
         with self._lock:
+            if self._closing:
+                if pin_id is not None:
+                    self._buffer.unpin(pin_id)
+                raise SnapshotError("抓帧器正在关闭")
             old = self._marks.pop(row_index, None)
             self._marks[row_index] = _Mark(started_at, pin_id)
         if old is not None and old.pin_id is not None:
@@ -238,17 +246,26 @@ class SnapshotGrabber:
         """
         validate_experiment_id(experiment_id)
         validate_row_index(row_index)
-        return self._grab(
-            self._take_mark(row_index),
-            row_index,
-            n,
-            settle_s,
-            experiment_id,
-            flip_completed_at,
-            flip_started_at,
-            timeout_s,
-            image_format,
-        )
+        with self._lock:
+            if self._closing:
+                raise SnapshotError("抓帧器正在关闭")
+            self._active_grabs += 1
+        try:
+            return self._grab(
+                self._take_mark(row_index),
+                row_index,
+                n,
+                settle_s,
+                experiment_id,
+                flip_completed_at,
+                flip_started_at,
+                timeout_s,
+                image_format,
+            )
+        finally:
+            with self._idle:
+                self._active_grabs -= 1
+                self._idle.notify_all()
 
     def _grab(
         self,
@@ -316,33 +333,49 @@ class SnapshotGrabber:
         validate_experiment_id(experiment_id)
         validate_row_index(row_index)
         mark = self._take_mark(row_index)
-        return self._jobs().submit(
-            self._grab,
-            mark,
-            row_index,
-            n,
-            settle_s,
-            experiment_id,
-            flip_completed_at,
-            flip_started_at,
-            timeout_s,
-            image_format,
-        )
+        try:
+            return self._submit_job(
+                self._grab,
+                mark,
+                row_index,
+                n,
+                settle_s,
+                experiment_id,
+                flip_completed_at,
+                flip_started_at,
+                timeout_s,
+                image_format,
+            )
+        except BaseException:
+            if mark is not None and mark.pin_id is not None:
+                self._buffer.unpin(mark.pin_id)
+            raise
 
     def close(self) -> None:
         """解除全部保护并关闭线程池（等待进行中的任务结束）。"""
-        with self._lock:
-            marks = list(self._marks.values())
-            self._marks.clear()
-            io_pool, job_pool = self._io_pool, self._job_pool
-            self._io_pool = self._job_pool = None
-        for mark in marks:
-            if mark.pin_id is not None:
-                self._buffer.unpin(mark.pin_id)
-        if job_pool is not None:
-            job_pool.shutdown(wait=True)
-        if io_pool is not None:
-            io_pool.shutdown(wait=True)
+        with self._close_lock:
+            with self._lock:
+                self._closing = True
+                marks = list(self._marks.values())
+                self._marks.clear()
+                job_pool = self._job_pool
+            for mark in marks:
+                if mark.pin_id is not None:
+                    self._buffer.unpin(mark.pin_id)
+            # 等待任务池清空期间保留图像写盘池引用；排队任务可能尚未进入_save，
+            # 仍会在此期间创建或使用该线程池。
+            if job_pool is not None:
+                job_pool.shutdown(wait=True)
+            with self._idle:
+                while self._active_grabs:
+                    self._idle.wait()
+                self._job_pool = None
+                io_pool = self._io_pool
+                self._io_pool = None
+            if io_pool is not None:
+                io_pool.shutdown(wait=True)
+            with self._lock:
+                self._closing = False
 
     # ------------------------------------------------------------------ 内部
 
@@ -353,11 +386,15 @@ class SnapshotGrabber:
                 mark = self._marks.pop(None, None)
             return mark
 
-    def _jobs(self) -> ThreadPoolExecutor:
+    def _submit_job(
+        self, function: Callable[..., SnapshotResult], *args: object
+    ) -> Future[SnapshotResult]:
         with self._lock:
+            if self._closing:
+                raise SnapshotError("抓帧器正在关闭")
             if self._job_pool is None:
                 self._job_pool = ThreadPoolExecutor(2, thread_name_prefix="video-grab")
-            return self._job_pool
+            return self._job_pool.submit(function, *args)
 
     def _io(self) -> ThreadPoolExecutor:
         with self._lock:

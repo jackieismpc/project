@@ -2,7 +2,9 @@ import ast
 import re
 from pathlib import Path
 
-from gelinspect.ui.theme.fonts import BUNDLED_FONT_FILES, FONT_DIR, load_fonts
+from PySide6.QtGui import QFontMetrics
+
+from gelinspect.ui.theme.fonts import BUNDLED_FONT_FILES, FONT_DIR, load_fonts, mono_font, sans_font
 from gelinspect.ui.theme.stylesheet import build_stylesheet
 from gelinspect.ui.theme.tokens import LIGHT
 
@@ -32,6 +34,12 @@ def test_fonts_bundled_and_loaded(qapp: object) -> None:
     assert report.missing == ()
     assert report.sans_bundled
     assert report.mono_bundled
+    assert report.mono == report.sans == "Noto Sans SC"
+    assert mono_font(18).family() == sans_font(18).family()
+    assert mono_font(18).pixelSize() == 18
+    metrics = QFontMetrics(mono_font(18))
+    digit_widths = [metrics.horizontalAdvance(digit) for digit in "0123456789"]
+    assert len(set(digit_widths)) == 1
 
 
 def test_ui_does_not_import_simulation_or_db() -> None:

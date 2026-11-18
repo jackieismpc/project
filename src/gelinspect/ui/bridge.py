@@ -171,7 +171,12 @@ class EngineBridge(QObject):
             event: 引擎事件。
         """
         if not self._closed:
-            self._incoming.emit(event)
+            try:
+                self._incoming.emit(event)
+            except RuntimeError:
+                # Listener removal and QObject teardown are not atomic with
+                # callbacks already in flight on engine worker threads.
+                return
 
     def handle_instrument(self, status: InstrumentStatus) -> None:
         """仪器状态回调，可在任意线程调用。
@@ -180,7 +185,10 @@ class EngineBridge(QObject):
             status: 仪器状态。
         """
         if not self._closed:
-            self._incoming_instrument.emit(status)
+            try:
+                self._incoming_instrument.emit(status)
+            except RuntimeError:
+                return
 
     def handle_preview(self, frame: PreviewFrame) -> None:
         """预览帧回调，可在任意线程调用。
@@ -195,12 +203,20 @@ class EngineBridge(QObject):
             return
         image = preview_to_image(frame)
         with self._preview_lock:
+            if self._closed:
+                return
             self.preview_received += 1
             self._latest_preview = image
             if self._preview_queued:
                 return
             self._preview_queued = True
-        self._preview_ready.emit()
+        try:
+            self._preview_ready.emit()
+        except RuntimeError:
+            # The bridge may be torn down after the closed check above.
+            with self._preview_lock:
+                self._latest_preview = None
+                self._preview_queued = False
 
     def handle_video_event(self, event: VideoEvent) -> None:
         """视频管线事件回调，可在任意线程调用。
@@ -209,13 +225,18 @@ class EngineBridge(QObject):
             event: 视频事件。
         """
         if not self._closed:
-            self._incoming_video.emit(event)
+            try:
+                self._incoming_video.emit(event)
+            except RuntimeError:
+                return
 
     def close(self) -> None:
         """取消订阅并丢弃之后到达的事件，可重复调用。"""
-        if self._closed:
-            return
-        self._closed = True
+        with self._preview_lock:
+            if self._closed:
+                return
+            self._closed = True
+            self._latest_preview = None
         if self._video is not None:
             self._video.remove_preview_listener(self.handle_preview)
             self._video.remove_video_listener(self.handle_video_event)

@@ -2,13 +2,12 @@
 
 优先加载 ``ui/assets/fonts`` 中随软件内置的字体（OFL 许可）：
 
-* Noto Sans SC：正文，常规、中等、粗体三个静态实例，已裁剪为 GB2312 汉字、Big5 一级字
+* Noto Sans SC：界面所有角色，常规、中等、粗体三个静态实例，已裁剪为 GB2312 汉字、Big5 一级字
   （台湾常用繁体字）、界面和报告里实际用到的字符，以及常用符号，约 9900 个码位。
   裁剪方法见 ``scripts/build_fonts.py``。
-* IBM Plex Mono：读数、管号、批号。
 
-内置字体缺失（例如开发时没有下载）时，回退到系统字体（PingFang SC、Microsoft YaHei、
-Menlo、Consolas），并通过 :class:`FontReport` 告知调用方。
+内置字体缺失（例如开发时没有下载）时，回退到系统字体（PingFang SC、Microsoft YaHei），
+并通过 :class:`FontReport` 告知调用方。
 """
 
 from __future__ import annotations
@@ -29,8 +28,6 @@ BUNDLED_FONT_FILES = (
     "NotoSansSC-Regular.ttf",
     "NotoSansSC-Medium.ttf",
     "NotoSansSC-Bold.ttf",
-    "IBMPlexMono-Regular.ttf",
-    "IBMPlexMono-Medium.ttf",
 )
 """期望随软件内置的字体文件名。"""
 
@@ -102,14 +99,15 @@ def load_fonts(tokens: Tokens | None = None, *, force: bool = False) -> FontRepo
             missing.append(filename)
     available = set(QFontDatabase.families())
     sans = _pick_family(tokens.type.sans, available, tokens.type.sans[-1])
-    mono = _pick_family(tokens.type.mono, available, tokens.type.mono[-1])
+    mono = sans
+    sans_bundled = sans == tokens.type.sans[0] and any("NotoSans" in n for n in loaded)
     _report = FontReport(
         loaded=tuple(loaded),
         missing=tuple(missing),
         sans=sans,
         mono=mono,
-        sans_bundled=sans == tokens.type.sans[0] and any("NotoSans" in n for n in loaded),
-        mono_bundled=mono == tokens.type.mono[0] and any("IBMPlex" in n for n in loaded),
+        sans_bundled=sans_bundled,
+        mono_bundled=sans_bundled,
     )
     return _report
 
@@ -124,7 +122,7 @@ def last_report() -> FontReport | None:
 
 
 def mono_font(pixel_size: int, *, medium: bool = False) -> QFont:
-    """构造一个等宽字体对象，用于自绘组件。
+    """构造一个启用等宽数字的字体对象，用于自绘组件。
 
     Args:
         pixel_size: 像素字号。
@@ -135,7 +133,10 @@ def mono_font(pixel_size: int, *, medium: bool = False) -> QFont:
     """
     report = load_fonts()
     font = QFont(report.mono)
+    font.setFamilies([report.mono, *current_tokens().type.sans[1:-1]])
     font.setPixelSize(pixel_size)
+    # 字体族仍为 Noto Sans SC，启用等宽数字特性以保持数值列对齐。
+    font.setFeature(QFont.Tag.fromString("tnum"), 1)
     font.setWeight(QFont.Weight.Medium if medium else QFont.Weight.Normal)
     return font
 

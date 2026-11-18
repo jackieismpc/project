@@ -4,17 +4,28 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable, Iterator
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from gelinspect.domain.enums import AuditAction
+from gelinspect.domain.conclusions import conclude_experiment
+from gelinspect.domain.entities import TubeResult
+from gelinspect.domain.enums import (
+    AuditAction,
+    GelState,
+    Interpretation,
+    ReviewStatus,
+    TubeAnalysisStatus,
+)
+from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.state_machine import ExperimentEvent
 from gelinspect.domain.state_machine import ExperimentState as S
 from gelinspect.infrastructure.db import Database, open_database, verify_audit_chain
 from gelinspect.interfaces.analysis import AnalyzerError
 from gelinspect.interfaces.device import DeviceFaultError, DeviceTimeoutError
 from gelinspect.interfaces.storage import MediaKind
+from gelinspect.services.engine_run import _preserve_existing_reviews
 from gelinspect.services.engine_types import (
     AlertCode,
     EngineAlert,
@@ -27,6 +38,7 @@ from gelinspect.services.engine_types import (
     StateChanged,
 )
 from gelinspect.services.experiment_engine import ExperimentEngine
+from gelinspect.services.review_service import ReviewService
 from gelinspect.services.video import ReconnectConfig
 from simulation.clock import ManualClock
 from tests.services.engine_helpers import (
@@ -38,6 +50,7 @@ from tests.services.engine_helpers import (
     Harness,
     eventually,
     fast_config,
+    gelled_scenario,
     make_harness,
     ready_experiment,
     tubes_of_rows,
@@ -45,6 +58,64 @@ from tests.services.engine_helpers import (
 
 HarnessFactory = Callable[..., Harness]
 NO_RECONNECT = ReconnectConfig(enabled=False, stall_disconnect_s=None)
+
+
+def test_review_committed_during_later_row_analysis_controls_completion(
+    tmp_path: Path, thread_baseline: None
+) -> None:
+    """后续排分析期间提交的复核须参与收尾状态和结论计算。"""
+    tube_nos = tuple(range(1, 17))
+    scene = gelled_scenario(tube_nos)
+    states = dict(scene.tube_states)
+    states[1] = GelState.PARTIALLY_GELLED
+    scene = type(scene)(tube_states=states)
+    h = make_harness(
+        tmp_path,
+        tube_nos,
+        scenario=scene,
+        conclusions_enabled=True,
+        use_scaled_schedule=True,
+        config=fast_config(time_scale=36000.0),
+    )
+    gate = Gate()
+    h.analyzer.gates[1] = gate
+
+    class AuthorizedReview:
+        @staticmethod
+        def authorize(_session: object, _permission: object) -> object:
+            return ANALYST
+
+    try:
+        h.save_and_start()
+        h.incubating()
+        h.fire_rows()
+        gate.wait_entered()
+
+        def first_row_saved() -> bool:
+            stored = h.database.experiments.get(EXP_ID)
+            return stored is not None and set(range(1, 9)) <= stored.results.keys()
+
+        assert eventually(first_row_saved)
+        ReviewService(
+            AuthorizedReview(),  # type: ignore[arg-type]
+            h.database,
+            conclusions_enabled=True,
+        ).review_tube(None, EXP_ID, 1, Interpretation.POSITIVE, "后续排分析时复核")
+
+        gate.release.set()
+        h.finished()
+        stored = h.stored()
+        reviewed = stored.results[1]
+        assert stored.state is S.COMPLETED
+        assert reviewed.review_status is ReviewStatus.REVIEWED
+        assert reviewed.final_interpretation is Interpretation.POSITIVE
+        assert len(reviewed.review_history) == 1
+        expected = conclude_experiment(stored)
+        assert stored.conclusion is not None
+        assert replace(stored.conclusion, computed_at=None) == expected
+    finally:
+        gate.release.set()
+        h.close()
 
 
 @pytest.fixture
@@ -65,6 +136,40 @@ def fault_kinds(h: Harness) -> frozenset[FaultKind]:
     snapshot = h.engine.snapshot()
     assert snapshot is not None
     return snapshot.fault_kinds
+
+
+def test_algorithm_rerun_preserves_duplicate_review_history_exactly() -> None:
+    original = _result_for_history_test()
+    reviewed = original.with_review(
+        interpretation=Interpretation.POSITIVE,
+        reviewed_by="analyst",
+        reviewed_at=ManualClock().now(),
+        note="相同复核",
+    )
+    repeated = replace(
+        reviewed, review_history=(*reviewed.review_history, *reviewed.review_history)
+    )
+    rerun = _result_for_history_test()
+
+    merged = _preserve_existing_reviews(rerun, repeated)
+
+    assert merged.review_status is ReviewStatus.REVIEWED
+    assert merged.review_history == repeated.review_history
+    assert merged.reviewed_interpretation is Interpretation.POSITIVE
+    assert merged.score == rerun.score
+
+
+def _result_for_history_test() -> TubeResult:
+    return TubeResult.from_analysis(
+        tube_no=1,
+        status=TubeAnalysisStatus.OK,
+        state=GelState.FULLY_GELLED,
+        mapping=GelStateMapping(),
+        score=0.5,
+        model_version="model",
+        config_version="config",
+        elapsed_ms=1.0,
+    )
 
 
 # ---------------------------------------------------------------------- 算法
@@ -765,6 +870,27 @@ def test_shutdown_during_a_run_marks_faulted_and_releases_everything(
     assert any("软件退出" in d for d in h.audit_details(AuditAction.EXPERIMENT_STATE_CHANGED))
     assert h.analyzer.closed.is_set()
     h.assert_clean()
+
+
+def test_shutdown_reports_an_analysis_thread_that_survives_engine_run(
+    harness: HarnessFactory,
+) -> None:
+    h = harness(config=fast_config(worker_stop_timeout_s=0.05))
+    gate = Gate()
+    h.analyzer.gates[1] = gate
+    h.save_and_start()
+    h.incubating()
+    h.fire_rows()
+    gate.wait_entered()
+
+    assert not h.engine.shutdown(0.5)
+    assert h.engine.wait(5.0)
+    assert not h.analyzer.closed.is_set()
+
+    gate.release.set()
+    assert eventually(h.analyzer.closed.is_set, 5.0)
+    assert h.engine.shutdown(5.0)
+    h.close()
 
 
 def test_restart_recovery_uses_a_fresh_engine_on_the_same_database(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 """验收脚本共用的工具：搭建离屏应用、用真实控件走完一次试验、复核、签署。
 
-``capture_manual_images.py``、``measure_acceptance.py`` 和 ``check_english_ui.py`` 都依赖它。
+``measure_acceptance.py`` 和 ``check_english_ui.py`` 都依赖它。
 只在开发机上使用：借用 ``tests/`` 里的向导和监控夹具函数，它们通过真实控件（点击、键入）操作界面。
 """
 

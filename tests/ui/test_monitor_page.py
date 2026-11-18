@@ -219,7 +219,7 @@ def test_stop_asks_first_and_needs_the_permission(
 
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(decline))
     monitor.stop_button.click()
-    assert asked == [("停止试验？", True)]
+    assert asked == [("停止实验？", True)]
     assert live_context.engine.active_experiment_id == monitor.experiment_id  # 取消后继续运行
 
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *a, **k: True))

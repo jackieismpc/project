@@ -186,7 +186,7 @@ def test_dialogs_fit(qapp: QApplication, language: LanguageManager, lang: Langua
         ChangePasswordDialog(lambda _o, _n: None),
         ErrorDialog("t", "m" * 200, details="detail", log_path="/some/where/gelinspect.log"),
         ConfirmDialog(
-            language_text("Quit and interrupt the experiment?", "退出并中断试验？", lang),
+            language_text("Quit and interrupt the experiment?", "退出并中断实验？", lang),
             "x " * 80,
             danger=True,
         ),

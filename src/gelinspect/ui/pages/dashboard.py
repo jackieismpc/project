@@ -257,7 +257,7 @@ class DashboardPage(QWidget):
 
     def _columns(self) -> list[Column]:
         return [
-            Column("id", self.tr("试验"), mono=True),
+            Column("id", self.tr("实验"), mono=True),
             Column("type", self.tr("类型")),
             Column("tubes", self.tr("试管"), mono=True, align_right=True),
             Column("result", self.tr("结果")),
@@ -271,13 +271,13 @@ class DashboardPage(QWidget):
         self.new_button.setText(self.tr("新建实验"))
         self.new_button.setAccessibleName(self.tr("新建实验"))
         self.temperature.set_label(self.tr("检测室温度"))
-        self.running_card.set_title(self.tr("进行中的试验"))
+        self.running_card.set_title(self.tr("进行中的实验"))
         self.running_open.setText(self.tr("打开监控"))
         self.recent_card.set_title(self.tr("最近结果"))
         self.attention_card.set_title(self.tr("需要处理"))
         self.recent_table.set_columns(self._columns())
         self.recent_table.set_empty_text(
-            self.tr("还没有历史试验"), self.tr("完成第一次试验后，结果会显示在这里")
+            self.tr("还没有历史实验"), self.tr("完成第一次实验后，结果会显示在这里")
         )
         self._render()
 
@@ -326,7 +326,7 @@ class DashboardPage(QWidget):
         self.running_empty.setVisible(not running)
         if view is None:
             self.running_id.setText("")
-            self.running_empty.setText(self.tr("当前没有进行中的试验。"))
+            self.running_empty.setText(self.tr("当前没有进行中的实验。"))
             return
         self.running_id.setText(view.experiment_id)
         text, tone = status_badge(view)
@@ -375,10 +375,10 @@ class DashboardPage(QWidget):
     def _attention_line(self, item: AttentionItem) -> tuple[str, str, str | None]:
         """（样式角色, 文字, 点击后打开的试验）。"""
         if item.kind is AttentionKind.REVIEW_PENDING:
-            text = self.tr("试验 {id} 有 {n} 管待复核").format(id=item.experiment_id, n=item.count)
+            text = self.tr("实验 {id} 有 {n} 管待复核").format(id=item.experiment_id, n=item.count)
             return "link", text, item.experiment_id
         if item.kind is AttentionKind.FAULTED:
-            text = self.tr("试验 {id} 处于异常状态，需要人工处理").format(id=item.experiment_id)
+            text = self.tr("实验 {id} 处于异常状态，需要人工处理").format(id=item.experiment_id)
             return "link", text, item.experiment_id
         assert item.label is not None
         name = f"{reagent_kind_label(item.label)} {item.batch_no}"

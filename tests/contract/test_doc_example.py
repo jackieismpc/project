@@ -1,4 +1,4 @@
-"""运行 ``docs/algorithm-interface.md`` 中的最小示例，防止文档与接口不一致。"""
+"""运行 ``docs/internal-integration-checklist.md`` 中的最小示例，防止文档与接口不一致。"""
 
 import re
 from pathlib import Path
@@ -7,7 +7,7 @@ from typing import Any
 from gelinspect.interfaces.analysis import GelAnalyzer, check_row_result
 from tests.contract.conftest import RequestFactory
 
-DOC = Path(__file__).parents[2] / "docs" / "algorithm-interface.md"
+DOC = Path(__file__).parents[2] / "docs" / "internal-integration-checklist.md"
 
 
 def load_example() -> dict[str, Any]:

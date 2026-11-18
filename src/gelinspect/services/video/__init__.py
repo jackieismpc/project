@@ -1,7 +1,7 @@
 """视频管线：采集、环形缓冲、预览、分段录制、抓帧和质量检查。
 
 只依赖 ``threading``，不依赖 Qt；视频源通过 ``interfaces.video.VideoSource`` 注入。
-详见 ``docs/features/video-pipeline.md``。
+视频源断流后的重连和资源关闭边界见对应服务实现及测试。
 """
 
 from gelinspect.services.video.capture import CaptureState, CaptureWorker, FrameConsumer

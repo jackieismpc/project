@@ -264,7 +264,7 @@ class TemplateEditorDialog(QDialog):
         self.setAccessibleName(title)
         self.heading.setText(title)
         self.name_label.setText(self.tr("模板名称"))
-        self.type_label.setText(self.tr("试验类型"))
+        self.type_label.setText(self.tr("实验类型"))
         for index, kind in enumerate(ExperimentType):
             self.type_box.setItemText(index, experiment_type_label(kind))
         self.table.set_columns(self._columns())

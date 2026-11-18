@@ -2,7 +2,7 @@
 
 算法输出三态、评分和特征，**不输出阴阳性**。阴阳性由软件按
 :class:`gelinspect.domain.interpretation.GelStateMapping` 得出。
-接入说明见 ``docs/algorithm-interface.md``。
+接入说明见 ``docs/internal-integration-checklist.md``。
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class TubeSlot(ContractModel):
     Attributes:
         tube_no: 管号，1–96。
         position_in_row: 排内位置（孔号），1–8，与管号必须一致。图像中的位置约定见
-            ``docs/algorithm-interface.md``。
+            ``docs/internal-integration-checklist.md``。
     """
 
     tube_no: int = Field(ge=1, le=TUBE_COUNT)
@@ -312,7 +312,7 @@ class TubeMasks(ContractModel):
 class TubeAnalysis(ContractModel):
     """一支试管的分析结果。
 
-    各状态的字段约束见 ``docs/algorithm-interface.md``，构造时由校验器强制。
+    各状态的字段约束见 ``docs/internal-integration-checklist.md``，构造时由校验器强制。
 
     Attributes:
         tube_no: 管号，与输入对应。

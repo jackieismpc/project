@@ -143,12 +143,12 @@ class ConclusionCard(Card):
             source=conclusion_source_label(conclusion.rule_source)
         )
         if not self._recorded:
-            source = self.tr("试验完成后才会固化结论。") + source
+            source = self.tr("实验完成后才会固化结论。") + source
         self.source_label.setText(source)
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.set_title(self.tr("试验结论"))
+        self.set_title(self.tr("实验结论"))
         self.basis_title.setText(self.tr("依据（+ 阳性，− 阴性）"))
         self._render()
 

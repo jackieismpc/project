@@ -580,7 +580,7 @@ class AuditPage(QWidget):
         if line_edit is not None:
             line_edit.setPlaceholderText(self.tr("全部操作者"))
         self.keyword_label.setText(self.tr("关键字"))
-        self.keyword_edit.setPlaceholderText(self.tr("操作记录或试验编号"))
+        self.keyword_edit.setPlaceholderText(self.tr("操作记录或实验编号"))
         self.search_button.setText(self.tr("查询"))
         self.reset_button.setText(self.tr("重置"))
         self.table.set_columns(self._columns())

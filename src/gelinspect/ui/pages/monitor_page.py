@@ -1,4 +1,4 @@
-"""试验监控页：按 ``docs/design/Monitor.dc.html`` 实现，数据来自引擎和视频管线。
+"""试验监控页：数据来自引擎和视频管线。
 
 * 进行中的试验：孔板、倒计时、结果表随引擎事件刷新，实时视频卡显示管线预览帧。
 * 已结束的试验（历史回看）：只读，没有停止按钮和实时视频，有回放和结果。
@@ -373,14 +373,14 @@ class MonitorPage(QWidget):
             (view.state, view.tubes) if view is not None else None,
         )
         if view is None:
-            self.report_summary.setText(self.tr("先选择一个试验。"))
+            self.report_summary.setText(self.tr("先选择一个实验。"))
             return
         if view.state is ExperimentState.SIGNED:
-            text = self.tr("这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。")
+            text = self.tr("这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。")
         elif view.state is ExperimentState.COMPLETED:
-            text = self.tr("这个试验已完成，可以预览报告；有签署权限的用户核对后签署。")
+            text = self.tr("这个实验已完成，可以预览报告；有签署权限的用户核对后签署。")
         else:
-            text = self.tr("这个试验还没有完成，可以先预览报告；完成并复核后才能签署。")
+            text = self.tr("这个实验还没有完成，可以先预览报告；完成并复核后才能签署。")
         self.report_summary.setText(text)
 
     def _columns(self) -> list[Column]:
@@ -675,7 +675,7 @@ class MonitorPage(QWidget):
         if view is None:
             return
         self.title.setText(experiment_title(view))
-        self.id_label.setText(self.tr("试验 {id}").format(id=view.experiment_id))
+        self.id_label.setText(self.tr("实验 {id}").format(id=view.experiment_id))
         text, tone = status_badge(view)
         self.badge.set_text(text)
         self.badge.set_tone(tone)
@@ -712,29 +712,29 @@ class MonitorPage(QWidget):
         hint = ""
         if view.interrupted and view.retry_rows and view.unread_rows:
             hint = self.tr(
-                "软件重启过，调度已经丢失，这个试验不能恢复。"
+                "软件重启过，调度已经丢失，这个实验不能恢复。"
                 "第 {rows} 排已抓帧，可以重试分析（不翻转）；"
-                "第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。"
+                "第 {unread} 排错过了读数时间，所以分析后实验仍只能停止。"
             ).format(
                 rows=join_items(view.retry_rows),
                 unread=join_items(view.unread_rows),
             )
         elif view.interrupted and view.retry_rows:
             hint = self.tr(
-                "软件重启过，调度已经丢失，这个试验不能恢复。"
-                "全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。"
+                "软件重启过，调度已经丢失，这个实验不能恢复。"
+                "全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），"
+                "完成后实验照常结束。"
             ).format(rows=join_items(view.retry_rows))
         elif view.interrupted:
             hint = self.tr(
-                "软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排"
-                "（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。"
+                "软件重启过，调度已经丢失，这个实验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止实验。"
             )
         elif view.failed_rows and not view.retry_rows:
             hint = self.tr("第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。").format(
                 rows=join_items(view.failed_rows)
             )
         elif view.can_resume:
-            hint = self.tr("试验异常：{reason}").format(reason=view.fault_reason or "–")
+            hint = self.tr("实验异常：{reason}").format(reason=view.fault_reason or "–")
         self.recovery_hint.setText(hint)
         self.recovery_hint.setVisible(bool(hint))
 
@@ -909,13 +909,13 @@ class MonitorPage(QWidget):
             return False
         confirmed = ConfirmDialog.ask(
             self,
-            self.tr("停止试验？"),
+            self.tr("停止实验？"),
             self.tr(
-                "停止后试验 {id} 不能继续，还没读数的排会错过读数时间；"
+                "停止后实验 {id} 不能继续，还没读数的排会错过读数时间；"
                 "已经翻转的排会复位。确定要停止吗？"
             ).format(id=view.experiment_id),
-            confirm_text=self.tr("停止试验"),
-            cancel_text=self.tr("继续试验"),
+            confirm_text=self.tr("停止实验"),
+            cancel_text=self.tr("继续实验"),
             danger=True,
         )
         if not confirmed:
@@ -946,17 +946,17 @@ class MonitorPage(QWidget):
             return False
         confirmed = ConfirmDialog.ask(
             self,
-            self.tr("恢复试验？"),
+            self.tr("恢复实验？"),
             self.tr(
                 "恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；"
                 "分析失败的排用保留的原图重试。确定要恢复吗？"
             ),
-            confirm_text=self.tr("恢复试验"),
+            confirm_text=self.tr("恢复实验"),
             cancel_text=self.tr("暂不恢复"),
         )
         if not confirmed:
             return False
-        return self._run_recovery(self._services.monitor.resume, self.tr("已请求恢复试验"))
+        return self._run_recovery(self._services.monitor.resume, self.tr("已请求恢复实验"))
 
     def request_retry(self) -> bool:
         """重试分析失败的排：用保留的原图重新分析，不翻转。
@@ -1037,21 +1037,21 @@ class MonitorPage(QWidget):
         """按当前语言刷新全部文字。"""
         for index, text in enumerate(
             (
-                self.tr("试验数据记录"),
+                self.tr("实验数据记录"),
                 self.tr("图像显示"),
                 self.tr("报告打印预览"),
             )
         ):
             self.tabs.set_tab_text(index, text)
-        self.empty_title.setText(self.tr("当前没有进行中的试验"))
+        self.empty_title.setText(self.tr("当前没有进行中的实验"))
         self.empty_hint.setText(
             self.tr(
                 "在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。"
             )
         )
         self.empty_history.setText(self.tr("打开历史记录"))
-        self.stop_button.setText(self.tr("停止试验"))
-        self.resume_button.setText(self.tr("恢复试验"))
+        self.stop_button.setText(self.tr("停止实验"))
+        self.resume_button.setText(self.tr("恢复实验"))
         self.retry_button.setText(self.tr("重试分析"))
         for key, text in (
             ("lal", self.tr("{kind}批号").format(kind=reagent_kind_label(ReagentKind.LAL_REAGENT))),
@@ -1069,8 +1069,8 @@ class MonitorPage(QWidget):
         self.plate_card.set_title(plate_title())
         self.video_card.set_title(self.tr("实时视频"))
         self.replay_card.set_title(self.tr("按排回放"))
-        self.replay_empty.setText(self.tr("这个试验没有录像"))
-        self.table_card.set_title(self.tr("试验数据记录"))
+        self.replay_empty.setText(self.tr("这个实验没有录像"))
+        self.table_card.set_title(self.tr("实验数据记录"))
         self.table.set_columns(self._columns())
         self.table.set_empty_text(self.tr("没有试管"))
         self.report_headline.setText(self.tr("报告打印预览"))

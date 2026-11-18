@@ -729,7 +729,7 @@ class MainWindow(QMainWindow):
                 monitor.reload()
                 view = monitor.view_model
                 pending = 0 if view is None else len(view.pending_review)
-            text = self.tr("试验 {id} 检测完成，{count} 管待复核。")
+            text = self.tr("实验 {id} 检测完成，{count} 管待复核。")
             Toast.show_message(
                 self,
                 text.format(id=event.experiment_id, count=pending or self.tr("若干")),
@@ -739,7 +739,7 @@ class MainWindow(QMainWindow):
         elif event.current is ExperimentState.COMPLETED:
             Toast.show_message(
                 self,
-                self.tr("试验 {id} 已完成，可查看报告。").format(id=event.experiment_id),
+                self.tr("实验 {id} 已完成，可查看报告。").format(id=event.experiment_id),
                 ToastKind.SUCCESS,
                 6000,
             )
@@ -829,17 +829,17 @@ class MainWindow(QMainWindow):
         if running is None:
             return True
         if self._screen is Screen.LOCK:
-            Toast.show_message(self, self.tr("有试验正在进行，请先解锁再退出"), ToastKind.WARNING)
+            Toast.show_message(self, self.tr("有实验正在进行，请先解锁再退出"), ToastKind.WARNING)
             return False
         return ConfirmDialog.ask(
             self,
-            self.tr("退出并中断试验？"),
+            self.tr("退出并中断实验？"),
             self.tr(
-                "试验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，"
+                "实验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，"
                 "未读数的排会错过读数时间。确定要退出吗？"
             ).format(id=running),
             confirm_text=self.tr("中断并退出"),
-            cancel_text=self.tr("继续试验"),
+            cancel_text=self.tr("继续实验"),
             danger=True,
         )
 

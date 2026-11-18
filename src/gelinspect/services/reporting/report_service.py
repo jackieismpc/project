@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import csv
+import errno
 import hashlib
 import io
 import logging
@@ -82,6 +83,7 @@ from gelinspect.services.reporting.verify import (
     VerifyFailure,
     verify_pdf_bytes,
 )
+from gelinspect.services.review_snapshot import review_snapshot
 from gelinspect.services.video.paths import experiment_dir
 
 _log = logging.getLogger(__name__)
@@ -520,7 +522,7 @@ class ReportService:
             and experiment.state is ExperimentState.SIGNED
             and (
                 language.value != record.language
-                or self._has_reviews_after(experiment, record.signed_at)
+                or self._has_reviews_after(experiment, record.signed_at, record)
             )
         )
         section = self._section(experiment)
@@ -642,7 +644,7 @@ class ReportService:
         is_revision = experiment.state is ExperimentState.SIGNED
         language_revision = latest is not None and language.value != latest.language
         has_new_review = latest is not None and self._has_reviews_after(
-            experiment, latest.signed_at
+            experiment, latest.signed_at, latest
         )
         if is_revision and (latest is None or not (has_new_review or language_revision)):
             raise SigningNotAllowedError(
@@ -686,6 +688,7 @@ class ReportService:
         report_id = uuid.uuid4().hex
         final: Path | None = None
         staged: Path | None = None
+        installed = False
         try:
             if self._wants_images(with_images):
                 images[experiment_id] = self._images(session, experiment_id)
@@ -713,7 +716,7 @@ class ReportService:
                 raise FileExistsError(f"报告文件已存在，不覆盖：{final.name}")
             staged = self._stage(directory, name, signed)
         except Exception as exc:
-            self._discard(staged, final)
+            self._discard(staged, final if installed else None)
             _log.exception("签署试验 %s 失败，没有生成报告", experiment_id)
             raise ServiceError(
                 f"签署失败，没有生成报告，试验状态没有改变：{exc}",
@@ -765,20 +768,60 @@ class ReportService:
         try:
             with self._storage.unit_of_work() as uow:
                 uow.experiments.update_state(experiment_id, experiment.state, expected=before)
+                current = uow.experiments.get(experiment_id)
+                if current is None or review_snapshot(current) != review_snapshot(experiment):
+                    # 复核可在状态仍为已完成/已签署时进行；必须比较复核历史，
+                    # 才能阻止并发复核后仍提交旧内容生成的报告。
+                    raise StateConflictError(f"试验 {experiment_id} 的复核历史已在签署期间改变")
+                # 状态和复核历史都可能不变（例如同一签署状态下的双语修订），
+                # 因此还要确认最新签署版本没有在本次渲染期间被其他操作推进。
+                current_signed = [
+                    item for item in uow.reports.list_for_experiment(experiment_id) if item.signed
+                ]
+                current_latest = max(current_signed, key=lambda item: item.revision, default=None)
+                expected_version = None if latest is None else (latest.report_id, latest.revision)
+                actual_version = (
+                    None
+                    if current_latest is None
+                    else (current_latest.report_id, current_latest.revision)
+                )
+                if actual_version != expected_version:
+                    raise StateConflictError(f"试验 {experiment_id} 的签署版本已被其他操作更新")
                 uow.experiments.record_signature(
                     experiment_id, signed_by=user.username, signed_at=now
                 )
                 uow.reports.add(record)
                 uow.audit.append_many(events)
                 # 文件放到最终位置是提交前的最后一步：之后只剩提交，提交失败时下面删除它。
-                os.replace(staged, final)
+                try:
+                    os.link(staged, final)
+                except FileExistsError as exc:
+                    raise StateConflictError(f"报告文件已由其他操作创建：{final.name}") from exc
+                except OSError as exc:
+                    _log.exception(
+                        "无法安全安装签署报告 %s；请检查目录权限及文件系统硬链接支持",
+                        final,
+                    )
+                    reason = (
+                        "报告目录所在文件系统不支持硬链接"
+                        if exc.errno in {errno.EOPNOTSUPP, errno.ENOTSUP}
+                        else "报告目录无法创建硬链接，请检查目录权限和文件系统"
+                    )
+                    raise ServiceError(
+                        f"{reason}，无法安全保存签署文件；请更换为支持硬链接且可写的目录后重试",
+                        ServiceErrorCode.SIGN_FAILED,
+                        reason=str(exc)[:200],
+                    ) from exc
+                installed = True
+                staged.unlink()
+                staged = None
         except StateConflictError as exc:
-            self._discard(staged, final)
+            self._discard(staged, final if installed else None)
             raise ServiceError(
                 "试验状态已被其他操作改变，请刷新后重试", ServiceErrorCode.SIGN_CONFLICT
             ) from exc
         except BaseException:
-            self._discard(staged, final)
+            self._discard(staged, final if installed else None)
             raise
         verification = verify_pdf_bytes(signed, identity.certificate, expected_sha256=record.sha256)
         return SignedReport(record=record, path=final, pages=pages, verification=verification)
@@ -1141,12 +1184,35 @@ class ReportService:
             for record in self._storage.reports.list_for_experiment(experiment_id)
             if record.signed
         ]
-        return signed[-1] if signed else None
+        return max(signed, key=lambda item: item.revision, default=None)
 
-    @staticmethod
-    def _has_reviews_after(experiment: Experiment, signed_at: datetime | None) -> bool:
+    def _has_reviews_after(
+        self,
+        experiment: Experiment,
+        signed_at: datetime | None,
+        latest_signed: ReportRecord | None,
+    ) -> bool:
         if signed_at is None:
             return False
+        review_page = self._storage.audit.query(
+            AuditQuery(experiment_id=experiment.experiment_id, action=AuditAction.TUBE_REVIEWED),
+            PageRequest(limit=1),
+        )
+        signature_page = self._storage.audit.query(
+            AuditQuery(
+                experiment_id=experiment.experiment_id, action=AuditAction.EXPERIMENT_SIGNED
+            ),
+            PageRequest(limit=1),
+        )
+        if (
+            review_page.items
+            and signature_page.items
+            and latest_signed is not None
+            and latest_signed.signed_at == signature_page.items[0].event.occurred_at
+        ):
+            # 审计序号表示操作先后，不受系统时钟同秒或回拨影响。
+            return review_page.items[0].seq > signature_page.items[0].seq
+        # 较早或不完整的审计数据可能缺少其中一类事件，此时谨慎回退到时间戳判断。
         return any(
             entry.reviewed_at > signed_at
             for result in experiment.results.values()
@@ -1223,11 +1289,16 @@ class ReportService:
     def _stage(directory: Path, name: str, data: bytes) -> Path:
         """先写成同目录下的临时文件并落盘，提交成功后才改成正式名字。"""
         directory.mkdir(parents=True, exist_ok=True)
-        staged = directory / f".{name}.part"
-        with staged.open("wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
+        staged = directory / f".{name}.{uuid.uuid4().hex}.part"
+        try:
+            with staged.open("xb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+        except BaseException:
+            with suppress(OSError):
+                staged.unlink(missing_ok=True)
+            raise
         return staged
 
     @staticmethod

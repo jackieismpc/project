@@ -15,7 +15,7 @@ from gelinspect.ui.widgets.label import Label
 
 _LICENSES = (
     ("Qt for Python (PySide6)", "LGPL-3.0"),
-    ("Noto Sans SC, IBM Plex Mono", "SIL OFL 1.1"),
+    ("Noto Sans SC", "SIL OFL 1.1"),
     ("Lucide Icons", "ISC"),
 )
 
@@ -90,7 +90,7 @@ class AboutPage(QWidget):
         self.title.setText(self.tr("关于"))
         self.product_name.setText(self.tr("凝胶智检系统（GelInspect）"))
         self.product_desc.setText(
-            self.tr("凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。")
+            self.tr("凝胶法细菌内毒素检测软件：实验管理、图像采集、检测判读、复核与报告。")
         )
         self.product_version.setText(self.tr("版本 {version}").format(version=__version__))
         self.env_card.set_title(self.tr("运行环境"))

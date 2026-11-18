@@ -1,6 +1,6 @@
 """设计 token：颜色、字体、字号、间距与圆角。
 
-数值来自 ``docs/design/*.dc.html`` 的 CSS。界面代码只能通过 token 取色，
+颜色和尺寸集中定义在 token。界面代码只能通过 token 取色，
 不得在组件里硬编码颜色，这样深色主题只需要补一份 :class:`Tokens` 即可。
 """
 
@@ -110,9 +110,7 @@ class TypeTokens:
     """字体与字号（单位 px）。"""
 
     sans: tuple[str, ...] = ("Noto Sans SC", "PingFang SC", "Microsoft YaHei", "sans-serif")
-    """正文字体回退链，内置字体在前。"""
-    mono: tuple[str, ...] = ("IBM Plex Mono", "Menlo", "Consolas", "monospace")
-    """读数、管号、批号字体回退链。"""
+    """界面所有角色共用的字体回退链，内置字体在前。"""
     body: int = 14
     small: int = 13
     caption: int = 12
@@ -122,6 +120,11 @@ class TypeTokens:
     hero: int = 56
     hero_unit: int = 22
     stat: int = 22
+
+    @property
+    def mono(self) -> tuple[str, ...]:
+        """等宽语义角色沿用统一字体族，由调用方保持数字和标识的布局方式。"""
+        return self.sans
 
 
 @dataclass(frozen=True, slots=True)

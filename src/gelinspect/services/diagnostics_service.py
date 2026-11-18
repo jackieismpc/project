@@ -127,6 +127,7 @@ class DiagnosticsService:
         now = self._clock().astimezone(UTC)
         missing: list[str] = []
         entries: list[tuple[str, bytes | Path]] = []
+        expected_media_hashes: dict[str, str] = {}
         next_auth_check = [time.monotonic()]
 
         def check_cancel() -> None:
@@ -171,7 +172,9 @@ class DiagnosticsService:
                     )
                     continue
                 media_name = f"{_safe_component(media.file_id)}-{_safe_component(original.name)}"
-                entries.append((f"media/{safe_id}/{media_name}", source))
+                archive_name = f"media/{safe_id}/{media_name}"
+                entries.append((archive_name, source))
+                expected_media_hashes[archive_name] = media.sha256.lower()
 
         for path in self._log_files():
             try:
@@ -210,6 +213,9 @@ class DiagnosticsService:
                         finally:
                             if not isinstance(item, bytes):
                                 source_handle.close()
+                    expected_digest = expected_media_hashes.get(name)
+                    if expected_digest is not None and file_digest.hexdigest() != expected_digest:
+                        raise ValueError(f"媒体文件在扫描后发生变化：{name}")
                     checksums.append(
                         {"path": name, "sha256": file_digest.hexdigest(), "size_bytes": size}
                     )

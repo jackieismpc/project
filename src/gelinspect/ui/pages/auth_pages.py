@@ -481,7 +481,7 @@ class LoginPage(_AuthFrame):
             self.brand_sub.setText(self._locked_user_label or "GelInspect")
             self.submit_button.setText(self.tr("解锁"))
             self.logout_button.setText(self.tr("退出登录"))
-            self.password.setPlaceholderText(self.tr("输入密码解锁，试验仍在后台运行"))
+            self.password.setPlaceholderText(self.tr("输入密码解锁，实验仍在后台运行"))
         else:
             self.heading.setText(self.tr("登录"))
             self.brand_sub.setText("GelInspect")

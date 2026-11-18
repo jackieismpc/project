@@ -17,14 +17,19 @@ from PySide6.QtWidgets import QApplication
 import gelinspect
 from gelinspect import startup
 from gelinspect.__main__ import main
-from gelinspect.app_context import build_app_context
+from gelinspect.app_context import (
+    _create_video_source,
+    build_app_context,
+)
 from gelinspect.domain.enums import AuditAction
+from gelinspect.infrastructure.db import open_database
 from gelinspect.infrastructure.security.integrity import IntegrityStatus, build_manifest
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.logging_setup import shutdown_logging
 from gelinspect.services import config as config_module
 from gelinspect.services import runtime_paths
-from gelinspect.services.config import ConfigError, load_config, parse_config
+from gelinspect.services.config import ConfigError, load_backend, load_config, parse_config
+from gelinspect.services.experiment_engine import ExperimentEngine
 from gelinspect.services.runtime_paths import (
     BuildInfo,
     RunMode,
@@ -32,6 +37,7 @@ from gelinspect.services.runtime_paths import (
     platform_data_dir,
     project_root,
 )
+from gelinspect.services.video import VideoPipeline
 from gelinspect.startup import EXIT_OK, check_program_integrity, record_integrity
 
 ROOT = Path(__file__).parents[1]
@@ -179,6 +185,175 @@ def test_default_config_starts_with_initialized_accounts(
 ) -> None:
     code = startup.run_gui(config_path=release_config(tmp_path), smoke_test=True, app=qapp)
     assert code == EXIT_OK  # 冒烟检查使用初始化账号完成登录流程
+
+
+def test_context_close_attempts_all_resources_after_a_cleanup_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = build_app_context(load_config(release_config(tmp_path)))
+    calls: list[str] = []
+    close_database = context.database.close
+
+    def database_close() -> None:
+        calls.append("database")
+        close_database()
+
+    def instrument_stop(_timeout: float) -> bool:
+        calls.append("instrument")
+        raise RuntimeError("monitor failed")
+
+    def engine_shutdown(_timeout: float) -> bool:
+        calls.append("engine")
+        return True
+
+    def pipeline_stop() -> None:
+        calls.append("pipeline")
+
+    def device_close() -> None:
+        calls.append("device")
+
+    monkeypatch.setattr(context.instrument, "stop", instrument_stop)
+    monkeypatch.setattr(context.engine, "shutdown", engine_shutdown)
+    monkeypatch.setattr(context.pipeline, "stop", pipeline_stop)
+    monkeypatch.setattr(context.device, "close", device_close)
+    monkeypatch.setattr(context.database, "close", database_close)
+
+    with pytest.raises(RuntimeError, match="monitor failed"):
+        context.close()
+    assert calls == ["instrument", "engine", "pipeline", "database"]
+
+
+def test_context_close_keeps_dependencies_alive_when_engine_does_not_stop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = build_app_context(load_config(release_config(tmp_path)))
+    calls: list[str] = []
+    close_database = context.database.close
+
+    def instrument_stop(_timeout: float) -> bool:
+        return True
+
+    def engine_shutdown(_timeout: float) -> bool:
+        return False
+
+    def track_pipeline_stop() -> None:
+        calls.append("pipeline")
+
+    def track_device_close() -> None:
+        calls.append("device")
+
+    def track_database_close() -> None:
+        calls.append("database")
+
+    monkeypatch.setattr(context.instrument, "stop", instrument_stop)
+    monkeypatch.setattr(context.engine, "shutdown", engine_shutdown)
+    monkeypatch.setattr(context.pipeline, "stop", track_pipeline_stop)
+    monkeypatch.setattr(context.device, "close", track_device_close)
+    monkeypatch.setattr(context.database, "close", track_database_close)
+
+    try:
+        with pytest.raises(TimeoutError, match="试验引擎"):
+            context.close()
+        assert calls == []
+    finally:
+        close_database()
+
+
+@pytest.mark.parametrize(
+    "failure_stage", ["database", "keystore", "report_service", "engine_timeout"]
+)
+def test_context_assembly_releases_every_acquired_resource(
+    failure_stage: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gelinspect import app_context as context_module
+
+    config = load_config(release_config(tmp_path))
+    released: list[str] = []
+    original_load_backend = load_backend
+    original_source_factory = _create_video_source
+    original_open_database = open_database
+    original_pipeline_stop = VideoPipeline.stop
+    opened_databases: list[Any] = []
+
+    def tracked_backend(name: str, *args: Any, **kwargs: Any) -> Any:
+        backend = original_load_backend(name, *args, **kwargs)
+        if name == "device.backend":
+            close = backend.close
+
+            def close_device() -> None:
+                released.append("device")
+                close()
+
+            monkeypatch.setattr(backend, "close", close_device)
+        return backend
+
+    def tracked_source(settings: Any) -> Any:
+        source = original_source_factory(settings)
+        close = source.close
+
+        def close_source() -> None:
+            released.append("source")
+            close()
+
+        monkeypatch.setattr(source, "close", close_source)
+        return source
+
+    def tracked_open_database(path: Path) -> Any:
+        if failure_stage == "database":
+            raise RuntimeError("database open failed")
+        database = original_open_database(path)
+        opened_databases.append(database)
+        close = database.close
+
+        def close_database() -> None:
+            released.append("database")
+            close()
+
+        monkeypatch.setattr(database, "close", close_database)
+        return database
+
+    def tracked_pipeline_stop(pipeline: Any) -> None:
+        released.append("pipeline")
+        original_pipeline_stop(pipeline)
+
+    monkeypatch.setattr(context_module, "load_backend", tracked_backend)
+    monkeypatch.setattr(context_module, "_create_video_source", tracked_source)
+    monkeypatch.setattr(context_module, "open_database", tracked_open_database)
+    monkeypatch.setattr(VideoPipeline, "stop", tracked_pipeline_stop)
+
+    def fail_keystore(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("keystore failed")
+
+    def fail_report_service(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("report service failed")
+
+    if failure_stage == "keystore":
+        monkeypatch.setattr(context_module, "LocalKeyStore", fail_keystore)
+    elif failure_stage in ("report_service", "engine_timeout"):
+        monkeypatch.setattr(context_module, "ReportService", fail_report_service)
+        if failure_stage == "engine_timeout":
+
+            def engine_shutdown(*_args: Any) -> bool:
+                return False
+
+            monkeypatch.setattr(ExperimentEngine, "shutdown", engine_shutdown)
+
+    expected_error = {
+        "database": "database open failed",
+        "keystore": "keystore failed",
+        "report_service": "report service failed",
+        "engine_timeout": "report service failed",
+    }[failure_stage]
+    with pytest.raises(RuntimeError, match=expected_error):
+        build_app_context(config)
+
+    if failure_stage == "engine_timeout":
+        assert released == []
+        assert len(opened_databases) == 1
+        opened_databases[0].close()  # Test cleanup; production preserves it until process exit.
+    else:
+        assert "device" in released and "source" in released and "pipeline" in released
+        assert ("database" in released) is (failure_stage != "database")
 
 
 def test_unconfigured_backends_fail_clearly_instead_of_faking_results() -> None:

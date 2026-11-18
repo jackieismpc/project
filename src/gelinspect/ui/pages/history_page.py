@@ -350,11 +350,11 @@ class HistoryPage(QWidget):
         )
         if self.filters_active():
             self.table.set_empty_text(
-                self.tr("没有符合条件的试验"), self.tr("调整筛选条件，或点“重置”清除条件后再查")
+                self.tr("没有符合条件的实验"), self.tr("调整筛选条件，或点“重置”清除条件后再查")
             )
         else:
             self.table.set_empty_text(
-                self.tr("还没有历史试验"), self.tr("完成第一次试验后，结果会显示在这里")
+                self.tr("还没有历史实验"), self.tr("完成第一次实验后，结果会显示在这里")
             )
         self.pager.set_state(page=self._page, total=self._total, page_size=PAGE_SIZE)
         self._update_buttons()
@@ -370,7 +370,7 @@ class HistoryPage(QWidget):
         self.export_list_button.setEnabled(can_export and self._total > 0 and not busy)
         tip = "" if can_export else self.tr("当前角色无此权限")
         self.export_selected_button.setToolTip(
-            tip or ("" if selected else self.tr("先在列表里点选要导出的试验"))
+            tip or ("" if selected else self.tr("先在列表里点选要导出的实验"))
         )
         self.export_list_button.setToolTip(tip)
 
@@ -403,7 +403,7 @@ class HistoryPage(QWidget):
             return
         target, _ = QFileDialog.getSaveFileName(
             self,
-            self.tr("导出所选试验结果"),
+            self.tr("导出所选实验结果"),
             suggested_filename("results"),
             self.tr("Excel 文件 (*.xlsx)"),
         )
@@ -496,7 +496,7 @@ class HistoryPage(QWidget):
 
     def _columns(self) -> list[Column]:
         return [
-            Column("id", self.tr("试验"), mono=True),
+            Column("id", self.tr("实验"), mono=True),
             Column("type", self.tr("类型")),
             Column("tubes", self.tr("试管"), mono=True, align_right=True),
             Column("state", self.tr("状态")),
@@ -533,11 +533,11 @@ class HistoryPage(QWidget):
         self.title.setText(self.tr("历史记录"))
         self.hint.setText(self.tr("双击一行打开回看，点选多行可以导出"))
         self.refresh_button.setText(self.tr("刷新"))
-        self.open_button.setText(self.tr("打开所选试验"))
+        self.open_button.setText(self.tr("打开所选实验"))
         self.open_report_button.setText(self.tr("打开所选报告"))
         self.export_selected_button.setText(self.tr("导出所选结果…"))
         self.export_list_button.setText(self.tr("导出当前列表…"))
-        self.type_label.setText(self.tr("试验类型"))
+        self.type_label.setText(self.tr("实验类型"))
         self.start_label.setText(self.tr("开始日期"))
         self.end_label.setText(self.tr("结束日期"))
         self.batch_label.setText(self.tr("批号"))

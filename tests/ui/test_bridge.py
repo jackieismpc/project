@@ -117,6 +117,37 @@ def test_close_unsubscribes_and_drops_late_events(qapp: QApplication) -> None:
     assert seen == []
 
 
+def test_bridge_close_racing_an_inflight_emit_drops_the_teardown_error() -> None:
+    bridge = EngineBridge()
+    entered = threading.Event()
+    release = threading.Event()
+    failures: list[Exception] = []
+
+    class BlockingSignal:
+        def emit(self, _event: object) -> None:
+            entered.set()
+            assert release.wait(5.0)
+            raise RuntimeError("wrapped C++ object has been deleted")
+
+    # Hold precisely between the producer's closed check and its Qt emit.
+    bridge._incoming = BlockingSignal()  # type: ignore[assignment]
+
+    def produce() -> None:
+        try:
+            bridge.handle_event(state_event())
+        except Exception as error:  # pragma: no cover - regression capture
+            failures.append(error)
+
+    worker = threading.Thread(target=produce)
+    worker.start()
+    assert entered.wait(5.0)
+    bridge.close()
+    release.set()
+    worker.join(5.0)
+    assert not worker.is_alive()
+    assert failures == []
+
+
 def test_real_engine_events_reach_the_window_thread(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:

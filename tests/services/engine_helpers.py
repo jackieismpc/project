@@ -471,6 +471,7 @@ def make_harness(
     reconnect: ReconnectConfig | None = None,
     use_scaled_schedule: bool = False,
     storage_wrapper: Callable[[Database], object] | None = None,
+    conclusions_enabled: bool = False,
     width: int = 640,
     height: int = 360,
 ) -> Harness:
@@ -504,6 +505,7 @@ def make_harness(
         config=config or fast_config(),
         schedule_clock=None if use_scaled_schedule else clock,
         on_event=log,
+        conclusions_enabled=conclusions_enabled,
     )
     return Harness(
         device=device,

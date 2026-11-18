@@ -220,7 +220,8 @@ class BackendRef(_Section):
 class TraceabilitySection(_Section):
     """试剂溯源：试剂码解析、备案清单和政府溯源平台，三者都可替换。
 
-    试剂码格式和备案清单尚未提供（``docs/PLAN.md`` 第 7 节第 6 项），所以没有内置实现；
+    试剂码格式和备案清单尚未提供（见 ``docs/internal-integration-checklist.md``），
+    所以没有内置实现；
     不配置解析器或备案清单时，试剂无法校验，向导停在“校验试剂”并说明原因，**不会放行**。
 
     Attributes:

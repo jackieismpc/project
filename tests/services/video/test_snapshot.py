@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import threading
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 
@@ -13,6 +14,7 @@ import numpy as np
 import pytest
 
 from gelinspect.interfaces.analysis import CapturedFrame
+from gelinspect.interfaces.video import VideoFrame
 from gelinspect.services.video.config import SnapshotConfig
 from gelinspect.services.video.errors import (
     InsufficientFramesError,
@@ -20,6 +22,8 @@ from gelinspect.services.video.errors import (
     SnapshotError,
 )
 from gelinspect.services.video.pipeline import VideoPipeline
+from gelinspect.services.video.ring_buffer import FrameRingBuffer
+from gelinspect.services.video.snapshot import SnapshotGrabber
 from tests.services.video.helpers import T0, FakeSource, frame_number, make_config, wait_until
 
 # 合成时间：第 k 帧在 T0 + 0.1k 秒。翻转 [5.0, 7.0] 秒，稳定 1.0 秒
@@ -49,6 +53,57 @@ def wait_for_sequence(pipeline: VideoPipeline, sequence: int) -> None:
 
 def numbers(frames: list[CapturedFrame]) -> list[int]:
     return [frame_number(f.image) for f in frames]
+
+
+def test_close_collects_io_pool_created_by_a_save_already_in_flight(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = make_config(tmp_path).snapshot
+    buffer = FrameRingBuffer(1024 * 1024, hard_limit_bytes=2 * 1024 * 1024)
+    grabber = SnapshotGrabber(buffer, tmp_path, config)
+    frame = VideoFrame(
+        image=np.zeros((16, 16, 3), dtype=np.uint8),
+        sequence=1,
+        captured_at=T0,
+        monotonic_s=1.0,
+    )
+    entered_io = threading.Event()
+    release_io = threading.Event()
+    real_io = grabber._io
+
+    def blocked_io() -> ThreadPoolExecutor:
+        entered_io.set()
+        assert release_io.wait(5.0)
+        return real_io()
+
+    monkeypatch.setattr(grabber, "_io", blocked_io)
+    future = grabber._submit_job(
+        grabber._save,
+        "EXP-CLOSE-RACE",
+        1,
+        [frame],
+        [frame],
+        "png",
+        T0,
+        T0 + timedelta(seconds=1),
+        0.0,
+    )
+    assert entered_io.wait(5.0)
+    closed = threading.Event()
+
+    def close_and_signal() -> None:
+        grabber.close()
+        closed.set()
+
+    closer = threading.Thread(target=close_and_signal)
+    closer.start()
+    assert not closed.wait(0.05)
+    release_io.set()
+    future.result(timeout=5.0)
+    closer.join(timeout=5.0)
+
+    assert closed.is_set()
+    assert not any(thread.name.startswith("video-imgio") for thread in threading.enumerate())
 
 
 def test_frames_are_before_flip_and_after_settle(running: VideoPipeline) -> None:

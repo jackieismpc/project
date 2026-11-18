@@ -21,6 +21,7 @@ from gelinspect.interfaces.storage import ExperimentQuery, MediaFile, MediaKind,
 from gelinspect.logging_setup import configure_logging, shutdown_logging
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.diagnostics_service import DiagnosticCancelledError, DiagnosticsService
+from gelinspect.services.errors import ServiceError, ServiceErrorCode
 
 
 class _Auth:
@@ -198,6 +199,39 @@ def test_reports_media_checksum_mismatch_without_exporting_file(tmp_path: Path) 
     assert result.missing and "不匹配" in result.missing[0]
     with zipfile.ZipFile(result.path) as archive:
         assert not any(name.startswith("media/") for name in archive.namelist())
+
+
+def test_media_changed_after_scan_does_not_produce_a_successful_package(tmp_path: Path) -> None:
+    data_dir = tmp_path / "data"
+    media_dir = data_dir / "media"
+    media_dir.mkdir(parents=True)
+    source = media_dir / "capture.png"
+    original = b"validated image"
+    source.write_bytes(original)
+    record = MediaFile(
+        file_id="one",
+        experiment_id="exp-one",
+        kind=MediaKind.IMAGE,
+        path=str(source),
+        sha256=hashlib.sha256(original).hexdigest(),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    storage = _Storage([record])
+    service = _service(tmp_path, storage)
+    changed = False
+
+    def change_media(done: int, _total: int) -> None:
+        nonlocal changed
+        if done == 1 and not changed:
+            source.write_bytes(b"replaced after validation")
+            changed = True
+
+    destination = tmp_path / "raced.zip"
+    with pytest.raises(ServiceError) as caught:
+        service.create_package(cast(Any, object()), destination, progress=change_media)
+    assert caught.value.code is ServiceErrorCode.EXPORT_FAILED
+    assert not destination.exists()
+    assert len(storage.events) == 1 and "结果=failed" in storage.events[0].detail
 
 
 def test_cancellation_removes_partial_zip_and_does_not_write_export_audit(tmp_path: Path) -> None:

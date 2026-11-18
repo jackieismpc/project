@@ -12,7 +12,7 @@
         <translation>GelInspect</translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
+        <source>凝胶法细菌内毒素检测软件：实验管理、图像采集、检测判读、复核与报告。</source>
         <translation>Gel-clot bacterial endotoxin testing software for experiment management, image capture, result interpretation, review, and reporting.</translation>
     </message>
     <message>
@@ -462,7 +462,7 @@
         <translation>Keyword</translation>
     </message>
     <message>
-        <source>操作记录或试验编号</source>
+        <source>操作记录或实验编号</source>
         <translation>Action or experiment ID</translation>
     </message>
     <message>
@@ -921,11 +921,11 @@
         <translation>Rule source: {source}</translation>
     </message>
     <message>
-        <source>试验完成后才会固化结论。</source>
+        <source>实验完成后才会固化结论。</source>
         <translation>The conclusion is fixed when the experiment completes.</translation>
     </message>
     <message>
-        <source>试验结论</source>
+        <source>实验结论</source>
         <translation>Conclusion</translation>
     </message>
     <message>
@@ -974,7 +974,7 @@
 <context>
     <name>DashboardPage</name>
     <message>
-        <source>试验</source>
+        <source>实验</source>
         <translation>Experiment</translation>
     </message>
     <message>
@@ -1010,8 +1010,28 @@
         <translation>Chamber temperature</translation>
     </message>
     <message>
-        <source>进行中的试验</source>
+        <source>进行中的实验</source>
         <translation>Experiment in progress</translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation>No experiments yet</translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation>Results appear here after your first experiment.</translation>
+    </message>
+    <message>
+        <source>当前没有进行中的实验。</source>
+        <translation>No experiment is running.</translation>
+    </message>
+    <message>
+        <source>实验 {id} 有 {n} 管待复核</source>
+        <translation>Experiment {id}: {n} tubes to review</translation>
+    </message>
+    <message>
+        <source>实验 {id} 处于异常状态，需要人工处理</source>
+        <translation>Experiment {id} is faulted and needs manual attention.</translation>
     </message>
     <message>
         <source>打开监控</source>
@@ -1024,14 +1044,6 @@
     <message>
         <source>需要处理</source>
         <translation>Needs attention</translation>
-    </message>
-    <message>
-        <source>还没有历史试验</source>
-        <translation>No experiments yet</translation>
-    </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
-        <translation>Results appear here after your first experiment.</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -1058,10 +1070,6 @@
         <translation>Instrument connected</translation>
     </message>
     <message>
-        <source>当前没有进行中的试验。</source>
-        <translation>No experiment is running.</translation>
-    </message>
-    <message>
         <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
         <translation>{tubes} tubes · {done} / {total} rows done</translation>
     </message>
@@ -1076,14 +1084,6 @@
     <message>
         <source>阳性 {p} · 阴性 {n}</source>
         <translation>{p} positive · {n} negative</translation>
-    </message>
-    <message>
-        <source>试验 {id} 有 {n} 管待复核</source>
-        <translation>Experiment {id}: {n} tubes to review</translation>
-    </message>
-    <message>
-        <source>试验 {id} 处于异常状态，需要人工处理</source>
-        <translation>Experiment {id} is faulted and needs manual attention.</translation>
     </message>
     <message>
         <source>{name} 已过期 {n} 天</source>
@@ -1589,14 +1589,6 @@
         <translation>Your role does not have this permission</translation>
     </message>
     <message>
-        <source>先在列表里点选要导出的试验</source>
-        <translation>Click experiments in the list first</translation>
-    </message>
-    <message>
-        <source>导出所选试验结果</source>
-        <translation>Export selected experiment results</translation>
-    </message>
-    <message>
         <source>Excel 文件 (*.xlsx)</source>
         <translation>Excel files (*.xlsx)</translation>
     </message>
@@ -1613,7 +1605,27 @@
         <translation>Export failed: {reason}</translation>
     </message>
     <message>
-        <source>试验</source>
+        <source>没有符合条件的实验</source>
+        <translation>No experiments match</translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation>No experiments yet</translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation>Results appear here after the first experiment</translation>
+    </message>
+    <message>
+        <source>先在列表里点选要导出的实验</source>
+        <translation>Click experiments in the list first</translation>
+    </message>
+    <message>
+        <source>导出所选实验结果</source>
+        <translation>Export selected experiment results</translation>
+    </message>
+    <message>
+        <source>实验</source>
         <translation>Experiment</translation>
     </message>
     <message>
@@ -1661,6 +1673,10 @@
         <translation>Double-click a row to open it; click several rows to export them</translation>
     </message>
     <message>
+        <source>打开所选实验</source>
+        <translation>Open selected</translation>
+    </message>
+    <message>
         <source>打开所选报告</source>
         <translation>Open Selected Report</translation>
     </message>
@@ -1673,7 +1689,7 @@
         <translation>Export current list…</translation>
     </message>
     <message>
-        <source>试验类型</source>
+        <source>实验类型</source>
         <translation>Test type</translation>
     </message>
     <message>
@@ -1705,38 +1721,22 @@
         <translation>Refresh</translation>
     </message>
     <message>
-        <source>打开所选试验</source>
-        <translation>Open selected</translation>
-    </message>
-    <message>
-        <source>还没有历史试验</source>
-        <translation>No experiments yet</translation>
-    </message>
-    <message>
         <source>全部操作人</source>
         <translation>All operators</translation>
-    </message>
-    <message>
-        <source>没有符合条件的试验</source>
-        <translation>No experiments match</translation>
     </message>
     <message>
         <source>调整筛选条件，或点“重置”清除条件后再查</source>
         <translation>Adjust the filters, or click Reset to clear them and search again</translation>
     </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
-        <translation>Results appear here after the first experiment</translation>
-    </message>
 </context>
 <context>
     <name>ImagesTab</name>
     <message>
-        <source>没有选中的试验</source>
+        <source>没有选中的实验</source>
         <translation>No experiment selected</translation>
     </message>
     <message>
-        <source>这个试验还没有抓拍图像，每排读数后会显示在这里</source>
+        <source>这个实验还没有抓拍图像，每排读数后会显示在这里</source>
         <translation>No captured images yet; they appear here after each row is read</translation>
     </message>
     <message>
@@ -1872,7 +1872,7 @@
         <translation>Sign out</translation>
     </message>
     <message>
-        <source>输入密码解锁，试验仍在后台运行</source>
+        <source>输入密码解锁，实验仍在后台运行</source>
         <translation>Enter password to unlock; experiments keep running</translation>
     </message>
     <message>
@@ -1899,40 +1899,40 @@
         <translation>Password changed</translation>
     </message>
     <message>
-        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <source>实验 {id} 检测完成，{count} 管待复核。</source>
         <translation>Experiment {id} analysis is complete; {count} tubes need review.</translation>
+    </message>
+    <message>
+        <source>实验 {id} 已完成，可查看报告。</source>
+        <translation>Experiment {id} is complete. View its report.</translation>
+    </message>
+    <message>
+        <source>有实验正在进行，请先解锁再退出</source>
+        <translation>An experiment is running. Unlock before quitting.</translation>
+    </message>
+    <message>
+        <source>退出并中断实验？</source>
+        <translation>Quit and interrupt the experiment?</translation>
+    </message>
+    <message>
+        <source>实验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
+        <translation>Experiment {id} is still running. Quitting interrupts it and marks it faulted; the device state must be checked manually and unread rows will miss their reading time. Quit anyway?</translation>
+    </message>
+    <message>
+        <source>继续实验</source>
+        <translation>Keep running</translation>
     </message>
     <message>
         <source>若干</source>
         <translation>Several</translation>
     </message>
     <message>
-        <source>试验 {id} 已完成，可查看报告。</source>
-        <translation>Experiment {id} is complete. View its report.</translation>
-    </message>
-    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation>GelInspect</translation>
     </message>
     <message>
-        <source>有试验正在进行，请先解锁再退出</source>
-        <translation>An experiment is running. Unlock before quitting.</translation>
-    </message>
-    <message>
-        <source>退出并中断试验？</source>
-        <translation>Quit and interrupt the experiment?</translation>
-    </message>
-    <message>
-        <source>试验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
-        <translation>Experiment {id} is still running. Quitting interrupts it and marks it faulted; the device state must be checked manually and unread rows will miss their reading time. Quit anyway?</translation>
-    </message>
-    <message>
         <source>中断并退出</source>
         <translation>Interrupt and quit</translation>
-    </message>
-    <message>
-        <source>继续试验</source>
-        <translation>Keep running</translation>
     </message>
 </context>
 <context>
@@ -1976,18 +1976,6 @@
         <translation>Pending review · {n} tubes</translation>
     </message>
     <message>
-        <source>先选择一个试验。</source>
-        <translation>Select an experiment first.</translation>
-    </message>
-    <message>
-        <source>这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
-        <translation>This experiment is signed. You can preview, print, verify and export the signed PDF.</translation>
-    </message>
-    <message>
-        <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
-        <translation>This experiment is not completed yet. You can preview the report; it can be signed after completion and review.</translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation>Tube</translation>
     </message>
@@ -2016,10 +2004,6 @@
         <translation>Result</translation>
     </message>
     <message>
-        <source>试验 {id}</source>
-        <translation>Experiment {id}</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>Not permitted for this role</translation>
     </message>
@@ -2028,23 +2012,43 @@
         <translation>Analysis can be retried after all rows are read</translation>
     </message>
     <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。</source>
-        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. Rows {rows} were captured and can be re-analyzed (no flipping); rows {unread} missed their read time, so after analysis the experiment can only be stopped.</translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。</source>
-        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. All rows were captured: rows {rows} can be re-analyzed (no flipping), and the experiment then finishes normally.</translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。</source>
-        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. No row can be re-analyzed (not captured, or the capture time was not recorded). It can only be stopped.</translation>
-    </message>
-    <message>
         <source>第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。</source>
         <translation>Analysis failed for rows {rows}; the original images are kept. It can be retried after all rows are read.</translation>
     </message>
     <message>
-        <source>试验异常：{reason}</source>
+        <source>先选择一个实验。</source>
+        <translation>Select an experiment first.</translation>
+    </message>
+    <message>
+        <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
+        <translation>This experiment is signed. You can preview, print, verify and export the signed PDF.</translation>
+    </message>
+    <message>
+        <source>这个实验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation>This experiment is complete. Preview the report; an authorized user can check and sign it.</translation>
+    </message>
+    <message>
+        <source>这个实验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
+        <translation>This experiment is not completed yet. You can preview the report; it can be signed after completion and review.</translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation>Experiment {id}</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后实验仍只能停止。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. Rows {rows} were captured and can be re-analyzed (no flipping); rows {unread} missed their read time, so after analysis the experiment can only be stopped.</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后实验照常结束。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. All rows were captured: rows {rows} can be re-analyzed (no flipping), and the experiment then finishes normally.</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止实验。</source>
+        <translation>The software restarted and the schedule is lost, so this experiment cannot resume. No row can be re-analyzed (not captured, or the capture time was not recorded). It can only be stopped.</translation>
+    </message>
+    <message>
+        <source>实验异常：{reason}</source>
         <translation>Experiment fault: {reason}</translation>
     </message>
     <message>
@@ -2092,52 +2096,60 @@
         <translation>Analysis {elapsed} · Flip angle {angle}</translation>
     </message>
     <message>
-        <source>停止试验？</source>
+        <source>停止实验？</source>
         <translation>Stop the experiment?</translation>
     </message>
     <message>
-        <source>停止后试验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
+        <source>停止后实验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
         <translation>Experiment {id} cannot continue after stopping; rows not yet read will miss their reading time, and flipped rows will be reset. Stop it?</translation>
     </message>
     <message>
-        <source>停止试验</source>
+        <source>停止实验</source>
         <translation>Stop experiment</translation>
     </message>
     <message>
-        <source>继续试验</source>
+        <source>继续实验</source>
         <translation>Keep running</translation>
+    </message>
+    <message>
+        <source>恢复实验？</source>
+        <translation>Resume the experiment?</translation>
+    </message>
+    <message>
+        <source>恢复实验</source>
+        <translation>Resume experiment</translation>
+    </message>
+    <message>
+        <source>已请求恢复实验</source>
+        <translation>Resume requested</translation>
+    </message>
+    <message>
+        <source>实验数据记录</source>
+        <translation>Experiment data</translation>
+    </message>
+    <message>
+        <source>当前没有进行中的实验</source>
+        <translation>No experiment is running</translation>
+    </message>
+    <message>
+        <source>这个实验没有录像</source>
+        <translation>This experiment has no recordings</translation>
     </message>
     <message>
         <source>已请求停止，正在收尾</source>
         <translation>Stop requested, finishing up</translation>
     </message>
     <message>
-        <source>恢复试验？</source>
-        <translation>Resume the experiment?</translation>
-    </message>
-    <message>
         <source>恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；分析失败的排用保留的原图重试。确定要恢复吗？</source>
         <translation>Check that the instrument and temperature are back to normal. Rows whose read failed will be flipped again, and gel that has been moved may have changed; rows whose analysis failed are retried from the kept images. Resume?</translation>
-    </message>
-    <message>
-        <source>恢复试验</source>
-        <translation>Resume experiment</translation>
     </message>
     <message>
         <source>暂不恢复</source>
         <translation>Not now</translation>
     </message>
     <message>
-        <source>已请求恢复试验</source>
-        <translation>Resume requested</translation>
-    </message>
-    <message>
         <source>已请求重试分析</source>
         <translation>Analysis retry requested</translation>
-    </message>
-    <message>
-        <source>试验数据记录</source>
-        <translation>Experiment data</translation>
     </message>
     <message>
         <source>图像显示</source>
@@ -2146,10 +2158,6 @@
     <message>
         <source>报告打印预览</source>
         <translation>Report preview</translation>
-    </message>
-    <message>
-        <source>当前没有进行中的试验</source>
-        <translation>No experiment is running</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -2172,10 +2180,6 @@
         <translation>Measured sensitivity λc</translation>
     </message>
     <message>
-        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
-        <translation>This experiment is complete. Preview the report; an authorized user can check and sign it.</translation>
-    </message>
-    <message>
         <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
         <translation>Start an experiment from “New Experiment” to view live video, the plate, and results here. Completed experiments are also available in History.</translation>
     </message>
@@ -2196,10 +2200,6 @@
         <translation>Row replay</translation>
     </message>
     <message>
-        <source>这个试验没有录像</source>
-        <translation>This experiment has no recordings</translation>
-    </message>
-    <message>
         <source>没有试管</source>
         <translation>No tubes</translation>
     </message>
@@ -2211,7 +2211,7 @@
 <context>
     <name>MonitorReportPreview</name>
     <message>
-        <source>先选择一个试验。</source>
+        <source>先选择一个实验。</source>
         <translation>Select an experiment first.</translation>
     </message>
     <message>
@@ -2342,8 +2342,16 @@
         <translation>Leave empty to leave it blank in the report</translation>
     </message>
     <message>
-        <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
-        <translation>Saved with the experiment record and shown in the report; it cannot be changed after signing.</translation>
+        <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation>The workflow is locked and cannot continue. Replace the reagent with a valid lot and scan again. This check was written to the audit trail.</translation>
+    </message>
+    <message>
+        <source>实验类型</source>
+        <translation>Experiment type</translation>
+    </message>
+    <message>
+        <source>启动失败，实验仍为就绪，可以重试</source>
+        <translation>Start failed. The experiment is still ready; you can retry.</translation>
     </message>
     <message>
         <source>管位</source>
@@ -2370,10 +2378,6 @@
         <translation>Next: confirm</translation>
     </message>
     <message>
-        <source>试验信息</source>
-        <translation>Experiment details</translation>
-    </message>
-    <message>
         <source>确认后设备会连接并送入滑台，随后开始孵育。启动前会检查温度、舱门和视频。</source>
         <translation>After you confirm, the instrument connects, moves the tray in and starts incubation. Temperature, door and video are checked first.</translation>
     </message>
@@ -2396,6 +2400,14 @@
     <message>
         <source>新建实验</source>
         <translation>New Experiment</translation>
+    </message>
+    <message>
+        <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
+        <translation>Saved with the experiment record and shown in the report; it cannot be changed after signing.</translation>
+    </message>
+    <message>
+        <source>实验信息</source>
+        <translation>Experiment details</translation>
     </message>
     <message>
         <source>离开新建实验向导？</source>
@@ -2464,10 +2476,6 @@
     <message>
         <source>模板已另存；当前实验草稿保留</source>
         <translation>Template saved separately; the current experiment draft is kept</translation>
-    </message>
-    <message>
-        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
-        <translation>The workflow is locked and cannot continue. Replace the reagent with a valid lot and scan again. This check was written to the audit trail.</translation>
     </message>
     <message>
         <source>试剂未通过校验</source>
@@ -2550,10 +2558,6 @@
         <translation>Tube count must match the template and sample names cannot be empty</translation>
     </message>
     <message>
-        <source>试验类型</source>
-        <translation>Experiment type</translation>
-    </message>
-    <message>
         <source>试管</source>
         <translation>Tubes</translation>
     </message>
@@ -2588,10 +2592,6 @@
     <message>
         <source>无法启动</source>
         <translation>Cannot start</translation>
-    </message>
-    <message>
-        <source>启动失败，试验仍为就绪，可以重试</source>
-        <translation>Start failed. The experiment is still ready; you can retry.</translation>
     </message>
     <message>
         <source>原因：</source>
@@ -2702,6 +2702,26 @@
         <translation>Manage users and roles</translation>
     </message>
     <message>
+        <source>查看实验和结果</source>
+        <translation>View experiments and results</translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation>New experiment</translation>
+    </message>
+    <message>
+        <source>启动实验</source>
+        <translation>Start experiments</translation>
+    </message>
+    <message>
+        <source>停止实验</source>
+        <translation>Stop experiments</translation>
+    </message>
+    <message>
+        <source>签署实验和报告</source>
+        <translation>Sign experiments and reports</translation>
+    </message>
+    <message>
         <source>查看设置</source>
         <translation>View settings</translation>
     </message>
@@ -2726,28 +2746,8 @@
         <translation>Enter and verify reagent lots</translation>
     </message>
     <message>
-        <source>查看试验和结果</source>
-        <translation>View experiments and results</translation>
-    </message>
-    <message>
-        <source>新建试验</source>
-        <translation>New experiment</translation>
-    </message>
-    <message>
-        <source>启动试验</source>
-        <translation>Start experiments</translation>
-    </message>
-    <message>
-        <source>停止试验</source>
-        <translation>Stop experiments</translation>
-    </message>
-    <message>
         <source>人工复核单管结果</source>
         <translation>Review tube results manually</translation>
-    </message>
-    <message>
-        <source>签署试验和报告</source>
-        <translation>Sign experiments and reports</translation>
     </message>
     <message>
         <source>预览和打印报告</source>
@@ -3209,8 +3209,12 @@
         <translation>No reagent lots recorded yet</translation>
     </message>
     <message>
-        <source>在新试验向导里扫码校验后，批次会显示在这里</source>
+        <source>在新实验向导里扫码校验后，批次会显示在这里</source>
         <translation>Lots appear here after they are verified in the wizard</translation>
+    </message>
+    <message>
+        <source>查询只检查备案和效期，不会录入批次。批次在新实验向导里扫码校验后录入。</source>
+        <translation>A lookup only checks registration and expiry and does not record the lot. Lots are recorded when verified in the new experiment wizard.</translation>
     </message>
     <message>
         <source>通过</source>
@@ -3255,10 +3259,6 @@
     <message>
         <source>查询</source>
         <translation>Look up</translation>
-    </message>
-    <message>
-        <source>查询只检查备案和效期，不会录入批次。批次在新试验向导里扫码校验后录入。</source>
-        <translation>A lookup only checks registration and expiry and does not record the lot. Lots are recorded when verified in the new experiment wizard.</translation>
     </message>
     <message>
         <source>已录入批次</source>
@@ -3545,16 +3545,8 @@
         <translation>Signed</translation>
     </message>
     <message>
-        <source>可以签署：试验结论为“{verdict}”</source>
-        <translation>Ready to sign: the experiment conclusion is “{verdict}”</translation>
-    </message>
-    <message>
         <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
         <translation>The report preview is unavailable. Select “Refresh preview” to try again.</translation>
-    </message>
-    <message>
-        <source>可以签署：全部待复核已处理，试验已完成</source>
-        <translation>Ready to sign: all tubes pending review have been handled and the experiment is complete</translation>
     </message>
     <message>
         <source>现在不能签署</source>
@@ -3641,6 +3633,14 @@
         <translation>The PDF status could not be confirmed. Check file access and contact support for review.</translation>
     </message>
     <message>
+        <source>可以签署：实验结论为“{verdict}”</source>
+        <translation>Ready to sign: the experiment conclusion is “{verdict}”</translation>
+    </message>
+    <message>
+        <source>可以签署：全部待复核已处理，实验已完成</source>
+        <translation>Ready to sign: all tubes pending review have been handled and the experiment is complete</translation>
+    </message>
+    <message>
         <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
         <translation>Signing requires your password again. Later reviews create a revision that must be signed again.</translation>
     </message>
@@ -3677,10 +3677,6 @@
         <translation>Report Center</translation>
     </message>
     <message>
-        <source>试验</source>
-        <translation>Experiment</translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation>Refresh</translation>
     </message>
@@ -3715,14 +3711,6 @@
     <message>
         <source>报告状态</source>
         <translation>Report Status</translation>
-    </message>
-    <message>
-        <source>还没有可出报告的试验</source>
-        <translation>No experiments ready for a report</translation>
-    </message>
-    <message>
-        <source>试验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的试验。</source>
-        <translation>After an experiment is completed and reviewed, preview, print and sign its report here. You can look at existing experiments in History first.</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -3771,6 +3759,14 @@
     <message>
         <source>签署并生成 PDF</source>
         <translation>Sign and generate PDF</translation>
+    </message>
+    <message>
+        <source>还没有可出报告的实验</source>
+        <translation>No experiments ready for a report</translation>
+    </message>
+    <message>
+        <source>实验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的实验。</source>
+        <translation>After an experiment is completed and reviewed, preview, print and sign its report here. You can look at existing experiments in History first.</translation>
     </message>
     <message>
         <source>打印</source>
@@ -3937,26 +3933,6 @@
         <translation>Row {index}: the sample name is empty</translation>
     </message>
     <message>
-        <source>试验不存在：{id}</source>
-        <translation>Experiment not found: {id}</translation>
-    </message>
-    <message>
-        <source>试验 {id} 不是就绪状态，不能启动</source>
-        <translation>Experiment {id} is not ready and cannot be started</translation>
-    </message>
-    <message>
-        <source>已有试验正在运行，设备同一时间只能运行一个试验</source>
-        <translation>An experiment is already running; the instrument runs one at a time</translation>
-    </message>
-    <message>
-        <source>引擎拒绝启动试验</source>
-        <translation>The engine refused to start the experiment</translation>
-    </message>
-    <message>
-        <source>试验 {id} 当前状态不能停止</source>
-        <translation>Experiment {id} cannot be stopped in its current state</translation>
-    </message>
-    <message>
         <source>{tube} 号管没有结果</source>
         <translation>Tube {tube} has no result</translation>
     </message>
@@ -3965,24 +3941,12 @@
         <translation>A review note is required (at most {max} characters)</translation>
     </message>
     <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
-        <translation>Review is available once all rows are analyzed and the experiment is pending review</translation>
+        <source>这支管当前没有可复核的结果，请等待结果生成后重试</source>
+        <translation>This tube has no result available for review yet. Wait for the result, then try again.</translation>
     </message>
     <message>
         <source>复核结论只能是阳性或阴性</source>
         <translation>The review conclusion must be positive or negative</translation>
-    </message>
-    <message>
-        <source>试验状态已被其他操作改变，请刷新后重试</source>
-        <translation>The experiment changed meanwhile; refresh and try again</translation>
-    </message>
-    <message>
-        <source>这个试验现在不能恢复，软件重启后只能重试分析或停止</source>
-        <translation>This experiment cannot be resumed now; after a restart it can only be re-analyzed or stopped</translation>
-    </message>
-    <message>
-        <source>这个试验现在不能重试分析</source>
-        <translation>Analysis cannot be retried for this experiment now</translation>
     </message>
     <message>
         <source>这个模板需要鲎试剂的标示灵敏度 λ，当前试剂没有提供</source>
@@ -4001,15 +3965,47 @@
         <translation>Reagent check failed; the workflow is locked</translation>
     </message>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改</source>
-        <translation>The experiment is signed; results and review are locked and cannot be changed.</translation>
+        <source>实验不存在：{id}</source>
+        <translation>Experiment not found: {id}</translation>
     </message>
     <message>
-        <source>现在不能签署这个试验</source>
+        <source>实验 {id} 不是就绪状态，不能启动</source>
+        <translation>Experiment {id} is not ready and cannot be started</translation>
+    </message>
+    <message>
+        <source>已有实验正在运行，设备同一时间只能运行一个实验</source>
+        <translation>An experiment is already running; the instrument runs one at a time</translation>
+    </message>
+    <message>
+        <source>引擎拒绝启动实验</source>
+        <translation>The engine refused to start the experiment</translation>
+    </message>
+    <message>
+        <source>实验 {id} 当前状态不能停止</source>
+        <translation>Experiment {id} cannot be stopped in its current state</translation>
+    </message>
+    <message>
+        <source>实验状态已被其他操作改变，请刷新后重试</source>
+        <translation>The experiment changed meanwhile; refresh and try again</translation>
+    </message>
+    <message>
+        <source>这个实验现在不能恢复，软件重启后只能重试分析或停止</source>
+        <translation>This experiment cannot be resumed now; after a restart it can only be re-analyzed or stopped</translation>
+    </message>
+    <message>
+        <source>这个实验现在不能重试分析</source>
+        <translation>Analysis cannot be retried for this experiment now</translation>
+    </message>
+    <message>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署</source>
+        <translation>Signed report versions are retained. Subsequent reviews create a revised version that must be signed again.</translation>
+    </message>
+    <message>
+        <source>现在不能签署这个实验</source>
         <translation>This experiment cannot be signed right now.</translation>
     </message>
     <message>
-        <source>签署失败，没有生成报告，试验状态没有改变：{reason}</source>
+        <source>签署失败，没有生成报告，实验状态没有改变：{reason}</source>
         <translation>Signing failed. No report was produced and the experiment status is unchanged: {reason}</translation>
     </message>
     <message>
@@ -4077,7 +4073,7 @@
         <translation>Invalid settings; nothing was saved</translation>
     </message>
     <message>
-        <source>试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
+        <source>实验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
         <translation>An experiment is running; settings that affect it (incubation, readout, temperature, video input) cannot be changed now</translation>
     </message>
     <message>
@@ -4155,10 +4151,6 @@
         <translation>Read-only</translation>
     </message>
     <message>
-        <source>试验 {id} 正在运行</source>
-        <translation>Experiment {id} is running</translation>
-    </message>
-    <message>
         <source>孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。</source>
         <translation>Incubation, readout, temperature and video input cannot be changed for now; the instrument No., data retention and copyright holder can still be changed.</translation>
     </message>
@@ -4173,10 +4165,6 @@
     <message>
         <source>图片文件夹的完整路径</source>
         <translation>Full path of the image folder</translation>
-    </message>
-    <message>
-        <source>设置已保存，对之后启动的试验生效。</source>
-        <translation>Settings saved; they apply to experiments started from now on.</translation>
     </message>
     <message>
         <source>没有改动。</source>
@@ -4279,6 +4267,10 @@
         <translation>Diagnostic package creation was cancelled; no partial ZIP file was left behind.</translation>
     </message>
     <message>
+        <source>运行参数改动对之后启动的实验生效。</source>
+        <translation>Changes to run parameters apply to experiments started afterward.</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>Instrument and data</translation>
     </message>
@@ -4295,16 +4287,16 @@
         <translation>Video input</translation>
     </message>
     <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation>Select files and folders only. Settings are validated before saving and take effect after restart. Changing the data folder does not move or delete existing data; the original folder is kept. The folder cannot be changed while an experiment is running.</translation>
+    </message>
+    <message>
         <source>诊断包</source>
         <translation>Diagnostic Package</translation>
     </message>
     <message>
         <source>导出诊断包…</source>
         <translation>Export Diagnostic Package…</translation>
-    </message>
-    <message>
-        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
-        <translation>Collects experiment settings, algorithm output, review records, audit entries, rotated logs, and available media with a file verification manifest. It excludes databases, passwords, tokens, and private keys. Creation can be cancelled; missing or unverifiable media is listed in the manifest.</translation>
     </message>
     <message>
         <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
@@ -4321,10 +4313,6 @@
     <message>
         <source>开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。</source>
         <translation>When on, every export asks for a password and produces an AES-256 encrypted ZIP. Extract with 7-Zip, Keka or similar; the built-in system tools do not support it.</translation>
-    </message>
-    <message>
-        <source>写入之后新建的每个试验和报告。</source>
-        <translation>Written into every experiment and report created afterwards.</translation>
     </message>
     <message>
         <source>沿用配置文件</source>
@@ -4347,12 +4335,16 @@
         <translation>Your account can view settings only. Instrument maintenance permission is required to make changes.</translation>
     </message>
     <message>
-        <source>设置</source>
-        <translation>Settings</translation>
+        <source>实验 {id} 正在运行</source>
+        <translation>Experiment {id} is running</translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的试验生效。</source>
-        <translation>Changes to run parameters apply to experiments started afterward.</translation>
+        <source>设置已保存，对之后启动的实验生效。</source>
+        <translation>Settings saved; they apply to experiments started from now on.</translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation>Settings</translation>
     </message>
     <message>
         <source>启动配置与数据目录</source>
@@ -4367,16 +4359,20 @@
         <translation>Detection configuration file (optional)</translation>
     </message>
     <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
-        <translation>Select files and folders only. Settings are validated before saving and take effect after restart. Changing the data folder does not move or delete existing data; the original folder is kept. The folder cannot be changed while an experiment is running.</translation>
-    </message>
-    <message>
         <source>保存启动配置</source>
         <translation>Save startup settings</translation>
     </message>
     <message>
+        <source>收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation>Collects experiment settings, algorithm output, review records, audit entries, rotated logs, and available media with a file verification manifest. It excludes databases, passwords, tokens, and private keys. Creation can be cancelled; missing or unverifiable media is listed in the manifest.</translation>
+    </message>
+    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
         <translation>Leave blank to keep the default. Data is not automatically deleted in this version.</translation>
+    </message>
+    <message>
+        <source>写入之后新建的每个实验和报告。</source>
+        <translation>Written into every experiment and report created afterwards.</translation>
     </message>
     <message>
         <source>预览</source>
@@ -4542,11 +4538,11 @@
 <context>
     <name>Signing</name>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改。</source>
-        <translation>The experiment is signed; results and review are locked and cannot be changed.</translation>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署。</source>
+        <translation>Signed report versions are retained. Subsequent reviews create a revised version that must be signed again.</translation>
     </message>
     <message>
-        <source>试验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
+        <source>实验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
         <translation>The experiment is not completed (status: {state}); it can be signed after completion and review.</translation>
     </message>
     <message>
@@ -4558,15 +4554,15 @@
         <translation>Tube(s) {tubes} have no result yet.</translation>
     </message>
     <message>
-        <source>这个试验没有入库的结论，不能签署。</source>
+        <source>这个实验没有入库的结论，不能签署。</source>
         <translation>This experiment has no recorded conclusion and cannot be signed.</translation>
     </message>
     <message>
-        <source>试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <source>实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
         <translation>The conclusion is “Pending”, not final, so it cannot be signed: an undecided result must not become a release basis.</translation>
     </message>
     <message>
-        <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
+        <source>实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。</source>
         <translation>The conclusion is “Invalid”, so it cannot be signed and must not be used for release. Address the reasons below and repeat the test.</translation>
     </message>
 </context>
@@ -4706,7 +4702,7 @@ Correct the configuration file and restart the application.</translation>
         <translation>Template name</translation>
     </message>
     <message>
-        <source>试验类型</source>
+        <source>实验类型</source>
         <translation>Experiment type</translation>
     </message>
     <message>
@@ -4966,10 +4962,6 @@ Correct the configuration file and restart the application.</translation>
 <context>
     <name>TubeDetailPage</name>
     <message>
-        <source>{no} 号管不属于这个试验</source>
-        <translation>Tube {no} is not part of this experiment</translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation>Tube detail</translation>
     </message>
@@ -4996,10 +4988,6 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source> · 外加内毒素 {v} EU/ml</source>
         <translation> · spiked endotoxin {v} EU/ml</translation>
-    </message>
-    <message>
-        <source>试验 {id}</source>
-        <translation>Experiment {id}</translation>
     </message>
     <message>
         <source>面积变化率 ΔA</source>
@@ -5094,10 +5082,6 @@ Correct the configuration file and restart the application.</translation>
         <translation>Review submitted</translation>
     </message>
     <message>
-        <source>全部待复核的试管已处理，试验可以签署</source>
-        <translation>All tubes reviewed; the experiment can be signed</translation>
-    </message>
-    <message>
         <source>收起 3 帧序列</source>
         <translation>Hide 3-frame sequence</translation>
     </message>
@@ -5126,6 +5110,14 @@ Correct the configuration file and restart the application.</translation>
         <translation>Fused score</translation>
     </message>
     <message>
+        <source>{no} 号管不属于这个实验</source>
+        <translation>Tube {no} is not part of this experiment</translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation>Experiment {id}</translation>
+    </message>
+    <message>
         <source>检测结果：{algo} · 复核结论：{human}</source>
         <translation>Detection result: {algo} · Review conclusion: {human}</translation>
     </message>
@@ -5144,6 +5136,10 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>{when} · {who} · {v} · {note}</source>
         <translation>{when} · {who} · {v} · {note}</translation>
+    </message>
+    <message>
+        <source>全部待复核的试管已处理，实验可以签署</source>
+        <translation>All tubes reviewed; the experiment can be signed</translation>
     </message>
     <message>
         <source>判读过程</source>
@@ -5218,7 +5214,7 @@ Correct the configuration file and restart the application.</translation>
         <translation>No image</translation>
     </message>
     <message>
-        <source>从试验监控的孔板或结果表里点一支试管查看详情。</source>
+        <source>从实验监控的孔板或结果表里点一支试管查看详情。</source>
         <translation>Click a tube on the monitor plate or results table to see its detail.</translation>
     </message>
 </context>

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.app_context import AppContext
+from gelinspect.domain.signing import SigningBlock, SigningBlocker
 from gelinspect.interfaces.storage import AuditRecord
 from gelinspect.services.audit_service import AuditFilter
 from gelinspect.services.errors import ServiceErrorCode
@@ -29,6 +30,7 @@ from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.audit_page import AuditPage
 from gelinspect.ui.pages.history_page import HistoryPage
 from gelinspect.ui.pages.settings_page import SettingsPage
+from gelinspect.ui.report_labels import describe_signing_blocks
 from tests.infrastructure.db.conftest import make_event
 from tests.ui.admin_helpers import seed_experiments
 from tests.ui.conftest import settle, sign_in, wait_for
@@ -115,6 +117,27 @@ def test_every_service_error_and_settings_problem_has_a_message_and_an_english_t
             "ServiceError" if source in labels._SERVICE_MESSAGES.values() else "SettingsProblem"
         )  # noqa: SLF001
         assert not CJK.search(QApplication.translate(context, source)), source
+    language.set_language(Language.ZH_CN, persist=False)
+    review_message = labels._SERVICE_MESSAGES[ServiceErrorCode.REVIEW_NOT_ALLOWED]  # noqa: SLF001
+    assert review_message == "这支管当前没有可复核的结果，请等待结果生成后重试"
+    language.set_language(Language.EN, persist=False)
+    assert QApplication.translate("ServiceError", review_message) == (
+        "This tube has no result available for review yet. Wait for the result, then try again."
+    )
+
+
+def test_signed_report_revision_notice_is_accurate_in_chinese_and_english(
+    qapp: QApplication, language: LanguageManager
+) -> None:
+    language.set_language(Language.ZH_CN, persist=False)
+    message = describe_signing_blocks((SigningBlock(SigningBlocker.ALREADY_SIGNED),))[0]
+    assert message == "已签署的报告版本会保留；后续复核将生成修订版，需重新签署。"
+    language.set_language(Language.EN, persist=False)
+    message = describe_signing_blocks((SigningBlock(SigningBlocker.ALREADY_SIGNED),))[0]
+    assert message == (
+        "Signed report versions are retained. Subsequent reviews create a revised version "
+        "that must be signed again."
+    )
 
 
 def test_export_texts_registered_for_translation_match_the_service(

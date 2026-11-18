@@ -2,7 +2,7 @@
 
 纯 Python + ``threading``，不依赖 Qt，界面层再用信号桥接 :class:`~.engine_types.EngineEvent`。
 本模块是门面：校验权限和前置条件，转交给 :class:`~.engine_run.EngineRun`；
-恢复上次未正常结束的试验也在这里。行为说明见 ``docs/features/experiment-engine.md``。
+恢复上次未正常结束的试验也在这里。
 
 所有命令都不阻塞调用线程，可以从 Qt 主线程直接调用。
 """
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import threading
+import time
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -348,11 +349,22 @@ class ExperimentEngine:
             全部线程是否已结束。
         """
         run = self._run
+        deadline = None if timeout_s is None else time.monotonic() + timeout_s
         finished = True
+        analyzer_finished = True
         if run is not None and run.alive:
             run.request_shutdown()
             finished = run.join(timeout_s)
-        return self._events.stop(5.0 if timeout_s is None else timeout_s) and finished
+        if run is not None and finished and run.analyzer_busy:
+            remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
+            analyzer_finished = run.shutdown_analyzer(remaining)
+        if timeout_s is None:
+            events_timeout = 5.0
+        else:
+            assert deadline is not None
+            events_timeout = max(0.0, deadline - time.monotonic())
+        events_finished = self._events.stop(events_timeout)
+        return finished and analyzer_finished and events_finished
 
     def probe_device(self) -> DeviceStatus | None:
         """空闲时探测设备状态，供界面显示连接和温度。

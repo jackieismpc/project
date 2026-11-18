@@ -12,8 +12,8 @@
         <translation>凝膠智檢系統（GelInspect）</translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
-        <translation>凝膠法細菌內毒素檢測軟體：試驗管理、影像擷取、檢測判讀、複核與報告。</translation>
+        <source>凝胶法细菌内毒素检测软件：实验管理、图像采集、检测判读、复核与报告。</source>
+        <translation>凝膠法細菌內毒素檢測軟體：實驗管理、影像擷取、檢測判讀、複核與報告。</translation>
     </message>
     <message>
         <source>版本 {version}</source>
@@ -462,8 +462,8 @@
         <translation>關鍵字</translation>
     </message>
     <message>
-        <source>操作记录或试验编号</source>
-        <translation>操作紀錄或試驗編號</translation>
+        <source>操作记录或实验编号</source>
+        <translation>操作紀錄或實驗編號</translation>
     </message>
     <message>
         <source>查询</source>
@@ -921,12 +921,12 @@
         <translation>規則來源：{source}</translation>
     </message>
     <message>
-        <source>试验完成后才会固化结论。</source>
-        <translation>試驗完成後才會固化結論。</translation>
+        <source>实验完成后才会固化结论。</source>
+        <translation>實驗完成後才會固化結論。</translation>
     </message>
     <message>
-        <source>试验结论</source>
-        <translation>試驗結論</translation>
+        <source>实验结论</source>
+        <translation>實驗結論</translation>
     </message>
     <message>
         <source>依据（+ 阳性，− 阴性）</source>
@@ -974,8 +974,8 @@
 <context>
     <name>DashboardPage</name>
     <message>
-        <source>试验</source>
-        <translation>試驗</translation>
+        <source>实验</source>
+        <translation>實驗</translation>
     </message>
     <message>
         <source>类型</source>
@@ -1010,8 +1010,28 @@
         <translation>檢測室溫度</translation>
     </message>
     <message>
-        <source>进行中的试验</source>
-        <translation>進行中的試驗</translation>
+        <source>进行中的实验</source>
+        <translation>進行中的實驗</translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation>還沒有歷史實驗</translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation>完成第一次實驗後，結果會顯示在這裡</translation>
+    </message>
+    <message>
+        <source>当前没有进行中的实验。</source>
+        <translation>目前沒有進行中的實驗。</translation>
+    </message>
+    <message>
+        <source>实验 {id} 有 {n} 管待复核</source>
+        <translation>實驗 {id} 有 {n} 管待複核</translation>
+    </message>
+    <message>
+        <source>实验 {id} 处于异常状态，需要人工处理</source>
+        <translation>實驗 {id} 處於異常狀態，需要人工處理</translation>
     </message>
     <message>
         <source>打开监控</source>
@@ -1024,14 +1044,6 @@
     <message>
         <source>需要处理</source>
         <translation>需要處理</translation>
-    </message>
-    <message>
-        <source>还没有历史试验</source>
-        <translation>還沒有歷史試驗</translation>
-    </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
-        <translation>完成第一次試驗後，結果會顯示在這裡</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
@@ -1058,10 +1070,6 @@
         <translation>儀器已連線</translation>
     </message>
     <message>
-        <source>当前没有进行中的试验。</source>
-        <translation>目前沒有進行中的試驗。</translation>
-    </message>
-    <message>
         <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
         <translation>{tubes} 管 · 已完成 {done} / {total} 排</translation>
     </message>
@@ -1076,14 +1084,6 @@
     <message>
         <source>阳性 {p} · 阴性 {n}</source>
         <translation>陽性 {p} · 陰性 {n}</translation>
-    </message>
-    <message>
-        <source>试验 {id} 有 {n} 管待复核</source>
-        <translation>試驗 {id} 有 {n} 管待複核</translation>
-    </message>
-    <message>
-        <source>试验 {id} 处于异常状态，需要人工处理</source>
-        <translation>試驗 {id} 處於異常狀態，需要人工處理</translation>
     </message>
     <message>
         <source>{name} 已过期 {n} 天</source>
@@ -1589,32 +1589,12 @@
         <translation>全部操作人</translation>
     </message>
     <message>
-        <source>没有符合条件的试验</source>
-        <translation>沒有符合條件的試驗</translation>
-    </message>
-    <message>
         <source>调整筛选条件，或点“重置”清除条件后再查</source>
         <translation>調整篩選條件，或點“重設”清除條件後再查</translation>
     </message>
     <message>
-        <source>还没有历史试验</source>
-        <translation>還沒有歷史試驗</translation>
-    </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
-        <translation>完成第一次試驗後，結果會顯示在這裡</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>目前角色無此權限</translation>
-    </message>
-    <message>
-        <source>先在列表里点选要导出的试验</source>
-        <translation>先在清單裡點選要匯出的試驗</translation>
-    </message>
-    <message>
-        <source>导出所选试验结果</source>
-        <translation>匯出所選試驗結果</translation>
     </message>
     <message>
         <source>Excel 文件 (*.xlsx)</source>
@@ -1633,8 +1613,28 @@
         <translation>匯出失敗：{reason}</translation>
     </message>
     <message>
-        <source>试验</source>
-        <translation>試驗</translation>
+        <source>没有符合条件的实验</source>
+        <translation>沒有符合條件的實驗</translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation>還沒有歷史實驗</translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation>完成第一次實驗後，結果會顯示在這裡</translation>
+    </message>
+    <message>
+        <source>先在列表里点选要导出的实验</source>
+        <translation>先在清單裡點選要匯出的實驗</translation>
+    </message>
+    <message>
+        <source>导出所选实验结果</source>
+        <translation>匯出所選實驗結果</translation>
+    </message>
+    <message>
+        <source>实验</source>
+        <translation>實驗</translation>
     </message>
     <message>
         <source>类型</source>
@@ -1685,8 +1685,12 @@
         <translation>重新整理</translation>
     </message>
     <message>
-        <source>打开所选试验</source>
-        <translation>開啟所選試驗</translation>
+        <source>打开所选实验</source>
+        <translation>開啟所選實驗</translation>
+    </message>
+    <message>
+        <source>实验类型</source>
+        <translation>實驗類型</translation>
     </message>
     <message>
         <source>打开所选报告</source>
@@ -1699,10 +1703,6 @@
     <message>
         <source>导出当前列表…</source>
         <translation>匯出目前清單…</translation>
-    </message>
-    <message>
-        <source>试验类型</source>
-        <translation>試驗類型</translation>
     </message>
     <message>
         <source>开始日期</source>
@@ -1732,12 +1732,12 @@
 <context>
     <name>ImagesTab</name>
     <message>
-        <source>没有选中的试验</source>
-        <translation>沒有選中的試驗</translation>
+        <source>没有选中的实验</source>
+        <translation>沒有選中的實驗</translation>
     </message>
     <message>
-        <source>这个试验还没有抓拍图像，每排读数后会显示在这里</source>
-        <translation>這個試驗還沒有擷取影像，每排讀數後會顯示在這裡</translation>
+        <source>这个实验还没有抓拍图像，每排读数后会显示在这里</source>
+        <translation>這個實驗還沒有擷取影像，每排讀數後會顯示在這裡</translation>
     </message>
     <message>
         <source>图像显示</source>
@@ -1872,8 +1872,8 @@
         <translation>登出</translation>
     </message>
     <message>
-        <source>输入密码解锁，试验仍在后台运行</source>
-        <translation>輸入密碼解鎖，試驗仍在背景執行</translation>
+        <source>输入密码解锁，实验仍在后台运行</source>
+        <translation>輸入密碼解鎖，實驗仍在背景執行</translation>
     </message>
     <message>
         <source>登录</source>
@@ -1899,40 +1899,40 @@
         <translation>密碼已修改</translation>
     </message>
     <message>
-        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <source>实验 {id} 检测完成，{count} 管待复核。</source>
         <translation>實驗 {id} 檢測完成，{count} 支試管待複核。</translation>
+    </message>
+    <message>
+        <source>实验 {id} 已完成，可查看报告。</source>
+        <translation>實驗 {id} 已完成，可檢視報告。</translation>
+    </message>
+    <message>
+        <source>有实验正在进行，请先解锁再退出</source>
+        <translation>有實驗正在進行，請先解鎖再退出</translation>
+    </message>
+    <message>
+        <source>退出并中断实验？</source>
+        <translation>退出並中斷實驗？</translation>
+    </message>
+    <message>
+        <source>实验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
+        <translation>實驗 {id} 仍在進行。退出會中斷它並標記為異常，裝置狀態需要人工檢查，未讀數的排會錯過讀數時間。確定要退出嗎？</translation>
+    </message>
+    <message>
+        <source>继续实验</source>
+        <translation>繼續實驗</translation>
     </message>
     <message>
         <source>若干</source>
         <translation>若干</translation>
     </message>
     <message>
-        <source>试验 {id} 已完成，可查看报告。</source>
-        <translation>實驗 {id} 已完成，可檢視報告。</translation>
-    </message>
-    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation>凝膠智檢系統 GelInspect</translation>
     </message>
     <message>
-        <source>有试验正在进行，请先解锁再退出</source>
-        <translation>有試驗正在進行，請先解鎖再退出</translation>
-    </message>
-    <message>
-        <source>退出并中断试验？</source>
-        <translation>退出並中斷試驗？</translation>
-    </message>
-    <message>
-        <source>试验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
-        <translation>試驗 {id} 仍在進行。退出會中斷它並標記為異常，裝置狀態需要人工檢查，未讀數的排會錯過讀數時間。確定要退出嗎？</translation>
-    </message>
-    <message>
         <source>中断并退出</source>
         <translation>中斷並退出</translation>
-    </message>
-    <message>
-        <source>继续试验</source>
-        <translation>繼續試驗</translation>
     </message>
 </context>
 <context>
@@ -1976,22 +1976,6 @@
         <translation>待複核 · {n} 管</translation>
     </message>
     <message>
-        <source>先选择一个试验。</source>
-        <translation>先選擇一個試驗。</translation>
-    </message>
-    <message>
-        <source>这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
-        <translation>這個試驗已簽署，可以預覽、列印、驗章和匯出已簽章的 PDF。</translation>
-    </message>
-    <message>
-        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
-        <translation>這個試驗已完成，可以預覽報告；具有簽署權限的使用者核對後簽署。</translation>
-    </message>
-    <message>
-        <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
-        <translation>這個試驗還沒有完成，可以先預覽報告；完成並複核後才能簽署。</translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation>試管編號</translation>
     </message>
@@ -2020,10 +2004,6 @@
         <translation>陰陽性</translation>
     </message>
     <message>
-        <source>试验 {id}</source>
-        <translation>試驗 {id}</translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation>目前角色無此權限</translation>
     </message>
@@ -2032,24 +2012,44 @@
         <translation>全部排讀完後才能重試分析</translation>
     </message>
     <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。</source>
-        <translation>軟體重啟過，排程已經遺失，這個試驗不能恢復。第 {rows} 排已擷取影格，可以重試分析（不翻轉）；第 {unread} 排錯過了讀數時間，所以分析後試驗仍只能停止。</translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。</source>
-        <translation>軟體重啟過，排程已經遺失，這個試驗不能恢復。全部排都已擷取影格：第 {rows} 排可以重試分析（不翻轉），完成後試驗照常結束。</translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。</source>
-        <translation>軟體重啟過，排程已經遺失，這個試驗不能恢復。沒有可以重試分析的排（沒有擷取影格，或擷取紀錄缺少擷取時間），只能停止試驗。</translation>
-    </message>
-    <message>
         <source>第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。</source>
         <translation>第 {rows} 排分析失敗，原圖已保留。全部排讀完後可以重試分析。</translation>
     </message>
     <message>
-        <source>试验异常：{reason}</source>
-        <translation>試驗異常：{reason}</translation>
+        <source>先选择一个实验。</source>
+        <translation>先選擇一個實驗。</translation>
+    </message>
+    <message>
+        <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
+        <translation>這個實驗已簽署，可以預覽、列印、驗章和匯出已簽章的 PDF。</translation>
+    </message>
+    <message>
+        <source>这个实验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation>這個實驗已完成，可以預覽報告；具有簽署權限的使用者核對後簽署。</translation>
+    </message>
+    <message>
+        <source>这个实验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
+        <translation>這個實驗還沒有完成，可以先預覽報告；完成並複核後才能簽署。</translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation>實驗 {id}</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后实验仍只能停止。</source>
+        <translation>軟體重啟過，排程已經遺失，這個實驗不能恢復。第 {rows} 排已擷取影格，可以重試分析（不翻轉）；第 {unread} 排錯過了讀數時間，所以分析後實驗仍只能停止。</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后实验照常结束。</source>
+        <translation>軟體重啟過，排程已經遺失，這個實驗不能恢復。全部排都已擷取影格：第 {rows} 排可以重試分析（不翻轉），完成後實驗照常結束。</translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止实验。</source>
+        <translation>軟體重啟過，排程已經遺失，這個實驗不能恢復。沒有可以重試分析的排（沒有擷取影格，或擷取紀錄缺少擷取時間），只能停止實驗。</translation>
+    </message>
+    <message>
+        <source>实验异常：{reason}</source>
+        <translation>實驗異常：{reason}</translation>
     </message>
     <message>
         <source>实测灵敏度 λc</source>
@@ -2100,52 +2100,56 @@
         <translation>演算法判讀 {elapsed} · 翻轉角度 {angle}</translation>
     </message>
     <message>
-        <source>停止试验？</source>
-        <translation>停止試驗？</translation>
+        <source>停止实验？</source>
+        <translation>停止實驗？</translation>
     </message>
     <message>
-        <source>停止后试验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
-        <translation>停止後試驗 {id} 不能繼續，還沒讀數的排會錯過讀數時間；已經翻轉的排會復位。確定要停止嗎？</translation>
+        <source>停止后实验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
+        <translation>停止後實驗 {id} 不能繼續，還沒讀數的排會錯過讀數時間；已經翻轉的排會復位。確定要停止嗎？</translation>
     </message>
     <message>
-        <source>停止试验</source>
-        <translation>停止試驗</translation>
+        <source>停止实验</source>
+        <translation>停止實驗</translation>
     </message>
     <message>
-        <source>继续试验</source>
-        <translation>繼續試驗</translation>
+        <source>继续实验</source>
+        <translation>繼續實驗</translation>
+    </message>
+    <message>
+        <source>恢复实验？</source>
+        <translation>恢復實驗？</translation>
+    </message>
+    <message>
+        <source>恢复实验</source>
+        <translation>恢復實驗</translation>
+    </message>
+    <message>
+        <source>已请求恢复实验</source>
+        <translation>已請求恢復實驗</translation>
+    </message>
+    <message>
+        <source>实验数据记录</source>
+        <translation>實驗資料紀錄</translation>
+    </message>
+    <message>
+        <source>这个实验没有录像</source>
+        <translation>這個實驗沒有錄影</translation>
     </message>
     <message>
         <source>已请求停止，正在收尾</source>
         <translation>已請求停止，正在收尾</translation>
     </message>
     <message>
-        <source>恢复试验？</source>
-        <translation>恢復試驗？</translation>
-    </message>
-    <message>
         <source>恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；分析失败的排用保留的原图重试。确定要恢复吗？</source>
         <translation>恢復前請確認裝置和溫度已正常。讀數失敗的排會重新翻轉，翻動過的凝膠狀態可能已變；分析失敗的排用保留的原圖重試。確定要恢復嗎？</translation>
-    </message>
-    <message>
-        <source>恢复试验</source>
-        <translation>恢復試驗</translation>
     </message>
     <message>
         <source>暂不恢复</source>
         <translation>暫不恢復</translation>
     </message>
     <message>
-        <source>已请求恢复试验</source>
-        <translation>已請求恢復試驗</translation>
-    </message>
-    <message>
         <source>已请求重试分析</source>
         <translation>已請求重試分析</translation>
-    </message>
-    <message>
-        <source>试验数据记录</source>
-        <translation>試驗資料紀錄</translation>
     </message>
     <message>
         <source>图像显示</source>
@@ -2156,12 +2160,12 @@
         <translation>報告列印預覽</translation>
     </message>
     <message>
-        <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
-        <translation>在“新增實驗”中啟動實驗後，這裡會顯示即時畫面、孔板和結果；也可以到歷史記錄回看已完成的實驗。</translation>
+        <source>当前没有进行中的实验</source>
+        <translation>目前沒有進行中的實驗</translation>
     </message>
     <message>
-        <source>当前没有进行中的试验</source>
-        <translation>目前沒有進行中的試驗</translation>
+        <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
+        <translation>在“新增實驗”中啟動實驗後，這裡會顯示即時畫面、孔板和結果；也可以到歷史記錄回看已完成的實驗。</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -2196,10 +2200,6 @@
         <translation>按排回放</translation>
     </message>
     <message>
-        <source>这个试验没有录像</source>
-        <translation>這個試驗沒有錄影</translation>
-    </message>
-    <message>
         <source>没有试管</source>
         <translation>沒有試管</translation>
     </message>
@@ -2211,8 +2211,8 @@
 <context>
     <name>MonitorReportPreview</name>
     <message>
-        <source>先选择一个试验。</source>
-        <translation>請先選擇一個試驗。</translation>
+        <source>先选择一个实验。</source>
+        <translation>請先選擇一個實驗。</translation>
     </message>
     <message>
         <source>第 {page} 页</source>
@@ -2342,8 +2342,16 @@
         <translation>留空則報告裡不填</translation>
     </message>
     <message>
-        <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
-        <translation>輸入後寫入試驗紀錄並顯示在報告裡；試驗章署後不能再修改。</translation>
+        <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation>實驗流程已鎖定，不能進入下一步。請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
+    </message>
+    <message>
+        <source>实验类型</source>
+        <translation>實驗類型</translation>
+    </message>
+    <message>
+        <source>启动失败，实验仍为就绪，可以重试</source>
+        <translation>啟動失敗，實驗仍為就緒，可以重試</translation>
     </message>
     <message>
         <source>管位</source>
@@ -2370,10 +2378,6 @@
         <translation>下一步：確認啟動</translation>
     </message>
     <message>
-        <source>试验信息</source>
-        <translation>試驗資訊</translation>
-    </message>
-    <message>
         <source>确认后设备会连接并送入滑台，随后开始孵育。启动前会检查温度、舱门和视频。</source>
         <translation>確認後裝置會連線並送入滑台，隨後開始孵育。啟動前會檢查溫度、艙門和影片。</translation>
     </message>
@@ -2396,6 +2400,14 @@
     <message>
         <source>新建实验</source>
         <translation>新增實驗</translation>
+    </message>
+    <message>
+        <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
+        <translation>輸入後寫入實驗紀錄並顯示在報告裡；實驗章署後不能再修改。</translation>
+    </message>
+    <message>
+        <source>实验信息</source>
+        <translation>實驗資訊</translation>
     </message>
     <message>
         <source>离开新建实验向导？</source>
@@ -2464,10 +2476,6 @@
     <message>
         <source>模板已另存；当前实验草稿保留</source>
         <translation>範本已另存；目前實驗草稿保留</translation>
-    </message>
-    <message>
-        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
-        <translation>試驗流程已鎖定，不能進入下一步。請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
     </message>
     <message>
         <source>试剂未通过校验</source>
@@ -2550,10 +2558,6 @@
         <translation>管位數量要與範本一致，樣品名稱不能為空</translation>
     </message>
     <message>
-        <source>试验类型</source>
-        <translation>試驗類型</translation>
-    </message>
-    <message>
         <source>试管</source>
         <translation>試管</translation>
     </message>
@@ -2588,10 +2592,6 @@
     <message>
         <source>无法启动</source>
         <translation>無法啟動</translation>
-    </message>
-    <message>
-        <source>启动失败，试验仍为就绪，可以重试</source>
-        <translation>啟動失敗，試驗仍為就緒，可以重試</translation>
     </message>
     <message>
         <source>原因：</source>
@@ -2702,6 +2702,26 @@
         <translation>管理使用者和角色</translation>
     </message>
     <message>
+        <source>查看实验和结果</source>
+        <translation>查看實驗和結果</translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation>新增實驗</translation>
+    </message>
+    <message>
+        <source>启动实验</source>
+        <translation>啟動實驗</translation>
+    </message>
+    <message>
+        <source>停止实验</source>
+        <translation>停止實驗</translation>
+    </message>
+    <message>
+        <source>签署实验和报告</source>
+        <translation>簽署實驗和報告</translation>
+    </message>
+    <message>
         <source>查看设置</source>
         <translation>檢視設定</translation>
     </message>
@@ -2726,28 +2746,8 @@
         <translation>登錄和驗證試劑批次</translation>
     </message>
     <message>
-        <source>查看试验和结果</source>
-        <translation>查看試驗和結果</translation>
-    </message>
-    <message>
-        <source>新建试验</source>
-        <translation>新增試驗</translation>
-    </message>
-    <message>
-        <source>启动试验</source>
-        <translation>啟動試驗</translation>
-    </message>
-    <message>
-        <source>停止试验</source>
-        <translation>停止試驗</translation>
-    </message>
-    <message>
         <source>人工复核单管结果</source>
         <translation>人工複核單管結果</translation>
-    </message>
-    <message>
-        <source>签署试验和报告</source>
-        <translation>簽署試驗和報告</translation>
     </message>
     <message>
         <source>预览和打印报告</source>
@@ -3209,8 +3209,12 @@
         <translation>還沒有登錄的試劑批次</translation>
     </message>
     <message>
-        <source>在新试验向导里扫码校验后，批次会显示在这里</source>
-        <translation>在新試驗精靈裡掃描驗證後，批次會顯示在這裡</translation>
+        <source>在新实验向导里扫码校验后，批次会显示在这里</source>
+        <translation>在新實驗精靈裡掃描驗證後，批次會顯示在這裡</translation>
+    </message>
+    <message>
+        <source>查询只检查备案和效期，不会录入批次。批次在新实验向导里扫码校验后录入。</source>
+        <translation>查詢只檢查備案和效期，不會登錄批次。批次在新實驗精靈裡掃描驗證後登錄。</translation>
     </message>
     <message>
         <source>通过</source>
@@ -3255,10 +3259,6 @@
     <message>
         <source>查询</source>
         <translation>查詢</translation>
-    </message>
-    <message>
-        <source>查询只检查备案和效期，不会录入批次。批次在新试验向导里扫码校验后录入。</source>
-        <translation>查詢只檢查備案和效期，不會登錄批次。批次在新試驗精靈裡掃描驗證後登錄。</translation>
     </message>
     <message>
         <source>已录入批次</source>
@@ -3549,14 +3549,6 @@
         <translation>已簽署</translation>
     </message>
     <message>
-        <source>可以签署：试验结论为“{verdict}”</source>
-        <translation>可以簽署：試驗結論為“{verdict}”</translation>
-    </message>
-    <message>
-        <source>可以签署：全部待复核已处理，试验已完成</source>
-        <translation>可以簽署：全部待複核已處理，試驗已完成</translation>
-    </message>
-    <message>
         <source>现在不能签署</source>
         <translation>現在不能簽署</translation>
     </message>
@@ -3641,6 +3633,14 @@
         <translation>無法確認 PDF 狀態，請檢查檔案權限並聯絡後台檢查。</translation>
     </message>
     <message>
+        <source>可以签署：实验结论为“{verdict}”</source>
+        <translation>可以簽署：實驗結論為“{verdict}”</translation>
+    </message>
+    <message>
+        <source>可以签署：全部待复核已处理，实验已完成</source>
+        <translation>可以簽署：全部待複核已處理，實驗已完成</translation>
+    </message>
+    <message>
         <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
         <translation>簽署需要再次輸入密碼；後續複核將產生需重新簽署的修訂版。</translation>
     </message>
@@ -3677,10 +3677,6 @@
         <translation>報告中心</translation>
     </message>
     <message>
-        <source>试验</source>
-        <translation>試驗</translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation>重新整理</translation>
     </message>
@@ -3715,14 +3711,6 @@
     <message>
         <source>报告状态</source>
         <translation>報告狀態</translation>
-    </message>
-    <message>
-        <source>还没有可出报告的试验</source>
-        <translation>還沒有可出報告的試驗</translation>
-    </message>
-    <message>
-        <source>试验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的试验。</source>
-        <translation>試驗完成並複核後，在這裡預覽、列印和簽署報告。可以先到歷史紀錄裡查看已有的試驗。</translation>
     </message>
     <message>
         <source>打开历史记录</source>
@@ -3771,6 +3759,14 @@
     <message>
         <source>签署并生成 PDF</source>
         <translation>簽署並產生 PDF</translation>
+    </message>
+    <message>
+        <source>还没有可出报告的实验</source>
+        <translation>還沒有可出報告的實驗</translation>
+    </message>
+    <message>
+        <source>实验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的实验。</source>
+        <translation>實驗完成並複核後，在這裡預覽、列印和簽署報告。可以先到歷史紀錄裡查看已有的實驗。</translation>
     </message>
     <message>
         <source>打印</source>
@@ -3937,26 +3933,6 @@
         <translation>第 {index} 行的樣品名稱為空</translation>
     </message>
     <message>
-        <source>试验不存在：{id}</source>
-        <translation>試驗不存在：{id}</translation>
-    </message>
-    <message>
-        <source>试验 {id} 不是就绪状态，不能启动</source>
-        <translation>試驗 {id} 不是就緒狀態，不能啟動</translation>
-    </message>
-    <message>
-        <source>已有试验正在运行，设备同一时间只能运行一个试验</source>
-        <translation>已有試驗正在執行，裝置同一時間只能執行一個試驗</translation>
-    </message>
-    <message>
-        <source>引擎拒绝启动试验</source>
-        <translation>引擎拒絕啟動試驗</translation>
-    </message>
-    <message>
-        <source>试验 {id} 当前状态不能停止</source>
-        <translation>試驗 {id} 目前狀態不能停止</translation>
-    </message>
-    <message>
         <source>{tube} 号管没有结果</source>
         <translation>{tube} 號管沒有結果</translation>
     </message>
@@ -3965,24 +3941,12 @@
         <translation>複核意見必填，且不超過 {max} 個字元</translation>
     </message>
     <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
-        <translation>全部排讀數分析完成、試驗進入待複核後才能複核</translation>
+        <source>这支管当前没有可复核的结果，请等待结果生成后重试</source>
+        <translation>這支試管目前沒有可複核的結果，請等待結果產生後再試一次。</translation>
     </message>
     <message>
         <source>复核结论只能是阳性或阴性</source>
         <translation>複核結論只能是陽性或陰性</translation>
-    </message>
-    <message>
-        <source>试验状态已被其他操作改变，请刷新后重试</source>
-        <translation>試驗狀態已被其他操作改變，請重新整理後重試</translation>
-    </message>
-    <message>
-        <source>这个试验现在不能恢复，软件重启后只能重试分析或停止</source>
-        <translation>這個試驗現在不能恢復，軟體重啟後只能重試分析或停止</translation>
-    </message>
-    <message>
-        <source>这个试验现在不能重试分析</source>
-        <translation>這個試驗現在不能重試分析</translation>
     </message>
     <message>
         <source>这个模板需要鲎试剂的标示灵敏度 λ，当前试剂没有提供</source>
@@ -4001,16 +3965,48 @@
         <translation>試劑未通過驗證，流程已鎖定</translation>
     </message>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改</source>
-        <translation>試驗已簽署，結果和複核已鎖定，不能再修改</translation>
+        <source>实验不存在：{id}</source>
+        <translation>實驗不存在：{id}</translation>
     </message>
     <message>
-        <source>现在不能签署这个试验</source>
-        <translation>現在不能簽署這個試驗</translation>
+        <source>实验 {id} 不是就绪状态，不能启动</source>
+        <translation>實驗 {id} 不是就緒狀態，不能啟動</translation>
     </message>
     <message>
-        <source>签署失败，没有生成报告，试验状态没有改变：{reason}</source>
-        <translation>簽署失敗，沒有產生報告，試驗狀態沒有改變：{reason}</translation>
+        <source>已有实验正在运行，设备同一时间只能运行一个实验</source>
+        <translation>已有實驗正在執行，裝置同一時間只能執行一個實驗</translation>
+    </message>
+    <message>
+        <source>引擎拒绝启动实验</source>
+        <translation>引擎拒絕啟動實驗</translation>
+    </message>
+    <message>
+        <source>实验 {id} 当前状态不能停止</source>
+        <translation>實驗 {id} 目前狀態不能停止</translation>
+    </message>
+    <message>
+        <source>实验状态已被其他操作改变，请刷新后重试</source>
+        <translation>實驗狀態已被其他操作改變，請重新整理後重試</translation>
+    </message>
+    <message>
+        <source>这个实验现在不能恢复，软件重启后只能重试分析或停止</source>
+        <translation>這個實驗現在不能恢復，軟體重啟後只能重試分析或停止</translation>
+    </message>
+    <message>
+        <source>这个实验现在不能重试分析</source>
+        <translation>這個實驗現在不能重試分析</translation>
+    </message>
+    <message>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署</source>
+        <translation>已簽署的報告版本會保留；後續複核將產生修訂版，需重新簽署</translation>
+    </message>
+    <message>
+        <source>现在不能签署这个实验</source>
+        <translation>現在不能簽署這個實驗</translation>
+    </message>
+    <message>
+        <source>签署失败，没有生成报告，实验状态没有改变：{reason}</source>
+        <translation>簽署失敗，沒有產生報告，實驗狀態沒有改變：{reason}</translation>
     </message>
     <message>
         <source>报告不存在</source>
@@ -4077,8 +4073,8 @@
         <translation>設定有誤，沒有儲存</translation>
     </message>
     <message>
-        <source>试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
-        <translation>試驗正在執行，現在不能修改影響執行的設定（孵育、讀數、溫度、影片輸入）</translation>
+        <source>实验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
+        <translation>實驗正在執行，現在不能修改影響執行的設定（孵育、讀數、溫度、影片輸入）</translation>
     </message>
     <message>
         <source>设置没有保存：{reason}</source>
@@ -4155,10 +4151,6 @@
         <translation>唯讀</translation>
     </message>
     <message>
-        <source>试验 {id} 正在运行</source>
-        <translation>試驗 {id} 正在執行</translation>
-    </message>
-    <message>
         <source>孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。</source>
         <translation>孵育、讀數、溫度和影片輸入暫時不能修改；儀器編號、資料保留天數和版權方名稱仍可修改。</translation>
     </message>
@@ -4173,10 +4165,6 @@
     <message>
         <source>图片文件夹的完整路径</source>
         <translation>圖片資料夾的完整路徑</translation>
-    </message>
-    <message>
-        <source>设置已保存，对之后启动的试验生效。</source>
-        <translation>設定已儲存，對之後啟動的試驗生效。</translation>
     </message>
     <message>
         <source>没有改动。</source>
@@ -4279,6 +4267,10 @@
         <translation>已取消產生診斷套件；未留下不完整的 ZIP 檔案。</translation>
     </message>
     <message>
+        <source>运行参数改动对之后启动的实验生效。</source>
+        <translation>執行參數的變更會套用至之後啟動的實驗。</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>儀器與資料</translation>
     </message>
@@ -4295,16 +4287,16 @@
         <translation>影片輸入</translation>
     </message>
     <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation>僅可選擇檔案與目錄；設定會先經過驗證，儲存後重新啟動生效。切換資料目錄不會搬動或刪除現有資料；原目錄會保留。實驗進行中無法切換。</translation>
+    </message>
+    <message>
         <source>诊断包</source>
         <translation>診斷套件</translation>
     </message>
     <message>
         <source>导出诊断包…</source>
         <translation>匯出診斷套件…</translation>
-    </message>
-    <message>
-        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
-        <translation>收集實驗參數、演算法輸出、複核記錄、稽核、輪替記錄檔及可用媒體，並附上檔案驗證清單。不會包含資料庫、密碼、權杖或私密金鑰。產生過程可取消；缺少或驗證失敗的媒體會列入清單。</translation>
     </message>
     <message>
         <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
@@ -4321,10 +4313,6 @@
     <message>
         <source>开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。</source>
         <translation>開啟後每次匯出都要設定密碼，檔案為 AES-256 加密的 ZIP。請用 7-Zip、Keka 等工具解壓縮，系統內建的解壓縮功能不支援這種加密。</translation>
-    </message>
-    <message>
-        <source>写入之后新建的每个试验和报告。</source>
-        <translation>寫入之後新增的每個試驗和報告。</translation>
     </message>
     <message>
         <source>沿用配置文件</source>
@@ -4347,12 +4335,16 @@
         <translation>目前帳號僅能檢視設定；修改需要儀器與維護權限。</translation>
     </message>
     <message>
-        <source>设置</source>
-        <translation>設定</translation>
+        <source>实验 {id} 正在运行</source>
+        <translation>實驗 {id} 正在執行</translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的试验生效。</source>
-        <translation>執行參數的變更會套用至之後啟動的試驗。</translation>
+        <source>设置已保存，对之后启动的实验生效。</source>
+        <translation>設定已儲存，對之後啟動的實驗生效。</translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation>設定</translation>
     </message>
     <message>
         <source>启动配置与数据目录</source>
@@ -4367,16 +4359,20 @@
         <translation>檢測設定檔（選填）</translation>
     </message>
     <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
-        <translation>僅可選擇檔案與目錄；設定會先經過驗證，儲存後重新啟動生效。切換資料目錄不會搬動或刪除現有資料；原目錄會保留。試驗進行中無法切換。</translation>
-    </message>
-    <message>
         <source>保存启动配置</source>
         <translation>儲存啟動設定</translation>
     </message>
     <message>
+        <source>收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation>收集實驗參數、演算法輸出、複核記錄、稽核、輪替記錄檔及可用媒體，並附上檔案驗證清單。不會包含資料庫、密碼、權杖或私密金鑰。產生過程可取消；缺少或驗證失敗的媒體會列入清單。</translation>
+    </message>
+    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
         <translation>留白表示不自動刪除（預設）。目前版本不會自動刪除資料。</translation>
+    </message>
+    <message>
+        <source>写入之后新建的每个实验和报告。</source>
+        <translation>寫入之後新增的每個實驗和報告。</translation>
     </message>
     <message>
         <source>预览</source>
@@ -4542,12 +4538,12 @@
 <context>
     <name>Signing</name>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改。</source>
-        <translation>試驗已簽署，結果和複核已鎖定，不能再修改。</translation>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署。</source>
+        <translation>已簽署的報告版本會保留；後續複核將產生修訂版，需重新簽署。</translation>
     </message>
     <message>
-        <source>试验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
-        <translation>試驗還沒有完成（目前狀態：{state}），完成並複核後才能簽署。</translation>
+        <source>实验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
+        <translation>實驗還沒有完成（目前狀態：{state}），完成並複核後才能簽署。</translation>
     </message>
     <message>
         <source>{tubes} 号管等待人工复核，复核全部完成后才能签署。</source>
@@ -4558,16 +4554,16 @@
         <translation>{tubes} 號管還沒有結果。</translation>
     </message>
     <message>
-        <source>这个试验没有入库的结论，不能签署。</source>
-        <translation>這個試驗沒有存入資料庫的結論，不能簽署。</translation>
+        <source>这个实验没有入库的结论，不能签署。</source>
+        <translation>這個實驗沒有存入資料庫的結論，不能簽署。</translation>
     </message>
     <message>
-        <source>试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
-        <translation>試驗結論為“待定”，不是最終結論，不能簽署：未判定的結果不能被當成放行依據。</translation>
+        <source>实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <translation>實驗結論為“待定”，不是最終結論，不能簽署：未判定的結果不能被當成放行依據。</translation>
     </message>
     <message>
-        <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
-        <translation>試驗結論為“無效”，不能簽署：不得據此放行。請處理下面的無效原因後重新做試驗。</translation>
+        <source>实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。</source>
+        <translation>實驗結論為“無效”，不能簽署：不得據此放行。請處理下面的無效原因後重新做實驗。</translation>
     </message>
 </context>
 <context>
@@ -4706,8 +4702,8 @@
         <translation>範本名稱</translation>
     </message>
     <message>
-        <source>试验类型</source>
-        <translation>試驗類型</translation>
+        <source>实验类型</source>
+        <translation>實驗類型</translation>
     </message>
     <message>
         <source>添加试管</source>
@@ -4966,10 +4962,6 @@
 <context>
     <name>TubeDetailPage</name>
     <message>
-        <source>{no} 号管不属于这个试验</source>
-        <translation>{no} 號管不屬於這個試驗</translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation>單管詳情</translation>
     </message>
@@ -4996,10 +4988,6 @@
     <message>
         <source> · 外加内毒素 {v} EU/ml</source>
         <translation> · 外加內毒素 {v} EU/ml</translation>
-    </message>
-    <message>
-        <source>试验 {id}</source>
-        <translation>試驗 {id}</translation>
     </message>
     <message>
         <source>面积变化率 ΔA</source>
@@ -5094,10 +5082,6 @@
         <translation>複核已提交</translation>
     </message>
     <message>
-        <source>全部待复核的试管已处理，试验可以签署</source>
-        <translation>全部待複核的試管已處理，試驗可以簽署</translation>
-    </message>
-    <message>
         <source>收起 3 帧序列</source>
         <translation>收起 3 影格序列</translation>
     </message>
@@ -5126,6 +5110,14 @@
         <translation>融合評分 Score</translation>
     </message>
     <message>
+        <source>{no} 号管不属于这个实验</source>
+        <translation>{no} 號管不屬於這個實驗</translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation>實驗 {id}</translation>
+    </message>
+    <message>
         <source>检测结果：{algo} · 复核结论：{human}</source>
         <translation>檢測結果：{algo} · 複核結論：{human}</translation>
     </message>
@@ -5144,6 +5136,10 @@
     <message>
         <source>{when} · {who} · {v} · {note}</source>
         <translation>{when} · {who} · {v} · {note}</translation>
+    </message>
+    <message>
+        <source>全部待复核的试管已处理，实验可以签署</source>
+        <translation>全部待複核的試管已處理，實驗可以簽署</translation>
     </message>
     <message>
         <source>判读过程</source>
@@ -5218,8 +5214,8 @@
         <translation>暫無影像</translation>
     </message>
     <message>
-        <source>从试验监控的孔板或结果表里点一支试管查看详情。</source>
-        <translation>從試驗監控的孔板或結果表裡點一支試管查看詳情。</translation>
+        <source>从实验监控的孔板或结果表里点一支试管查看详情。</source>
+        <translation>從實驗監控的孔板或結果表裡點一支試管查看詳情。</translation>
     </message>
 </context>
 <context>

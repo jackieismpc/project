@@ -191,7 +191,7 @@ class GalleryPage(QWidget):
         fonts.body.addWidget(medium)
         fonts.body.addWidget(Label("Noto Sans SC 粗体：凝胶智检系统", "h2"))
         fonts.body.addWidget(
-            Label("IBM Plex Mono  37.0 ℃  2605-01  E2604-3  0123456789", "body", mono=True)
+            Label("Noto Sans SC  37.0 ℃  2605-01  E2604-3  0123456789", "body", mono=True)
         )
         status = "未获取字体报告"
         if report is not None:

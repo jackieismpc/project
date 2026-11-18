@@ -254,7 +254,7 @@ def test_retry_analysis_from_the_monitor_page(
     assert view is not None and view.can_resume and view.retry_rows
     assert not monitor.resume_button.isHidden() and not monitor.retry_button.isHidden()
     assert monitor.retry_button.isEnabled()
-    assert monitor.resume_button.text() == "恢复试验"
+    assert monitor.resume_button.text() == "恢复实验"
     assert monitor.retry_button.text() == "重试分析"
 
     repair_analyzer(context)
@@ -369,7 +369,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
         assert view.retry_rows == (1, 2, 3)
         assert monitor.resume_button.isHidden()
         assert not monitor.retry_button.isHidden() and monitor.retry_button.isEnabled()
-        assert "完成后试验照常结束" in monitor.recovery_hint.text()
+        assert "完成后实验照常结束" in monitor.recovery_hint.text()
         assert not monitor.recovery_hint.isHidden()
         with_session = second.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
         try:
@@ -496,7 +496,7 @@ def test_report_center_mentions_the_verdict_and_needs_a_conclusion_when_on(
     preview = page.current_preview
     assert preview is not None and preview.can_sign and preview.conclusions_enabled
     assert preview.conclusion is not None
-    assert page.status_text.text() == "可以签署：试验结论为“合格”"
+    assert page.status_text.text() == "可以签署：实验结论为“合格”"
     # 抹掉入库的结论（模拟关闭期间完成的旧试验）：打开时不能签署
     assert fast_context.database.experiments.get(experiment_id) is not None
     with fast_context.database._sessions.begin() as session:  # noqa: SLF001

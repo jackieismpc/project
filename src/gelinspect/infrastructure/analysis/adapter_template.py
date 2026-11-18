@@ -1,6 +1,6 @@
 r"""算法适配模板，供算法同事接入。
 
-接入步骤（详见 ``docs/algorithm-interface.md``）：
+接入步骤（详见 ``docs/internal-integration-checklist.md``）：
 
 1. 复制本文件，例如改名为 ``infrastructure/analysis/yolo_onnx.py``，并重命名类。
 2. 把模型和阈值 YAML 放到 ``load`` 能读取的位置，运行时只用 ONNX 推理，

@@ -126,11 +126,11 @@ GLOSSARY = {
     ("AuthError", "当前角色无此权限"): "目前角色無此權限",
     (
         "Signing",
-        "试验已签署，结果和复核已锁定，不能再修改。",
-    ): "試驗已簽署，結果和複核已鎖定，不能再修改。",
+        "已签署的报告版本会保留；后续复核将生成修订版，需重新签署。",
+    ): "已簽署的報告版本會保留；後續複核將產生修訂版，需重新簽署。",
     ("Report", "自动凝胶检测报告"): "自動凝膠檢測報告",
 }
-"""术语表里的代表条目（完整术语表见 docs/features/auth-and-i18n.md）。"""
+"""术语表代表条目的繁体翻译与界面文案检查。"""
 
 BANNED = (
     "審計",  # 统一用“稽核”
@@ -231,7 +231,6 @@ def test_font_assets_stay_small_and_keep_their_licenses() -> None:
     total = sum(p.stat().st_size for p in FONT_DIR.glob("*.ttf"))
     assert total < 10_500_000  # 补字前约 7.5 MB（Noto 7.35 MB），补繁体后约 9.9 MB，增量要小于 8 MB
     assert "SIL OPEN FONT LICENSE" in (FONT_DIR / "OFL-NotoSansSC.txt").read_text()
-    assert (FONT_DIR / "OFL-IBMPlexMono.txt").is_file()
 
 
 # ---------------------------------------------------------------- 切换与持久化

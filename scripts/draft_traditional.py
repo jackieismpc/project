@@ -5,7 +5,7 @@ OpenCC 不是项目依赖，临时借用::
     uv run --no-sync --with opencc-python-reimplemented python scripts/draft_traditional.py
 
 做法：``OpenCC('s2twp')``（简体转台湾繁体并换用语）转换源文本，再把直角引号改回弯引号“”，按术语表
-（``docs/features/auth-and-i18n.md``）替换 OpenCC 没覆盖或不统一的词。**只填 ``type="unfinished"``
+替换 OpenCC 没覆盖或不统一的词。**只填 ``type="unfinished"``
 或空的条目，已有译文（人工校对过的）不会被覆盖。** 草稿必须逐条人工校对后再提交。
 """
 

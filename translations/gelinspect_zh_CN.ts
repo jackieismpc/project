@@ -12,7 +12,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>凝胶法细菌内毒素检测软件：试验管理、图像采集、检测判读、复核与报告。</source>
+        <source>凝胶法细菌内毒素检测软件：实验管理、图像采集、检测判读、复核与报告。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -462,7 +462,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>操作记录或试验编号</source>
+        <source>操作记录或实验编号</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -921,11 +921,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验完成后才会固化结论。</source>
+        <source>实验完成后才会固化结论。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验结论</source>
+        <source>实验结论</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -974,7 +974,7 @@
 <context>
     <name>DashboardPage</name>
     <message>
-        <source>试验</source>
+        <source>实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1010,7 +1010,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>进行中的试验</source>
+        <source>进行中的实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前没有进行中的实验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id} 有 {n} 管待复核</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id} 处于异常状态，需要人工处理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1023,14 +1043,6 @@
     </message>
     <message>
         <source>需要处理</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>还没有历史试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1058,10 +1070,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>当前没有进行中的试验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1075,14 +1083,6 @@
     </message>
     <message>
         <source>阳性 {p} · 阴性 {n}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id} 有 {n} 管待复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id} 处于异常状态，需要人工处理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1589,14 +1589,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>先在列表里点选要导出的试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>导出所选试验结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Excel 文件 (*.xlsx)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1613,7 +1605,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验</source>
+        <source>没有符合条件的实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有历史实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>完成第一次实验后，结果会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>先在列表里点选要导出的实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>导出所选实验结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1661,6 +1673,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>打开所选实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>打开所选报告</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1673,7 +1689,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验类型</source>
+        <source>实验类型</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1705,38 +1721,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>打开所选试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>还没有历史试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>全部操作人</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>没有符合条件的试验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>调整筛选条件，或点“重置”清除条件后再查</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <source>完成第一次试验后，结果会显示在这里</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>ImagesTab</name>
     <message>
-        <source>没有选中的试验</source>
+        <source>没有选中的实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个试验还没有抓拍图像，每排读数后会显示在这里</source>
+        <source>这个实验还没有抓拍图像，每排读数后会显示在这里</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1872,7 +1872,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>输入密码解锁，试验仍在后台运行</source>
+        <source>输入密码解锁，实验仍在后台运行</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1899,7 +1899,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验 {id} 检测完成，{count} 管待复核。</source>
+        <source>实验 {id} 检测完成，{count} 管待复核。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id} 已完成，可查看报告。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>有实验正在进行，请先解锁再退出</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>退出并中断实验？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>继续实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1907,31 +1927,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验 {id} 已完成，可查看报告。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>凝胶智检系统 GelInspect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>有试验正在进行，请先解锁再退出</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>退出并中断试验？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id} 仍在进行。退出会中断它并标记为异常，设备状态需要人工检查，未读数的排会错过读数时间。确定要退出吗？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>中断并退出</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>继续试验</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1976,18 +1976,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>先选择一个试验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>试管编号</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2016,10 +2004,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验 {id}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>当前角色无此权限</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2028,23 +2012,43 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后试验仍只能停止。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后试验照常结束。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>软件重启过，调度已经丢失，这个试验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止试验。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>第 {rows} 排分析失败，原图已保留。全部排读完后可以重试分析。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验异常：{reason}</source>
+        <source>先选择一个实验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验已签署，可以预览、打印、验签和导出已签名的 PDF。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验还没有完成，可以先预览报告；完成并复核后才能签署。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。第 {rows} 排已抓帧，可以重试分析（不翻转）；第 {unread} 排错过了读数时间，所以分析后实验仍只能停止。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。全部排都已抓帧：第 {rows} 排可以重试分析（不翻转），完成后实验照常结束。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>软件重启过，调度已经丢失，这个实验不能恢复。没有可以重试分析的排（没有抓帧，或抓帧记录缺少抓帧时间），只能停止实验。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验异常：{reason}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2092,19 +2096,43 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>停止试验？</source>
+        <source>停止实验？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>停止后试验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
+        <source>停止后实验 {id} 不能继续，还没读数的排会错过读数时间；已经翻转的排会复位。确定要停止吗？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>停止试验</source>
+        <source>停止实验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>继续试验</source>
+        <source>继续实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复实验？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>恢复实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已请求恢复实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验数据记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前没有进行中的实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验没有录像</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2112,15 +2140,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>恢复试验？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>恢复前请确认设备和温度已正常。读数失败的排会重新翻转，翻动过的凝胶状态可能已变；分析失败的排用保留的原图重试。确定要恢复吗？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>恢复试验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2128,15 +2148,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>已请求恢复试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>已请求重试分析</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验数据记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2145,10 +2157,6 @@
     </message>
     <message>
         <source>报告打印预览</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>当前没有进行中的试验</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2172,10 +2180,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个试验已完成，可以预览报告；有签署权限的用户核对后签署。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>在“新建实验”里启动实验后，这里显示实时画面、孔板和结果；也可以到历史记录回看已完成的实验。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2196,10 +2200,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个试验没有录像</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>没有试管</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2211,7 +2211,7 @@
 <context>
     <name>MonitorReportPreview</name>
     <message>
-        <source>先选择一个试验。</source>
+        <source>先选择一个实验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2342,7 +2342,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>录入后写入试验记录并显示在报告里；试验签署后不能再修改。</source>
+        <source>实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验类型</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动失败，实验仍为就绪，可以重试</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2370,10 +2378,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验信息</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>确认后设备会连接并送入滑台，随后开始孵育。启动前会检查温度、舱门和视频。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2395,6 +2399,14 @@
     </message>
     <message>
         <source>新建实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>录入后写入实验记录并显示在报告里；实验签署后不能再修改。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验信息</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2463,10 +2475,6 @@
     </message>
     <message>
         <source>模板已另存；当前实验草稿保留</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2550,10 +2558,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验类型</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>试管</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2587,10 +2591,6 @@
     </message>
     <message>
         <source>无法启动</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>启动失败，试验仍为就绪，可以重试</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2702,6 +2702,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>查看实验和结果</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>新建实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>启动实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>停止实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署实验和报告</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>查看设置</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2726,27 +2746,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>查看试验和结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>新建试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>启动试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>停止试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>人工复核单管结果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>签署试验和报告</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3209,7 +3209,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>在新试验向导里扫码校验后，批次会显示在这里</source>
+        <source>在新实验向导里扫码校验后，批次会显示在这里</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>查询只检查备案和效期，不会录入批次。批次在新实验向导里扫码校验后录入。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3254,10 +3258,6 @@
     </message>
     <message>
         <source>查询</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>查询只检查备案和效期，不会录入批次。批次在新试验向导里扫码校验后录入。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3545,15 +3545,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>可以签署：试验结论为“{verdict}”</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>可以签署：全部待复核已处理，试验已完成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3641,6 +3633,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>可以签署：实验结论为“{verdict}”</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可以签署：全部待复核已处理，实验已完成</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3677,10 +3677,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3714,14 +3710,6 @@
     </message>
     <message>
         <source>报告状态</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>还没有可出报告的试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的试验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3770,6 +3758,14 @@
     </message>
     <message>
         <source>签署并生成 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>还没有可出报告的实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的实验。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3937,26 +3933,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验不存在：{id}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id} 不是就绪状态，不能启动</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已有试验正在运行，设备同一时间只能运行一个试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>引擎拒绝启动试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id} 当前状态不能停止</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>{tube} 号管没有结果</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3965,23 +3941,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>全部排读数分析完成、试验进入待复核后才能复核</source>
+        <source>这支管当前没有可复核的结果，请等待结果生成后重试</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>复核结论只能是阳性或阴性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验状态已被其他操作改变，请刷新后重试</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验现在不能恢复，软件重启后只能重试分析或停止</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>这个试验现在不能重试分析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4001,15 +3965,47 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改</source>
+        <source>实验不存在：{id}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>现在不能签署这个试验</source>
+        <source>实验 {id} 不是就绪状态，不能启动</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>签署失败，没有生成报告，试验状态没有改变：{reason}</source>
+        <source>已有实验正在运行，设备同一时间只能运行一个实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>引擎拒绝启动实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id} 当前状态不能停止</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验状态已被其他操作改变，请刷新后重试</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验现在不能恢复，软件重启后只能重试分析或停止</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>这个实验现在不能重试分析</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>现在不能签署这个实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>签署失败，没有生成报告，实验状态没有改变：{reason}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4077,7 +4073,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
+        <source>实验正在运行，现在不能修改影响运行的设置（孵育、读数、温度、视频输入）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4155,10 +4151,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验 {id} 正在运行</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>孵育、读数、温度和视频输入暂时不能修改；仪器编号、数据保留天数和版权方名称仍可修改。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4172,10 +4164,6 @@
     </message>
     <message>
         <source>图片文件夹的完整路径</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>设置已保存，对之后启动的试验生效。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4279,6 +4267,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>运行参数改动对之后启动的实验生效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4295,15 +4287,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>诊断包</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>导出诊断包…</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>收集试验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4320,10 +4312,6 @@
     </message>
     <message>
         <source>开启后每次导出都要设置密码，文件为 AES-256 加密的 ZIP。请用 7-Zip、Keka 等工具解压，系统自带的解压不支持这种加密。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>写入之后新建的每个试验和报告。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4347,11 +4335,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>设置</source>
+        <source>实验 {id} 正在运行</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>运行参数改动对之后启动的试验生效。</source>
+        <source>设置已保存，对之后启动的实验生效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4367,15 +4359,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。试验运行中不能切换。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>保存启动配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>收集实验参数、算法输出、复核记录、审计、轮转日志及可用媒体，并附文件校验清单。不会包含数据库、密码、令牌或私钥。生成过程可取消；缺失或校验失败的媒体会列入清单。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>写入之后新建的每个实验和报告。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4542,11 +4538,11 @@
 <context>
     <name>Signing</name>
     <message>
-        <source>试验已签署，结果和复核已锁定，不能再修改。</source>
+        <source>已签署的报告版本会保留；后续复核将生成修订版，需重新签署。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
+        <source>实验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4558,15 +4554,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>这个试验没有入库的结论，不能签署。</source>
+        <source>这个实验没有入库的结论，不能签署。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
+        <source>实验结论为“待定”，不是最终结论，不能签署：未判定的结果不能被当成放行依据。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做试验。</source>
+        <source>实验结论为“无效”，不能签署：不得据此放行。请处理下面的无效原因后重新做实验。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4704,7 +4700,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>试验类型</source>
+        <source>实验类型</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4964,10 +4960,6 @@
 <context>
     <name>TubeDetailPage</name>
     <message>
-        <source>{no} 号管不属于这个试验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>单管详情</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4993,10 +4985,6 @@
     </message>
     <message>
         <source> · 外加内毒素 {v} EU/ml</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>试验 {id}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5092,10 +5080,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>全部待复核的试管已处理，试验可以签署</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>收起 3 帧序列</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5124,6 +5108,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>{no} 号管不属于这个实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>实验 {id}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>检测结果：{algo} · 复核结论：{human}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5141,6 +5133,10 @@
     </message>
     <message>
         <source>{when} · {who} · {v} · {note}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>全部待复核的试管已处理，实验可以签署</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5216,7 +5212,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>从试验监控的孔板或结果表里点一支试管查看详情。</source>
+        <source>从实验监控的孔板或结果表里点一支试管查看详情。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

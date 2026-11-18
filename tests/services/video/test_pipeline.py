@@ -99,6 +99,37 @@ def test_open_timeout(tmp_path: Path) -> None:
     assert wait_until(lambda: threading.active_count() <= before, 3.0)
 
 
+def test_blocked_open_keeps_source_owned_until_worker_exits(tmp_path: Path) -> None:
+    class BlockedOpen(FakeSource):
+        def __init__(self) -> None:
+            super().__init__(interval_s=0.001)
+            self.entered = threading.Event()
+            self.release = threading.Event()
+
+        def open(self, config: VideoConfig) -> VideoInfo:
+            self.open_calls += 1
+            self.entered.set()
+            assert self.release.wait(30.0)
+            return super().open(config)
+
+    source = BlockedOpen()
+    config = make_config(tmp_path, open_timeout_s=0.1).model_copy(update={"stop_timeout_s": 0.1})
+    pipeline = VideoPipeline(source, config)
+    with pytest.raises(VideoOpenError, match="超时"):
+        pipeline.start()
+    assert source.entered.is_set() and source.close_calls == 0
+    with pytest.raises(PipelineStateError, match="采集线程仍未退出"):
+        pipeline.start()
+    assert source.open_calls == 1
+
+    source.release.set()
+    assert wait_until(lambda: source.close_calls == 1)
+    assert wait_until(lambda: pipeline._capture is not None and not pipeline._capture.is_alive)
+    assert pipeline.start().width == 64
+    assert source.open_calls == 4  # 两次Open，每次由该双重计数假源累加两次
+    pipeline.stop()
+
+
 def test_operations_require_a_running_pipeline(tmp_path: Path) -> None:
     pipeline = VideoPipeline(FakeSource(), make_config(tmp_path))
     with pytest.raises(PipelineStateError):
@@ -316,9 +347,43 @@ def test_stuck_source_read_times_out_on_stop_but_does_not_hang(tmp_path: Path) -
     pipeline.stop()
     assert not source.release.is_set() and source.close_calls == 0
     assert any(e.code is VideoEventCode.STOP_TIMEOUT for e in pipeline.recent_events())
+    with pytest.raises(PipelineStateError, match="采集线程仍未退出"):
+        pipeline.start()
+    replacement = FakeSource(interval_s=0.001)
+    with pytest.raises(PipelineStateError, match="采集线程仍未退出"):
+        pipeline.reconfigure(replacement, config)
+    assert source.open_calls == 1 and replacement.open_calls == 0
     # 卡住的读返回后，守护线程自行退出并关闭视频源
     source.release.set()
     assert wait_until(lambda: source.close_calls == 1, 30.0)
+    assert wait_until(lambda: pipeline._capture is not None and not pipeline._capture.is_alive)
+    pipeline.reconfigure(replacement, config)
+    pipeline.start()
+    assert replacement.open_calls == 1 and source.open_calls == 1
+    pipeline.stop()
+
+
+def test_helper_stop_timeout_blocks_restart_until_consumer_exits(tmp_path: Path) -> None:
+    entered = threading.Event()
+    release = threading.Event()
+
+    def blocked_preview(_frame: PreviewFrame) -> None:
+        entered.set()
+        assert release.wait(30.0)
+
+    config = make_config(tmp_path).model_copy(update={"stop_timeout_s": 0.1})
+    pipeline = VideoPipeline(FakeSource(interval_s=0.001), config, on_preview=blocked_preview)
+    pipeline.start()
+    assert entered.wait(5.0)
+    pipeline.stop()
+    with pytest.raises(PipelineStateError, match="后台线程仍未退出"):
+        pipeline.start()
+
+    release.set()
+    pipeline.stop()  # 再次stop必须等待并确认上次超时的消费者已经结束
+    assert pipeline._helpers_stopped
+    pipeline.start()
+    pipeline.stop()
 
 
 # ------------------------------------------------------------------ 断流、重连、事件

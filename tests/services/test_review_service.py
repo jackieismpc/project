@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+from typing import cast
+
 import pytest
 
 from gelinspect.domain.entities import Experiment, TubeResult
@@ -16,7 +19,7 @@ from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
 from gelinspect.services.auth import PermissionDeniedError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
-from gelinspect.services.review_service import ReviewService
+from gelinspect.services.review_service import ReviewService, ReviewStorage
 from tests.services.conftest import NOW, Stack
 from tests.services.engine_helpers import ready_experiment
 
@@ -180,6 +183,49 @@ def test_a_stale_state_is_reported_as_a_conflict(stack: Stack) -> None:
         reviews.review_tube(stack.login("analyst"), "EXP-REV-1", 3, Interpretation.POSITIVE, "x")
     assert caught.value.code is ServiceErrorCode.REVIEW_CONFLICT
     assert stored(stack).results[3].reviewed_by is None  # 同一事务回滚
+
+
+def test_a_concurrent_same_state_review_is_not_allowed_to_overwrite_history(stack: Stack) -> None:
+    make_pending(stack)
+    real_storage = stack.database
+
+    class ConcurrentReviewStorage:
+        @property
+        def experiments(self) -> object:
+            class Repo:
+                def get(self, experiment_id: str) -> Experiment | None:
+                    stale = real_storage.experiments.get(experiment_id)
+                    assert stale is not None
+                    concurrent = real_storage.experiments.get(experiment_id)
+                    assert concurrent is not None
+                    concurrent.review_tube(
+                        3,
+                        interpretation=Interpretation.NEGATIVE,
+                        reviewed_by="other-reviewer",
+                        reviewed_at=NOW + timedelta(seconds=1),
+                        note="并发复核",
+                    )
+                    real_storage.experiments.save_results(experiment_id, [concurrent.results[3]])
+                    return stale
+
+            return Repo()
+
+        def unit_of_work(self) -> object:
+            return real_storage.unit_of_work()
+
+    reviews = ReviewService(
+        stack.auth,
+        cast(ReviewStorage, ConcurrentReviewStorage()),
+        clock=lambda: NOW,
+    )
+    with pytest.raises(ServiceError) as caught:
+        reviews.review_tube(
+            stack.login("analyst"), "EXP-REV-1", 3, Interpretation.POSITIVE, "过期页面复核"
+        )
+    assert caught.value.code is ServiceErrorCode.REVIEW_CONFLICT
+    result = stored(stack).results[3]
+    assert result.final_interpretation is Interpretation.NEGATIVE
+    assert [entry.reason for entry in result.review_history] == ["并发复核"]
 
 
 def test_completed_result_can_be_re_reviewed_without_changing_conclusion_and_keeps_history(

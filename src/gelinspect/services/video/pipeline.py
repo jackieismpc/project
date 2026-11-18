@@ -135,6 +135,7 @@ class VideoPipeline:
         self._running = False
         self._info: VideoInfo | None = None
         self._capture: CaptureWorker | None = None
+        self._helpers_stopped = True
 
         self._bus = EventBus()
         if on_event is not None:
@@ -268,8 +269,10 @@ class VideoPipeline:
             PipelineStateError: 管线正在运行，运行中不能换视频源。
         """
         with self._lock:
-            if self._running or self._capture is not None:
+            if self._running:
                 raise PipelineStateError("视频管线正在运行，运行中不能更换视频源")
+            self._reap_capture_or_raise()
+            self._finish_helper_shutdown_or_raise()
             self._snapshots.close()
             self._source = source
             self._config = config
@@ -287,10 +290,13 @@ class VideoPipeline:
         with self._lock:
             if self._running and self._info is not None:
                 return self._info
+            self._reap_capture_or_raise()
+            self._finish_helper_shutdown_or_raise()
             self._buffer.clear()
             self._bus.start()
             self._quality.start()
             self._preview.start()
+            self._helpers_stopped = False
             capture = CaptureWorker(
                 self._source,
                 self._config.source,
@@ -302,13 +308,16 @@ class VideoPipeline:
                 on_disconnect=self._handle_disconnect,
                 on_reconnected=self._handle_reconnected,
             )
+            self._capture = capture
             try:
                 info = capture.start(self._config.open_timeout_s)
             except BaseException:
-                capture.stop(self._config.stop_timeout_s)
-                self._stop_helpers()
+                if capture.stop(self._config.stop_timeout_s):
+                    self._capture = None
+                self._running = False
+                self._info = None
+                self._helpers_stopped = self._stop_helpers()
                 raise
-            self._capture = capture
             self._info = info
             self._apply_info(info)
             self._running = True
@@ -321,7 +330,7 @@ class VideoPipeline:
         任何线程超过 ``stop_timeout_s`` 没有退出时发 ``STOP_TIMEOUT`` 事件并继续停止其余部分。
         """
         with self._lock:
-            if not self._running and self._capture is None:
+            if not self._running and self._capture is None and self._helpers_stopped:
                 return
             timeout = self._config.stop_timeout_s
             self._buffer.cancel_waits()
@@ -329,20 +338,44 @@ class VideoPipeline:
             if capture is not None and not capture.stop(timeout):
                 self._warn_timeout("采集线程")
             self._running = False
-            self._capture = None
-            self._stop_helpers()
+            if capture is None or not capture.is_alive:
+                self._capture = None
+            self._helpers_stopped = self._stop_helpers()
 
-    def _stop_helpers(self) -> None:
+    def _reap_capture_or_raise(self) -> None:
+        """回收已退出的采集线程；未退出时保留所有权并拒绝复用视频源。"""
+        capture = self._capture
+        if capture is None:
+            return
+        if capture.is_alive:
+            raise PipelineStateError("采集线程仍未退出，请等待视频驱动返回后再启动或更换视频源")
+        capture.stop(0)
+        self._capture = None
+
+    def _finish_helper_shutdown_or_raise(self) -> None:
+        """确认上次停止的消费者线程已退出，再允许新会话复用它们。"""
+        if not self._helpers_stopped and not self._stop_helpers():
+            raise PipelineStateError("视频管线的后台线程仍未退出，请等待后再启动或更换视频源")
+        self._helpers_stopped = True
+
+    def _stop_helpers(self) -> bool:
         timeout = self._config.stop_timeout_s
-        if not self._recorder.close(max(timeout, self._config.recorder.finish_timeout_s)):
+        recorder_stopped = self._recorder.close(
+            max(timeout, self._config.recorder.finish_timeout_s)
+        )
+        if not recorder_stopped:
             self._warn_timeout("录制写盘线程")
         self._snapshots.close()
-        if not self._preview.stop(timeout):
+        preview_stopped = self._preview.stop(timeout)
+        if not preview_stopped:
             self._warn_timeout("预览线程")
-        if not self._quality.stop(timeout):
+        quality_stopped = self._quality.stop(timeout)
+        if not quality_stopped:
             self._warn_timeout("质量监控线程")
-        if not self._bus.stop(timeout):
+        bus_stopped = self._bus.stop(timeout)
+        if not bus_stopped:
             logger.warning("事件分发线程未在 %s 秒内退出", timeout)
+        return recorder_stopped and preview_stopped and quality_stopped and bus_stopped
 
     def _warn_timeout(self, what: str) -> None:
         self._bus.emit(

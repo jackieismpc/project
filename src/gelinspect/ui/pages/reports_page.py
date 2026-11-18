@@ -753,9 +753,9 @@ class ReportsPage(QWidget):
             self._tone("success", self.tr("已签署"))
         elif preview.can_sign:
             if preview.conclusions_enabled:
-                text = self.tr("可以签署：试验结论为“{verdict}”").format(verdict=verdict_text)
+                text = self.tr("可以签署：实验结论为“{verdict}”").format(verdict=verdict_text)
             else:
-                text = self.tr("可以签署：全部待复核已处理，试验已完成")
+                text = self.tr("可以签署：全部待复核已处理，实验已完成")
             self._tone("info", text)
         else:
             reasons = describe_signing_blocks(preview.blocks, preview.conclusion)
@@ -1066,7 +1066,7 @@ class ReportsPage(QWidget):
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("报告中心"))
-        self.experiment_label.setText(self.tr("试验"))
+        self.experiment_label.setText(self.tr("实验"))
         self.refresh_button.setText(self.tr("刷新"))
         self.back_to_list.setText(self.tr("返回报告列表"))
         self.list_refresh.setText(self.tr("刷新列表"))
@@ -1090,10 +1090,10 @@ class ReportsPage(QWidget):
         ):
             if box.count():
                 box.setItemText(0, label)
-        self.empty_title.setText(self.tr("还没有可出报告的试验"))
+        self.empty_title.setText(self.tr("还没有可出报告的实验"))
         self.empty_hint.setText(
             self.tr(
-                "试验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的试验。"
+                "实验完成并复核后，在这里预览、打印和签署报告。可以先到历史记录里查看已有的实验。"
             )
         )
         self.empty_button.setText(self.tr("打开历史记录"))

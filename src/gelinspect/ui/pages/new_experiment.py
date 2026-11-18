@@ -1,6 +1,6 @@
 """新试验向导：选模板 → 校验试剂 → 录入样品和管位 → 确认启动。
 
-对照 ``docs/design/Wizard.dc.html``：四步胶囊步骤条；第 3 步左边是样品表、右边是 12 排×8 支管位
+四步胶囊步骤条；第 3 步左边是样品表、右边是 12 排×8 支管位
 （选择模式）。页面只负责显示和收集输入；数量是否对得上、选中的管号如何对应样品行在
 ``services.experiment_draft``，试剂校验、创建和启动在 ``services`` 里，服务层会把权限、
 试剂和数量**再校验一遍**，所以界面被绕过也不会放行。
@@ -445,7 +445,7 @@ class NewExperimentPage(QWidget):
         self.limit_label.setText(self.tr("内毒素限值 EU/mL（可选）"))
         self.mvd_edit.setPlaceholderText(self.tr("留空则报告里不填"))
         self.limit_edit.setPlaceholderText(self.tr("留空则报告里不填"))
-        self.limit_hint.setText(self.tr("录入后写入试验记录并显示在报告里；试验签署后不能再修改。"))
+        self.limit_hint.setText(self.tr("录入后写入实验记录并显示在报告里；实验签署后不能再修改。"))
         self.sample_table.set_columns(self._sample_columns())
         self.batch_fill.setPlaceholderText(self.tr("扫码或输入样品批号，回车填入选中行"))
         self.plate_card.set_title(self.tr("管位"))
@@ -460,7 +460,7 @@ class NewExperimentPage(QWidget):
         )
         self.sample_back.setText(self.tr("上一步"))
         self.sample_next.setText(self.tr("下一步：确认启动"))
-        self.info_card.set_title(self.tr("试验信息"))
+        self.info_card.set_title(self.tr("实验信息"))
         self.start_note.setText(
             self.tr("确认后设备会连接并送入滑台，随后开始孵育。启动前会检查温度、舱门和视频。")
         )
@@ -801,7 +801,7 @@ class NewExperimentPage(QWidget):
             "\n".join(lines)
             + "\n\n"
             + self.tr(
-                "试验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。"
+                "实验流程已锁定，不能进入下一步。请更换合格的试剂批次后重新扫码。本次校验已记入审计。"
             )
         )
         if self._lock_dialog is not None:
@@ -1136,7 +1136,7 @@ class NewExperimentPage(QWidget):
         user = session.user
         facts: list[tuple[str, str, bool]] = [
             (self.tr("模板"), builtin_name_text(template.name), False),
-            (self.tr("试验类型"), experiment_type_label(template.experiment_type), False),
+            (self.tr("实验类型"), experiment_type_label(template.experiment_type), False),
             (
                 self.tr("试管"),
                 self.tr("{count} 管 · {rows}").format(count=draft.selected_count, rows=span),
@@ -1219,7 +1219,7 @@ class NewExperimentPage(QWidget):
             self.start_banner.show_message(
                 "danger",
                 "triangle-alert",
-                self.tr("启动失败，试验仍为就绪，可以重试"),
+                self.tr("启动失败，实验仍为就绪，可以重试"),
                 self.tr("原因：") + self._start_error,
             )
         else:

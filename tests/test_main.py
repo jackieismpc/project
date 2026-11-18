@@ -307,6 +307,31 @@ def test_bad_config_file_shows_a_clear_dialog_and_logs(qapp: QApplication, tmp_p
     assert "配置有误" in log_path.read_text(encoding="utf-8")
 
 
+def test_startup_failure_closes_its_file_logger(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    presenter = Presenter()
+
+    def fail_build(_config: Any) -> Any:
+        raise RuntimeError("assembly failed")
+
+    monkeypatch.setattr(startup, "build_app_context", fail_build)
+
+    assert (
+        run_gui(
+            config_path=write_config(tmp_path),
+            present_error=presenter,
+            app=qapp,
+        )
+        == EXIT_ERROR
+    )
+    assert presenter.failures
+    assert not any(
+        getattr(handler, "name", None) == "gelinspect-file-handler"
+        for handler in logging.getLogger().handlers
+    )
+
+
 def test_unknown_field_in_config_is_reported(qapp: QApplication, tmp_path: Path) -> None:
     presenter = Presenter()
     path = write_config(tmp_path, nonsense=1)
