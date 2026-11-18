@@ -79,7 +79,7 @@ def test_default_config_points_to_simulation() -> None:
     assert config.data_dir == project_root() / "data"
     assert config.database_path.parent == config.data_dir
     assert config.analysis.config_path == project_root() / "simulation/analyzer.example.yaml"
-    assert config.engine.time_scale == 60.0
+    assert config.engine.time_scale == 600.0
     assert config.engine_config().analysis_timeout_s == 2.0
 
 

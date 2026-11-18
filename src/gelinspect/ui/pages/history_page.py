@@ -148,7 +148,6 @@ class HistoryPage(QWidget):
         self.card = Card()
         self.table = DataTable(self._columns())
         self.table.set_multi_select(True)
-        self.table.setMinimumHeight(330)
         self.pager = Pager()
         self.card.body.addWidget(self.table, 1)
         self.card.body.addWidget(self.pager)

@@ -73,8 +73,8 @@ class UsersPage(QWidget):
         column.addLayout(top)
 
         self.users_card = Card(" ")
-        self.users_table = DataTable(self._user_columns(), fit_content=True)
-        self.users_card.body.addWidget(self.users_table)
+        self.users_table = DataTable(self._user_columns())
+        self.users_card.body.addWidget(self.users_table, 1)
         actions = QHBoxLayout()
         actions.setSpacing(8)
         self.reset_button = Button("", ButtonVariant.SECONDARY, icon="key-round")

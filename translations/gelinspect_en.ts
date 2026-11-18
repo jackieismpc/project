@@ -641,10 +641,6 @@
         <translation>Dashboard</translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation>New Experiment</translation>
-    </message>
-    <message>
         <source>检测室温度</source>
         <translation>Chamber temperature</translation>
     </message>
@@ -2139,6 +2135,18 @@
     <message>
         <source>当前样品行与管位不一致，无法保存模板。</source>
         <translation>The sample rows and tube positions do not match. The template cannot be saved.</translation>
+    </message>
+    <message>
+        <source>请先选择模板。</source>
+        <translation>Select a template first.</translation>
+    </message>
+    <message>
+        <source>请先为试管分配管位再保存模板。</source>
+        <translation>Assign a tube position before saving the template.</translation>
+    </message>
+    <message>
+        <source>当前配置与源模板相同，不能另存为模板。</source>
+        <translation>The current configuration matches the source template and cannot be saved as a new template.</translation>
     </message>
     <message>
         <source>输入新模板名称</source>
@@ -3782,8 +3790,8 @@
         <translation>Full path of the image folder</translation>
     </message>
     <message>
-        <source>没有改动。</source>
-        <translation>No changes.</translation>
+        <source>本项已自动保存；对之后启动的实验生效。</source>
+        <translation>This setting was saved automatically; it applies to experiments started from now on.</translation>
     </message>
     <message>
         <source>有 {count} 项设置不合法，没有保存。</source>
@@ -3816,10 +3824,6 @@
     <message>
         <source>启动配置无法保存：{reason}</source>
         <translation>Could not save startup settings: {reason}</translation>
-    </message>
-    <message>
-        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
-        <translation>Startup settings saved. Close and restart the application to apply them. Existing data will not be moved or deleted.</translation>
     </message>
     <message>
         <source>正在读取……</source>
@@ -3890,8 +3894,24 @@
         <translation>Incubation</translation>
     </message>
     <message>
+        <source>路径选择后自动校验并保存；重启后生效。</source>
+        <translation>Paths are validated and saved automatically after selection; changes take effect after restart.</translation>
+    </message>
+    <message>
+        <source>只能选择有效的配置文件和已存在的数据目录。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation>Only valid configuration files and existing data directories can be selected. Switching data directories will not move or delete existing data; the original directory remains. Switching is unavailable while an experiment is running.</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>Instrument and data</translation>
+    </message>
+    <message>
+        <source>设置未保存，请修正标出的内容。</source>
+        <translation>Settings were not saved. Fix the marked fields.</translation>
+    </message>
+    <message>
+        <source>已自动保存启动配置；关闭并重新启动后生效。现有数据不会移动或删除。</source>
+        <translation>Startup configuration saved automatically; close and restart the app for changes to take effect. Existing data will not be moved or deleted.</translation>
     </message>
     <message>
         <source>温度</source>
@@ -3900,10 +3920,6 @@
     <message>
         <source>视频输入</source>
         <translation>Video input</translation>
-    </message>
-    <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
-        <translation>Select files and folders only. Settings are validated before saving and take effect after restart. Changing the data folder does not move or delete existing data; the original folder is kept. The folder cannot be changed while an experiment is running.</translation>
     </message>
     <message>
         <source>诊断包</source>
@@ -3970,10 +3986,6 @@
         <translation>Experiment {id} is running</translation>
     </message>
     <message>
-        <source>设置已保存，对之后启动的实验生效。</source>
-        <translation>Settings saved; they apply to experiments started from now on.</translation>
-    </message>
-    <message>
         <source>设置</source>
         <translation>Settings</translation>
     </message>
@@ -4018,10 +4030,6 @@
         <translation>Detection configuration file (optional)</translation>
     </message>
     <message>
-        <source>保存启动配置</source>
-        <translation>Save startup settings</translation>
-    </message>
-    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
         <translation>Leave blank to keep the default. Data is not automatically deleted in this version.</translation>
     </message>
@@ -4036,14 +4044,6 @@
     <message>
         <source>配置文件</source>
         <translation>Config file</translation>
-    </message>
-    <message>
-        <source>还原</source>
-        <translation>Revert</translation>
-    </message>
-    <message>
-        <source>保存设置</source>
-        <translation>Save settings</translation>
     </message>
 </context>
 <context>

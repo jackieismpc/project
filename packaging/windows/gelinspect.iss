@@ -4,8 +4,8 @@
 ; 再编译安装程序："C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 packaging\windows\gelinspect.iss
 ; 输出：dist\GelInspect-<版本>-windows-setup.exe
 ;
-; 按当前用户安装（不需要管理员权限），程序放在 %LOCALAPPDATA%\Programs\GelInspect；
-; 数据目录（数据库、密钥、日志）在 %LOCALAPPDATA%\GelInspect，卸载时**不删除**数据。
+; 默认按当前用户安装到 %LOCALAPPDATA%\Programs\GelInspect，安装向导允许选择目录；
+; Windows业务数据位于程序目录下的 data\，卸载时**不删除**数据。
 
 #ifndef AppVersion
   #define AppVersion "0.1.0"
@@ -16,7 +16,7 @@ AppId={{6C1F2B7E-5C1E-4C5B-9F0A-7A2E8D3B4C11}
 AppName=GelInspect
 AppVersion={#AppVersion}
 AppPublisher=[版权方名称]
-DefaultDirName={autopf}\GelInspect
+DefaultDirName={localappdata}\Programs\GelInspect
 DefaultGroupName=GelInspect
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
@@ -28,6 +28,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 DisableProgramGroupPage=yes
+DisableDirPage=no
 UninstallDisplayIcon={app}\GelInspect.exe
 
 [Languages]
@@ -35,7 +36,7 @@ UninstallDisplayIcon={app}\GelInspect.exe
 Name: "default"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\..\dist\GelInspect\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\GelInspect\*"; DestDir: "{app}"; Excludes: "data\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\GelInspect"; Filename: "{app}\GelInspect.exe"

@@ -3,7 +3,7 @@
 * **仓库模式**：从源码运行。资源（翻译、默认配置引用的 ``simulation/``）在仓库根目录，
   数据目录是仓库下的 ``data/``，行为与加入发布包之前完全一样。
 * **发布模式**：Nuitka 编译的发布包。资源在程序所在目录，**不依赖仓库路径**；数据目录默认
-  放在平台标准位置（Windows ``%LOCALAPPDATA%/GelInspect``，macOS
+  Windows 放在程序目录的 ``data/``（Inno Setup 默认安装到当前用户的可写程序目录），macOS
   ``~/Library/Application Support/GelInspect``），可以用环境变量 ``GELINSPECT_DATA_DIR``、
   命令行 ``--data-dir`` 或配置文件里的 ``data_dir`` 改。
 
@@ -147,24 +147,57 @@ def platform_data_dir(
     return (Path(xdg) if xdg else home / ".local" / "share") / APP_DIR_NAME.lower()
 
 
-def default_data_dir(mode: RunMode | None = None, environ: Mapping[str, str] | None = None) -> Path:
+def default_data_dir(
+    mode: RunMode | None = None,
+    environ: Mapping[str, str] | None = None,
+    platform: str | None = None,
+) -> Path:
     """配置文件没写 ``data_dir`` 时用的数据目录。
 
     Args:
         mode: 运行模式，默认自动判断。
         environ: 环境变量，测试注入。
+        platform: 平台名，测试注入。
 
     Returns:
         ``GELINSPECT_DATA_DIR``（设置了时）；否则仓库模式是仓库下的 ``data/``，
-        发布模式是平台标准位置。
+        Windows 发布模式是程序目录下的 ``data/``，其他平台发布模式使用平台标准位置。
     """
     env = os.environ if environ is None else environ
+    current = platform or sys.platform
     override = env.get(DATA_DIR_ENV)
     if override:
         return Path(override).expanduser().resolve()
     if (mode or run_mode()) is RunMode.PACKAGED:
-        return platform_data_dir(environ=env)
+        if current == "win32":
+            return app_root(RunMode.PACKAGED) / "data"
+        return platform_data_dir(platform=current, environ=env)
     return project_root() / "data"
+
+
+def validate_packaged_data_dir(
+    path: Path,
+    mode: RunMode | None = None,
+    platform: str | None = None,
+) -> Path:
+    """Windows发布包只允许把业务数据放在程序目录外或 ``data/`` 子树内。"""
+    target = path.expanduser().resolve()
+    if (mode or run_mode()) is not RunMode.PACKAGED or (platform or sys.platform) != "win32":
+        return target
+    root = app_root(RunMode.PACKAGED).resolve()
+    safe_root = (root / "data").resolve()
+    try:
+        target.relative_to(safe_root)
+    except ValueError as error:
+        try:
+            target.relative_to(root)
+        except ValueError:
+            return target
+        raise ValueError(
+            f"Windows发布包的数据目录不能位于程序资源目录中（data/除外）：{target}。"
+            "请选择程序目录外的可写文件夹。"
+        ) from error
+    return target
 
 
 def runtime_selection_file(mode: RunMode | None = None) -> Path:

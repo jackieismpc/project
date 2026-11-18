@@ -1,7 +1,7 @@
 """模拟设备：``DeviceController`` 的实现。
 
 模拟滑台、翻转、温度、舱门、连接和故障。设备动作的耗时按设备时间配置（秒），
-实际等待时间为 ``耗时 / time_scale``，默认加速 60 倍。时钟可以注入，测试用
+实际等待时间为 ``耗时 / time_scale``，默认加速 600 倍。时钟可以注入，测试用
 :class:`~simulation.clock.ManualClock`，等待只推进读数，不真实 ``sleep``。
 
 没有配置项的后端用 ``simulation.sim_device:SimDevice`` 无参构造。同一进程中最近创建的设备
@@ -46,7 +46,7 @@ class SimDevice:
         self,
         *,
         clock: Clock | None = None,
-        time_scale: float = 60.0,
+        time_scale: float = 600.0,
         tray_duration_s: float = 3.0,
         flip_duration_s: float = 6.0,
         settle_duration_s: float = 20.0,

@@ -426,10 +426,11 @@ class NewExperimentPage(QWidget):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
         row.addStretch(1)
-        actions = QVBoxLayout()
-        actions.setSpacing(8)
+        actions = QHBoxLayout()
+        actions.setSpacing(24)
         for button in (self.confirm_save_start, self.confirm_start):
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            button.setMinimumWidth(240)
             actions.addWidget(button)
         row.addLayout(actions, 0)
         layout.addLayout(row)
@@ -876,6 +877,49 @@ class NewExperimentPage(QWidget):
             tuple(draft.tube_numbers or ()),
         )
 
+    def _template_config_changed(self) -> bool:
+        """当前实际启动的管位和配置是否偏离来源模板。"""
+        template = self._draft.template
+        if template is None:
+            return False
+        active_rows = {row.tube_no: row for row in self._draft.rows if row.tube_no is not None}
+        if not active_rows:
+            return False
+        source_id = self._draft.source_template_id
+        if source_id is None:
+            # 空白配置没有可比较的来源模板，可另存为本次使用的新模板。
+            return template.template_id.startswith("draft.")
+        source = next(
+            (info.template for info in self._templates if info.template.template_id == source_id),
+            None,
+        )
+        if source is None:
+            return False
+        source_items = {item.tube_no: item for item in source.items}
+        if active_rows.keys() != source_items.keys():
+            return True
+        return source.experiment_type is not template.experiment_type or any(
+            row.name.strip() != source_items[tube_no].sample_name
+            or row.role is not source_items[tube_no].role
+            or row.dilution_factor != source_items[tube_no].dilution_factor
+            or row.lambda_multiple != source_items[tube_no].lambda_multiple
+            or (None if row.lambda_multiple is not None else row.spiked_endotoxin)
+            != (
+                None
+                if source_items[tube_no].lambda_multiple is not None
+                else source_items[tube_no].spiked_endotoxin
+            )
+            for tube_no, row in active_rows.items()
+        )
+
+    def _template_save_disabled_reason(self) -> str:
+        """说明另存模板当前不可用的原因。"""
+        if self._draft.template is None:
+            return self.tr("请先选择模板。")
+        if not any(row.tube_no is not None for row in self._draft.rows):
+            return self.tr("请先为试管分配管位再保存模板。")
+        return self.tr("当前配置与源模板相同，不能另存为模板。")
+
     def _save_template_and_start(self) -> None:
         """先另存当前启动配置，再用新模板记录创建并启动试验。"""
         if self._starting:
@@ -888,6 +932,10 @@ class NewExperimentPage(QWidget):
             or not self.can_start()
             or not session.can(Permission.TEMPLATE_MANAGE)
         ):
+            return
+        if not self._template_config_changed():
+            self._confirm_error = self._template_save_disabled_reason
+            self._render()
             return
         self.sample_table.commit_editor()
         try:
@@ -1656,13 +1704,19 @@ class NewExperimentPage(QWidget):
             and self._session.can(Permission.TEMPLATE_MANAGE)
             and allowed
             and not self._starting
-            and bool(self._draft.rows)
+            and self._template_config_changed()
         )
         self.confirm_save_start.setText(self.tr("保存模板并启动"))
         self.confirm_save_start.setEnabled(can_save)
-        self.confirm_save_start.setToolTip(
-            "" if can_save else self.tr("需要模板管理、创建和启动权限")
-        )
+        if can_save:
+            save_tip = ""
+        elif (
+            allowed and self._session is not None and self._session.can(Permission.TEMPLATE_MANAGE)
+        ):
+            save_tip = self._template_save_disabled_reason()
+        else:
+            save_tip = self.tr("需要模板管理、创建和启动权限")
+        self.confirm_save_start.setToolTip(save_tip)
         self.confirm_back.setEnabled(not self._starting)
 
     def _back_from_confirm(self) -> None:

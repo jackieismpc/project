@@ -9,9 +9,18 @@ from __future__ import annotations
 from datetime import datetime
 
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
-from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtGui import QFontMetrics, QResizeEvent
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QScrollArea,
+    QSizePolicy,
+    QStyle,
+    QStyleOptionButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from gelinspect.domain.permissions import Permission
 from gelinspect.services.app_services import AppServices
 from gelinspect.services.auth import AuthError, Session
 from gelinspect.services.dashboard_service import (
@@ -30,7 +39,7 @@ from gelinspect.ui.labels import (
 from gelinspect.ui.pages.monitor_format import experiment_title, status_badge, well_state
 from gelinspect.ui.theme.tokens import current_tokens
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
-from gelinspect.ui.widgets.button import Button, ButtonVariant
+from gelinspect.ui.widgets.button import Button
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
 from gelinspect.ui.widgets.label import Label
@@ -49,6 +58,46 @@ RUNNING_REFRESH_MS = 250
 
 def _local(value: datetime) -> str:
     return value.astimezone().strftime("%m-%d %H:%M")
+
+
+class _AttentionLinkButton(Button):
+    """按当前可用宽度截短待办链接，完整文字保留给辅助功能和提示。"""
+
+    def __init__(self, text: str) -> None:
+        self._full_text = text
+        super().__init__(text)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setAccessibleName(text)
+        self.setToolTip(text)
+        self._update_elided_text()
+
+    def available_text_width(self) -> int:
+        """当前按钮样式留给文字的宽度。"""
+        option = QStyleOptionButton()
+        option.initFrom(self)
+        content = self.style().subElementRect(QStyle.SubElement.SE_PushButtonContents, option, self)
+        padding = self.style().pixelMetric(QStyle.PixelMetric.PM_ButtonMargin, option, self)
+        return max(0, content.width() - 2 * padding)
+
+    def _update_elided_text(self) -> None:
+        text = QFontMetrics(self.font()).elidedText(
+            self._full_text, Qt.TextElideMode.ElideRight, self.available_text_width()
+        )
+        super().setText(text)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._update_elided_text()
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        super().changeEvent(event)
+        if event.type() in {
+            QEvent.Type.FontChange,
+            QEvent.Type.ApplicationFontChange,
+            QEvent.Type.StyleChange,
+        }:
+            self._update_elided_text()
 
 
 class DashboardPage(QWidget):
@@ -84,16 +133,7 @@ class DashboardPage(QWidget):
         self._timer.timeout.connect(self._refresh_running)
 
         self.setProperty("role", "root")
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(scroll.Shape.NoFrame)
-        outer.addWidget(scroll)
-        page = QWidget()
-        page.setProperty("role", "root")
-        scroll.setWidget(page)
-        col = QVBoxLayout(page)
+        col = QVBoxLayout(self)
         col.setContentsMargins(24, 20, 24, 28)
         col.setSpacing(14)
 
@@ -101,33 +141,34 @@ class DashboardPage(QWidget):
         top.setSpacing(12)
         self.title = Label("", "h1")
         self.instrument_label = Label("", "meta")
-        self.new_button = Button("", ButtonVariant.PRIMARY, icon="circle-plus")
-        self.new_button.clicked.connect(lambda: self.navigationRequested.emit("new"))
         top.addWidget(self.title)
         top.addWidget(self.instrument_label)
         top.addStretch(1)
-        top.addWidget(self.new_button)
         col.addLayout(top)
 
-        row1 = QHBoxLayout()
-        row1.setSpacing(14)
-        self.sparkline = Sparkline(compact=False)
+        self.sparkline = Sparkline(compact=True)
         self.temperature = ReadoutCard("", "--", "℃", sparkline=self.sparkline)
         self.temperature.body.addStretch(1)
-        row1.addWidget(self.temperature, 2)
         self.running_card = Card(" ")
         self.running_state = StatusBadge("", BadgeTone.INFO)
         self.running_id = Label("", "meta", mono=True)
+        self.running_id.setMinimumWidth(0)
+        self.running_id.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.running_title = Label("", "val")
         self.running_title.setWordWrap(True)
         self.running_rows = Label("", "meta")
-        self.mini_plate = MiniPlate()
+        self.running_rows.setWordWrap(True)
+        self.mini_plate = MiniPlate(compact=True)
         self.progress = ProgressBar()
         self.running_open = Button("")
         self.running_open.clicked.connect(lambda: self.navigationRequested.emit("monitor"))
         assert self.running_card.header is not None
         self.running_card.header.addWidget(self.running_id)
-        self.running_card.body.addWidget(self.running_state, 0, Qt.AlignmentFlag.AlignLeft)
+        running_actions = QHBoxLayout()
+        running_actions.addWidget(self.running_state, 0, Qt.AlignmentFlag.AlignLeft)
+        running_actions.addStretch(1)
+        running_actions.addWidget(self.running_open)
+        self.running_card.body.addLayout(running_actions)
         running_row = QHBoxLayout()
         running_row.setSpacing(16)
         running_row.addWidget(self.mini_plate, 0, Qt.AlignmentFlag.AlignTop)
@@ -138,29 +179,38 @@ class DashboardPage(QWidget):
         running_text.addStretch(1)
         running_row.addLayout(running_text, 1)
         self.running_card.body.addLayout(running_row)
-        self.running_card.body.addWidget(self.running_open, 0, Qt.AlignmentFlag.AlignLeft)
         self.running_empty = Label("", "meta")
         self.running_empty.setWordWrap(True)
         self.running_card.body.addWidget(self.running_empty)
         self.running_card.body.addStretch(1)
-        row1.addWidget(self.running_card, 1)
-        col.addLayout(row1)
-
-        row2 = QHBoxLayout()
-        row2.setSpacing(14)
         self.recent_card = Card(" ")
-        self.recent_table = DataTable(self._columns(), fit_content=True)
+        self.recent_table = DataTable(self._columns())
         self.recent_table.rowActivated.connect(self._on_recent_activated)
-        self.recent_card.body.addWidget(self.recent_table)
-        row2.addWidget(self.recent_card, 2)
+        self.recent_card.body.addWidget(self.recent_table, 1)
         self.attention_card = Card(" ")
-        self.attention_box = QVBoxLayout()
+        self.attention_scroll = QScrollArea()
+        self.attention_scroll.setWidgetResizable(True)
+        self.attention_scroll.setFrameShape(self.attention_scroll.Shape.NoFrame)
+        self.attention_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        attention_content = QWidget()
+        self.attention_box = QVBoxLayout(attention_content)
+        self.attention_box.setContentsMargins(0, 0, 0, 0)
         self.attention_box.setSpacing(10)
-        self.attention_card.body.addLayout(self.attention_box)
-        self.attention_card.body.addStretch(1)
-        row2.addWidget(self.attention_card, 1)
-        col.addLayout(row2)
-        col.addStretch(1)
+        self.attention_scroll.setWidget(attention_content)
+        self.attention_card.body.addWidget(self.attention_scroll, 1)
+        cards = QGridLayout()
+        cards.setContentsMargins(0, 0, 0, 0)
+        cards.setHorizontalSpacing(14)
+        cards.setVerticalSpacing(14)
+        cards.addWidget(self.temperature, 0, 0)
+        cards.addWidget(self.running_card, 0, 1)
+        cards.addWidget(self.recent_card, 1, 0)
+        cards.addWidget(self.attention_card, 1, 1)
+        cards.setColumnStretch(0, 2)
+        cards.setColumnStretch(1, 1)
+        cards.setRowStretch(0, 1)
+        cards.setRowStretch(1, 1)
+        col.addLayout(cards, 1)
         self.retranslate()
 
     # ------------------------------------------------------------------ 数据
@@ -268,8 +318,6 @@ class DashboardPage(QWidget):
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
         self.title.setText(self.tr("工作台"))
-        self.new_button.setText(self.tr("新建实验"))
-        self.new_button.setAccessibleName(self.tr("新建实验"))
         self.temperature.set_label(self.tr("检测室温度"))
         self.running_card.set_title(self.tr("进行中的实验"))
         self.running_open.setText(self.tr("打开监控"))
@@ -282,16 +330,10 @@ class DashboardPage(QWidget):
         self._render()
 
     def _render(self) -> None:
-        self._render_header()
         self._render_temperature()
         self._render_running()
         self._render_recent()
         self._render_attention()
-
-    def _render_header(self) -> None:
-        can_create = self._session is not None and self._session.can(Permission.EXPERIMENT_CREATE)
-        self.new_button.setEnabled(can_create)
-        self.new_button.setToolTip("" if can_create else self.tr("当前角色无此权限"))
 
     def _render_temperature(self) -> None:
         status = self._status
@@ -326,9 +368,11 @@ class DashboardPage(QWidget):
         self.running_empty.setVisible(not running)
         if view is None:
             self.running_id.setText("")
+            self.running_id.setToolTip("")
             self.running_empty.setText(self.tr("当前没有进行中的实验。"))
             return
         self.running_id.setText(view.experiment_id)
+        self.running_id.setToolTip(view.experiment_id)
         text, tone = status_badge(view)
         self.running_state.set_text(text)
         self.running_state.set_tone(tone)
@@ -403,10 +447,10 @@ class DashboardPage(QWidget):
         for entry in self._attention:
             role, text, target = self._attention_line(entry)
             if target is not None:
-                button = Button(text)
+                button = _AttentionLinkButton(text)
                 button.setProperty("role", "link")
                 button.clicked.connect(lambda _c=False, t=target: self.experimentRequested.emit(t))
-                self.attention_box.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+                self.attention_box.addWidget(button)
             else:
                 label = Label(text, role)
                 label.setWordWrap(True)

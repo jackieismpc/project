@@ -186,7 +186,6 @@ class ReportsPage(QWidget):
             empty_title="没有匹配的实验报告",
         )
         self.report_table.set_multi_select(True)
-        self.report_table.setMinimumHeight(400)
         column.addWidget(self.report_table, 1)
         result_row = QHBoxLayout()
         self.import_result = Label("", "body")
@@ -267,7 +266,6 @@ class ReportsPage(QWidget):
         self._printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         configure_printer(self._printer)
         self.preview_widget = QPrintPreviewWidget(self._printer)
-        self.preview_widget.setMinimumHeight(640)
         self.preview_widget.setMinimumWidth(420)
         self.preview_widget.setZoomMode(QPrintPreviewWidget.ZoomMode.FitToWidth)
         # “适应宽度”时滚动条一出现可用宽度就变小，重新适应后又不需要滚动条：来回震荡。

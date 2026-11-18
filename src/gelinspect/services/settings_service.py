@@ -42,7 +42,10 @@ from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.config import AppConfig, ConfigError, load_config
 from gelinspect.services.engine_types import EngineBusyError
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
-from gelinspect.services.runtime_paths import runtime_selection_file
+from gelinspect.services.runtime_paths import (
+    runtime_selection_file,
+    validate_packaged_data_dir,
+)
 from gelinspect.services.user_settings import (
     FIELD_NAMES,
     IMPACTING_FIELDS,
@@ -286,6 +289,17 @@ class InstrumentSettingsService:
                 "analysis_config_path": str(self._effective.analysis.config_path or ""),
             }
 
+    def runtime_selection_is_saved(self, selection: Mapping[str, str]) -> bool:
+        """判断路径是否已明确保存，区别于运行配置提供的临时默认值。"""
+        try:
+            raw = json.loads(self._runtime_selection_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return False
+        if not isinstance(raw, dict):
+            return False
+        keys = ("config_path", "data_dir", "analysis_config_path")
+        return {key: str(raw.get(key, "")) for key in keys} == {key: selection[key] for key in keys}
+
     def save_runtime_selection(
         self,
         session: Session | None,
@@ -306,12 +320,13 @@ class InstrumentSettingsService:
                 if data_dir.strip()
                 else self._effective.data_dir
             )
+            root = validate_packaged_data_dir(root)
             analyzer = (
                 Path(analysis_config_path).expanduser().resolve()
                 if analysis_config_path.strip()
                 else None
             )
-        except (OSError, RuntimeError) as error:
+        except (OSError, RuntimeError, ValueError) as error:
             raise ServiceError(
                 f"启动路径无效：{error}", ServiceErrorCode.SETTINGS_INVALID
             ) from error

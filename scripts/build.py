@@ -48,6 +48,7 @@ sys.path.insert(0, str(SRC))
 from gelinspect import __version__  # noqa: E402
 from gelinspect.infrastructure.security.integrity import (  # noqa: E402
     MANIFEST_FILE,
+    RUNTIME_DATA_DIRECTORY,
     SIGNATURE_FILE,
     build_manifest,
     verify_manifest,
@@ -349,6 +350,23 @@ def locate_dist(work: Path) -> tuple[Path, Path | None]:
     return dists[0], None
 
 
+def ensure_no_runtime_data(bundle: Path) -> None:
+    """拒绝覆盖包含运行期数据的旧发布目录。"""
+    data_dir = bundle / RUNTIME_DATA_DIRECTORY
+    if data_dir.is_symlink():
+        raise SystemExit(
+            f"构建已停止：发布目录包含数据目录符号链接 {data_dir}；请先备份并移出数据后重试。"
+        )
+    try:
+        has_data = data_dir.is_dir() and next(data_dir.iterdir(), None) is not None
+    except OSError as error:
+        raise SystemExit(f"构建已停止：无法检查旧发布目录的数据 {data_dir}：{error}") from error
+    if has_data:
+        raise SystemExit(
+            f"构建已停止：旧发布目录包含运行期数据 {data_dir}；请先备份并移出数据后重试。"
+        )
+
+
 # ---------------------------------------------------------------------- 数据文件
 
 
@@ -471,10 +489,12 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     base_name = f"GelInspect-{__version__}-{tag}"
     work = ROOT / "build" / "release"
     dist_dir = ROOT / "dist"
+    bundle = dist_dir / "GelInspect.app" if sys.platform == "darwin" else dist_dir / "GelInspect"
+    dist_dir.mkdir(exist_ok=True)
+    ensure_no_runtime_data(bundle)
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    dist_dir.mkdir(exist_ok=True)
     build_id = f"{datetime.now(UTC):%Y%m%d%H%M%S}-{git_revision()}"
     private_key, public_hex = manifest_key(
         args.manifest_key or os.environ.get("GELINSPECT_MANIFEST_KEY")
@@ -497,17 +517,21 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     install_data(app_dir, staging)
     components = write_notices(app_dir / "licenses")
     check_backend_included(app_dir, report)
+    ensure_no_runtime_data(app_dir)
 
     # 产物改名并移到 dist/
-    bundle = dist_dir / "GelInspect.app" if app_bundle is not None else dist_dir / "GelInspect"
     if bundle.exists():
+        # 编译期间旧程序仍可能被启动；删除前复核，避免误删新写入的数据。
+        ensure_no_runtime_data(bundle)
         shutil.rmtree(bundle)
     shutil.move(str(app_bundle or app_dir), str(bundle))
     previous_dir = app_dir
     app_dir = bundle / "Contents" / "MacOS" if app_bundle is not None else bundle
     nuitka_files = {app_dir / p.relative_to(previous_dir) for p in nuitka_files}
 
-    exclude = [executable_name()] if sys.platform == "darwin" else []
+    exclude = [RUNTIME_DATA_DIRECTORY]
+    if sys.platform == "darwin":
+        exclude.append(executable_name())
     count = build_manifest(
         app_dir,
         private_key,  # type: ignore[arg-type]

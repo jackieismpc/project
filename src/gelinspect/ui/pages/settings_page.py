@@ -11,15 +11,18 @@ from __future__ import annotations
 
 import logging
 import shutil
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QHideEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QGridLayout,
     QHBoxLayout,
     QLineEdit,
     QProgressDialog,
@@ -134,6 +137,8 @@ class SettingsPage(QWidget):
         self._view: SettingsView | None = None
         self._editable = False
         self._locked = False
+        self._loading_settings = False
+        self._saved_draft: SettingsDraft | None = None
         self._loading_appearance = False
         self._appearance_preferences = AppearancePreferences()
         self._preview_token: int | None = None
@@ -185,10 +190,11 @@ class SettingsPage(QWidget):
         work = QHBoxLayout(self.configuration_area)
         work.setContentsMargins(0, 0, 0, 0)
         work.setSpacing(14)
-        left = QVBoxLayout()
-        left.setSpacing(14)
-        right = QVBoxLayout()
-        right.setSpacing(14)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(14)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
 
         self.instrument_card = Card(" ")
         for name in ("instrument_no", "copyright_holder", "retention_days"):
@@ -199,12 +205,14 @@ class SettingsPage(QWidget):
         self.encrypt_hint.setWordWrap(True)
         self.instrument_card.body.addWidget(self.encrypt_box)
         self.instrument_card.body.addWidget(self.encrypt_hint)
-        left.addWidget(self.instrument_card)
+        self.instrument_card.body.addStretch(1)
+        grid.addWidget(self.instrument_card, 0, 0)
 
         self.run_card = Card(" ")
         for name in ("incubation_minutes",):
             self.run_card.body.addWidget(self.fields[name])
-        left.addWidget(self.run_card)
+        self.run_card.body.addStretch(1)
+        grid.addWidget(self.run_card, 1, 0)
 
         self.temperature_card = Card(" ")
         for name in ("temperature_target_c", "temperature_tolerance_c"):
@@ -212,8 +220,8 @@ class SettingsPage(QWidget):
         self.range_label = Label("", "body", mono=True)
         self.temperature_card.body.addWidget(self.range_label)
         self.temperature_card.body.addWidget(self.fields["temperature_hold_s"])
-        left.addWidget(self.temperature_card)
-        left.addStretch(1)
+        self.temperature_card.body.addStretch(1)
+        grid.addWidget(self.temperature_card, 2, 0)
 
         self.video_card = Card(" ")
         self.type_label = Label("", "lab")
@@ -247,7 +255,8 @@ class SettingsPage(QWidget):
         self.video_card.body.addLayout(probe_row)
         self.preview_view = VideoView(min_height=220, max_height=300)
         self.video_card.body.addWidget(self.preview_view)
-        right.addWidget(self.video_card)
+        self.video_card.body.addStretch(1)
+        grid.addWidget(self.video_card, 0, 1)
 
         self.runtime_card = Card(" ")
         self.runtime_paths: dict[str, QLineEdit] = {}
@@ -263,13 +272,12 @@ class SettingsPage(QWidget):
             self.runtime_paths[key] = edit
             self.runtime_browse[key] = button
             button.clicked.connect(lambda _checked=False, name=key: self.browse_runtime_path(name))
+            edit.editingFinished.connect(self.save_runtime_selection)
         self.runtime_hint = Label("", "meta")
         self.runtime_hint.setWordWrap(True)
         self.runtime_card.body.addWidget(self.runtime_hint)
-        self.runtime_save = Button("", ButtonVariant.PRIMARY)
-        self.runtime_card.body.addWidget(self.runtime_save)
-        self.runtime_save.clicked.connect(self.save_runtime_selection)
-        right.addWidget(self.runtime_card)
+        self.runtime_card.body.addStretch(1)
+        grid.addWidget(self.runtime_card, 1, 1)
 
         self.diagnostics_card = Card(" ")
         self.diagnostics_hint = Label("", "meta")
@@ -280,33 +288,29 @@ class SettingsPage(QWidget):
         self.diagnostics_button = Button("", ButtonVariant.SECONDARY)
         self.diagnostics_card.body.addWidget(self.diagnostics_hint)
         self.diagnostics_card.body.addWidget(self.diagnostics_button)
+        self.diagnostics_card.body.addStretch(1)
         self.diagnostics_button.clicked.connect(self.export_diagnostics)
-        right.addWidget(self.diagnostics_card)
-        right.addStretch(1)
+        grid.addWidget(self.diagnostics_card, 2, 1)
 
-        work.addLayout(left, 1)
-        work.addLayout(right, 1)
+        work.addLayout(grid)
         column.addWidget(self.configuration_area)
 
-        self.save_bar_area = QWidget(self)
-        bar = QHBoxLayout(self.save_bar_area)
-        bar.setContentsMargins(0, 0, 0, 0)
-        bar.setSpacing(8)
         self.save_message = Label("", "meta")
         self.save_message.setWordWrap(True)
-        self.revert_button = Button("")
-        self.save_button = Button("", ButtonVariant.PRIMARY)
-        bar.addWidget(self.save_message, 1)
-        bar.addWidget(self.revert_button)
-        bar.addWidget(self.save_button)
-        column.addWidget(self.save_bar_area)
+        grid.addWidget(self.save_message, 3, 0, 1, 2)
         column.addStretch(1)
 
-        self.type_box.currentIndexChanged.connect(self._on_type_changed)
+        for name in _TEXT_FIELDS:
+            self.fields[name].edit.editingFinished.connect(
+                lambda field=name: self._save_fields({field})
+            )
+        self.encrypt_box.toggled.connect(lambda _checked: self._save_fields({"encrypt_exports"}))
+        self.type_box.currentIndexChanged.connect(self._on_video_type_changed)
+        self.path_edit.editingFinished.connect(
+            lambda: self._save_fields({"video_input", "video_path"})
+        )
         self.browse_button.clicked.connect(self.browse)
         self.preview_button.clicked.connect(self.preview)
-        self.save_button.clicked.connect(self.save)
-        self.revert_button.clicked.connect(self.refresh)
         for name in ("temperature_target_c", "temperature_tolerance_c"):
             self.fields[name].edit.textChanged.connect(self._update_range)
         self.retranslate()
@@ -350,17 +354,20 @@ class SettingsPage(QWidget):
 
     def refresh(self) -> None:
         """重新读取生效的设置、后端信息，并预览当前视频源。"""
+        # 刷新失败、注销或切换账号时，不能让旧会话的输入成为下一会话的保存基线。
+        self._saved_draft = None
+        self._view = None
+        self._editable = False
+        self._locked = False
         session = self._session
         if session is None:
             self.personal_card.hide()
             self.configuration_area.hide()
-            self.save_bar_area.hide()
             return
         self.personal_card.show()
         self._load_appearance(session)
         can_view_settings = session.can(Permission.SETTINGS_VIEW)
         self.configuration_area.setVisible(can_view_settings)
-        self.save_bar_area.setVisible(can_view_settings)
         if not can_view_settings:
             # 普通账号仍能使用个人外观偏好；设备设置服务继续独立执行权限校验。
             self._view = None
@@ -373,11 +380,19 @@ class SettingsPage(QWidget):
             self._view = self._services.settings.current(session)
         except (AuthError, StorageBusyError) as error:
             self._fail(error)
+            self._apply_enabled()
             return
         view = self._view
         self._editable = session.can(Permission.INSTRUMENT_CONFIGURE)
         self._locked = view.running_experiment is not None
-        self._fill(SettingsDraft.from_settings(view.settings))
+        draft = SettingsDraft.from_settings(view.settings)
+        if self._editable:
+            self._saved_draft = draft
+        self._loading_settings = True
+        try:
+            self._fill(draft)
+        finally:
+            self._loading_settings = False
         self._clear_errors()
         self.save_message.setText("")
         self._fill_runtime_selection()
@@ -468,14 +483,19 @@ class SettingsPage(QWidget):
         return VideoInput(self.type_box.currentData())
 
     def set_video_input(self, kind: VideoInput, path: str = "") -> None:
-        """设置视频输入类型和路径（不保存）。
+        """更新视频输入控件；完整有效的选择会立即自动保存。
 
         Args:
             kind: 类型。
             path: 路径。
         """
+        self.type_box.blockSignals(True)
         self.type_box.setCurrentIndex(self.type_box.findData(kind.value))
+        self.type_box.blockSignals(False)
         self.path_edit.setText(path)
+        self._on_type_changed()
+        if kind is VideoInput.CONFIG or path.strip():
+            self._save_fields({"video_input", "video_path"})
 
     def _fill(self, draft: SettingsDraft) -> None:
         for name, field in self.fields.items():
@@ -514,9 +534,6 @@ class SettingsPage(QWidget):
         self.path_edit.setEnabled(video_enabled and self.video_input() is not VideoInput.CONFIG)
         self.browse_button.setEnabled(video_enabled and self.video_input() is not VideoInput.CONFIG)
         self.preview_button.setEnabled(editable and not self._previewing)
-        self.save_button.setEnabled(editable)
-        self.revert_button.setEnabled(editable)
-        self.runtime_save.setEnabled(editable and not self._locked)
         self.diagnostics_button.setEnabled(
             self._session is not None
             and self._session.can(Permission.DIAGNOSTICS_EXPORT)
@@ -574,34 +591,46 @@ class SettingsPage(QWidget):
         else:
             self.path_edit.setPlaceholderText(self.tr("图片文件夹的完整路径"))
 
+    def _on_video_type_changed(self) -> None:
+        self._on_type_changed()
+        if not self._loading_settings and (
+            self.video_input() is VideoInput.CONFIG or self.path_edit.text().strip()
+        ):
+            self._save_fields({"video_input", "video_path"})
+
     # ------------------------------------------------------------------ 保存
 
-    def save(self) -> bool:
-        """校验并保存；有不合法的项时逐项提示，什么都不保存。
-
-        Returns:
-            已保存（或没有改动）时为 True。
-        """
-        session = self._session
-        if session is None:
+    def _save_fields(self, names: set[str]) -> bool:
+        """只提交本次完成编辑的字段，避免半输入或无关草稿覆盖已保存值。"""
+        if self._loading_settings or not names:
             return False
-        self._clear_errors()
+        session = self._session
+        base = self._saved_draft
+        if session is None or base is None or not self._editable:
+            return False
+        # 温度目标与偏差、视频类型与路径彼此依赖，必须作为完整有效的一组提交。
+        if names & {"temperature_target_c", "temperature_tolerance_c"}:
+            names = names | {"temperature_target_c", "temperature_tolerance_c"}
+        if names & {"video_input", "video_path"}:
+            names = names | {"video_input", "video_path"}
+        self._clear_errors(names)
+        entered = self.draft()
+        candidate = replace(base, **{name: getattr(entered, name) for name in names})
+        if candidate == base:
+            return True
         try:
-            result = self._services.settings.save(session, self.draft())
+            result = self._services.settings.save(session, candidate)
         except SettingsError as error:
             self._show_problems(list(error.problems))
+            self.save_message.setText(self.tr("设置未保存，请修正标出的内容。"))
             return False
         except (AuthError, ServiceError, StorageBusyError) as error:
             self._fail(error)
             self.save_message.setText(self._error_text(error))
             return False
-        self.refresh()
-        if result.changed:
-            message = self.tr("设置已保存，对之后启动的实验生效。")
-            Toast.show_message(self.window(), message, ToastKind.SUCCESS)
-        else:
-            message = self.tr("没有改动。")
-        self.save_message.setText(message)
+        self._saved_draft = SettingsDraft.from_settings(result.settings)
+        self._apply_enabled()
+        self.save_message.setText(self.tr("本项已自动保存；对之后启动的实验生效。"))
         return True
 
     def _show_problems(self, problems: list[SettingsProblem]) -> None:
@@ -616,10 +645,39 @@ class SettingsPage(QWidget):
             self.tr("有 {count} 项设置不合法，没有保存。").format(count=len(problems))
         )
 
-    def _clear_errors(self) -> None:
-        for field in self.fields.values():
-            field.set_error("")
-        self.path_error.setVisible(False)
+    def _clear_errors(self, names: set[str] | None = None) -> None:
+        for name, field in self.fields.items():
+            if names is None or name in names:
+                field.set_error("")
+        if names is None or "video_path" in names:
+            self.path_error.setVisible(False)
+
+    def _save_pending_fields(self) -> None:
+        """页面离开前逐项提交已完成且有效的输入。"""
+        if self._session is None or not self._editable:
+            return
+        base = self._saved_draft
+        if base is None:
+            return
+        for name in _TEXT_FIELDS:
+            if getattr(self.draft(), name) != getattr(base, name):
+                self._save_fields({name})
+                if self._saved_draft is not None:
+                    base = self._saved_draft
+        if self.encrypt_box.isChecked() != base.encrypt_exports:
+            self._save_fields({"encrypt_exports"})
+            if self._saved_draft is not None:
+                base = self._saved_draft
+        if (self.video_input(), self.path_edit.text()) != (base.video_input, base.video_path):
+            self._save_fields({"video_input", "video_path"})
+        selection = self._services.settings.runtime_selection()
+        if any(edit.text() != selection[key] for key, edit in self.runtime_paths.items()):
+            self.save_runtime_selection()
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """离开设置页时保存已经完成编辑的有效值。"""
+        self._save_pending_fields()
+        super().hideEvent(event)
 
     # ------------------------------------------------------------------ 视频预览
 
@@ -638,6 +696,7 @@ class SettingsPage(QWidget):
             )
         if chosen:
             self.path_edit.setText(chosen)
+            self._save_fields({"video_input", "video_path"})
             self.preview()
 
     def browse_runtime_path(self, key: str) -> None:
@@ -654,22 +713,27 @@ class SettingsPage(QWidget):
             )
         if chosen:
             self.runtime_paths[key].setText(chosen)
+            self.save_runtime_selection()
 
     def save_runtime_selection(self) -> None:
-        """校验并暂存启动路径。"""
+        """校验并自动暂存启动路径。"""
         session = self._session
-        if session is None:
+        if self._loading_settings or session is None or not self._editable or self._locked:
+            return
+        values = {key: edit.text() for key, edit in self.runtime_paths.items()}
+        if (
+            values == self._services.settings.runtime_selection()
+            and self._services.settings.runtime_selection_is_saved(values)
+        ):
             return
         try:
-            self._services.settings.save_runtime_selection(
-                session, **{key: edit.text() for key, edit in self.runtime_paths.items()}
-            )
+            self._services.settings.save_runtime_selection(session, **values)
         except (AuthError, ServiceError, StorageBusyError) as error:
             detail = str(error) if isinstance(error, ServiceError) else self._error_text(error)
             self.save_message.setText(self.tr("启动配置无法保存：{reason}").format(reason=detail))
             return
         self.save_message.setText(
-            self.tr("已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。")
+            self.tr("已自动保存启动配置；关闭并重新启动后生效。现有数据不会移动或删除。")
         )
 
     def preview_current(self) -> None:
@@ -851,12 +915,12 @@ class SettingsPage(QWidget):
         for key, edit in self.runtime_paths.items():
             edit.setPlaceholderText(labels[key])
             self.runtime_browse[key].setText(self.tr("浏览…"))
-        self.runtime_hint.setText(
+        self.runtime_hint.setText(self.tr("路径选择后自动校验并保存；重启后生效。"))
+        self.runtime_hint.setToolTip(
             self.tr(
-                "仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。"
+                "只能选择有效的配置文件和已存在的数据目录。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。"
             )
         )
-        self.runtime_save.setText(self.tr("保存启动配置"))
         self.diagnostics_card.set_title(self.tr("诊断包"))
         self._refresh_diagnostics_hint()
         self.diagnostics_button.setText(self.tr("导出诊断包…"))
@@ -903,8 +967,6 @@ class SettingsPage(QWidget):
             self.type_box.setItemText(index, text)
         self.browse_button.setText(self.tr("浏览…"))
         self.preview_button.setText(self.tr("预览"))
-        self.revert_button.setText(self.tr("还原"))
-        self.save_button.setText(self.tr("保存设置"))
         self._on_type_changed()
         self._update_range()
         if self._view is not None:

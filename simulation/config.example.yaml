@@ -20,7 +20,7 @@ device:
 
 engine:
   incubation_minutes: 60
-  time_scale: 60          # 60 分钟孵育约 1 分钟跑完，与 SimDevice 的默认加速倍数一致
+  time_scale: 600         # 模拟环境 60 分钟约 6 秒；实际设备配置必须设为 1
 
 # 首次启动（数据库里还没有账号）时运行的初始化钩子：创建演示账号 admin / experimenter / analyst，
 # 密码见 simulation/demo_accounts.py，也显示在登录页的“演示账号”提示里。

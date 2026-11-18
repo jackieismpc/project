@@ -12,6 +12,7 @@ from PySide6.QtGui import Qt as GuiQt
 from PySide6.QtWidgets import (
     QAbstractButton,
     QApplication,
+    QGridLayout,
     QLabel,
     QLineEdit,
     QScrollArea,
@@ -19,12 +20,16 @@ from PySide6.QtWidgets import (
 )
 
 from gelinspect.app_context import AppContext
+from gelinspect.domain.enums import ExperimentType, ReagentKind
+from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.services.appearance_service import AppearancePreferences
+from gelinspect.services.dashboard_service import AttentionItem, AttentionKind
 from gelinspect.services.engine_types import TemperatureChanged
+from gelinspect.services.monitor_service import ExperimentView
 from gelinspect.ui.i18n import Language, LanguageManager
 from gelinspect.ui.main_window import MainWindow, Screen
 from gelinspect.ui.pages.auth_pages import ChangePasswordDialog
-from gelinspect.ui.pages.dashboard import DashboardPage
+from gelinspect.ui.pages.dashboard import DashboardPage, _AttentionLinkButton
 from gelinspect.ui.routes import PAGE_ROUTES
 from gelinspect.ui.theme.appearance import apply_appearance
 from gelinspect.ui.widgets.dialog import ConfirmDialog, ErrorDialog
@@ -160,25 +165,110 @@ def test_every_reachable_page_fits(
 
 
 @pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)
+@pytest.mark.parametrize("font_scale", ["system", "large"])
 def test_dashboard_with_data_fits(
     qapp: QApplication,
     window: MainWindow,
     app_context: AppContext,
     language: LanguageManager,
     lang: Language,
+    font_scale: str,
 ) -> None:
     from tests.services.engine_helpers import ready_experiment
     from tests.ui.conftest import wait_for
 
     use(window, language, lang, (1024, 700))
     sign_in(qapp, window, "experimenter")
-    for i in range(3):
-        app_context.database.experiments.save(ready_experiment(range(1, 9), f"EXP-LAYOUT-{i}"))
-    dashboard = window.page("dashboard")
-    assert isinstance(dashboard, DashboardPage)
-    dashboard.refresh()
-    assert wait_for(qapp, lambda: dashboard.recent_table.row_count() == 3)
-    assert overflow_report(window) == []
+    apply_appearance(qapp, AppearancePreferences(font_scale=font_scale))
+    try:
+        for i in range(12):
+            app_context.database.experiments.save(ready_experiment(range(1, 9), f"EXP-LAYOUT-{i}"))
+        dashboard = window.page("dashboard")
+        assert isinstance(dashboard, DashboardPage)
+        dashboard.refresh()
+        assert wait_for(qapp, lambda: dashboard.recent_table.row_count() == 8)
+        assert not hasattr(dashboard, "new_button")
+        assert dashboard.findChildren(QScrollArea) == [dashboard.attention_scroll]
+        dashboard_layout = dashboard.layout()
+        assert dashboard_layout is not None
+        cards_item = dashboard_layout.itemAt(1)
+        assert cards_item is not None
+        card_grid = cards_item.layout()
+        assert isinstance(card_grid, QGridLayout) and card_grid.count() == 4
+        assert dashboard.recent_table.view.verticalScrollBar().maximum() > 0
+        assert dashboard.mini_plate.height() < 156
+        assert dashboard.sparkline.minimumHeight() <= 60
+        assert dashboard.temperature.x() == dashboard.recent_card.x()
+        assert dashboard.running_card.x() == dashboard.attention_card.x()
+
+        dashboard_cards = (
+            dashboard.temperature,
+            dashboard.running_card,
+            dashboard.recent_card,
+            dashboard.attention_card,
+        )
+        empty_bounds = tuple(card.geometry() for card in dashboard_cards)
+        long_id = "EXP-REVIEW-" + "1234567890" * 6
+        review_item = AttentionItem(AttentionKind.REVIEW_PENDING, experiment_id=long_id, count=12)
+        dashboard._attention = [
+            review_item,
+            *[
+                AttentionItem(
+                    AttentionKind.REAGENT_EXPIRED,
+                    count=index + 1,
+                    label=ReagentKind.LAL_REAGENT,
+                    batch_no=f"BATCH-{index:02d}",
+                )
+                for index in range(12)
+            ],
+        ]
+        dashboard._render_attention()
+        settle(qapp)
+        assert dashboard.attention_scroll.verticalScrollBar().maximum() > 0
+        assert tuple(card.geometry() for card in dashboard_cards) == empty_bounds
+        review_item_widget = dashboard.attention_box.itemAt(0)
+        assert review_item_widget is not None
+        review_button = review_item_widget.widget()
+        assert isinstance(review_button, _AttentionLinkButton)
+        full_review_text = dashboard._attention_line(review_item)[1]
+        assert review_button.accessibleName() == full_review_text
+        assert review_button.toolTip() == full_review_text
+        assert review_button.text() != full_review_text
+        assert review_button.available_text_width() > 0
+        assert (
+            QFontMetrics(review_button.font()).horizontalAdvance(review_button.text())
+            <= review_button.available_text_width()
+        )
+
+        dashboard._running = ExperimentView(
+            experiment_id="EXP-DASHBOARD-RUNNING-000000000000",
+            experiment_type=ExperimentType.SENSITIVITY_CONFIRMATION,
+            template_name="灵敏度复核",
+            template_builtin=True,
+            state=ExperimentState.INCUBATING,
+            operator="operator",
+            operator_name="操作员",
+            instrument_no="GI-001",
+            created_at=datetime.now().astimezone(),
+            started_at=None,
+            reagent_batches={},
+            labeled_sensitivity=0.25,
+            tubes=(),
+            rows=(),
+            pending_review=(),
+            live=True,
+            fault_reason=None,
+            temperature_c=None,
+            last_elapsed_ms=None,
+            last_flip_angle_deg=None,
+            signed_by=None,
+        )
+        dashboard._render_running()
+        settle(qapp)
+        assert tuple(card.geometry() for card in dashboard_cards) == empty_bounds
+        assert overflow_report(window) == []
+    finally:
+        apply_appearance(qapp, AppearancePreferences())
 
 
 @pytest.mark.parametrize("lang", LANGUAGES, ids=lambda x: x.value)

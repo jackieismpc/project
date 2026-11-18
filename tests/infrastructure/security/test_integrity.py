@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -48,7 +50,51 @@ def test_untouched_release_passes(release: tuple[Path, Ed25519PrivateKey]) -> No
     report = verify_manifest(root, public_hex(key))
     assert report.status is IntegrityStatus.OK and report.ok and report.checked == 3
     document = json.loads((root / MANIFEST_FILE).read_text(encoding="utf-8"))
-    assert "variant" not in document and document["excluded"] == ["gelinspect-app"]
+    assert "variant" not in document and document["excluded"] == ["data", "gelinspect-app"]
+
+
+def test_runtime_data_is_excluded_and_directory_walk_is_pruned(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "GelInspect"
+    data_dir = root / "data"
+    (data_dir / "media").mkdir(parents=True)
+    (data_dir / "media" / "customer.mp4").write_bytes(b"video")
+    (data_dir / "customer.py").write_text("not program code", encoding="utf-8")
+    (root / "libpython.so").parent.mkdir(parents=True, exist_ok=True)
+    (root / "libpython.so").write_bytes(b"runtime")
+    key = Ed25519PrivateKey.generate()
+    original_walk = os.walk
+    visited_directories: list[str] = []
+
+    def tracking_walk(
+        top: str | os.PathLike[str],
+        topdown: bool = True,
+        onerror: Callable[[OSError], object] | None = None,
+        followlinks: bool = False,
+    ) -> Iterator[tuple[str, list[str], list[str]]]:
+        for current, directories, filenames in original_walk(
+            top, topdown=topdown, onerror=onerror, followlinks=followlinks
+        ):
+            relative = Path(current).relative_to(root)
+            visited_directories.append("" if relative == Path(".") else relative.as_posix())
+            yield current, directories, filenames
+
+    monkeypatch.setattr(os, "walk", tracking_walk)
+    build_manifest(root, key, version="0.1.0", build_id="b1")
+    document = json.loads((root / MANIFEST_FILE).read_text(encoding="utf-8"))
+    assert "data" in document["excluded"]
+    assert all(not name.startswith("data/") for name in document["files"])
+    assert "data" not in visited_directories
+
+    (data_dir / "added.exe").write_bytes(b"customer data")
+    report = verify_manifest(root, public_hex(key))
+    assert report.status is IntegrityStatus.OK
+
+    (root / "unexpected.py").write_text("program file", encoding="utf-8")
+    report = verify_manifest(root, public_hex(key))
+    assert report.status is IntegrityStatus.MISMATCH
+    assert report.added == ("unexpected.py",)
 
 
 def test_modified_missing_and_added_files_are_reported(

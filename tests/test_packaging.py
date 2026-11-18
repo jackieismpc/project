@@ -36,9 +36,11 @@ from gelinspect.services.runtime_paths import (
     default_data_dir,
     platform_data_dir,
     project_root,
+    validate_packaged_data_dir,
 )
 from gelinspect.services.video import VideoPipeline
 from gelinspect.startup import EXIT_OK, check_program_integrity, record_integrity
+from scripts.build import ensure_no_runtime_data
 
 ROOT = Path(__file__).parents[1]
 RELEASE_CONFIG = ROOT / "packaging" / "config" / "release.yaml"
@@ -103,13 +105,78 @@ def test_platform_data_directories(platform: str, environ: dict[str, str], expec
 
 def test_packaged_mode_uses_the_platform_directory_and_can_be_overridden(tmp_path: Path) -> None:
     environ = {"HOME": str(tmp_path)}
-    packaged = default_data_dir(RunMode.PACKAGED, environ)
-    assert packaged == platform_data_dir(environ=environ)
+    packaged = default_data_dir(RunMode.PACKAGED, environ, platform="darwin")
+    assert packaged == platform_data_dir(platform="darwin", environ=environ)
     assert ROOT not in packaged.parents
     override = default_data_dir(
-        RunMode.PACKAGED, {**environ, "GELINSPECT_DATA_DIR": str(tmp_path / "d")}
+        RunMode.PACKAGED,
+        {**environ, "GELINSPECT_DATA_DIR": str(tmp_path / "d")},
+        platform="darwin",
     )
     assert override == (tmp_path / "d").resolve()
+
+
+def test_packaged_windows_defaults_to_app_data_while_macos_keeps_platform_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = tmp_path / "Programs" / "GelInspect"
+    monkeypatch.setattr(runtime_paths, "app_root", lambda mode=None: app)
+    environ = {"HOME": str(tmp_path), "LOCALAPPDATA": str(tmp_path / "LocalAppData")}
+    assert default_data_dir(RunMode.PACKAGED, environ, platform="win32") == app / "data"
+    assert default_data_dir(RunMode.PACKAGED, environ, platform="darwin") == (
+        tmp_path / "Library" / "Application Support" / "GelInspect"
+    )
+    assert (
+        default_data_dir(
+            RunMode.PACKAGED,
+            {**environ, "GELINSPECT_DATA_DIR": str(tmp_path / "custom-data")},
+            platform="win32",
+        )
+        == (tmp_path / "custom-data").resolve()
+    )
+
+
+def test_packaged_windows_data_directory_cannot_overwrite_program_resources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = tmp_path / "Programs" / "GelInspect"
+    monkeypatch.setattr(runtime_paths, "app_root", lambda mode=None: app)
+    assert (
+        validate_packaged_data_dir(app / "data", RunMode.PACKAGED, platform="win32")
+        == (app / "data").resolve()
+    )
+    assert (
+        validate_packaged_data_dir(app / "data" / "customer", RunMode.PACKAGED, platform="win32")
+        == (app / "data" / "customer").resolve()
+    )
+    assert (
+        validate_packaged_data_dir(tmp_path / "external-data", RunMode.PACKAGED, platform="win32")
+        == (tmp_path / "external-data").resolve()
+    )
+    for unsafe in (app, app / "gelinspect", app / "translations"):
+        with pytest.raises(ValueError, match="程序资源目录"):
+            validate_packaged_data_dir(unsafe, RunMode.PACKAGED, platform="win32")
+
+
+def test_windows_packaged_data_startup_creates_writable_default_and_explains_denial(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = tmp_path / "Programs" / "GelInspect"
+    monkeypatch.setattr(runtime_paths, "app_root", lambda mode=None: app)
+    monkeypatch.setattr(runtime_paths, "run_mode", lambda: RunMode.PACKAGED)
+    monkeypatch.setattr(sys, "platform", "win32")
+    data_dir = startup._prepare_windows_packaged_data_dir(app / "data")
+    assert data_dir == app / "data" and data_dir.is_dir() and not list(data_dir.iterdir())
+    with pytest.raises(ConfigError, match="--data-dir"):
+        startup._prepare_windows_packaged_data_dir(app / "gelinspect")
+
+
+def test_inno_installer_lets_users_choose_user_install_dir_and_excludes_business_data() -> None:
+    installer = (ROOT / "packaging" / "windows" / "gelinspect.iss").read_text(encoding="utf-8")
+    assert "DefaultDirName={localappdata}\\Programs\\GelInspect" in installer
+    assert "DisableDirPage=no" in installer
+    assert 'Excludes: "data\\*"' in installer
+    assert "UninstallDelete" not in installer
 
 
 def fake_packaged(monkeypatch: pytest.MonkeyPatch, app: Path, data: Path) -> None:
@@ -152,6 +219,25 @@ def test_relative_data_dir_still_resolves_against_the_base_directory(tmp_path: P
 
 
 # ---------------------------------------------------------------- 发布包默认配置
+
+
+def test_build_refuses_to_remove_runtime_data_from_an_existing_bundle(tmp_path: Path) -> None:
+    bundle = tmp_path / "GelInspect"
+    data_dir = bundle / "data"
+    data_dir.mkdir(parents=True)
+    database = data_dir / "gelinspect.db"
+    database.write_bytes(b"customer database")
+
+    with pytest.raises(SystemExit, match="备份并移出数据"):
+        ensure_no_runtime_data(bundle)
+
+    assert database.read_bytes() == b"customer database"
+
+
+def test_build_allows_replacing_a_bundle_with_an_empty_data_directory(tmp_path: Path) -> None:
+    bundle = tmp_path / "GelInspect"
+    (bundle / "data").mkdir(parents=True)
+    ensure_no_runtime_data(bundle)
 
 
 def test_default_config_has_fixed_backends_and_initial_accounts(tmp_path: Path) -> None:

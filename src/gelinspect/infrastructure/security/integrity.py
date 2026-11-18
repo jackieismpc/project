@@ -8,6 +8,7 @@
 签名私钥只在构建机上（每次构建临时生成或由 ``GELINSPECT_MANIFEST_KEY`` 指定），
 公钥编译进主程序（``gelinspect._build_info``）。启动时重新计算清单里每个文件的哈希：
 文件被改动、缺失，或程序目录里多出可执行代码，都会被发现。
+程序目录下的 ``data/`` 是运行期用户数据，不进入发布包或完整性清单，遍历时会直接剪枝。
 
 局限：主程序本身携带公钥，替换整个主程序等于换掉了校验者，
 这一层防不住；macOS 上主程序在加入清单后会被重新做 ad-hoc 签名，所以主程序不在清单里，
@@ -20,6 +21,7 @@ import base64
 import binascii
 import hashlib
 import json
+import os
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -37,6 +39,9 @@ MANIFEST_FILE = "gelinspect-manifest.json"
 
 SIGNATURE_FILE = "gelinspect-manifest.sig"
 """签名文件名。"""
+
+RUNTIME_DATA_DIRECTORY = "data"
+"""程序目录下的运行期数据目录，不进入发布包或程序文件清单。"""
 
 MANIFEST_FORMAT = "gelinspect-manifest/1"
 """清单格式标识。"""
@@ -122,14 +127,37 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _walk(root: Path) -> Iterable[Path]:
-    for path in sorted(root.rglob("*")):
-        if path.is_symlink() or not path.is_file():
-            continue
-        relative = path.relative_to(root)
-        if _IGNORED_PARTS & set(relative.parts):
-            continue
-        yield path
+def _matches_exclusion(name: str, excluded: Iterable[str]) -> bool:
+    """判断相对路径是否命中排除项或其目录前缀。"""
+    return any(name == item or name.startswith(item.rstrip("/") + "/") for item in excluded)
+
+
+def _walk(root: Path, excluded: Iterable[str] = ()) -> Iterable[Path]:
+    """递归列出未排除的普通文件，并在目录层级剪枝。"""
+    for current, directories, filenames in os.walk(root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        relative_directory = current_path.relative_to(root)
+        directories[:] = sorted(
+            directory
+            for directory in directories
+            if directory not in _IGNORED_PARTS
+            and not (current_path / directory).is_symlink()
+            and not _matches_exclusion(
+                (relative_directory / directory).as_posix()
+                if relative_directory.parts
+                else directory,
+                excluded,
+            )
+        )
+        for filename in sorted(filenames):
+            path = current_path / filename
+            if path.is_symlink() or not path.is_file():
+                continue
+            relative = path.relative_to(root)
+            name = relative.as_posix()
+            if _IGNORED_PARTS & set(relative.parts) or _matches_exclusion(name, excluded):
+                continue
+            yield path
 
 
 def _relative(root: Path, path: Path) -> str:
@@ -151,21 +179,19 @@ def build_manifest(
         private_key: 签名私钥。
         version: 版本号。
         build_id: 构建标识。
-        exclude: 不进清单的相对路径（如 macOS 上会被重新签名的主程序），也可以是目录前缀。
+        exclude: 不进清单的相对路径（如 macOS 上会被重新签名的主程序），也可以是目录前缀；
+            ``data/`` 始终排除。
 
     Returns:
         清单里的文件数。
     """
-    excluded = {MANIFEST_FILE, SIGNATURE_FILE, *exclude}
-
-    def skipped(name: str) -> bool:
-        return any(name == item or name.startswith(item.rstrip("/") + "/") for item in excluded)
-
-    files = {
-        name: file_sha256(path)
-        for path in _walk(root)
-        if not skipped(name := _relative(root, path))
+    excluded = {
+        MANIFEST_FILE,
+        SIGNATURE_FILE,
+        RUNTIME_DATA_DIRECTORY,
+        *(str(item).rstrip("/") for item in exclude),
     }
+    files = {_relative(root, path): file_sha256(path) for path in _walk(root, excluded)}
     document = {
         "format": MANIFEST_FORMAT,
         "version": version,
@@ -208,24 +234,26 @@ def verify_manifest(root: Path, public_key_hex: str) -> IntegrityReport:
         return IntegrityReport(
             IntegrityStatus.BAD_SIGNATURE, "文件清单的签名不对：清单可能被改动或替换"
         )
+    skip = {MANIFEST_FILE, SIGNATURE_FILE, RUNTIME_DATA_DIRECTORY, *excluded}
     modified: list[str] = []
     missing: list[str] = []
+    checked = 0
     for name, expected in sorted(files.items()):
+        if _matches_exclusion(name, skip):
+            continue
+        checked += 1
         path = root / name
         if not path.is_file():
             missing.append(name)
         elif file_sha256(path) != expected:
             modified.append(name)
-    skip = {MANIFEST_FILE, SIGNATURE_FILE, *excluded}
 
     def listed(name: str) -> bool:
-        return name in files or any(
-            name == item or name.startswith(item.rstrip("/") + "/") for item in skip
-        )
+        return name in files or _matches_exclusion(name, skip)
 
     added = [
         name
-        for path in _walk(root)
+        for path in _walk(root, skip)
         if not listed(name := _relative(root, path)) and path.suffix.lower() in _CODE_SUFFIXES
     ]
     elapsed = time.perf_counter() - started
@@ -236,12 +264,12 @@ def verify_manifest(root: Path, public_key_hex: str) -> IntegrityReport:
             tuple(modified),
             tuple(missing),
             tuple(added),
-            len(files),
+            checked,
             elapsed,
         )
     return IntegrityReport(
         IntegrityStatus.OK,
-        f"程序文件与发布清单一致（{len(files)} 个文件）",
-        checked=len(files),
+        f"程序文件与发布清单一致（{checked} 个文件）",
+        checked=checked,
         elapsed_s=elapsed,
     )

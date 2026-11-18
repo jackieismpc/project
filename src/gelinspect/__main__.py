@@ -41,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--data-dir",
         type=Path,
         metavar="DIR",
-        help="数据目录（数据库、日志、密钥）；默认仓库下的 data/，发布包为平台标准位置",
+        help="数据目录（数据库、日志、密钥）；源码默认仓库 data/，Windows发布包默认程序目录 data/",
     )
     # 隐藏参数：不启动界面，打印运行模式、路径和程序完整性校验结果（打包验证、排错）。
     parser.add_argument("--diagnose", action="store_true", help=argparse.SUPPRESS)

@@ -641,10 +641,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>检测室温度</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2139,6 +2135,18 @@
     <message>
         <source>当前样品行与管位不一致，无法保存模板。</source>
         <translation>当前样品行与管位不一致，无法保存模板。</translation>
+    </message>
+    <message>
+        <source>请先选择模板。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>请先为试管分配管位再保存模板。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>当前配置与源模板相同，不能另存为模板。</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>输入新模板名称</source>
@@ -3782,7 +3790,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>没有改动。</source>
+        <source>本项已自动保存；对之后启动的实验生效。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3815,10 +3823,6 @@
     </message>
     <message>
         <source>启动配置无法保存：{reason}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3890,7 +3894,23 @@
         <translation>孵育</translation>
     </message>
     <message>
+        <source>路径选择后自动校验并保存；重启后生效。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>只能选择有效的配置文件和已存在的数据目录。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置未保存，请修正标出的内容。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已自动保存启动配置；关闭并重新启动后生效。现有数据不会移动或删除。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3899,10 +3919,6 @@
     </message>
     <message>
         <source>视频输入</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3970,10 +3986,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>设置已保存，对之后启动的实验生效。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>设置</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4018,10 +4030,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>保存启动配置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4035,14 +4043,6 @@
     </message>
     <message>
         <source>配置文件</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>还原</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>保存设置</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

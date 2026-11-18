@@ -38,6 +38,10 @@ def set_text(page: SettingsPage, name: str, text: str) -> None:
     page.fields[name].edit.setText(text)
 
 
+def finish_field(page: SettingsPage, name: str) -> None:
+    page.fields[name].edit.editingFinished.emit()
+
+
 def make_images(folder: Path, count: int = 3) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     for i in range(count):
@@ -183,8 +187,10 @@ def test_other_roles_see_a_read_only_page(
     assert page.personal_card.isVisibleTo(page)
     assert page.palette_box.isEnabled() and page.font_scale_box.isEnabled()
     assert not page.configuration_area.isVisibleTo(page)
-    assert not page.save_bar_area.isVisibleTo(page)
+    assert not hasattr(page, "save_button") and not hasattr(page, "revert_button")
+    assert not hasattr(page, "runtime_save")
     assert not page.previewing
+    assert page._saved_draft is None
     with pytest.raises(PermissionDeniedError):
         app_context.settings.current(window.session)
 
@@ -197,7 +203,8 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
     set_text(page, "temperature_target_c", "99")
     set_text(page, "retention_days", "1.5")
     set_text(page, "instrument_no", "  ")
-    assert page.save() is False
+    for name in ("incubation_minutes", "temperature_target_c", "retention_days", "instrument_no"):
+        finish_field(page, name)
     errors = {n: f.error.text() for n, f in page.fields.items() if f.error.isVisibleTo(page)}
     assert errors == {
         "incubation_minutes": "孵育时间（分钟）必须是数字，范围 0.1–1440",
@@ -205,7 +212,7 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
         "retention_days": "数据保留天数必须是整数，范围 1–36500",
         "instrument_no": "仪器编号不能为空",
     }
-    assert "4 项设置不合法，没有保存" in page.save_message.text()
+    assert "没有保存" in page.save_message.text()
     assert not settings_file(app_context.config.data_dir).exists()
     assert app_context.engine.config.incubation_minutes == 60
     # 改正后保存成功，错误提示消失
@@ -217,8 +224,26 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
     }
     for name, value in fixes.items():
         set_text(page, name, value)
-    assert page.save() is True
+        finish_field(page, name)
     assert not any(f.error.isVisibleTo(page) for f in page.fields.values())
+
+
+def test_valid_field_auto_saves_without_invalid_unrelated_draft_overwrite(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_settings(qapp, window)
+    page.type_box.setCurrentIndex(page.type_box.findData(VideoInput.FILE.value))
+    assert page.video_input() is VideoInput.FILE and page.path_edit.text() == ""
+    set_text(page, "incubation_minutes", "halfway")
+    page.fields["incubation_minutes"].edit.editingFinished.emit()
+    assert page.fields["incubation_minutes"].error.isVisibleTo(page)
+    set_text(page, "instrument_no", "GI-AUTO")
+    page.fields["instrument_no"].edit.editingFinished.emit()
+    assert app_context.experiments.instrument_no == "GI-AUTO"
+    assert app_context.engine.config.incubation_minutes == 60
+    assert page.fields["incubation_minutes"].edit.text() == "halfway"
+    assert "自动保存" in page.save_message.text()
+    assert app_context.config.video.source != VideoInput.FILE.value
 
 
 def test_a_bad_video_path_is_explained_next_to_the_path(
@@ -226,10 +251,9 @@ def test_a_bad_video_path_is_explained_next_to_the_path(
 ) -> None:
     page = open_settings(qapp, window)
     page.set_video_input(VideoInput.FILE, str(tmp_path / "missing.mp4"))
-    assert page.save() is False
     assert page.path_error.isVisibleTo(page) and "路径不存在" in page.path_error.text()
     page.set_video_input(VideoInput.IMAGES, str(tmp_path))
-    assert page.save() is False and "没有 JPG 或 PNG" in page.path_error.text()
+    assert "没有 JPG 或 PNG" in page.path_error.text()
 
 
 def test_save_persists_audits_and_applies_to_the_runtime(
@@ -245,13 +269,17 @@ def test_save_persists_audits_and_applies_to_the_runtime(
     page = window.page("settings")
     assert isinstance(page, SettingsPage)
     assert wait_for(qapp, lambda: not page.previewing)
-    set_text(page, "instrument_no", "GI-042")
-    set_text(page, "incubation_minutes", "45")
-    set_text(page, "temperature_hold_s", "120")
-    set_text(page, "retention_days", "90")
-    set_text(page, "copyright_holder", "厦门某某生物科技股份有限公司")
-    assert page.save() is True
-    assert "已保存" in page.save_message.text()
+    changes = {
+        "instrument_no": "GI-042",
+        "incubation_minutes": "45",
+        "temperature_hold_s": "120",
+        "retention_days": "90",
+        "copyright_holder": "厦门某某生物科技股份有限公司",
+    }
+    for name, value in changes.items():
+        set_text(page, name, value)
+        finish_field(page, name)
+    assert "本项已自动保存" in page.save_message.text()
     assert app_context.engine.config.incubation_minutes == 45
     assert app_context.experiments.instrument_no == "GI-042"
     assert app_context.reports.copyright_holder == "厦门某某生物科技股份有限公司"
@@ -262,20 +290,32 @@ def test_save_persists_audits_and_applies_to_the_runtime(
     events = app_context.database.audit.query(
         AuditQuery(action=AuditAction.SETTINGS_CHANGED), PageRequest()
     )
-    (detail,) = [r.event.detail for r in events.items]
-    assert "仪器编号 GI-001 → GI-042" in detail and "孵育时间（分钟） 60 → 45" in detail
-    # 切页再回来，显示的是保存后的值；保存没有改动时提示“没有改动”
+    details = [r.event.detail for r in events.items]
+    assert any("仪器编号 GI-001 → GI-042" in detail for detail in details)
+    assert any("孵育时间（分钟） 60 → 45" in detail for detail in details)
+    # 切页再回来，显示的是自动保存后的值。
     window.navigate("dashboard")
     window.navigate("settings")
     assert page.fields["instrument_no"].edit.text() == "GI-042"
-    assert page.save() is True and page.save_message.text() == "没有改动。"
 
 
-def test_revert_discards_unsaved_edits(qapp: QApplication, window: MainWindow) -> None:
+def test_refresh_discards_uncommitted_edit(qapp: QApplication, window: MainWindow) -> None:
     page = open_settings(qapp, window)
     set_text(page, "instrument_no", "NOT-SAVED")
-    page.revert_button.click()
+    page.refresh()
     assert page.fields["instrument_no"].edit.text() == "GI-001"
+
+
+def test_logout_clears_old_session_draft_before_page_hide(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_settings(qapp, window)
+    set_text(page, "instrument_no", "OLD-SESSION-DRAFT")
+    page.set_session(None)
+    assert page._saved_draft is None and not page.editable
+    page._save_pending_fields()
+    assert app_context.experiments.instrument_no == "GI-001"
+    assert not settings_file(app_context.config.data_dir).exists()
 
 
 def test_while_an_experiment_runs_only_the_non_impacting_fields_can_be_edited(
@@ -298,9 +338,10 @@ def test_while_an_experiment_runs_only_the_non_impacting_fields_can_be_edited(
         )
     assert not page.type_box.isEnabled() and not page.path_edit.isEnabled()
     set_text(page, "retention_days", "30")
-    assert page.save() is True  # 不影响运行的项仍可保存
+    finish_field(page, "retention_days")  # 不影响运行的项仍可保存
     set_text(page, "incubation_minutes", "10")  # 绕过置灰也会被服务层拒绝
-    assert page.save() is False and "正在运行" in page.save_message.text()
+    finish_field(page, "incubation_minutes")
+    assert "正在运行" in page.save_message.text()
     monkeypatch.undo()  # 关闭窗口时不能还“有试验在运行”，否则会弹出退出确认
 
 
@@ -316,7 +357,6 @@ def test_preview_a_chosen_image_folder_shows_resolution_and_frame_count_and_save
     assert page.probe_label.text().startswith("640×360") and "3 帧" in page.probe_label.text()
     image = page.preview_view.image()
     assert image is not None and (image.width(), image.height()) == (640, 360)
-    assert page.save() is True
     assert app_context.config.video.source == "images" and app_context.config.video.device == str(
         folder
     )

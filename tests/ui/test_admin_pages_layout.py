@@ -101,12 +101,17 @@ def test_users_and_settings_pages_fit_in_every_state(
     assert wait_for(qapp, lambda: not settings.previewing)
     assert overflow_report(window) == [], "设置（可编辑，预览当前视频源）"
     # 非法值：每项都出现错误提示
-    for name in ("incubation_minutes", "frames_per_side", "temperature_target_c", "retention_days"):
+    for name in (
+        "incubation_minutes",
+        "temperature_target_c",
+        "temperature_hold_s",
+        "retention_days",
+    ):
         settings.fields[name].edit.setText("abc")
+        settings.fields[name].edit.editingFinished.emit()
     settings.set_video_input(VideoInput.FILE, str(tmp_path_factory.mktemp("v") / "missing.mp4"))
-    assert not settings.save()
     settle(qapp)
-    assert overflow_report(window) == [], "设置（五项非法值的提示）"
+    assert overflow_report(window) == [], "设置（多项非法值的提示）"
 
     window.logout(confirm=False)
     sign_in(qapp, window, "analyst")

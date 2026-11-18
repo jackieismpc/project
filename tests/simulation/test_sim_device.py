@@ -36,7 +36,9 @@ def ready(
 
 
 def test_is_protocol_and_constructs_without_arguments() -> None:
-    assert isinstance(SimDevice(), DeviceController)
+    device = SimDevice()
+    assert isinstance(device, DeviceController)
+    assert device.time_scale == 600.0
 
 
 def test_status_when_disconnected_and_connected() -> None:

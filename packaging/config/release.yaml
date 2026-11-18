@@ -12,7 +12,7 @@ device:
   backend: simulation.sim_device:SimDevice
 engine:
   incubation_minutes: 60
-  time_scale: 60
+  time_scale: 600 # 模拟环境加速；真实设备配置必须设为 1
 bootstrap:
   hook: simulation.demo_accounts:DemoAccounts
 traceability:

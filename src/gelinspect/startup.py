@@ -55,6 +55,7 @@ from gelinspect.services.runtime_paths import (
     default_data_dir,
     run_mode,
     runtime_selection_file,
+    validate_packaged_data_dir,
 )
 
 EXIT_OK = 0
@@ -283,6 +284,23 @@ def _start_logging(log_dir: Path) -> Path | None:
             return None
 
 
+def _prepare_windows_packaged_data_dir(path: Path) -> Path:
+    """创建并检查Windows发布包数据目录，禁止静默切换到别的目录。"""
+    try:
+        target = validate_packaged_data_dir(path)
+        target.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(prefix=".gelinspect-write-check-", dir=target):
+            pass
+    except (OSError, ValueError) as error:
+        raise ConfigError(
+            f"Windows发布包无法写入业务数据目录 {path}：{error}。"
+            "请在安装向导选择当前用户可写的程序安装目录，或通过 --data-dir "
+            "或 GELINSPECT_DATA_DIR 指定可写的数据目录后重启。"
+            "程序不会自动切换数据位置，也不会移动或删除已有数据。"
+        ) from error
+    return target
+
+
 def run_gui(
     *,
     config_path: Path | None = None,
@@ -320,6 +338,9 @@ def run_gui(
         config = load_config(config_path)
         if data_dir is not None:
             config = config.model_copy(update={"data_dir": data_dir})
+        if run_mode() is RunMode.PACKAGED and sys.platform == "win32":
+            prepared_data_dir = _prepare_windows_packaged_data_dir(config.data_dir)
+            config = config.model_copy(update={"data_dir": prepared_data_dir})
         if selected_analysis_config is not None:
             if not selected_analysis_config.is_file():
                 raise ConfigError(f"算法配置文件不存在：{selected_analysis_config}")

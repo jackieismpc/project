@@ -501,6 +501,26 @@ def test_runtime_path_selection_is_authorized_validated_and_persisted(
     assert "修改启动配置路径" in audit_lines(context)[-1]
 
 
+def test_explicitly_saving_effective_runtime_paths_persists_them_without_prior_selection(
+    context: AppContext, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selection = tmp_path / "stable" / "runtime-selection.json"
+    monkeypatch.setattr(context.settings, "_runtime_selection_path", selection)
+    effective = context.config
+    values = {
+        "config_path": "",
+        "data_dir": str(effective.data_dir),
+        "analysis_config_path": str(effective.analysis.config_path or ""),
+    }
+    assert context.settings.runtime_selection() == values
+    assert not context.settings.runtime_selection_is_saved(values)
+
+    context.settings.save_runtime_selection(admin(context), **values)
+
+    assert selection.is_file()
+    assert context.settings.runtime_selection_is_saved(values)
+
+
 def test_runtime_path_selection_rejects_bad_paths_and_running_experiment(
     context: AppContext, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

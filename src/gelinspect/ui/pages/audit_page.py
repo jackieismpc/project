@@ -153,7 +153,6 @@ class AuditPage(QWidget):
 
         self.card = Card()
         self.table = DataTable(self._columns())
-        self.table.setMinimumHeight(360)
         self.pager = Pager()
         self.card.body.addWidget(self.table, 1)
         self.card.body.addWidget(self.pager)

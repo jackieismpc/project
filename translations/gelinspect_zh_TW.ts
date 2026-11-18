@@ -641,10 +641,6 @@
         <translation>工作台</translation>
     </message>
     <message>
-        <source>新建实验</source>
-        <translation>新增實驗</translation>
-    </message>
-    <message>
         <source>检测室温度</source>
         <translation>檢測室溫度</translation>
     </message>
@@ -2139,6 +2135,18 @@
     <message>
         <source>当前样品行与管位不一致，无法保存模板。</source>
         <translation>樣品列與管位不一致，無法儲存範本。</translation>
+    </message>
+    <message>
+        <source>请先选择模板。</source>
+        <translation>請先選擇範本。</translation>
+    </message>
+    <message>
+        <source>请先为试管分配管位再保存模板。</source>
+        <translation>請先為試管指派管位，再儲存範本。</translation>
+    </message>
+    <message>
+        <source>当前配置与源模板相同，不能另存为模板。</source>
+        <translation>目前設定與來源範本相同，無法另存為範本。</translation>
     </message>
     <message>
         <source>输入新模板名称</source>
@@ -3782,8 +3790,8 @@
         <translation>圖片資料夾的完整路徑</translation>
     </message>
     <message>
-        <source>没有改动。</source>
-        <translation>沒有改動。</translation>
+        <source>本项已自动保存；对之后启动的实验生效。</source>
+        <translation>此項設定已自動儲存；套用至之後啟動的實驗。</translation>
     </message>
     <message>
         <source>有 {count} 项设置不合法，没有保存。</source>
@@ -3816,10 +3824,6 @@
     <message>
         <source>启动配置无法保存：{reason}</source>
         <translation>無法儲存啟動設定：{reason}</translation>
-    </message>
-    <message>
-        <source>已保存启动配置，关闭并重新启动后生效。现有数据不会移动或删除。</source>
-        <translation>已儲存啟動設定，關閉並重新啟動後生效。現有資料不會移動或刪除。</translation>
     </message>
     <message>
         <source>正在读取……</source>
@@ -3890,8 +3894,24 @@
         <translation>孵育</translation>
     </message>
     <message>
+        <source>路径选择后自动校验并保存；重启后生效。</source>
+        <translation>選擇路徑後會自動驗證並儲存；重新啟動後生效。</translation>
+    </message>
+    <message>
+        <source>只能选择有效的配置文件和已存在的数据目录。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation>僅能選擇有效的設定檔與既有資料目錄。切換資料目錄不會搬移或刪除現有資料；原目錄會保留。實驗執行期間無法切換。</translation>
+    </message>
+    <message>
         <source>仪器与数据</source>
         <translation>儀器與資料</translation>
+    </message>
+    <message>
+        <source>设置未保存，请修正标出的内容。</source>
+        <translation>設定未儲存，請修正標示的內容。</translation>
+    </message>
+    <message>
+        <source>已自动保存启动配置；关闭并重新启动后生效。现有数据不会移动或删除。</source>
+        <translation>已自動儲存啟動設定；關閉並重新啟動後生效。現有資料不會移動或刪除。</translation>
     </message>
     <message>
         <source>温度</source>
@@ -3900,10 +3920,6 @@
     <message>
         <source>视频输入</source>
         <translation>影片輸入</translation>
-    </message>
-    <message>
-        <source>仅能选择文件和目录；配置会先校验，保存后重启生效。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
-        <translation>僅可選擇檔案與目錄；設定會先經過驗證，儲存後重新啟動生效。切換資料目錄不會搬動或刪除現有資料；原目錄會保留。實驗進行中無法切換。</translation>
     </message>
     <message>
         <source>诊断包</source>
@@ -3970,10 +3986,6 @@
         <translation>實驗 {id} 正在執行</translation>
     </message>
     <message>
-        <source>设置已保存，对之后启动的实验生效。</source>
-        <translation>設定已儲存，對之後啟動的實驗生效。</translation>
-    </message>
-    <message>
         <source>设置</source>
         <translation>設定</translation>
     </message>
@@ -4018,10 +4030,6 @@
         <translation>檢測設定檔（選填）</translation>
     </message>
     <message>
-        <source>保存启动配置</source>
-        <translation>儲存啟動設定</translation>
-    </message>
-    <message>
         <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
         <translation>留白表示不自動刪除（預設）。目前版本不會自動刪除資料。</translation>
     </message>
@@ -4036,14 +4044,6 @@
     <message>
         <source>配置文件</source>
         <translation>設定檔</translation>
-    </message>
-    <message>
-        <source>还原</source>
-        <translation>還原</translation>
-    </message>
-    <message>
-        <source>保存设置</source>
-        <translation>儲存設定</translation>
     </message>
 </context>
 <context>

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 from PySide6.QtCore import QItemSelectionModel, QPoint, Qt
 from PySide6.QtGui import QContextMenuEvent
@@ -9,7 +11,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QLineEdit, QMenu
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind
+from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind, TubeRole
 from gelinspect.domain.plate import (
     HOLES_PER_ROW,
     ROW_COUNT,
@@ -989,6 +991,94 @@ def test_saved_launch_permission_requires_template_management(
     page.deleteLater()
 
 
+def test_save_template_button_requires_effective_template_changes(
+    qapp: QApplication,
+    window: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    page._draft.choose_template(LIMIT)
+    page._show_step(STEP_CONFIRM)
+    assert not page.confirm_save_start.isEnabled()
+
+    page._draft.rows[0].batch_no = "BATCH-ONLY"
+    page._draft.sort_rows("tube_no", reverse=True)
+    page._render()
+    assert not page.confirm_save_start.isEnabled()
+
+    calls: list[TemplateDraft] = []
+    monkeypatch.setattr(
+        page._services.templates,
+        "create_template",
+        lambda _session, draft: calls.append(draft),
+    )
+    page._save_template_and_start()
+    assert not calls and page._created_id is None
+
+    page._draft.rows[0].name = "更改样品名"
+    page._render()
+    assert page.confirm_save_start.isEnabled()
+
+    blank_draft = replace(LIMIT, template_id="draft.blank-configuration")
+    page._draft.choose_template(blank_draft)
+    page._render()
+    assert page.confirm_save_start.isEnabled()
+    page._draft.clear_selection()
+    page._render()
+    assert not page.confirm_save_start.isEnabled()
+
+
+def test_save_template_change_detection_uses_effective_values_not_row_order(
+    qapp: QApplication, window: MainWindow
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    page._draft.choose_template(LIMIT)
+    row = next(item for item in page._draft.rows if item.sequence_no == 1)
+    assert not page._template_config_changed()
+
+    page._draft.sort_rows("tube_no", reverse=True)
+    assert not page._template_config_changed()
+    page._draft.sort_rows("sequence_no")
+
+    original_name = row.name
+    row.name = "不同样品"
+    assert page._template_config_changed()
+    row.name = original_name
+    assert not page._template_config_changed()
+
+    row.role = TubeRole.NEGATIVE_CONTROL
+    assert page._template_config_changed()
+    row.role = LIMIT.items[0].role
+    row.dilution_factor = 9.0
+    assert page._template_config_changed()
+    row.dilution_factor = LIMIT.items[0].dilution_factor
+    row.spiked_endotoxin = 0.9
+    assert page._template_config_changed()
+    row.spiked_endotoxin = LIMIT.items[0].spiked_endotoxin
+    row.lambda_multiple = 0.5
+    assert page._template_config_changed()
+    row.lambda_multiple = LIMIT.items[0].lambda_multiple
+    row.spiked_endotoxin = LIMIT.items[0].spiked_endotoxin
+    row.tube_no = 9
+    assert page._template_config_changed()
+    row.tube_no = LIMIT.items[0].tube_no
+    assert not page._template_config_changed()
+
+    page._draft.add_row(name="未绑定行")
+    assert not page._template_config_changed()
+
+    page._draft.remove_row(row.row_id)
+    page._draft.add_row(
+        name=LIMIT.items[0].sample_name,
+        role=LIMIT.items[0].role,
+        tube_no=LIMIT.items[0].tube_no,
+    )
+    assert not page._template_config_changed()
+
+    page._draft.choose_template(replace(LIMIT, experiment_type=ExperimentType.GENERAL))
+    assert page._template_config_changed()
+
+
 def test_abandon_failure_keeps_confirm_draft_and_blocks_back_navigation(
     qapp: QApplication,
     window: MainWindow,
@@ -1042,9 +1132,10 @@ def test_confirm_actions_are_grouped_on_the_right_at_common_window_widths(
             save_pos = page.confirm_save_start.mapTo(page, QPoint(0, 0))
             start_pos = page.confirm_start.mapTo(page, QPoint(0, 0))
             assert back_x < save_pos.x()
-            assert save_pos.x() == start_pos.x()
-            assert page.confirm_save_start.width() == page.confirm_start.width()
-            assert save_pos.y() + page.confirm_save_start.height() < start_pos.y()
+            assert save_pos.y() == start_pos.y()
+            assert save_pos.x() + page.confirm_save_start.width() + 24 <= start_pos.x()
+            assert page.confirm_save_start.width() >= page.confirm_save_start.sizeHint().width()
+            assert page.confirm_start.width() >= page.confirm_start.sizeHint().width()
             assert start_pos.x() + page.confirm_start.width() <= page.width()
     finally:
         apply_appearance(qapp, AppearancePreferences())

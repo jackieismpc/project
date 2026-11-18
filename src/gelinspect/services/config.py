@@ -63,7 +63,8 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
         "fps": 15,
     },
     "device": {"backend": "simulation.sim_device:SimDevice"},
-    "engine": {"incubation_minutes": 60, "time_scale": 60},
+    # 仅模拟设备加速；实际设备配置必须将 time_scale 设为 1。
+    "engine": {"incubation_minutes": 60, "time_scale": 600},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
     "traceability": {
         "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},

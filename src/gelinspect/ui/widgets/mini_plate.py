@@ -14,21 +14,26 @@ from gelinspect.ui.widgets.marks import WellState, paint_well, state_label
 
 _DOT = 16
 _GAP = 4
+_COMPACT_DOT = 10
+_COMPACT_GAP = 3
 
 
 class MiniPlate(QWidget):
     """不可交互的孔板缩略图。"""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, compact: bool = False) -> None:
         """创建缩略图。
 
         Args:
             parent: 父控件。
+            compact: 是否使用工作台紧凑尺寸。
         """
         super().__init__(parent)
         self._states: dict[int, WellState] = {}
-        width = ROW_COUNT * _DOT + (ROW_COUNT - 1) * _GAP
-        height = HOLES_PER_ROW * _DOT + (HOLES_PER_ROW - 1) * _GAP
+        self._dot = _COMPACT_DOT if compact else _DOT
+        self._gap = _COMPACT_GAP if compact else _GAP
+        width = ROW_COUNT * self._dot + (ROW_COUNT - 1) * self._gap
+        height = HOLES_PER_ROW * self._dot + (HOLES_PER_ROW - 1) * self._gap
         self.setFixedSize(QSize(width, height))
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
@@ -70,10 +75,10 @@ class MiniPlate(QWidget):
         for tube_no in range(1, TUBE_COUNT + 1):
             pos = tube_to_position(tube_no)
             rect = QRectF(
-                (pos.row_index - 1) * (_DOT + _GAP),
-                (pos.hole_index - 1) * (_DOT + _GAP),
-                _DOT,
-                _DOT,
+                (pos.row_index - 1) * (self._dot + self._gap),
+                (pos.hole_index - 1) * (self._dot + self._gap),
+                self._dot,
+                self._dot,
             )
             paint_well(p, rect, self.state(tube_no), tokens)
         p.end()
