@@ -206,6 +206,11 @@ def test_completed_experiment_can_be_saved_as_a_new_sparse_template(
     page = fast_window.page("monitor")
     assert isinstance(page, MonitorPage)
     assert page.save_template_button.isVisibleTo(page)
+    assert page.save_template_button.parentWidget() is page.report_open.parentWidget()
+    assert (
+        page.save_template_button.geometry().center().y()
+        == page.report_open.geometry().center().y()
+    )
 
     captured: list[TemplateEditorDialog] = []
 

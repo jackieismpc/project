@@ -1,4 +1,4 @@
-"""监控页的真实报告预览：按需排版，支持全部页面和逐页查看。"""
+"""监控页的真实报告预览：按需排版并显示完整分页。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import logging
 
 from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtPrintSupport import QPrinter, QPrintPreviewWidget
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from gelinspect.interfaces.storage import StorageBusyError
 from gelinspect.services.auth import AuthError, Session
@@ -44,16 +44,7 @@ class MonitorReportPreview(QWidget):
         configure_printer(self._printer)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        toolbar = QHBoxLayout()
-        self.overview_button = Button("")
-        self.pages = QComboBox()
-        self.pages.setMinimumHeight(44)
-        self.refresh_button = Button("")
-        toolbar.addWidget(self.overview_button)
-        toolbar.addWidget(self.pages)
-        toolbar.addStretch(1)
-        toolbar.addWidget(self.refresh_button)
-        layout.addLayout(toolbar)
+        self.refresh_button = Button("", parent=self)
         self.message = Label("", "meta")
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
@@ -67,8 +58,6 @@ class MonitorReportPreview(QWidget):
         self._timer.setInterval(150)
         self._timer.timeout.connect(self.refresh)
         self.refresh_button.clicked.connect(self.refresh)
-        self.overview_button.clicked.connect(self._overview)
-        self.pages.activated.connect(self._select_page)
         self.retranslate()
         self.clear()
 
@@ -77,9 +66,6 @@ class MonitorReportPreview(QWidget):
         self._timer.stop()
         self.current_preview = None
         self.preview_widget.hide()
-        self.pages.clear()
-        self.pages.setEnabled(False)
-        self.overview_button.setEnabled(False)
         self.message.clear()
 
     def set_context(
@@ -139,11 +125,8 @@ class MonitorReportPreview(QWidget):
             total = self.preview_widget.pageCount()
             if total < 1:
                 raise RuntimeError("report preview returned no pages")
-            for page in range(1, total + 1):
-                self.pages.addItem(self.tr("第 {page} 页").format(page=page), page)
-            self.pages.setEnabled(True)
-            self.overview_button.setEnabled(True)
-            self._overview()
+            self.preview_widget.setViewMode(QPrintPreviewWidget.ViewMode.AllPagesView)
+            self.preview_widget.setZoomMode(QPrintPreviewWidget.ZoomMode.FitInView)
             self.preview_widget.show()
         except (AuthError, ServiceError, StorageBusyError) as error:
             _log.warning(
@@ -184,22 +167,9 @@ class MonitorReportPreview(QWidget):
         self.preview_widget.hide()
         self.message.setText(self.tr("报告预览暂时无法显示，请点击“刷新预览”重试。"))
 
-    def _overview(self) -> None:
-        self.preview_widget.setViewMode(QPrintPreviewWidget.ViewMode.AllPagesView)
-        self.preview_widget.setZoomMode(QPrintPreviewWidget.ZoomMode.FitInView)
-
-    def _select_page(self, index: int) -> None:
-        page = self.pages.itemData(index)
-        if page is not None and self.current_preview is not None:
-            self.preview_widget.setViewMode(QPrintPreviewWidget.ViewMode.SinglePageView)
-            self.preview_widget.setCurrentPage(int(page))
-            self.preview_widget.setZoomMode(QPrintPreviewWidget.ZoomMode.FitInView)
-
     def retranslate(self) -> None:
         """刷新预览操作文字。"""
-        self.overview_button.setText(self.tr("全部页面"))
         self.refresh_button.setText(self.tr("刷新预览"))
-        self.pages.setAccessibleName(self.tr("选择报告页码"))
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802
         """处理界面语言切换。"""

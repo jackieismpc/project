@@ -1826,23 +1826,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>第 {page} 页</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>报告预览暂时无法显示，请点击“刷新预览”重试。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>全部页面</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>刷新预览</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>选择报告页码</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

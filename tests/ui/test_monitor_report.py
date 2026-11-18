@@ -65,17 +65,11 @@ def test_preview_is_real_paginated_and_matches_report_center(
     assert pane.current_preview is not None
     assert pane.current_preview.digest == app_context.reports.preview(session, experiment_id).digest
     count = pane.preview_widget.pageCount()
-    assert pane.pages.count() == count
     assert count >= (3 if tubes == 96 else 1)
+    assert not hasattr(pane, "pages") and not hasattr(pane, "overview_button")
     assert pane.preview_widget.isVisible()
     assert pane.preview_widget.viewMode() == QPrintPreviewWidget.ViewMode.AllPagesView
-    pane._select_page(count - 1)
-    assert pane.preview_widget.currentPage() == count
-    assert pane.preview_widget.viewMode() == QPrintPreviewWidget.ViewMode.SinglePageView
-    pane.overview_button.click()
-    assert pane.preview_widget.viewMode() == QPrintPreviewWidget.ViewMode.AllPagesView
     # 检查实际纸面区域有文字笔画，不能仅断言pageCount存在。
-    pane._select_page(0)
     settle(qapp)
     view = pane.preview_widget.findChild(QGraphicsView)
     assert view is not None
@@ -112,7 +106,7 @@ def test_switch_language_experiment_and_logout_clear_old_content(
     assert pane.current_preview is None and pane.message.text()
     pane.set_context(None, None, None)
     pane.refresh()
-    assert pane.current_preview is None and pane.pages.count() == 0
+    assert pane.current_preview is None
 
 
 def test_paint_failure_is_logged_and_retry_recovers(
@@ -133,7 +127,7 @@ def test_paint_failure_is_logged_and_retry_recovers(
     monkeypatch.setattr(app_context.reports, "paint", broken)
     pane.set_active(True)
     assert pane.current_preview is None
-    assert pane.preview_widget.isHidden() and pane.pages.count() == 0
+    assert pane.preview_widget.isHidden()
     assert "刷新预览" in pane.message.text()
     assert "REPORT_PREVIEW_PAINT_FAILED" in caplog.text
     assert "injected paint failure" in caplog.text
@@ -141,7 +135,7 @@ def test_paint_failure_is_logged_and_retry_recovers(
     monkeypatch.setattr(app_context.reports, "paint", original)
     pane.refresh_button.click()
     assert pane.current_preview is not None
-    assert not pane.preview_widget.isHidden() and pane.pages.count() > 0
+    assert not pane.preview_widget.isHidden() and pane.preview_widget.pageCount() > 0
     assert not pane.message.text()
 
 
@@ -156,7 +150,7 @@ def test_failed_load_does_not_keep_old_preview(qtbot: QtBot, app_context: AppCon
     app_context.auth.logout(session)
     pane.set_active(True)
     assert pane.current_preview is None
-    assert pane.preview_widget.isHidden() and pane.pages.count() == 0
+    assert pane.preview_widget.isHidden()
     assert pane.message.text()
 
 
@@ -205,4 +199,11 @@ def test_monitor_report_layout_and_language(
     settle(qapp)
     assert monitor.report_preview.current_preview is not None
     assert monitor.report_preview.current_preview.language.value == lang.value
+    assert (
+        monitor.report_open.parentWidget() is monitor.report_preview.refresh_button.parentWidget()
+    )
+    assert (
+        monitor.report_open.geometry().center().y()
+        == monitor.report_preview.refresh_button.geometry().center().y()
+    )
     assert overflow_report(window) == []
