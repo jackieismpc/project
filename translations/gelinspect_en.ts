@@ -2387,6 +2387,10 @@
         <translation>Experiment details</translation>
     </message>
     <message>
+        <source>保存模板并启动</source>
+        <translation>Save template and start</translation>
+    </message>
+    <message>
         <source>离开新建实验向导？</source>
         <translation>Leave the New Experiment wizard?</translation>
     </message>
@@ -2401,6 +2405,10 @@
     <message>
         <source>留在向导</source>
         <translation>Stay</translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，当前向导内容已保留。</source>
+        <translation>The existing experiment could not be abandoned. Your wizard entries have been kept.</translation>
     </message>
     <message>
         <source>模板来源已变化</source>
@@ -2455,6 +2463,30 @@
         <translation>Template saved separately; the current experiment draft is kept</translation>
     </message>
     <message>
+        <source>请选择有效模板后再保存。</source>
+        <translation>Choose a valid template before saving.</translation>
+    </message>
+    <message>
+        <source>当前样品行与管位不一致，无法保存模板。</source>
+        <translation>The sample rows and tube positions do not match. The template cannot be saved.</translation>
+    </message>
+    <message>
+        <source>输入新模板名称</source>
+        <translation>Enter a new template name</translation>
+    </message>
+    <message>
+        <source>保存并启动</source>
+        <translation>Save and start</translation>
+    </message>
+    <message>
+        <source>{name} 副本</source>
+        <translation>{name} copy</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法改用新模板；请重试启动或返回检查。</source>
+        <translation>The existing experiment could not be abandoned, so a different template cannot be used. Retry startup or go back to review.</translation>
+    </message>
+    <message>
         <source>试剂未通过校验</source>
         <translation>Reagent check failed</translation>
     </message>
@@ -2473,6 +2505,14 @@
     <message>
         <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>Replace it with a valid lot and scan again. This check was written to the audit trail.</translation>
+    </message>
+    <message>
+        <source>删除选中试管</source>
+        <translation>Delete selected sample rows</translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation>Selected rows contain sample names or lot numbers. Deletion cannot be undone. Continue?</translation>
     </message>
     <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
@@ -2571,12 +2611,24 @@
         <translation>Retry start</translation>
     </message>
     <message>
-        <source>确认并启动</source>
-        <translation>Confirm and start</translation>
+        <source>直接启动</source>
+        <translation>Start now</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
         <translation>Not permitted for your role</translation>
+    </message>
+    <message>
+        <source>需要模板管理、创建和启动权限</source>
+        <translation>Template management, create and run permissions are required</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法返回修改。</source>
+        <translation>The existing experiment could not be abandoned, so you cannot go back to edit.</translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，无法返回修改试剂。</source>
+        <translation>The existing experiment could not be abandoned, so you cannot go back to edit reagents.</translation>
     </message>
     <message>
         <source>这个模板需要鲎试剂的标示灵敏度 λ</source>

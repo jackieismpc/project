@@ -14,14 +14,17 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from typing import Any
 
-from PySide6.QtCore import QEvent, Qt, Signal, Slot
+from PySide6.QtCore import QEvent, QPoint, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QDialog,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLineEdit,
+    QMenu,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
@@ -126,6 +129,8 @@ class NewExperimentPage(QWidget):
         self._lock_dialog: NoticeDialog | None = None
         self._step = STEP_TEMPLATE
         self._created_id: str | None = None
+        self._created_template_signature: tuple[object, ...] | None = None
+        self._saved_templates: dict[tuple[object, ...], ExperimentTemplate] = {}
         self._starting = False
         self._start_error: str | None = None
         self._confirm_error: Callable[[], str] | None = None
@@ -295,6 +300,8 @@ class NewExperimentPage(QWidget):
         self.sample_table.cellEdited.connect(self._on_cell_edited)
         self.sample_table.cellClicked.connect(self._on_sample_cell_clicked)
         self.sample_table.horizontalHeader().sectionClicked.connect(self._on_sample_header_clicked)
+        self.sample_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.sample_table.customContextMenuRequested.connect(self._show_sample_context_menu)
         self.sample_card.body.addWidget(self.sample_table, 1)
 
         self.batch_fill = QLineEdit()
@@ -408,11 +415,28 @@ class NewExperimentPage(QWidget):
         self.summary_card.body.addWidget(self.summary_table, 1)
         work.addWidget(self.summary_card, 1)
         layout.addLayout(work)
-        row, _left, self.confirm_back, self.confirm_start = self._nav_row(back=True)
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        self.confirm_back = Button("", ButtonVariant.SECONDARY)
+        self.confirm_start = Button("", ButtonVariant.PRIMARY)
+        self.confirm_save_start = Button("", ButtonVariant.SECONDARY)
+        row.addWidget(
+            self.confirm_back,
+            0,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+        )
+        row.addStretch(1)
+        actions = QVBoxLayout()
+        actions.setSpacing(8)
+        for button in (self.confirm_save_start, self.confirm_start):
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            actions.addWidget(button)
+        row.addLayout(actions, 0)
         layout.addLayout(row)
         layout.addStretch(1)
         self.confirm_back.clicked.connect(self._back_from_confirm)
-        self.confirm_start.clicked.connect(self._confirm)
+        self.confirm_start.clicked.connect(lambda: self._confirm())
+        self.confirm_save_start.clicked.connect(self._save_template_and_start)
         self.stack.addWidget(step)
 
     # ================================================================== 文字
@@ -507,6 +531,7 @@ class NewExperimentPage(QWidget):
         self.summary_table.set_columns(self._summary_columns())
         self.summary_table.set_empty_text(self.tr("没有样品"))
         self.confirm_back.setText(self.tr("上一步"))
+        self.confirm_save_start.setText(self.tr("保存模板并启动"))
         self._render()
 
     def changeEvent(self, event: QEvent) -> None:  # noqa: N802
@@ -527,6 +552,9 @@ class NewExperimentPage(QWidget):
         Args:
             session: 会话，退出登录时为 None。
         """
+        if session is not self._session:
+            self._saved_templates.clear()
+            self._created_template_signature = None
         self._session = session
         self.refresh()
 
@@ -599,12 +627,16 @@ class NewExperimentPage(QWidget):
             danger=True,
         )
         if confirmed:
-            self.reset()
-        return confirmed
+            return self.reset()
+        return False
 
-    def reset(self) -> None:
+    def reset(self) -> bool:
         """丢弃向导里的全部内容回到第一步；已创建但没启动的试验一并放弃。"""
-        self._discard_created()
+        if not self._discard_created():
+            self._confirm_error = lambda: self.tr("现有试验未能放弃，当前向导内容已保留。")
+            self._render()
+            return False
+        self._saved_templates.clear()
         self._draft = ExperimentDraft()
         self._stop_sample_scan()
         self._scans.clear()
@@ -616,6 +648,7 @@ class NewExperimentPage(QWidget):
         self._load_templates()
         self._sync_samples()
         self._show_step(STEP_TEMPLATE)
+        return True
 
     # ================================================================== 步骤 1
 
@@ -795,6 +828,117 @@ class NewExperimentPage(QWidget):
             Toast.show_message(
                 self.window(), self.tr("模板已另存；当前实验草稿保留"), ToastKind.SUCCESS
             )
+
+    def _template_draft_for_start(self) -> TemplateDraft:
+        """只从即将启动且已绑定的样品行构造模板配置。"""
+        template = self._draft.template
+        if template is None:
+            raise ValueError(self.tr("请选择有效模板后再保存。"))
+        request = self._draft.to_request()
+        assigned_tubes = {assignment.tube_no for assignment in request.assignments}
+        rows = sorted(
+            (row for row in self._draft.rows if row.tube_no in assigned_tubes),
+            key=lambda row: row.tube_no or 0,
+        )
+        if len(rows) != len(request.assignments) or not rows:
+            raise ValueError(self.tr("当前样品行与管位不一致，无法保存模板。"))
+        return TemplateDraft(
+            template.name,
+            template.experiment_type,
+            tuple(
+                TemplateItemInput(
+                    sample_name=row.name.strip(),
+                    role=row.role,
+                    dilution_factor=row.dilution_factor,
+                    spiked_endotoxin=row.spiked_endotoxin,
+                    lambda_multiple=row.lambda_multiple,
+                )
+                for row in rows
+            ),
+            tube_numbers=tuple(row.tube_no for row in rows if row.tube_no is not None),
+        )
+
+    @staticmethod
+    def _template_signature(draft: TemplateDraft) -> tuple[object, ...]:
+        """返回不含模板名称和样品批号的配置签名。"""
+        return (
+            draft.experiment_type,
+            tuple(
+                (
+                    item.sample_name,
+                    item.role,
+                    item.dilution_factor,
+                    None if item.lambda_multiple is not None else item.spiked_endotoxin,
+                    item.lambda_multiple,
+                )
+                for item in draft.items
+            ),
+            tuple(draft.tube_numbers or ()),
+        )
+
+    def _save_template_and_start(self) -> None:
+        """先另存当前启动配置，再用新模板记录创建并启动试验。"""
+        if self._starting:
+            return
+        session = self._session
+        source_template = self._draft.template
+        if (
+            session is None
+            or source_template is None
+            or not self.can_start()
+            or not session.can(Permission.TEMPLATE_MANAGE)
+        ):
+            return
+        self.sample_table.commit_editor()
+        try:
+            template_draft = self._template_draft_for_start()
+        except ValueError as exc:
+            self._confirm_error = lambda exc=exc: str(exc)
+            self._render()
+            return
+        signature = self._template_signature(template_draft)
+        saved_template = self._saved_templates.get(signature)
+        if saved_template is None:
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle(self.tr("保存模板并启动"))
+            dialog.setLabelText(self.tr("输入新模板名称"))
+            dialog.setOkButtonText(self.tr("保存并启动"))
+            dialog.setCancelButtonText(self.tr("取消"))
+            dialog.setTextValue(self.tr("{name} 副本").format(name=source_template.name))
+            try:
+                accepted = dialog.exec() == QDialog.DialogCode.Accepted
+                name = dialog.textValue().strip() if accepted else ""
+            finally:
+                dialog.deleteLater()
+            if not accepted:
+                return
+            named_draft = replace(template_draft, name=name)
+            try:
+                saved_template = self._services.templates.create_template(session, named_draft)
+            except ServiceError as exc:
+                self._confirm_error = lambda exc=exc: describe_service_error(exc)
+                self._render()
+                return
+            except AuthError as exc:
+                self._confirm_error = lambda exc=exc: describe_auth_error(exc)
+                self._render()
+                return
+            except StorageBusyError:
+                self._confirm_error = describe_storage_busy
+                self._render()
+                return
+            self._saved_templates[signature] = saved_template
+        if (
+            self._created_id is not None
+            and self._created_template_signature != signature
+            and not self._discard_created()
+        ):
+            self._confirm_error = lambda: self.tr(
+                "现有试验尚未放弃，无法改用新模板；请重试启动或返回检查。"
+            )
+            self._render()
+            return
+        self._confirm(saved_template=saved_template, template_signature=signature)
 
     # ================================================================== 步骤 2
 
@@ -1055,6 +1199,60 @@ class NewExperimentPage(QWidget):
             self._sample_sort_reverse = False
         self.sample_table.set_columns(self._sample_columns())
         self._sync_samples()
+
+    @Slot(QPoint)
+    def _show_sample_context_menu(self, point: QPoint) -> None:
+        """对右键命中的行显示删除菜单，保留该行上的现有多选。"""
+        index = self.sample_table.indexAt(point)
+        if not index.isValid() or index.row() >= len(self._draft.rows):
+            return
+        selected_rows = {item.row() for item in self.sample_table.selectedIndexes()}
+        if index.row() not in selected_rows:
+            self.sample_table.clearSelection()
+            self.sample_table.selectRow(index.row())
+            selected_rows = {index.row()}
+        row_ids = tuple(
+            self._draft.rows[row_index].row_id
+            for row_index in sorted(selected_rows)
+            if 0 <= row_index < len(self._draft.rows)
+        )
+        if not row_ids:
+            return
+        menu = QMenu(self.sample_table)
+        action = menu.addAction(self.tr("删除选中试管"))
+        action.triggered.connect(lambda _checked=False: self._delete_sample_rows(row_ids))
+        try:
+            menu.exec(self.sample_table.viewport().mapToGlobal(point))
+        finally:
+            menu.deleteLater()
+
+    def _delete_sample_rows(self, row_ids: tuple[str, ...]) -> None:
+        """按稳定样品行标识删除右键菜单中捕获的样品。"""
+        self.sample_table.commit_editor()
+        rows_by_id = {row.row_id: row for row in self._draft.rows}
+        rows = [rows_by_id[row_id] for row_id in row_ids if row_id in rows_by_id]
+        if not rows:
+            return
+        if any(
+            self._draft.row_has_user_edits(row.row_id) for row in rows
+        ) and not ConfirmDialog.ask(
+            self,
+            self.tr("删除样品行？"),
+            self.tr("选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？"),
+            confirm_text=self.tr("删除"),
+            cancel_text=self.tr("取消"),
+            danger=True,
+        ):
+            return
+        cursor = self._scan_row(self._batch_scan_row_id)
+        removed_cursor_sequence = (
+            cursor.sequence_no if cursor is not None and cursor in rows else None
+        )
+        for row in rows:
+            self._draft.remove_row(row.row_id)
+        self._repair_scan_cursor(removed_cursor_sequence=removed_cursor_sequence)
+        self._sync_samples()
+        self._render()
 
     def _ordered_sample_rows(self) -> list[SampleRow]:
         """返回稳定序号顺序的样品行，不受当前表格排序影响。"""
@@ -1446,38 +1644,76 @@ class NewExperimentPage(QWidget):
             )
         else:
             self.start_banner.clear()
-        retry = self._start_error is not None and self._created_id is not None
-        self.confirm_start.setText(self.tr("重试启动") if retry else self.tr("确认并启动"))
+        retry = (
+            self._start_error is not None or self._confirm_error is not None
+        ) and self._created_id is not None
+        self.confirm_start.setText(self.tr("重试启动") if retry else self.tr("直接启动"))
         allowed = self.can_start()
         self.confirm_start.setEnabled(allowed and not self._starting)
         self.confirm_start.setToolTip("" if allowed else self.tr("当前角色无此权限"))
+        can_save = (
+            self._session is not None
+            and self._session.can(Permission.TEMPLATE_MANAGE)
+            and allowed
+            and not self._starting
+            and bool(self._draft.rows)
+        )
+        self.confirm_save_start.setText(self.tr("保存模板并启动"))
+        self.confirm_save_start.setEnabled(can_save)
+        self.confirm_save_start.setToolTip(
+            "" if can_save else self.tr("需要模板管理、创建和启动权限")
+        )
         self.confirm_back.setEnabled(not self._starting)
 
     def _back_from_confirm(self) -> None:
         # 回去修改会让已创建的试验过时：放弃它，下次确认时按新内容重新创建。
-        self._discard_created()
+        if not self._discard_created():
+            self._confirm_error = lambda: self.tr("现有试验尚未放弃，无法返回修改。")
+            self._render()
+            return
         self._start_error = None
         self._confirm_error = None
         self._go(STEP_SAMPLES)
 
-    def _discard_created(self) -> None:
+    def _discard_created(self) -> bool:
         created, self._created_id = self._created_id, None
-        if created is None or self._starting:
-            return
+        if created is None:
+            self._created_template_signature = None
+            return True
+        if self._starting:
+            self._created_id = created
+            return False
         try:
             self._services.experiments.abandon_experiment(self._session, created)
         except (AuthError, ServiceError, StorageBusyError):
             _log.warning("放弃未启动的试验 %s 失败，它会保持就绪状态", created, exc_info=True)
+            self._created_id = created
+            return False
+        self._created_template_signature = None
+        return True
 
-    def _confirm(self) -> None:
+    def _confirm(
+        self,
+        *,
+        saved_template: ExperimentTemplate | None = None,
+        template_signature: tuple[object, ...] | None = None,
+    ) -> None:
+        if self._starting:
+            return
         session = self._session
         self._confirm_error = None
         self._start_error = None
         try:
             if self._created_id is None:
-                self._created_id = self._services.experiments.create_experiment(
-                    session, self._draft.to_request()
-                )
+                request = self._draft.to_request()
+                if saved_template is not None:
+                    request = replace(
+                        request,
+                        template_id=saved_template.template_id,
+                        template_snapshot=saved_template,
+                    )
+                self._created_id = self._services.experiments.create_experiment(session, request)
+                self._created_template_signature = template_signature
             self._services.experiments.start_experiment(session, self._created_id)
         except ReagentLockedError as exc:
             self._on_locked_at_service(exc)
@@ -1499,7 +1735,10 @@ class NewExperimentPage(QWidget):
 
     def _on_locked_at_service(self, error: ReagentLockedError) -> None:
         """服务层复核发现试剂不合格（例如隔夜过期）：回到“校验试剂”并锁定。"""
-        self._discard_created()
+        if not self._discard_created():
+            self._confirm_error = lambda: self.tr("现有试验未能放弃，无法返回修改试剂。")
+            self._render()
+            return
         for kind, scan in error.scans.items():
             if scan.valid:
                 continue
@@ -1527,6 +1766,7 @@ class NewExperimentPage(QWidget):
             experiment_id = event.experiment_id
             self._starting = False
             self._created_id = None
+            self._created_template_signature = None
             self.reset()
             self.started.emit(experiment_id)
 

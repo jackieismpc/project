@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QItemSelectionModel, QPoint, Qt
+from PySide6.QtGui import QContextMenuEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QLineEdit
+from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QLineEdit, QMenu
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind
@@ -17,8 +18,12 @@ from gelinspect.domain.plate import (
     tube_to_position,
 )
 from gelinspect.domain.state_machine import ExperimentState
-from gelinspect.domain.templates import BUILTIN_TEMPLATES
-from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageRequest
+from gelinspect.domain.templates import BUILTIN_TEMPLATES, ExperimentTemplate
+from gelinspect.interfaces.storage import AuditQuery, ExperimentQuery, PageRequest, StorageBusyError
+from gelinspect.services.auth import Session
+from gelinspect.services.errors import ServiceError, ServiceErrorCode
+from gelinspect.services.experiment_draft import NewExperimentRequest
+from gelinspect.services.template_service import TemplateDraft, build_template_config
 from gelinspect.ui.main_window import MainWindow
 from gelinspect.ui.pages.new_experiment import (
     COL_BATCH,
@@ -74,6 +79,17 @@ def reach_samples(
     assert page.current_step() == STEP_SAMPLES
 
 
+def reach_ten_tube_confirm(app: QApplication, page: NewExperimentPage) -> None:
+    reach_samples(app, page)
+    select_tubes(app, page, range(2, 10))
+    row = next(row for row in page._draft.rows if row.tube_no == 1)
+    row.batch_no = "BATCH-KEEP"
+    page._sync_samples()
+    click(app, page.sample_next)
+    assert page.current_step() == STEP_CONFIRM
+    assert page._draft.expected_count == 10
+
+
 def click_sample_header(app: QApplication, page: NewExperimentPage, column: int) -> None:
     page.sample_table.scrollToItem(page.sample_table.cell_item(0, column))
     settle(app)
@@ -90,6 +106,97 @@ def sample_header_text(page: NewExperimentPage, column: int) -> str:
     item = page.sample_table.horizontalHeaderItem(column)
     assert item is not None
     return item.text()
+
+
+def right_click_sample_row(app: QApplication, page: NewExperimentPage, point: QPoint) -> None:
+    viewport = page.sample_table.viewport()
+    event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, point, viewport.mapToGlobal(point))
+    app.sendEvent(viewport, event)
+    settle(app)
+
+
+def test_sample_context_menu_delete_keeps_multiselection_and_ignores_blank(
+    qapp: QApplication,
+    window: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    click_sample_header(qapp, page, COL_TUBE)
+    click_sample_header(qapp, page, COL_TUBE)
+    original_ids = {row.row_id for row in page._draft.rows}
+    deleted_ids = {page._draft.rows[0].row_id, page._draft.rows[1].row_id}
+    selection = page.sample_table.selectionModel()
+    assert selection is not None
+    flags = QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows
+    selection.select(page.sample_table.model().index(0, 0), flags)
+    selection.select(page.sample_table.model().index(1, 0), flags)
+    menu_actions: list[str] = []
+    selected_when_opened: list[set[int]] = []
+
+    def delete_from_menu(menu: QMenu, *_args: object) -> None:
+        menu_actions.append(menu.actions()[0].text())
+        selected_when_opened.append({index.row() for index in page.sample_table.selectedIndexes()})
+        menu.actions()[0].trigger()
+
+    monkeypatch.setattr(QMenu, "exec", delete_from_menu)
+    hit = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
+    right_click_sample_row(qapp, page, hit)
+
+    assert menu_actions == ["删除选中试管"]
+    assert selected_when_opened == [{0, 1}]
+    assert {row.row_id for row in page._draft.rows} == original_ids - deleted_ids
+    assert set(page._draft.selected) == {row.tube_no for row in page._draft.rows if row.tube_no}
+
+    menu_actions.clear()
+    selection.clearSelection()
+
+    def dismiss_menu(menu: QMenu, *_args: object) -> None:
+        menu_actions.append(menu.actions()[0].text())
+
+    monkeypatch.setattr(QMenu, "exec", dismiss_menu)
+    hit = page.sample_table.visualItemRect(page.sample_table.cell_item(1, COL_NAME)).center()
+    right_click_sample_row(qapp, page, hit)
+    assert {index.row() for index in page.sample_table.selectedIndexes()} == {1}
+    before_blank = len(menu_actions)
+    page._show_sample_context_menu(QPoint(-1, -1))
+    assert len(menu_actions) == before_blank
+
+
+def test_sample_context_delete_confirms_edits_and_removes_unbound_rows(
+    qapp: QApplication,
+    window: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    row = page._draft.rows[0]
+    row.batch_no = "LOT-KEEP"
+    page._sync_samples()
+    decisions = iter([False])
+    monkeypatch.setattr(
+        ConfirmDialog,
+        "ask",
+        staticmethod(lambda *_args, **_kwargs: next(decisions)),
+    )
+
+    def trigger_delete(menu: QMenu, *_args: object) -> None:
+        menu.actions()[0].trigger()
+
+    monkeypatch.setattr(QMenu, "exec", trigger_delete)
+    point = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
+    right_click_sample_row(qapp, page, point)
+    assert page._scan_row(row.row_id) is row and row.batch_no == "LOT-KEEP"
+
+    unbound = page._draft.add_row(name="未绑定样品")
+    page._sync_samples()
+    row_index = page._draft.rows.index(unbound)
+    page.sample_table.scrollToItem(page.sample_table.cell_item(row_index, COL_NAME))
+    point = page.sample_table.visualItemRect(
+        page.sample_table.cell_item(row_index, COL_NAME)
+    ).center()
+    right_click_sample_row(qapp, page, point)
+    assert page._scan_row(unbound.row_id) is None
 
 
 # ---------------------------------------------------------------------------- 全流程
@@ -122,7 +229,7 @@ def test_full_flow_starts_the_engine_with_the_selected_tubes(
     # 第 4 步：汇总，确认后启动
     assert page.current_step() == STEP_CONFIRM
     assert page.summary_table.row_count() == 18
-    assert page.confirm_start.isEnabled() and page.confirm_start.text() == "确认并启动"
+    assert page.confirm_start.isEnabled() and page.confirm_start.text() == "直接启动"
     click(qapp, page.confirm_start)
     assert wait_for(qapp, lambda: window.current_route == "monitor", 30.0)
 
@@ -628,14 +735,19 @@ def test_plate_add_and_remove_preserves_stable_sequence_ids(
 
 
 def test_deleting_pending_scan_row_advances_by_stable_sequence(
-    qapp: QApplication, window: MainWindow
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
     page.batch_scan_button.click()
     assert page.sample_table.active_row == 0 and page.batch_scan_status.text() == "批量 #1"
 
-    select_tubes(qapp, page, [1])
+    def trigger_delete(menu: QMenu, *_args: object) -> None:
+        menu.actions()[0].trigger()
+
+    monkeypatch.setattr(QMenu, "exec", trigger_delete)
+    point = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
+    right_click_sample_row(qapp, page, point)
 
     assert page._batch_scan_row_id == page._draft.rows[0].row_id
     assert page._draft.rows[0].sequence_no == 2
@@ -748,6 +860,197 @@ def test_a_failed_start_shows_the_reason_and_can_be_retried(
     assert app_context.engine.wait(30.0)
 
 
+def test_save_template_and_start_uses_current_sparse_rows_and_reuses_saved_template(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    reach_ten_tube_confirm(qapp, page)
+    admin = app_context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    page.set_session(admin)
+    saved_drafts: list[TemplateDraft] = []
+    requests: list[NewExperimentRequest] = []
+    started_ids: list[str] = []
+
+    def create_template(_session: Session | None, draft: TemplateDraft) -> ExperimentTemplate:
+        saved_drafts.append(draft)
+        return build_template_config("custom.saved-wizard-template", draft)
+
+    def create_experiment(_session: Session | None, request: NewExperimentRequest) -> str:
+        requests.append(request)
+        return "experiment-saved-template"
+
+    def start_experiment(_session: Session | None, experiment_id: str) -> None:
+        started_ids.append(experiment_id)
+
+    monkeypatch.setattr(page._services.templates, "create_template", create_template)
+    monkeypatch.setattr(page._services.experiments, "create_experiment", create_experiment)
+    monkeypatch.setattr(page._services.experiments, "start_experiment", start_experiment)
+
+    def accept_name(dialog: QInputDialog) -> int:
+        dialog.setTextValue("稀疏10管模板")
+        return int(QDialog.DialogCode.Accepted)
+
+    monkeypatch.setattr(QInputDialog, "exec", accept_name)
+    page.confirm_save_start.click()
+    settle(qapp)
+
+    assert page._starting
+    assert page.confirm_start.text() == "直接启动"
+    assert len(saved_drafts) == len(requests) == len(started_ids) == 1
+    [saved] = saved_drafts
+    [request] = requests
+    assert len(saved.items) == len(request.assignments) == 10
+    assert tuple(saved.tube_numbers or ()) == (1, *range(10, 19))
+    assert request.template_id == "custom.saved-wizard-template"
+    assert request.template_snapshot is not None
+    assert request.template_snapshot.template_id == request.template_id
+    assert next(a for a in request.assignments if a.tube_no == 1).batch_no == "BATCH-KEEP"
+    assert page._draft.rows[0].batch_no == "BATCH-KEEP"
+
+    # 启动失败后点同一入口只重试启动，不重复保存或创建。
+    page._starting = False
+    page._start_error = "模拟设备启动失败"
+    page._render()
+    page.confirm_save_start.click()
+    settle(qapp)
+    assert len(saved_drafts) == len(requests) == 1
+    assert started_ids == ["experiment-saved-template", "experiment-saved-template"]
+
+
+def test_save_template_cancel_or_failure_never_starts_experiment(
+    qapp: QApplication,
+    window: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    reach_ten_tube_confirm(qapp, page)
+    saves: list[TemplateDraft] = []
+    creates: list[NewExperimentRequest] = []
+    starts: list[str] = []
+
+    def save_template(_session: Session | None, draft: TemplateDraft) -> ExperimentTemplate:
+        saves.append(draft)
+        raise ServiceError("duplicate", ServiceErrorCode.TEMPLATE_NAME_DUPLICATE)
+
+    def create_experiment(_session: Session | None, request: NewExperimentRequest) -> str:
+        creates.append(request)
+        return "unexpected"
+
+    def start_experiment(_session: Session | None, experiment_id: str) -> None:
+        starts.append(experiment_id)
+
+    monkeypatch.setattr(page._services.templates, "create_template", save_template)
+    monkeypatch.setattr(page._services.experiments, "create_experiment", create_experiment)
+    monkeypatch.setattr(page._services.experiments, "start_experiment", start_experiment)
+    monkeypatch.setattr(
+        QInputDialog,
+        "exec",
+        lambda _dialog: int(QDialog.DialogCode.Rejected),
+    )
+    page._save_template_and_start()
+    assert not saves and not creates and not starts
+
+    monkeypatch.setattr(
+        QInputDialog,
+        "exec",
+        lambda _dialog: int(QDialog.DialogCode.Accepted),
+    )
+    page._save_template_and_start()
+    assert len(saves) == 1
+    assert not creates and not starts and not page._starting
+
+
+def test_saved_launch_permission_requires_template_management(
+    qapp: QApplication,
+    window: MainWindow,
+    app_context: AppContext,
+) -> None:
+    from gelinspect.domain.enums import PermissionGroup
+    from gelinspect.ui.pages.new_experiment import NewExperimentPage as Page
+
+    admin = app_context.auth.login("admin", DEMO_PASSWORDS["admin"])
+    user = app_context.database.users.get_by_username("analyst")
+    assert user is not None
+    app_context.users.set_permission_groups(
+        admin,
+        user.user_id,
+        frozenset({PermissionGroup.VIEW, PermissionGroup.EXPERIMENT}),
+    )
+    sign_in(qapp, window, "analyst")
+    page = Page(window.services, window.bridge)
+    page.set_session(window.session)
+    page._draft.choose_template(BUILTIN_TEMPLATES[ExperimentType.LIMIT])
+    assert page.can_start() and page.confirm_start.isEnabled()
+    assert not page.confirm_save_start.isEnabled()
+    assert page.confirm_save_start.toolTip() == "需要模板管理、创建和启动权限"
+    page.deleteLater()
+
+
+def test_abandon_failure_keeps_confirm_draft_and_blocks_back_navigation(
+    qapp: QApplication,
+    window: MainWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_ten_tube_confirm(qapp, page)
+    page._created_id = "ready-experiment"
+    page._start_error = "模拟设备启动失败"
+    before = [(row.row_id, row.name, row.batch_no, row.tube_no) for row in page._draft.rows]
+
+    def fail_abandon(*_args: object, **_kwargs: object) -> None:
+        raise StorageBusyError("数据库忙")
+
+    monkeypatch.setattr(page._services.experiments, "abandon_experiment", fail_abandon)
+    page._back_from_confirm()
+
+    assert page.current_step() == STEP_CONFIRM
+    assert page._created_id == "ready-experiment"
+    assert [(row.row_id, row.name, row.batch_no, row.tube_no) for row in page._draft.rows] == before
+    assert page.confirm_start.text() == "重试启动"
+    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_args, **_kwargs: True))
+    assert not page.confirm_leave()
+    assert not page.reset()
+    assert page._created_id == "ready-experiment"
+    assert [(row.row_id, row.name, row.batch_no, row.tube_no) for row in page._draft.rows] == before
+
+
+@pytest.mark.parametrize("lang", ["zh_CN", "zh_TW", "en"])
+def test_confirm_actions_are_grouped_on_the_right_at_common_window_widths(
+    qapp: QApplication,
+    window: MainWindow,
+    language: object,
+    lang: str,
+) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.i18n import Language, LanguageManager
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    assert isinstance(language, LanguageManager)
+    page = open_wizard(qapp, window)
+    language.set_language(Language(lang), persist=False)
+    apply_appearance(qapp, AppearancePreferences(font_scale="large"))
+    try:
+        page._show_step(STEP_CONFIRM)
+        page.show()
+        for width in (1024, 1280):
+            window.resize(width, 828)
+            settle(qapp)
+            back_x = page.confirm_back.mapTo(page, QPoint(0, 0)).x()
+            save_pos = page.confirm_save_start.mapTo(page, QPoint(0, 0))
+            start_pos = page.confirm_start.mapTo(page, QPoint(0, 0))
+            assert back_x < save_pos.x()
+            assert save_pos.x() == start_pos.x()
+            assert page.confirm_save_start.width() == page.confirm_start.width()
+            assert save_pos.y() + page.confirm_save_start.height() < start_pos.y()
+            assert start_pos.x() + page.confirm_start.width() <= page.width()
+    finally:
+        apply_appearance(qapp, AppearancePreferences())
+        language.set_language(Language.ZH_CN, persist=False)
+
+
 def test_going_back_after_a_failed_start_abandons_the_unstarted_experiment(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
@@ -800,7 +1103,11 @@ def test_without_the_run_permission_the_confirm_button_is_disabled(
     admin = app_context.auth.login("admin", DEMO_PASSWORDS["admin"])
     user = app_context.database.users.get_by_username("analyst")
     assert user is not None
-    app_context.users.set_permission_groups(admin, user.user_id, frozenset({PermissionGroup.VIEW}))
+    app_context.users.set_permission_groups(
+        admin,
+        user.user_id,
+        frozenset({PermissionGroup.VIEW}),
+    )
     sign_in(qapp, window, "analyst")
     page = Page(window.services, window.bridge)
     page.set_session(window.session)
@@ -808,6 +1115,8 @@ def test_without_the_run_permission_the_confirm_button_is_disabled(
     assert not page.reagent_cards[ReagentKind.WATER].input.isEnabled()
     assert not page.confirm_start.isEnabled()
     assert page.confirm_start.toolTip() == "当前角色无此权限"
+    assert not page.confirm_save_start.isEnabled()
+    assert page.confirm_save_start.toolTip() == "需要模板管理、创建和启动权限"
     page.deleteLater()
 
 

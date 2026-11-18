@@ -2387,6 +2387,10 @@
         <translation>實驗資訊</translation>
     </message>
     <message>
+        <source>保存模板并启动</source>
+        <translation>儲存為範本並啟動</translation>
+    </message>
+    <message>
         <source>离开新建实验向导？</source>
         <translation>要離開新增實驗精靈嗎？</translation>
     </message>
@@ -2401,6 +2405,10 @@
     <message>
         <source>留在向导</source>
         <translation>留在精靈</translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，当前向导内容已保留。</source>
+        <translation>現有實驗無法放棄，已保留精靈中的內容。</translation>
     </message>
     <message>
         <source>模板来源已变化</source>
@@ -2455,6 +2463,30 @@
         <translation>範本已另存；目前實驗草稿保留</translation>
     </message>
     <message>
+        <source>请选择有效模板后再保存。</source>
+        <translation>請先選擇有效範本再儲存。</translation>
+    </message>
+    <message>
+        <source>当前样品行与管位不一致，无法保存模板。</source>
+        <translation>樣品列與管位不一致，無法儲存範本。</translation>
+    </message>
+    <message>
+        <source>输入新模板名称</source>
+        <translation>輸入新範本名稱</translation>
+    </message>
+    <message>
+        <source>保存并启动</source>
+        <translation>儲存並啟動</translation>
+    </message>
+    <message>
+        <source>{name} 副本</source>
+        <translation>{name} 副本</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法改用新模板；请重试启动或返回检查。</source>
+        <translation>現有實驗尚未放棄，無法改用新範本；請重試啟動或返回檢查。</translation>
+    </message>
+    <message>
         <source>试剂未通过校验</source>
         <translation>試劑未通過驗證</translation>
     </message>
@@ -2473,6 +2505,14 @@
     <message>
         <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation>請更換合格的試劑批次後重新掃描。本次驗證已記入稽核軌跡。</translation>
+    </message>
+    <message>
+        <source>删除选中试管</source>
+        <translation>刪除選取的試管</translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation>選取列包含已輸入的樣品名稱或批號，刪除後無法復原。確定要刪除嗎？</translation>
     </message>
     <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
@@ -2571,12 +2611,24 @@
         <translation>重試啟動</translation>
     </message>
     <message>
-        <source>确认并启动</source>
-        <translation>確認並啟動</translation>
+        <source>直接启动</source>
+        <translation>直接啟動</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
         <translation>目前角色無此權限</translation>
+    </message>
+    <message>
+        <source>需要模板管理、创建和启动权限</source>
+        <translation>需要範本管理、建立與啟動權限</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法返回修改。</source>
+        <translation>現有實驗尚未放棄，無法返回修改。</translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，无法返回修改试剂。</source>
+        <translation>現有實驗無法放棄，無法返回修改試劑。</translation>
     </message>
     <message>
         <source>这个模板需要鲎试剂的标示灵敏度 λ</source>

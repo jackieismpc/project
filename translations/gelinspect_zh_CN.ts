@@ -2387,6 +2387,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>保存模板并启动</source>
+        <translation>保存模板并启动</translation>
+    </message>
+    <message>
         <source>离开新建实验向导？</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2401,6 +2405,10 @@
     <message>
         <source>留在向导</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，当前向导内容已保留。</source>
+        <translation>现有试验未能放弃，当前向导内容已保留。</translation>
     </message>
     <message>
         <source>模板来源已变化</source>
@@ -2455,6 +2463,30 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>请选择有效模板后再保存。</source>
+        <translation>请选择有效模板后再保存。</translation>
+    </message>
+    <message>
+        <source>当前样品行与管位不一致，无法保存模板。</source>
+        <translation>当前样品行与管位不一致，无法保存模板。</translation>
+    </message>
+    <message>
+        <source>输入新模板名称</source>
+        <translation>输入新模板名称</translation>
+    </message>
+    <message>
+        <source>保存并启动</source>
+        <translation>保存并启动</translation>
+    </message>
+    <message>
+        <source>{name} 副本</source>
+        <translation>{name} 副本</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法改用新模板；请重试启动或返回检查。</source>
+        <translation>现有试验尚未放弃，无法改用新模板；请重试启动或返回检查。</translation>
+    </message>
+    <message>
         <source>试剂未通过校验</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2473,6 +2505,14 @@
     <message>
         <source>请更换合格的试剂批次后重新扫码。本次校验已记入审计。</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除选中试管</source>
+        <translation>删除选中试管</translation>
+    </message>
+    <message>
+        <source>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</source>
+        <translation>选中行包含已录入的样品名称或批号，删除后无法恢复。确定删除吗？</translation>
     </message>
     <message>
         <source> · 标示灵敏度 {value:g} EU/mL</source>
@@ -2571,12 +2611,24 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>确认并启动</source>
-        <translation type="unfinished"></translation>
+        <source>直接启动</source>
+        <translation>直接启动</translation>
     </message>
     <message>
         <source>当前角色无此权限</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>需要模板管理、创建和启动权限</source>
+        <translation>需要模板管理、创建和启动权限</translation>
+    </message>
+    <message>
+        <source>现有试验尚未放弃，无法返回修改。</source>
+        <translation>现有试验尚未放弃，无法返回修改。</translation>
+    </message>
+    <message>
+        <source>现有试验未能放弃，无法返回修改试剂。</source>
+        <translation>现有试验未能放弃，无法返回修改试剂。</translation>
     </message>
     <message>
         <source>这个模板需要鲎试剂的标示灵敏度 λ</source>
