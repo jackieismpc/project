@@ -14,7 +14,7 @@ from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
-from gelinspect.domain.enums import ExperimentType
+from gelinspect.domain.enums import ExperimentType, ReagentKind
 from gelinspect.infrastructure.db import Database, open_database
 from gelinspect.infrastructure.db.database import MIGRATIONS_DIR
 from gelinspect.infrastructure.db.models import Base
@@ -273,3 +273,21 @@ def test_upgrade_folds_retest_into_limit(tmp_path: Path) -> None:
         assert experiment is not None and experiment.experiment_type is ExperimentType.LIMIT
     finally:
         db.close()
+
+
+def test_fresh_database_supports_attention_and_media_purge_queries_after_reopen(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "fresh.db"
+    for _ in range(2):
+        database = open_database(path)
+        try:
+            assert not database.reagent_checks.attention_dismissed(ReagentKind.WATER, "WAT2607A")
+            assert database.media.purge_state("missing-file") is None
+            with database.session() as session:
+                assert (
+                    session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                    == "0012"
+                )
+        finally:
+            database.close()
