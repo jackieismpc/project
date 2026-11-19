@@ -18,11 +18,11 @@ from typing import Protocol
 from gelinspect.domain.entities import AuditEvent, User
 from gelinspect.domain.enums import AuditAction, ExperimentType, TubeRole
 from gelinspect.domain.errors import InvalidPlatePositionError
-from gelinspect.domain.permissions import Permission
+from gelinspect.domain.permissions import Permission, has_permission
 from gelinspect.domain.plate import TUBE_COUNT, tube_to_position
 from gelinspect.domain.templates import ExperimentTemplate, TemplateTubeItem
 from gelinspect.interfaces.storage import ExperimentRepository, TemplateRepository, UnitOfWork
-from gelinspect.services.auth import AuthService, Session
+from gelinspect.services.auth import AuthErrorCode, AuthService, PermissionDeniedError, Session
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 
 MAX_NAME_LENGTH = 60
@@ -430,6 +430,7 @@ class TemplateService:
             raise ServiceError("内置模板只能隐藏，不能删除", ServiceErrorCode.TEMPLATE_READ_ONLY)
         self._set_lifecycle(
             user,
+            session,
             template_id,
             deleted=True,
             detail=f"删除自建模板 {info.template.name}",
@@ -445,6 +446,7 @@ class TemplateService:
             raise ServiceError("只有内置模板可以隐藏或恢复", ServiceErrorCode.TEMPLATE_READ_ONLY)
         self._set_lifecycle(
             user,
+            session,
             template_id,
             hidden=hidden,
             detail=f"{'隐藏' if hidden else '恢复'}内置模板 {info.template.name}",
@@ -465,6 +467,7 @@ class TemplateService:
     def _set_lifecycle(
         self,
         user: User,
+        session: Session | None,
         template_id: str,
         *,
         detail: str,
@@ -479,6 +482,20 @@ class TemplateService:
             detail=f"{detail}［{template_id}］",
         )
         with self._storage.unit_of_work() as uow:
+            current = uow.users.get(user.user_id)
+            if (
+                session is None
+                or not session.valid
+                or session.locked
+                or session.must_change_password
+                or current is None
+                or not current.active
+                or current.auth_version != user.auth_version
+                or not has_permission(
+                    current.role, Permission.TEMPLATE_MANAGE, current.permission_groups
+                )
+            ):
+                raise PermissionDeniedError("模板管理权限已失效", AuthErrorCode.DENIED)
             uow.templates.set_visibility(
                 template_id,
                 hidden=hidden,

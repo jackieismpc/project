@@ -185,6 +185,8 @@ class AppContext:
                 self.database,
                 data_dir=config.data_dir,
                 log_dir=log_dir or config.data_dir / "logs",
+                retention_days=lambda: self.settings.retention_days,
+                video_source=config.video.source,
             ),
             appearance=AppearanceService(config.data_dir),
             demo_accounts=self.demo_accounts,

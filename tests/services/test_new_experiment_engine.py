@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import ExperimentType, ReagentKind
 from gelinspect.domain.plate import tube_to_position
@@ -23,7 +25,7 @@ def request_for_tubes(tubes: list[int]) -> NewExperimentRequest:
     draft.choose_template(SENSITIVITY)
     draft.set_selected(tubes)
     request = draft.to_request()
-    return NewExperimentRequest(request.template_id, request.assignments, GOOD_CODES)
+    return replace(request, reagent_codes=GOOD_CODES)
 
 
 def test_the_engine_receives_exactly_the_selected_tubes(real_app: AppContext) -> None:
@@ -118,6 +120,7 @@ def test_reagent_locked_experiments_never_reach_the_engine(real_app: AppContext)
         request.template_id,
         request.assignments,
         {**GOOD_CODES, ReagentKind.LAL_REAGENT: SAMPLE_CODES["lal_expired"]},
+        template_snapshot=request.template_snapshot,
     )
     try:
         real_app.experiments.create_experiment(session, bad)

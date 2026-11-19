@@ -22,7 +22,7 @@ from gelinspect.services.engine_types import (
 )
 from gelinspect.services.video.events import VideoEvent, VideoEventCode, VideoEventLevel
 from gelinspect.ui.main_window import MainWindow
-from gelinspect.ui.pages.monitor_page import MonitorPage
+from gelinspect.ui.pages.monitor_page import TAB_REPORT, MonitorPage
 from gelinspect.ui.pages.template_editor import TemplateEditorDialog
 from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.marks import WellState
@@ -205,6 +205,8 @@ def test_completed_experiment_can_be_saved_as_a_new_sparse_template(
     assert fast_window.open_experiment(experiment_id)
     page = fast_window.page("monitor")
     assert isinstance(page, MonitorPage)
+    page.tabs.set_current(TAB_REPORT)
+    settle(qapp)
     assert page.save_template_button.isVisibleTo(page)
     assert page.save_template_button.parentWidget() is page.report_open.parentWidget()
     assert (

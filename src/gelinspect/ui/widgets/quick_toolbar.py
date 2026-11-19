@@ -65,18 +65,18 @@ DEFAULT_ACTIONS: tuple[QuickAction, ...] = (
         Permission.EXPERIMENT_CREATE,
     ),
     QuickAction(
-        "reports",
-        str(QT_TRANSLATE_NOOP("QuickToolbar", "报告中心")),
-        "file-text",
-        "Ctrl+R",
-        Permission.REPORT_VIEW,
-    ),
-    QuickAction(
         "history",
         str(QT_TRANSLATE_NOOP("QuickToolbar", "历史记录")),
         "history",
         "Ctrl+H",
         Permission.EXPERIMENT_VIEW,
+    ),
+    QuickAction(
+        "reports",
+        str(QT_TRANSLATE_NOOP("QuickToolbar", "报告中心")),
+        "file-text",
+        "Ctrl+R",
+        Permission.REPORT_VIEW,
     ),
     QuickAction(
         "current_experiment",

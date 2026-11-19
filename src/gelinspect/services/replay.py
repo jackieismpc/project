@@ -48,24 +48,29 @@ class VideoClip:
         self._path = path
         self._long_side = long_side
         self._scratch: Path | None = None
-        target = path
-        if needs_ascii_path(path):
-            self._scratch = make_ascii_scratch_dir()
-            target = self._scratch / "clip.mp4"
-            try:
-                os.link(path, target)
-            except OSError:
-                shutil.copyfile(path, target)
-        self._capture = cv2.VideoCapture(str(target))
-        if not self._capture.isOpened():
-            self.close()
-            raise ReplayError(f"无法解码录像：{path.name}")
-        fps = float(self._capture.get(cv2.CAP_PROP_FPS))
-        self._fps = fps if fps > 0 else 10.0
-        self._count = max(0, int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT)))
-        self._width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self._height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self._position = 0
+        try:
+            target = path
+            if needs_ascii_path(path):
+                self._scratch = make_ascii_scratch_dir()
+                target = self._scratch / "clip.mp4"
+                try:
+                    os.link(path, target)
+                except OSError:
+                    shutil.copyfile(path, target)
+            self._capture = cv2.VideoCapture(str(target))
+            if not self._capture.isOpened():
+                raise ReplayError(f"无法解码录像：{path.name}")
+            fps = float(self._capture.get(cv2.CAP_PROP_FPS))
+            self._fps = fps if fps > 0 else 10.0
+            self._count = max(0, int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT)))
+            self._width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self._height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self._position = 0
+        except BaseException:
+            # 清理失败不应遮蔽导致构造失败的原始异常。
+            with contextlib.suppress(Exception):
+                self.close()
+            raise
 
     @property
     def path(self) -> Path:
@@ -123,9 +128,11 @@ class VideoClip:
     def close(self) -> None:
         """释放解码器并删除临时副本，可重复调用。"""
         capture = getattr(self, "_capture", None)
-        if capture is not None:
-            capture.release()
-        if self._scratch is not None:
-            with contextlib.suppress(OSError):
-                shutil.rmtree(self._scratch)
-            self._scratch = None
+        try:
+            if capture is not None:
+                capture.release()
+        finally:
+            if self._scratch is not None:
+                with contextlib.suppress(OSError):
+                    shutil.rmtree(self._scratch)
+                self._scratch = None

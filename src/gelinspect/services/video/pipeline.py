@@ -182,6 +182,11 @@ class VideoPipeline:
         return self._info
 
     @property
+    def data_dir(self) -> Path:
+        """受控媒体与诊断文件的数据根目录。"""
+        return self._config.data_dir
+
+    @property
     def is_running(self) -> bool:
         """管线是否已启动（含重连中、文件已播完）。"""
         return self._running

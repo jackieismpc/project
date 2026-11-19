@@ -52,6 +52,8 @@ def overflow_report(root: QWidget) -> list[str]:
     for widget in root.findChildren(QWidget):
         if not widget.isVisibleTo(root) or widget.width() <= 0:
             continue
+        if widget.isWindow() or any(p.isWindow() for p in _parents(widget, root)):
+            continue  # 顶层对话框使用独立坐标，须以自身为根检查
         if widget.objectName().startswith("qt_") or any(
             p.objectName().startswith("qt_") for p in _parents(widget, root)
         ):
@@ -374,6 +376,12 @@ def test_wizard_steps_fit(
     click(qapp, page.template_next)
     scan(qapp, page, ReagentKind.LAL_REAGENT, SAMPLE_CODES["lal_expired"])
     assert page.is_locked()
+    from gelinspect.ui.widgets.dialog import NoticeDialog
+
+    dialog = next(d for d in window.findChildren(NoticeDialog) if d.isVisible())
+    assert overflow_report(dialog) == [], "试剂锁定提示"
+    dialog.close_button.click()
+    settle(qapp)
     assert overflow_report(window) == [], "步骤 2（锁定）"
     pass_reagents(qapp, page)
     assert overflow_report(window) == [], "步骤 2（通过）"

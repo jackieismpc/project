@@ -25,6 +25,7 @@ from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
 from PySide6.QtWidgets import QApplication, QWidget
 from sqlalchemy.exc import SQLAlchemyError
 
+from gelinspect import __version__
 from gelinspect.app_context import AppContext, build_app_context
 from gelinspect.domain.entities import AuditEvent
 from gelinspect.domain.enums import AuditAction
@@ -37,6 +38,7 @@ from gelinspect.infrastructure.security.integrity import (
 from gelinspect.interfaces.storage import DatabaseVersionError, StorageError
 from gelinspect.logging_setup import (
     configure_logging,
+    current_run_id,
     install_exception_hooks,
     shutdown_logging,
 )
@@ -46,6 +48,7 @@ from gelinspect.services.config import (
     default_config_file,
     load_config,
 )
+from gelinspect.services.retention_worker import RetentionWorker
 from gelinspect.services.runtime_paths import (
     DATA_DIR_ENV,
     USER_CONFIG_FILE,
@@ -357,10 +360,12 @@ def run_gui(
         resolve_log_dir(config) if config is not None or data_dir is None else data_dir / "logs"
     )
     log_path = _start_logging(log_dir)
+    run_id = current_run_id()
     _log.info(
-        "GelInspect 启动 mode=%s config=%s smoke=%s",
+        "GelInspect 启动 version=%s mode=%s run=%s smoke=%s",
+        __version__,
         run_mode().value,
-        config_path or default_config_file() or "<默认配置>",
+        run_id,
         smoke_test,
     )
 
@@ -422,8 +427,14 @@ def run_gui(
         (present_error or show_error_dialog)(warning, log_path)
 
     window: MainWindow | None = None
+    retention: RetentionWorker | None = None
     try:
         from gelinspect.ui.main_window import MainWindow
+
+        if not smoke_test:
+            worker = RetentionWorker(context)
+            worker.start()
+            retention = worker
 
         window = MainWindow(
             context.services(log_dir=log_dir),
@@ -453,8 +464,11 @@ def run_gui(
                 window.bridge.close()
         finally:
             try:
+                if retention is not None:
+                    retention.stop()
                 context.close()
             finally:
+                _log.info("GelInspect 退出 run=%s", run_id)
                 shutdown_logging()
                 if owns_app:
                     qapp.processEvents()

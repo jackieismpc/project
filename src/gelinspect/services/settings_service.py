@@ -436,6 +436,11 @@ class InstrumentSettingsService:
         """用户配置文件的路径。"""
         return self._path
 
+    @property
+    def retention_days(self) -> int | None:
+        """当前生效的数据保留期限。"""
+        return self._effective.retention_days
+
     def current(self, session: Session | None) -> SettingsView:
         """当前生效的设置、默认值和后端信息。
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sqlite3
 import subprocess
 import sys
@@ -46,8 +47,9 @@ ROOT = Path(__file__).parents[1]
 
 
 @pytest.fixture(autouse=True)
-def restore_global_state() -> Iterator[None]:
+def restore_global_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """启动流程会安装异常钩子和日志处理器，测试后还原。"""
+    monkeypatch.setattr(startup, "runtime_selection_file", lambda: tmp_path / "selection.json")
     hook, thread_hook = sys.excepthook, threading.excepthook
     yield
     sys.excepthook, threading.excepthook = hook, thread_hook
@@ -524,7 +526,7 @@ def test_a_failing_reporter_cannot_break_the_hook(tmp_path: Path) -> None:
 
 def test_the_console_script_starts_cleanly_in_a_subprocess(tmp_path: Path) -> None:
     """真正的进程：走 python -m gelinspect --smoke-test，返回码 0。"""
-    env = {"QT_QPA_PLATFORM": "offscreen", "PATH": "/usr/bin:/bin", "HOME": str(tmp_path)}
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "HOME": str(tmp_path)}
     result = subprocess.run(
         [sys.executable, "-m", "gelinspect", "--smoke-test", "--data-dir", str(tmp_path / "d")],
         capture_output=True,
@@ -536,3 +538,35 @@ def test_the_console_script_starts_cleanly_in_a_subprocess(tmp_path: Path) -> No
     )
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "d" / "gelinspect.db").is_file()
+
+
+def test_daily_diagnostic_logs_capture_python_and_qt_and_restore_handler(tmp_path: Path) -> None:
+    from datetime import datetime
+
+    from PySide6.QtCore import QtMsgType, qCritical, qDebug, qInfo, qWarning
+
+    from gelinspect.logging_setup import _qt_message, current_run_id
+
+    diagnostic_dir = tmp_path / "diagnostic-logs"
+    configure_logging(tmp_path / "logs", level=logging.DEBUG, diagnostic_dir=diagnostic_dir)
+    run_id = current_run_id()
+    logging.getLogger("gelinspect.test").warning("daily python message")
+    qDebug("daily qt debug")
+    qInfo("daily qt info")
+    qWarning("daily qt warning")
+    qCritical("daily qt critical")
+    _qt_message(QtMsgType.QtFatalMsg, None, "daily qt fatal")
+    shutdown_logging()
+    daily = diagnostic_dir / f"{datetime.now():%Y-%m-%d}.log"
+    text = daily.read_text(encoding="utf-8")
+    assert "daily python message" in text and "daily qt warning" in text
+    assert "logger=gelinspect.qt" in text and f"run={run_id}" in text
+    for level, message in (
+        ("DEBUG", "daily qt debug"),
+        ("INFO", "daily qt info"),
+        ("WARNING", "daily qt warning"),
+        ("ERROR", "daily qt critical"),
+        ("CRITICAL", "daily qt fatal"),
+    ):
+        assert any(level in line and message in line for line in text.splitlines())
+    assert datetime.now().astimezone().strftime("%z")[:3] in text.splitlines()[0]

@@ -293,7 +293,7 @@ class AppConfig(_Section):
     traceability: TraceabilitySection = TraceabilitySection()
     instrument_no: str = Field(default="GI-001", min_length=1, max_length=64)
     reports: ReportSection = ReportSection()
-    retention_days: int | None = Field(default=None, ge=1, le=36500)
+    retention_days: int | None = Field(default=None, ge=0, le=36500)
     exports: ExportSection = ExportSection()
     license: LicenseSection = LicenseSection()
 

@@ -289,15 +289,17 @@ def test_no_page_is_a_placeholder_any_more(qapp: QApplication, window: MainWindo
 
 
 def test_dashboard_shows_live_instrument_data(
-    qapp: QApplication, window: MainWindow, app_context: AppContext
+    qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from simulation.sim_device import SimDevice
     from tests.ui.conftest import wait_for
 
+    monkeypatch.setattr(SimDevice, "_temperature", lambda self: 36.8)
     sign_in(qapp, window, "experimenter")
     dashboard = window.page("dashboard")
     assert isinstance(dashboard, DashboardPage)
     assert wait_for(qapp, lambda: window.shell.toolbar._instrument._text.text() == "仪器已连接")
-    assert "37." in dashboard.temperature._value.text()
+    assert wait_for(qapp, lambda: dashboard.temperature._value.text().startswith("36.8<"))
     assert dashboard.recent_table.is_empty_state_visible()
 
 

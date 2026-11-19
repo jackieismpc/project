@@ -7,7 +7,7 @@ import json
 import logging
 import threading
 import zipfile
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -72,6 +72,9 @@ class _Storage:
     def list_for_experiment(self, _experiment_id: str, **_kwargs: object) -> list[MediaFile]:
         return self.media_items
 
+    def purge_state(self, _file_id: str) -> None:
+        return None
+
     def query_temperatures(self, **_kwargs: object) -> object:
         return SimpleNamespace(items=[], total=0)
 
@@ -97,10 +100,34 @@ def _service(tmp_path: Path, storage: _Storage, *, allowed: bool = True) -> Diag
     )
 
 
+def test_date_range_filters_logs_and_rejects_outside_retention(tmp_path: Path) -> None:
+    service = _service(tmp_path, _Storage())
+    service._retention_days = lambda: 10
+    logs = tmp_path / "data" / "diagnostics" / "logs"
+    logs.mkdir(parents=True)
+    for day in ("2026-11-08", "2026-11-12", "2026-11-16"):
+        (logs / f"{day}.log").write_text(day, encoding="utf-8")
+    result = service.create_package(
+        cast(Any, object()),
+        tmp_path / "range.zip",
+        start_date=date(2026, 11, 12),
+        end_date=date(2026, 11, 15),
+    )
+    with zipfile.ZipFile(result.path) as archive:
+        assert "logs/2026-11-12.log" in archive.namelist()
+        assert "logs/2026-11-08.log" not in archive.namelist()
+        assert "logs/2026-11-16.log" not in archive.namelist()
+    with pytest.raises(ServiceError):
+        service.create_package(
+            cast(Any, object()), tmp_path / "bad.zip", start_date=date(2026, 11, 7)
+        )
+
+
 def test_exports_manifest_and_redacted_rotating_logs_without_database(tmp_path: Path) -> None:
     storage = _Storage()
     service = _service(tmp_path, storage)
-    log = tmp_path / "data" / "logs" / "gelinspect.log"
+    log = tmp_path / "data" / "diagnostics" / "logs" / "2026-11-17.log"
+    log.parent.mkdir(parents=True)
     log.write_text(
         (
             "password=hunter2 password_hash=argon-value token:abc123 "
@@ -112,7 +139,7 @@ def test_exports_manifest_and_redacted_rotating_logs_without_database(tmp_path: 
 
     result = service.create_package(cast(Any, object()), destination)
 
-    assert result.path == destination and result.file_count == 4
+    assert result.path == destination and result.file_count == 5
     assert len(storage.events) == 1
     assert storage.events[0].action is AuditAction.DATA_EXPORTED
     with zipfile.ZipFile(destination) as archive:
@@ -121,10 +148,11 @@ def test_exports_manifest_and_redacted_rotating_logs_without_database(tmp_path: 
             "records/experiments.json",
             "records/audit.json",
             "records/telemetry.json",
-            "logs/gelinspect.log",
+            "logs/2026-11-17.log",
+            "system/system.json",
             "manifest.json",
         }
-        log_data = archive.read("logs/gelinspect.log").decode()
+        log_data = archive.read("logs/2026-11-17.log").decode()
         assert all(
             value not in log_data for value in ("hunter2", "argon-value", "abc123", "jwt-value")
         )
@@ -148,7 +176,7 @@ def test_excludes_media_outside_data_root_and_reports_it(tmp_path: Path) -> None
 
     result = service.create_package(cast(Any, object()), tmp_path / "safe.zip")
 
-    assert result.missing and "ValueError" in result.missing[0]
+    assert any("ValueError" in entry for entry in result.missing)
     with zipfile.ZipFile(result.path) as archive:
         assert not any(name.startswith("media/") for name in archive.namelist())
         manifest = json.loads(archive.read("manifest.json"))
@@ -173,7 +201,7 @@ def test_includes_only_registered_media_with_matching_checksum(tmp_path: Path) -
 
     result = service.create_package(cast(Any, object()), tmp_path / "media.zip")
 
-    assert not result.missing
+    assert not any("capture.png" in entry for entry in result.missing)
     with zipfile.ZipFile(result.path) as archive:
         assert archive.read("media/exp-one/one-capture.png") == b"image bytes"
 
@@ -196,7 +224,7 @@ def test_reports_media_checksum_mismatch_without_exporting_file(tmp_path: Path) 
 
     result = service.create_package(cast(Any, object()), tmp_path / "bad-media.zip")
 
-    assert result.missing and "不匹配" in result.missing[0]
+    assert any("不匹配" in entry for entry in result.missing)
     with zipfile.ZipFile(result.path) as archive:
         assert not any(name.startswith("media/") for name in archive.namelist())
 
@@ -278,3 +306,35 @@ def test_log_rollover_keeps_previous_files_without_automatic_deletion(tmp_path: 
         assert "second" in log_path.read_text(encoding="utf-8")
     finally:
         shutdown_logging()
+
+
+def test_analysis_junction_outside_data_root_is_not_exported(tmp_path: Path) -> None:
+    import os
+    import subprocess
+
+    service = _service(tmp_path, _Storage())
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    with zipfile.ZipFile(outside / "row-01-123.zip", "w") as archive:
+        archive.writestr("result.json", '{"marker":"external"}')
+    day = tmp_path / "data" / "diagnostics" / "analysis" / "2026-01-01"
+    day.mkdir(parents=True)
+    link = day / "exp-one"
+    if os.name == "nt":
+        created = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(outside)], capture_output=True, check=False
+        )
+        if created.returncode:
+            pytest.skip("directory junction unavailable")
+    else:
+        link.symlink_to(outside, target_is_directory=True)
+    try:
+        destination = tmp_path / "report.zip"
+        service.create_package(cast(Any, object()), destination)
+        with zipfile.ZipFile(destination) as archive:
+            assert not any(name.startswith("analysis/") for name in archive.namelist())
+    finally:
+        if os.name == "nt":
+            link.rmdir()
+        else:
+            link.unlink()

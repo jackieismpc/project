@@ -216,6 +216,7 @@ def test_report_system_fonts_are_available_and_embedded() -> None:
     assert fonts and all(embedded for _, embedded in fonts)
     assert any("TimesNewRoman" in name or "Times New Roman" in name for name, _ in fonts)
     assert any("SimSun" in name for name, _ in fonts)
+    assert any("SimHei" in name for name, _ in fonts)
 
 
 def test_content_digest_ignores_language_and_changes_with_content() -> None:

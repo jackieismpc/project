@@ -1032,14 +1032,6 @@
         <translation>Analyzer message</translation>
     </message>
     <message>
-        <source>类别</source>
-        <translation>Category</translation>
-    </message>
-    <message>
-        <source>内容</source>
-        <translation>Content</translation>
-    </message>
-    <message>
         <source>序号</source>
         <translation>No.</translation>
     </message>
@@ -2305,6 +2297,10 @@
         <translation>The existing experiment could not be abandoned, so you cannot go back to edit.</translation>
     </message>
     <message>
+        <source>请返回检查 MVD 和内毒素限值。</source>
+        <translation>Please go back and check the MVD and endotoxin limit.</translation>
+    </message>
+    <message>
         <source>现有试验未能放弃，无法返回修改试剂。</source>
         <translation>The existing experiment could not be abandoned, so you cannot go back to edit reagents.</translation>
     </message>
@@ -2868,6 +2864,18 @@
         <translation>Result</translation>
     </message>
     <message>
+        <source>当前账号没有关闭试剂提醒的权限。</source>
+        <translation>You do not have permission to dismiss reagent reminders.</translation>
+    </message>
+    <message>
+        <source>关闭提醒</source>
+        <translation>Dismiss reminder</translation>
+    </message>
+    <message>
+        <source>关闭 {kind} {batch} 的处理提醒？批次、校验历史和实验记录保留。</source>
+        <translation>Dismiss the reminder for {kind} {batch}? The batch, checks and experiment records remain.</translation>
+    </message>
+    <message>
         <source>{kind} · 查询结果不写入校验记录</source>
         <translation>{kind} · lookups are not recorded</translation>
     </message>
@@ -3204,10 +3212,6 @@
         <translation>Signed. Report saved: {name}</translation>
     </message>
     <message>
-        <source>选择要验证的 PDF</source>
-        <translation>Choose a PDF to verify</translation>
-    </message>
-    <message>
         <source>PDF 文件 (*.pdf)</source>
         <translation>PDF files (*.pdf)</translation>
     </message>
@@ -3230,10 +3234,6 @@
     <message>
         <source>待签署</source>
         <translation>Awaiting Signature</translation>
-    </message>
-    <message>
-        <source>导入外部 PDF</source>
-        <translation>Import External PDF</translation>
     </message>
     <message>
         <source>数字签名有效，报告内容和签署记录已匹配。</source>
@@ -3300,10 +3300,6 @@
         <translation>The selected experiments have no signed reports to export.</translation>
     </message>
     <message>
-        <source>报告中心</source>
-        <translation>Report Center</translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation>Refresh</translation>
     </message>
@@ -3316,16 +3312,16 @@
         <translation>Refresh List</translation>
     </message>
     <message>
-        <source>导入外部 PDF…</source>
-        <translation>Import External PDF…</translation>
-    </message>
-    <message>
         <source>打开匹配的报告</source>
         <translation>Open Matching Report</translation>
     </message>
     <message>
         <source>实验</source>
         <translation>Experiment</translation>
+    </message>
+    <message>
+        <source>验证外部 PDF</source>
+        <translation>Verify External PDF</translation>
     </message>
     <message>
         <source>时间</source>
@@ -3854,6 +3850,10 @@
         <translation>Operation failed: {reason}</translation>
     </message>
     <message>
+        <source>开始日期不能晚于结束日期。</source>
+        <translation>Start date cannot be after end date.</translation>
+    </message>
+    <message>
         <source>导出诊断包</source>
         <translation>Export Diagnostic Package</translation>
     </message>
@@ -3926,6 +3926,18 @@
         <translation>Diagnostic Package</translation>
     </message>
     <message>
+        <source>指定日期范围（默认全部）</source>
+        <translation>Specify dates (all by default)</translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation>From date</translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation>To date</translation>
+    </message>
+    <message>
         <source>导出诊断包…</source>
         <translation>Export Diagnostic Package…</translation>
     </message>
@@ -3944,6 +3956,14 @@
     <message>
         <source>日志默认保留，不自动删除。</source>
         <translation>Logs are retained by default and are not deleted automatically.</translation>
+    </message>
+    <message>
+        <source>诊断数据保留全部。</source>
+        <translation>All diagnostic data is retained.</translation>
+    </message>
+    <message>
+        <source>诊断数据保留最近 {days} 天。 </source>
+        <translation>Diagnostic data is retained for {days} days. </translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4030,8 +4050,8 @@
         <translation>Detection configuration file (optional)</translation>
     </message>
     <message>
-        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
-        <translation>Leave blank to keep the default. Data is not automatically deleted in this version.</translation>
+        <source>留空或 0 表示全部保留；有限天数将清理超期诊断日志及未签署已完成实验的受管视频图像，签署证据和外部原文件保留。</source>
+        <translation>Leave blank or enter 0 to retain all. A finite period removes expired diagnostic logs and managed video and images from completed unsigned experiments; signed evidence and external originals are retained.</translation>
     </message>
     <message>
         <source>写入之后新建的每个实验和报告。</source>
@@ -4343,6 +4363,10 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>共 {count} 支试管</source>
         <translation>{count} tubes</translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
+        <translation>Edit this run&apos;s tube configuration</translation>
     </message>
     <message>
         <source>编辑模板</source>
@@ -5115,10 +5139,6 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>验签未通过：</source>
         <translation>Verification failed:</translation>
-    </message>
-    <message>
-        <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
-        <translation>Signed with this computer&apos;s self-signed certificate: it proves the file was not changed after signing, but has no third-party CA legal effect.</translation>
     </message>
 </context>
 <context>

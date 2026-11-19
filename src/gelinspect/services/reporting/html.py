@@ -24,6 +24,8 @@ from gelinspect.services.reporting.texts import ReportTexts
 
 SANS = "Times New Roman"
 """英文与数字正文字体，使用目标系统字体。"""
+TITLE = "SimHei"
+"""报告标题字体，使用目标系统黑体。"""
 CJK = "SimSun"
 """中文正文字体，使用目标系统字体。"""
 MONO = SANS
@@ -115,7 +117,8 @@ class _Builder:
     def title(self, text: str) -> str:
         return (
             f'<p align="center" style="margin-top:0;margin-bottom:{self.px(4)}px">'
-            f'<span style="font-size:19pt;font-weight:700">{_e(text)}</span></p>'
+            f'<span style="font-family:{TITLE};font-size:19pt;font-weight:700">'
+            f"{_e(text)}</span></p>"
         )
 
     def subtitle(self, text: str) -> str:

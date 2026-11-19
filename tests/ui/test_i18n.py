@@ -144,8 +144,8 @@ def test_shell_texts_change_everywhere(
     assert toolbar._language.text() == "English"
     assert [i.text() for i in nav.items()][:3] == [
         "Dashboard",
+        "New experiment",
         "History",
-        "Templates",
     ]
     assert nav._brand_label.text() == "GelInspect"
     assert "Not permitted" in next(i for i in nav.items() if i.entry.key == "audit").toolTip()
@@ -157,10 +157,10 @@ def test_shell_texts_change_everywhere(
     window.navigate("reports")
     page = window.page("reports")
     assert isinstance(page, ReportsPage)
-    assert page.title.text() == "Report Center"
+    assert page.import_pdf_button.text() == "Verify an external PDF…"
     language.set_language(Language.ZH_CN)
     settle(qapp)
-    assert page.title.text() == "报告中心"
+    assert page.import_pdf_button.text() == "验证外部 PDF…"
     assert toolbar.action("new_experiment").text() == "新建实验"
     assert toolbar._user.text() == "Jordan Li · 普通用户"
 

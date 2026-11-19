@@ -27,7 +27,7 @@ from tests.ui.wizard_helpers import (
     click,
     open_wizard,
     pass_reagents,
-    select_tubes,
+    set_tubes,
 )
 
 FAST_VIDEO = {"source": "simulation.sim_video:SimVideoSource", "device": "sim",
@@ -144,7 +144,7 @@ def start_sensitivity(
     pass_reagents(app, page)
     click(app, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
-    select_tubes(app, page, tubes)
+    set_tubes(app, page, tubes)
     click(app, page.sample_next)
     click(app, page.confirm_start)
     assert wait_for(app, lambda: window.current_route == "monitor", 30.0)

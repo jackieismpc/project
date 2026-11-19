@@ -60,6 +60,7 @@ class TemplateEditorDialog(QDialog):
         *,
         initial: TemplateDraft | None = None,
         editing: bool = False,
+        per_run: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         """创建对话框。
@@ -68,6 +69,7 @@ class TemplateEditorDialog(QDialog):
             submit: 保存函数。
             initial: 初始内容（复制或编辑时），默认是一支空试管。
             editing: 是编辑已有模板（影响标题）。
+            per_run: 只用于当前实验，不保存为模板。
             parent: 父窗口。
         """
         super().__init__(parent)
@@ -76,6 +78,7 @@ class TemplateEditorDialog(QDialog):
         self.setMinimumSize(720, 520)
         self._submit = submit
         self._editing = editing
+        self._per_run = per_run
         self.saved: ExperimentTemplate | None = None
         draft = initial or TemplateDraft(
             "", ExperimentType.SENSITIVITY_CONFIRMATION, [TemplateItemInput("")]
@@ -273,7 +276,13 @@ class TemplateEditorDialog(QDialog):
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        title = self.tr("编辑模板") if self._editing else self.tr("新建模板")
+        title = (
+            self.tr("编辑本次试管配置")
+            if self._per_run
+            else self.tr("编辑模板")
+            if self._editing
+            else self.tr("新建模板")
+        )
         self.setWindowTitle(title)
         self.setAccessibleName(title)
         self.heading.setText(title)

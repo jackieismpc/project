@@ -9,14 +9,17 @@ import hashlib
 import json
 import logging
 import os
+import platform
 import re
+import stat
+import sys
 import tempfile
 import threading
 import time
 import zipfile
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import asdict, dataclass, is_dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol, cast
@@ -26,6 +29,7 @@ from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import (
     AuditQuery,
+    AuditRecord,
     AuditRepository,
     ExperimentQuery,
     ExperimentRepository,
@@ -90,6 +94,8 @@ class DiagnosticsService:
         data_dir: Path,
         log_dir: Path,
         clock: Callable[[], datetime] | None = None,
+        retention_days: Callable[[], int | None] | None = None,
+        video_source: str | None = None,
     ) -> None:
         """Create collector bound to application services and data roots."""
         self._auth = auth
@@ -97,12 +103,23 @@ class DiagnosticsService:
         self._data_dir = data_dir
         self._log_dir = log_dir
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._retention_days = retention_days or (lambda: None)
+        self._video_source = video_source
+
+    def available_date_range(self, session: Session | None) -> tuple[date | None, date]:
+        """返回允许选择的最早日期和今天（均为本地日期）。"""
+        self._auth.authorize(session, Permission.DIAGNOSTICS_EXPORT)
+        today = self._clock().astimezone().date()
+        days = self._retention_days()
+        return (today - timedelta(days=days - 1) if days and days > 0 else None, today)
 
     def create_package(
         self,
         session: Session | None,
         destination: Path,
         *,
+        start_date: date | None = None,
+        end_date: date | None = None,
         progress: Callable[[int, int], None] | None = None,
         cancel: threading.Event | None = None,
     ) -> DiagnosticPackageResult:
@@ -113,6 +130,25 @@ class DiagnosticsService:
         except AuthError as error:
             self._audit_outcome(session, None, destination.name, "denied", error)
             raise
+        if start_date is not None and end_date is not None and start_date > end_date:
+            raise ServiceError("开始日期不能晚于结束日期", ServiceErrorCode.EXPORT_FAILED)
+        if end_date is not None and end_date > self._clock().astimezone().date():
+            raise ServiceError("结束日期不能晚于今天", ServiceErrorCode.EXPORT_FAILED)
+        earliest, today = self.available_date_range(session)
+        if earliest is not None:
+            if start_date is None:
+                start_date = earliest
+            elif start_date < earliest:
+                raise ServiceError("开始日期超出数据保留范围", ServiceErrorCode.EXPORT_FAILED)
+        if end_date is None:
+            end_date = today
+
+        def in_range(value: datetime) -> bool:
+            local = value.astimezone().date()
+            return (start_date is None or local >= start_date) and (
+                end_date is None or local <= end_date
+            )
+
         if destination.suffix.lower() != ".zip" or not destination.name:
             target_error = ServiceError("诊断包目标必须是 ZIP 文件", ServiceErrorCode.EXPORT_FAILED)
             self._audit_outcome(session, user, destination.name, "failed", target_error)
@@ -145,21 +181,56 @@ class DiagnosticsService:
                 next_auth_check[0] = now_monotonic + 2.0
 
         check_cancel()
-        experiments = self._load_experiments(check_cancel)
+        experiments = [e for e in self._load_experiments(check_cancel) if in_range(e.created_at)]
         experiment_ids = [item.experiment_id for item in experiments]
-        audits = self._load_audits(check_cancel)
+        audits = [a for a in self._load_audits(check_cancel) if in_range(a.event.occurred_at)]
         telemetry = self._load_telemetry(experiment_ids, check_cancel)
         entries.append(
             ("records/experiments.json", _json_bytes([_experiment_json(e) for e in experiments]))
         )
         entries.append(("records/audit.json", _json_bytes([_audit_json(a) for a in audits])))
         entries.append(("records/telemetry.json", _json_bytes(telemetry)))
+        entries.append(
+            (
+                "system/system.json",
+                _json_bytes(
+                    {
+                        "platform": platform.platform(),
+                        "machine": platform.machine(),
+                        "python": sys.version,
+                        "application": "GelInspect",
+                    }
+                ),
+            )
+        )
 
         for experiment_id in experiment_ids:
             check_cancel()
-            for media in self._storage.media.list_for_experiment(experiment_id):
+            media_items = self._storage.media.list_for_experiment(experiment_id)
+            if not any(item.kind.value == "video" for item in media_items):
+                missing.append(f"{experiment_id}: 未登记分析期间录像")
+            for media in media_items:
                 safe_id = _safe_component(experiment_id)
                 original = Path(media.path)
+                purge_state = self._storage.media.purge_state(media.file_id)
+                if purge_state == "purged":
+                    missing.append(
+                        f"{safe_id}/{_safe_component(original.name)}: 保留策略已清理"
+                        f"（SHA-256={media.sha256}）"
+                    )
+                    continue
+                if purge_state == "missing":
+                    missing.append(
+                        f"{safe_id}/{_safe_component(original.name)}: "
+                        f"清理意图后文件缺失，原因待核实（SHA-256={media.sha256}）"
+                    )
+                    continue
+                if purge_state == "intent" and not original.exists():
+                    missing.append(
+                        f"{safe_id}/{_safe_component(original.name)}: 清理意图待核实"
+                        f"（SHA-256={media.sha256}）"
+                    )
+                    continue
                 try:
                     source = _safe_media_path(self._data_dir, original)
                     digest, _size = _hash_file(source, check_cancel)
@@ -176,7 +247,29 @@ class DiagnosticsService:
                 entries.append((archive_name, source))
                 expected_media_hashes[archive_name] = media.sha256.lower()
 
-        for path in self._log_files():
+        analysis_root = self._data_dir / "diagnostics" / "analysis"
+        for experiment in experiments:
+            # 分析可能跨越日期：扫描受控日期目录，按实验标识关联。
+            found_analysis = False
+            if _safe_directory(self._data_dir, analysis_root):
+                for day_dir in analysis_root.iterdir():
+                    if not _safe_directory(self._data_dir, day_dir):
+                        continue
+                    folder = day_dir / _safe_component(experiment.experiment_id)
+                    if _safe_directory(self._data_dir, folder):
+                        for path in sorted(folder.glob("row-*.zip")):
+                            try:
+                                source = _safe_media_path(self._data_dir, path)
+                            except (OSError, ValueError):
+                                continue
+                            found_analysis = True
+                            entries.append(
+                                (f"analysis/{day_dir.name}/{folder.name}/{path.name}", source)
+                            )
+            if not found_analysis:
+                missing.append(f"{experiment.experiment_id}: 未找到原始算法输出")
+
+        for path in self._log_files(start_date, end_date):
             try:
                 entries.append(
                     (f"logs/{_safe_component(path.name)}", _scrub_log(path, check_cancel))
@@ -202,7 +295,11 @@ class DiagnosticsService:
                         if isinstance(item, bytes):
                             chunks: Iterable[bytes] = (item,)
                         else:
-                            source_handle = item.open("rb")
+                            source_handle = (
+                                _scrub_analysis_archive(item, check_cancel)
+                                if name.startswith("analysis/")
+                                else item.open("rb")
+                            )
                             chunks = _iter_chunks(source_handle, check_cancel)
                         try:
                             for chunk in chunks:
@@ -225,6 +322,13 @@ class DiagnosticsService:
                 manifest = {
                     "created_at": now.isoformat(),
                     "application": "GelInspect",
+                    "video_source_type": self._video_source,
+                    "video_scope": "每排翻转及抓帧期间录制；不包含整个孵育阶段",
+                    "analysis_export": "原始结果文本已脱敏，掩码保持原样；本地原始文件不变",
+                    "local_date_range": {
+                        "start": start_date.isoformat() if start_date else None,
+                        "end": end_date.isoformat() if end_date else None,
+                    },
                     "files": checksums,
                     "missing_or_excluded": missing,
                     "excluded": [
@@ -313,8 +417,8 @@ class DiagnosticsService:
                 break
         return result
 
-    def _load_audits(self, check_cancel: Callable[[], None]) -> list[object]:
-        result: list[object] = []
+    def _load_audits(self, check_cancel: Callable[[], None]) -> list[AuditRecord]:
+        result: list[AuditRecord] = []
         offset = 0
         total: int | None = None
         query = AuditQuery(max_seq=self._storage.audit.latest_seq())
@@ -360,17 +464,24 @@ class DiagnosticsService:
                     break
         return result
 
-    def _log_files(self) -> list[Path]:
-        if not self._log_dir.is_dir():
+    def _log_files(self, start_date: date | None, end_date: date | None) -> list[Path]:
+        directory = self._data_dir / "diagnostics" / "logs"
+        if not directory.is_dir() or directory.is_symlink():
             return []
-        return sorted(
-            (
-                path
-                for path in self._log_dir.glob("gelinspect.log*")
-                if path.is_file() and not path.is_symlink()
-            ),
-            key=lambda path: path.name,
-        )
+        result = []
+        for path in directory.glob("????-??-??.log"):
+            try:
+                day = date.fromisoformat(path.stem)
+            except ValueError:
+                continue
+            if (
+                path.is_file()
+                and not path.is_symlink()
+                and (start_date is None or day >= start_date)
+                and (end_date is None or day <= end_date)
+            ):
+                result.append(path)
+        return sorted(result)
 
 
 def _iter_chunks(handle: BinaryIO, check_cancel: Callable[[], None]) -> Iterator[bytes]:
@@ -382,17 +493,60 @@ def _iter_chunks(handle: BinaryIO, check_cancel: Callable[[], None]) -> Iterator
         yield chunk
 
 
-def _safe_media_path(data_dir: Path, path: Path) -> Path:
+def _scrub_analysis_archive(path: Path, check_cancel: Callable[[], None]) -> BinaryIO:
+    """流式重打包原始输出，仅脱敏 JSON 文本，掩码逐块复制。"""
+    output = tempfile.TemporaryFile(mode="w+b")  # noqa: SIM115 - 返回给调用方关闭
+    try:
+        with (
+            zipfile.ZipFile(path) as source,
+            zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as target,
+        ):
+            for info in source.infolist():
+                check_cancel()
+                if info.filename == "result.json":
+                    value = json.loads(source.read(info).decode("utf-8"))
+                    target.writestr(info.filename, _json_bytes(_safe_value(value)))
+                else:
+                    with (
+                        source.open(info) as source_entry,
+                        target.open(info.filename, "w", force_zip64=True) as target_entry,
+                    ):
+                        for chunk in _iter_chunks(cast(BinaryIO, source_entry), check_cancel):
+                            target_entry.write(chunk)
+        output.seek(0)
+        return cast(BinaryIO, output)
+    except BaseException:
+        output.close()
+        raise
+
+
+def _safe_path(data_dir: Path, path: Path) -> Path:
     root = data_dir.resolve(strict=True)
+    relative = path.absolute().relative_to(root)
+    current = root
+    for part in relative.parts:
+        current = current / part
+        info = current.lstat()
+        if current.is_symlink() or (
+            getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+        ):
+            raise ValueError("路径包含符号链接或重解析点")
     source = path.resolve(strict=True)
     source.relative_to(root)
-    current = path
-    while current != root and current != current.parent:
-        if current.is_symlink():
-            raise ValueError("媒体路径包含符号链接")
-        current = current.parent
-    if not source.is_file():
-        raise ValueError("不是普通文件")
+    return source
+
+
+def _safe_directory(data_dir: Path, path: Path) -> bool:
+    try:
+        return _safe_path(data_dir, path).is_dir()
+    except (OSError, ValueError):
+        return False
+
+
+def _safe_media_path(data_dir: Path, path: Path) -> Path:
+    source = _safe_path(data_dir, path)
+    if not source.is_file() or source.stat().st_nlink != 1:
+        raise ValueError("不是安全的普通文件")
     return source
 
 
@@ -431,7 +585,7 @@ def _json_bytes(value: object) -> bytes:
 
 
 def _json_default(value: object) -> object:
-    if isinstance(value, datetime):
+    if isinstance(value, date | datetime):
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
@@ -500,7 +654,7 @@ def _audit_json(record: object) -> dict[str, object]:
         "seq": record.seq,  # type: ignore[attr-defined]
         "occurred_at": event.occurred_at.isoformat(),
         "actor": event.actor,
-        "actor_role": event.actor_role.value,
+        "actor_role": event.actor_role.value if event.actor_role is not None else None,
         "action": event.action.value,
         "detail": _scrub_text(event.detail),
         "experiment_id": event.experiment_id,

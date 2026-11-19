@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from datetime import date
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, QModelIndex, Qt
 from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QScrollArea, QVBoxLayout, QWidget
 
 from gelinspect.domain.entities import ReagentBatch
 from gelinspect.domain.enums import ReagentCheckStatus
+from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import (
     ReagentBatchEntry,
     ReagentCheckRecord,
@@ -29,6 +30,7 @@ from gelinspect.ui.labels import (
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
 from gelinspect.ui.widgets.data_table import Column, DataTable
+from gelinspect.ui.widgets.dialog import ConfirmDialog
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.reagent_result import ReagentResultView
 
@@ -53,6 +55,7 @@ class ReagentsPage(QWidget):
         self._batches: list[ReagentBatchEntry] = []
         self._checks: list[ReagentCheckRecord] = []
         self._error = ""
+        self._focused_batch: tuple[str, str] | None = None
 
         self.setProperty("role", "root")
         outer = QVBoxLayout(self)
@@ -98,6 +101,7 @@ class ReagentsPage(QWidget):
         tables.setSpacing(14)
         self.batch_card = Card(" ")
         self.batch_table = DataTable(self._batch_columns())
+        self.batch_table.view.clicked.connect(self._dismiss_attention_clicked)
         self.batch_card.body.addWidget(self.batch_table)
         tables.addWidget(self.batch_card, 1)
         self.check_card = Card(" ")
@@ -153,6 +157,44 @@ class ReagentsPage(QWidget):
         except StorageBusyError:
             self._error = describe_storage_busy()
         self._render()
+
+    def focus_batch(self, kind: str, batch_no: str) -> None:
+        """定位指定历史批次，并说明安全处理方式。"""
+        self._focused_batch = (kind, batch_no)
+        self._render()
+
+    def _dismiss_attention_clicked(self, index: QModelIndex) -> None:
+        if not index.isValid() or not (0 <= index.row() < len(self._batches)):
+            return
+        batch = self._batches[index.row()]
+        if self._session is None or not self._session.can(Permission.REAGENT_MANAGE):
+            self._error = self.tr("当前账号没有关闭试剂提醒的权限。")
+            self.query_error.setText(self._error)
+            self.query_error.setVisible(True)
+            return
+        if not ConfirmDialog.ask(
+            self,
+            self.tr("关闭提醒"),
+            self.tr("关闭 {kind} {batch} 的处理提醒？批次、校验历史和实验记录保留。").format(
+                kind=reagent_kind_label(batch.kind), batch=batch.batch_no
+            ),
+            confirm_text=self.tr("关闭提醒"),
+        ):
+            return
+        try:
+            self._services.reagents.dismiss_attention(
+                self._session, batch.kind, batch.batch_no, batch.last_check_id
+            )
+        except AuthError as error:
+            self.query_error.setText(describe_auth_error(error))
+            self.query_error.setVisible(True)
+            return
+        except StorageBusyError:
+            self.query_error.setText(describe_storage_busy())
+            self.query_error.setVisible(True)
+            return
+        self._focused_batch = None
+        self.refresh()
 
     def run_query(self) -> None:
         """按输入框里的试剂码查询（只校验，不写记录）。"""
@@ -218,6 +260,19 @@ class ReagentsPage(QWidget):
                 row["_tone"] = tone
             rows.append(row)
         self.batch_table.set_rows(rows)
+        if self._focused_batch is not None:
+            kind, batch_no = self._focused_batch
+            row_index = next(
+                (
+                    i
+                    for i, batch in enumerate(self._batches)
+                    if batch.kind.value == kind and batch.batch_no == batch_no
+                ),
+                None,
+            )
+            if row_index is not None:
+                self.batch_table.view.selectRow(row_index)
+                self.batch_table.view.scrollTo(self.batch_table.model.index(row_index, 0))
         self.batch_table.set_empty_text(
             self._error or self.tr("还没有录入的试剂批次"),
             "" if self._error else self.tr("在新实验向导里扫码校验后，批次会显示在这里"),

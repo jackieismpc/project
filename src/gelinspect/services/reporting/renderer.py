@@ -39,7 +39,14 @@ from PySide6.QtGui import (
 )
 
 from gelinspect.services.reporting.document import ReportDocument
-from gelinspect.services.reporting.html import CJK, MONO, SANS, image_resource_name, render_html
+from gelinspect.services.reporting.html import (
+    CJK,
+    MONO,
+    SANS,
+    TITLE,
+    image_resource_name,
+    render_html,
+)
 from gelinspect.services.reporting.strings import DEFAULT_HOLDER, SOURCES, S
 from gelinspect.services.reporting.texts import ReportTexts
 
@@ -88,17 +95,19 @@ def ensure_fonts() -> bool:
     """Check whether the requested system report fonts are installed.
 
     Returns:
-        True when Times New Roman and SimSun are available; missing fonts fall back.
+        True when Times New Roman, SimSun and SimHei are available; missing fonts fall back.
     """
     global _fonts_loaded, _report_fonts_available
     ensure_gui_application()
     if not _fonts_loaded:
         families = set(QFontDatabase.families())
-        _report_fonts_available = SANS in families and CJK in families
+        _report_fonts_available = all(name in families for name in (SANS, CJK, TITLE))
         if SANS not in families:
             _log.warning("报告字体 %s 不可用，报告回退到系统字体", SANS)
         if CJK not in families:
             _log.warning("报告字体 %s 不可用，报告回退到系统字体", CJK)
+        if TITLE not in families:
+            _log.warning("报告字体 %s 不可用，报告回退到系统字体", TITLE)
         _fonts_loaded = True
     return _report_fonts_available
 

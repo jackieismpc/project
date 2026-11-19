@@ -76,7 +76,7 @@ def test_review_committed_during_later_row_analysis_controls_completion(
         config=fast_config(time_scale=36000.0),
     )
     gate = Gate()
-    h.analyzer.gates[1] = gate
+    h.analyzer.gates[2] = gate
 
     class AuthorizedReview:
         @staticmethod
@@ -109,6 +109,8 @@ def test_review_committed_during_later_row_analysis_controls_completion(
         assert len(reviewed.review_history) == 1
         assert stored.completed_at is not None
         assert stored.conclusion is None and stored.measured_sensitivity is None
+        snapshots = list((tmp_path / "data" / "diagnostics" / "analysis").rglob("row-*.zip"))
+        assert len(snapshots) >= 2
     finally:
         gate.release.set()
         h.close()

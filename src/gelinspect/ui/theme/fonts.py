@@ -4,7 +4,9 @@
 
 * Noto Sans SC：界面所有角色，常规、中等、粗体三个静态实例，已裁剪为 GB2312 汉字、Big5 一级字
   （台湾常用繁体字）、界面和报告里实际用到的字符，以及常用符号，约 9900 个码位。
-  裁剪方法见 ``scripts/build_fonts.py``。
+  裁剪方法与官方来源见 ``scripts/build_fonts.py``；随包 ``OFL-NotoSansSC.txt``
+  保留 SIL Open Font License 1.1，官方许可：
+  https://github.com/google/fonts/blob/main/ofl/notosanssc/OFL.txt。
 
 内置字体缺失（例如开发时没有下载）时，回退到系统字体（PingFang SC、Microsoft YaHei），
 并通过 :class:`FontReport` 告知调用方。
@@ -171,7 +173,9 @@ def apply_app_font(app: QGuiApplication, tokens: Tokens | None = None) -> FontRe
     tokens = tokens or current_tokens()
     report = load_fonts(tokens)
     font = QFont(report.sans)
-    font.setPixelSize(tokens.type.body)
+    screen = app.primaryScreen()
+    dpi = screen.logicalDotsPerInchY() if screen is not None else 96.0
+    font.setPointSizeF(tokens.type.body * 72.0 / (dpi if dpi > 0 else 96.0))
     # 内置字体覆盖 GB2312 和台湾常用字，更生僻的字交给系统字体回退链补全。
     font.setFamilies([report.sans, *tokens.type.sans[1:-1]])
     app.setFont(font)

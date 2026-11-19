@@ -26,7 +26,7 @@ from tests.ui.wizard_helpers import (
     click,
     open_wizard,
     pass_reagents,
-    select_tubes,
+    set_tubes,
 )
 
 FULL_PLATE = "整板 96 管"
@@ -107,7 +107,7 @@ def test_full_plate_wizard_and_monitor_fit(
     pass_reagents(qapp, page)
     click(qapp, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
-    select_tubes(qapp, page, range(1, TUBE_COUNT + 1))
+    set_tubes(qapp, page, range(1, TUBE_COUNT + 1))
     assert page.draft().selected == list(range(1, TUBE_COUNT + 1))
     assert overflow_report(window) == []
     click(qapp, page.sample_next)

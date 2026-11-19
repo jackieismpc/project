@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from gelinspect.domain.enums import ReportScope
 from gelinspect.domain.plate import ROW_COUNT
-from gelinspect.infrastructure.db.models import MediaFileRow, ReportRow
+from gelinspect.infrastructure.db.models import MediaFileRow, MediaPurgeRow, ReportRow
 from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
     translate_lock_errors,
@@ -125,6 +127,35 @@ class SqlMediaRepository(MediaRepository):
         with self._sessions() as session:
             row = session.get(MediaFileRow, file_id)
             return None if row is None else self._to_media(row)
+
+    def purge_state(self, file_id: str) -> str | None:
+        """返回清理状态。"""
+        with self._sessions() as session:
+            row = session.get(MediaPurgeRow, file_id)
+            return None if row is None else row.state
+
+    def set_purge_state(self, media: MediaFile, state: str, at: datetime) -> None:
+        """保存媒体清理意图或结果。"""
+        with translate_lock_errors(), self._sessions() as session:
+            row = session.get(MediaPurgeRow, media.file_id)
+            if row is None:
+                session.add(
+                    MediaPurgeRow(
+                        file_id=media.file_id,
+                        path=media.path,
+                        sha256=media.sha256,
+                        state=state,
+                        updated_at=at,
+                    )
+                )
+            else:
+                row.state, row.updated_at = state, at
+
+    def purge_record_matches(self, media: MediaFile) -> bool:
+        """核对清理记录和原始登记的路径、哈希。"""
+        with self._sessions() as session:
+            row = session.get(MediaPurgeRow, media.file_id)
+            return row is not None and row.path == media.path and row.sha256 == media.sha256
 
     def list_for_experiment(
         self,

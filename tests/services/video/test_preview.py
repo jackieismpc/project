@@ -78,7 +78,8 @@ def test_latest_wins_with_slow_callback() -> None:
         received.append(preview.sequence)
         gate.wait(60)
 
-    worker = PreviewWorker(PreviewConfig(max_fps=100000), slow)
+    clock = StepClock()
+    worker = PreviewWorker(PreviewConfig(max_fps=100000), slow, clock=clock)
     worker.start()
     try:
         worker.offer(frame(0))
@@ -86,8 +87,8 @@ def test_latest_wins_with_slow_callback() -> None:
         frames = [frame(k) for k in range(1, 200)]  # 造帧的耗时不算进 offer
         started = time.monotonic()
         for item in frames:
+            clock.t += 1.0
             worker.offer(item)
-            time.sleep(0.0005)
         assert time.monotonic() - started < 30.0  # 回调卡 60 秒，offer 要是在等它，这里就超了
         gate.set()
         assert wait_until(lambda: received[-1] == 199)
@@ -106,10 +107,12 @@ def test_callback_exception_does_not_kill_worker() -> None:
         calls.append(preview.sequence)
         raise RuntimeError("界面回调炸了")
 
-    worker = PreviewWorker(PreviewConfig(max_fps=1000), bad, emit=events.append)
+    clock = StepClock()
+    worker = PreviewWorker(PreviewConfig(max_fps=1000), bad, emit=events.append, clock=clock)
     worker.start()
     try:
         for k in range(5):
+            clock.t += 1.0
             worker.offer(frame(k))
             assert wait_until(partial(calls.__contains__, k))
         assert worker.errors == 5

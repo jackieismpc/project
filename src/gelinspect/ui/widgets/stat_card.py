@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from html import escape
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from gelinspect.ui.theme.tokens import current_tokens
@@ -95,13 +94,15 @@ class ReadoutCard(Card):
         left.addWidget(self._label)
         left.addWidget(self._value)
         left.addWidget(self._note)
+        left.addStretch(1)
         row.addLayout(left)
         self.sparkline = sparkline
         if sparkline is not None:
-            row.addWidget(sparkline, 1, Qt.AlignmentFlag.AlignBottom)
+            sparkline.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            row.addWidget(sparkline, 1)
         else:
             row.addStretch(1)
-        self.body.addLayout(row)
+        self.body.addLayout(row, 4 if sparkline is not None else 0)
         self._note.setVisible(bool(note))
         self.set_value(value, unit)
 

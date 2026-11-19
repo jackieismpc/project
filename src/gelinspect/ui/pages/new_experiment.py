@@ -744,20 +744,32 @@ class NewExperimentPage(QWidget):
                 [TemplateItemInput(self.tr("样品"))],
             )
         )
+        session = self._session
+        save_template = (
+            source is None and session is not None and session.can(Permission.TEMPLATE_MANAGE)
+        )
         dialog = TemplateEditorDialog(
-            lambda draft: self._build_run_template(draft),
+            (
+                lambda draft: (
+                    self._services.templates.create_template(session, draft)
+                    if save_template
+                    else self._build_run_template(draft)
+                )
+            ),
             initial=initial,
+            per_run=not save_template,
             parent=self,
         )
         if dialog.exec() == QDialog.DialogCode.Accepted and dialog.saved is not None:
             configured = dialog.saved
-            configured = ExperimentTemplate(
-                f"draft.{uuid.uuid4().hex}",
-                configured.name,
-                configured.experiment_type,
-                configured.items,
-                configured.needs_confirmation,
-            )
+            if not save_template:
+                configured = ExperimentTemplate(
+                    f"draft.{uuid.uuid4().hex}",
+                    configured.name,
+                    configured.experiment_type,
+                    configured.items,
+                    configured.needs_confirmation,
+                )
             self._draft.configure(
                 configured,
                 source_template_id=(
@@ -770,6 +782,8 @@ class NewExperimentPage(QWidget):
             )
             self._set_scan_cursor_to_first()
             self._sync_samples()
+            if save_template:
+                self._load_templates()
             self._render()
 
     @staticmethod
@@ -922,7 +936,7 @@ class NewExperimentPage(QWidget):
 
     def _save_template_and_start(self) -> None:
         """先另存当前启动配置，再用新模板记录创建并启动试验。"""
-        if self._starting:
+        if not self._confirm_ready():
             return
         session = self._session
         source_template = self._draft.template
@@ -1746,13 +1760,27 @@ class NewExperimentPage(QWidget):
         self._created_template_signature = None
         return True
 
+    def _confirm_ready(self) -> bool:
+        if self._starting or self._step != STEP_CONFIRM:
+            return False
+        if self._draft.template is None:
+            self._confirm_error = lambda: self.tr("请先选择模板。")
+        elif not self._draft.tubes_match or self._draft.sample_problems():
+            self._confirm_error = lambda: self.tr("试管数量应与已选管位一致，样品名称不能为空")
+        elif self._draft.limit_problems():
+            self._confirm_error = lambda: self.tr("请返回检查 MVD 和内毒素限值。")
+        else:
+            return True
+        self._render()
+        return False
+
     def _confirm(
         self,
         *,
         saved_template: ExperimentTemplate | None = None,
         template_signature: tuple[object, ...] | None = None,
     ) -> None:
-        if self._starting:
+        if not self._confirm_ready():
             return
         session = self._session
         self._confirm_error = None

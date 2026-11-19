@@ -332,7 +332,11 @@ class AuthService:
             AuthStorageBusyError: 数据库正忙，没有登录，稍后重试。
         """
         name = username.strip()
-        user, must_change = self._verify(name, password, purpose="登录")
+        try:
+            user, must_change = self._verify(name, password, purpose="登录")
+        except AuthError as error:
+            _log.warning("登录失败 code=%s", error.code.value)
+            raise
         session = Session(
             user=user,
             must_change_password=must_change,
@@ -343,6 +347,7 @@ class AuthService:
         self._audit(user, AuditAction.LOGIN, "登录成功" + ("，须先修改密码" if must_change else ""))
         with self._lock:
             self._sessions[session.session_id] = session
+        _log.info("登录成功 session=%s", session.session_id)
         return session
 
     def logout(self, session: Session) -> None:
@@ -360,6 +365,7 @@ class AuthService:
         session.valid = False
         if known is not None:
             self._audit_best_effort(session.user, AuditAction.LOGOUT, "退出登录")
+            _log.info("退出登录 session=%s", session.session_id)
 
     def lock(self, session: Session) -> None:
         """锁屏：会话保留，但在解锁前拒绝一切操作。试验在后台继续。

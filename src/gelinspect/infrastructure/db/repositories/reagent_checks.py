@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 
 from gelinspect.domain.enums import ReagentCheckStatus, ReagentKind
-from gelinspect.infrastructure.db.models import ReagentCheckRow
+from gelinspect.infrastructure.db.models import ReagentAttentionDismissalRow, ReagentCheckRow
 from gelinspect.infrastructure.db.repositories._common import (
     SessionProvider,
     count_where,
@@ -115,9 +115,47 @@ class SqlReagentCheckRepository(ReagentCheckRepository):
                     last_checked_at=row.checked_at,
                     last_actor=row.actor,
                     check_count=int(count),
+                    last_check_id=row.id,
                 )
                 for row, count in session.execute(statement)
             ]
+
+    def dismiss_attention(self, kind: ReagentKind, batch_no: str, through_id: int) -> bool:
+        """标记当前最新记录，保留历史及此后新增的校验。"""
+        with translate_lock_errors(), self._sessions() as session:
+            latest_id = session.scalar(
+                select(func.max(ReagentCheckRow.id)).where(
+                    ReagentCheckRow.kind == kind.value, ReagentCheckRow.batch_no == batch_no
+                )
+            )
+            if latest_id is None or through_id <= 0 or through_id > latest_id:
+                return False
+            latest_id = through_id
+            marker = session.get(ReagentAttentionDismissalRow, (kind.value, batch_no))
+            if marker is not None and marker.through_id >= latest_id:
+                return False
+            if marker is None:
+                session.add(
+                    ReagentAttentionDismissalRow(
+                        kind=kind.value, batch_no=batch_no, through_id=latest_id
+                    )
+                )
+            else:
+                marker.through_id = latest_id
+            return True
+
+    def attention_dismissed(self, kind: ReagentKind, batch_no: str) -> bool:
+        """检查最新校验是否已经关闭提醒。"""
+        with self._sessions() as session:
+            marker = session.get(ReagentAttentionDismissalRow, (kind.value, batch_no))
+            if marker is None:
+                return False
+            latest_id = session.scalar(
+                select(func.max(ReagentCheckRow.id)).where(
+                    ReagentCheckRow.kind == kind.value, ReagentCheckRow.batch_no == batch_no
+                )
+            )
+            return latest_id is not None and latest_id <= marker.through_id
 
     def query(self, page: PageRequest) -> Page[ReagentCheckRecord]:
         """分页查询校验记录，最新在前。

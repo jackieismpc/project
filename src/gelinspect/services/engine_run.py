@@ -66,6 +66,7 @@ from gelinspect.interfaces.storage import (
     UnitOfWork,
 )
 from gelinspect.interfaces.video import VideoError
+from gelinspect.services.diagnostic_capture import capture_analysis
 from gelinspect.services.engine_recovery import RowRecovery
 from gelinspect.services.engine_types import (
     AlertCode,
@@ -327,7 +328,7 @@ class EngineRun:
             deps.clock,
             self._inbox.post,
             self._inbox.post,
-            archive=lambda request, result: archive_masks(request, result, self._clock.now()),
+            archive=self._archive_analysis,
         )
 
         rows: dict[int, list[int]] = {}
@@ -953,6 +954,17 @@ class EngineRun:
             elif item is _SHUTDOWN:
                 self._perform_shutdown()
                 return
+
+    def _archive_analysis(
+        self, request: RowAnalysisRequest, result: RowAnalysisResult
+    ) -> Sequence[MediaFile]:
+        try:
+            capture_analysis(self._pipeline.data_dir, request, result, self._clock.now())
+        except Exception:
+            logger.exception(
+                "保存 %s 第 %s 排原始算法输出失败", request.experiment_id, request.row_index
+            )
+        return archive_masks(request, result, self._clock.now())
 
     def _apply_outcome(self, outcome: AnalysisOutcome) -> None:
         row = self._rows[outcome.row_index]

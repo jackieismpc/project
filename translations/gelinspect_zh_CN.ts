@@ -1032,14 +1032,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>类别</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>内容</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>序号</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2305,6 +2297,10 @@
         <translation>现有试验尚未放弃，无法返回修改。</translation>
     </message>
     <message>
+        <source>请返回检查 MVD 和内毒素限值。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>现有试验未能放弃，无法返回修改试剂。</source>
         <translation>现有试验未能放弃，无法返回修改试剂。</translation>
     </message>
@@ -2868,6 +2864,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>当前账号没有关闭试剂提醒的权限。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭提醒</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>关闭 {kind} {batch} 的处理提醒？批次、校验历史和实验记录保留。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{kind} · 查询结果不写入校验记录</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3204,10 +3212,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>选择要验证的 PDF</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>PDF 文件 (*.pdf)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3229,10 +3233,6 @@
     </message>
     <message>
         <source>待签署</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>导入外部 PDF</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3300,10 +3300,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>报告中心</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3316,15 +3312,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>导入外部 PDF…</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>打开匹配的报告</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>实验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>验证外部 PDF</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3854,6 +3850,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>开始日期不能晚于结束日期。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>导出诊断包</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3926,6 +3926,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>指定日期范围（默认全部）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>导出诊断包…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3943,6 +3955,14 @@
     </message>
     <message>
         <source>日志默认保留，不自动删除。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>诊断数据保留全部。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>诊断数据保留最近 {days} 天。 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4030,7 +4050,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
+        <source>留空或 0 表示全部保留；有限天数将清理超期诊断日志及未签署已完成实验的受管视频图像，签署证据和外部原文件保留。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4340,6 +4360,10 @@
     </message>
     <message>
         <source>共 {count} 支试管</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5112,10 +5136,6 @@
     </message>
     <message>
         <source>验签未通过：</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

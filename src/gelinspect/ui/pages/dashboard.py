@@ -110,6 +110,7 @@ class DashboardPage(QWidget):
 
     navigationRequested = Signal(str)  # noqa: N815
     experimentRequested = Signal(str)  # noqa: N815
+    reagentRequested = Signal(str, str)  # noqa: N815
 
     def __init__(self, services: AppServices, parent: QWidget | None = None) -> None:
         """创建页面。
@@ -174,11 +175,12 @@ class DashboardPage(QWidget):
         running_row.addWidget(self.mini_plate, 0, Qt.AlignmentFlag.AlignTop)
         running_text = QVBoxLayout()
         running_text.setSpacing(6)
-        for w in (self.running_title, self.running_rows, self.progress):
+        for w in (self.running_title, self.progress):
             running_text.addWidget(w)
         running_text.addStretch(1)
         running_row.addLayout(running_text, 1)
         self.running_card.body.addLayout(running_row)
+        self.running_card.body.addWidget(self.running_rows)
         self.running_empty = Label("", "meta")
         self.running_empty.setWordWrap(True)
         self.running_card.body.addWidget(self.running_empty)
@@ -446,7 +448,17 @@ class DashboardPage(QWidget):
             return
         for entry in self._attention:
             role, text, target = self._attention_line(entry)
-            if target is not None:
+            if entry.kind in (AttentionKind.REAGENT_EXPIRED, AttentionKind.REAGENT_EXPIRING):
+                assert entry.label is not None and entry.batch_no is not None
+                button = _AttentionLinkButton(text)
+                button.setProperty("role", "link")
+                button.clicked.connect(
+                    lambda _c=False, k=entry.label.value, b=entry.batch_no: (
+                        self.reagentRequested.emit(k, b)
+                    )
+                )
+                self.attention_box.addWidget(button)
+            elif target is not None:
                 button = _AttentionLinkButton(text)
                 button.setProperty("role", "link")
                 button.clicked.connect(lambda _c=False, t=target: self.experimentRequested.emit(t))

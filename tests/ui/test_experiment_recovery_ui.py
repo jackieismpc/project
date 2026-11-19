@@ -40,7 +40,7 @@ from tests.ui.wizard_helpers import (
     click,
     open_wizard,
     pass_reagents,
-    select_tubes,
+    set_tubes,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -260,7 +260,7 @@ def test_wizard_shows_spikes_calculated_from_lambda(qapp: QApplication, window: 
     # 由 λ 算出的列不能手工改
     assert not table.cell_item(0, 4).flags() & Qt.ItemFlag.ItemIsEditable
     assert table.cell_item(0, 1).flags() & Qt.ItemFlag.ItemIsEditable
-    select_tubes(qapp, page, range(1, 19))
+    set_tubes(qapp, page, range(1, 19))
     click(qapp, page.sample_next)
     summary = page.summary_table
     assert summary.row_count() == 18

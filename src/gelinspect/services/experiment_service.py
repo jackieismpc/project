@@ -405,6 +405,7 @@ class ExperimentService:
             uow.experiments.save(experiment)
             self._reagents.record_checks(user, scans.values(), experiment_id, uow)
             uow.audit.append_many(events)
+        _log.info("创建实验 id=%s", experiment_id)
         return experiment_id
 
     # ------------------------------------------------------------------ MVD 与限值
@@ -512,6 +513,7 @@ class ExperimentService:
             ) from error
         except EngineError as error:
             raise ServiceError(str(error), ServiceErrorCode.ENGINE_REFUSED) from error
+        _log.info("提交实验启动 id=%s", experiment_id)
 
     def abandon_experiment(self, session: Session | None, experiment_id: str) -> None:
         """放弃一个就绪但没有启动的试验（启动失败后用户不再重试时）。

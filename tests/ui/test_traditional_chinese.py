@@ -342,7 +342,7 @@ def test_window_texts_switch_to_traditional_chinese_immediately(
     assert toolbar.action("new_experiment").text() == "新增實驗"
     assert toolbar._user.text() == "Jordan Li · 一般使用者"
     assert toolbar._language.text() == "繁體中文"
-    assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "歷史紀錄", "範本管理"]
+    assert [i.text() for i in window.shell.nav.items()][:3] == ["工作台", "新增實驗", "歷史紀錄"]
     language.set_language(Language.ZH_CN)
     settle(qapp)
     assert toolbar._language.text() == "简体中文"

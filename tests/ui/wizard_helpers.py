@@ -89,3 +89,10 @@ def select_tubes(app: QApplication, page: NewExperimentPage, tubes: Iterable[int
             page.plate, Qt.MouseButton.LeftButton, pos=QPoint(round(center.x()), round(center.y()))
         )
     settle(app)
+
+
+def set_tubes(app: QApplication, page: NewExperimentPage, tubes: Iterable[int]) -> None:
+    """通过点击将孔板调整为指定的管位集合。"""
+    desired = set(tubes)
+    current = set(page.plate.selected_tubes())
+    select_tubes(app, page, sorted(current ^ desired))

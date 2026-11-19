@@ -82,13 +82,6 @@ _VERIFY_OK_EXTERNAL = str(
     QT_TRANSLATE_NOOP("Verify", "验签通过：签名完整、覆盖整个文件，证书是本机信任的那张。")
 )
 _VERIFY_FAILED = str(QT_TRANSLATE_NOOP("Verify", "验签未通过："))
-SELF_SIGNED_NOTICE = str(
-    QT_TRANSLATE_NOOP(
-        "Verify",
-        "签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。",
-    )
-)
-"""验签区常驻的说明：自签证书防篡改，没有第三方 CA 的法律效力。"""
 
 
 def describe_failure(failure: VerifyFailure) -> str:
@@ -119,12 +112,3 @@ def describe_verification(result: SignatureVerification, *, stored: bool = True)
         QCoreApplication.translate("Verify", _VERIFY_FAILED),
         *(f"· {describe_failure(f)}" for f in result.failures),
     ]
-
-
-def self_signed_notice() -> str:
-    """自签证书的说明，当前语言。
-
-    Returns:
-        说明文字。
-    """
-    return QCoreApplication.translate("Verify", SELF_SIGNED_NOTICE)

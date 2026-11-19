@@ -203,7 +203,12 @@ def test_symlink_escape_is_rejected(tmp_path: Path) -> None:
     outside.mkdir()
     videos = tmp_path / "data" / "videos"
     videos.mkdir(parents=True)
-    (videos / "EXP-LINK").symlink_to(outside, target_is_directory=True)
+    try:
+        (videos / "EXP-LINK").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows 当前账户没有创建符号链接的权限")
+        raise
     recorder = make_recorder(tmp_path / "data")
     with pytest.raises(InvalidIdentifierError, match="越出"):
         recorder.start_segment("EXP-LINK", 1)

@@ -437,6 +437,7 @@ class ReagentBatchEntry:
     last_checked_at: datetime
     last_actor: str
     check_count: int
+    last_check_id: int = 0
 
 
 class UserRepository(Protocol):
@@ -559,6 +560,14 @@ class ReagentCheckRepository(Protocol):
 
     def list_batches(self, limit: int = 200) -> list[ReagentBatchEntry]:
         """列出已录入的批次，按最近校验时间倒序。"""
+        ...
+
+    def dismiss_attention(self, kind: ReagentKind, batch_no: str, through_id: int) -> bool:
+        """关闭当前校验对应的提醒，不改变批次或历史。"""
+        ...
+
+    def attention_dismissed(self, kind: ReagentKind, batch_no: str) -> bool:
+        """当前最新校验对应的提醒是否已关闭。"""
         ...
 
     def query(self, page: PageRequest) -> Page[ReagentCheckRecord]:
@@ -699,6 +708,18 @@ class MediaRepository(Protocol):
 
     def get(self, file_id: str) -> MediaFile | None:
         """按标识查询。"""
+        ...
+
+    def purge_state(self, file_id: str) -> str | None:
+        """返回保留策略清理状态。"""
+        ...
+
+    def purge_record_matches(self, media: MediaFile) -> bool:
+        """核对清理意图是否与媒体登记一致。"""
+        ...
+
+    def set_purge_state(self, media: MediaFile, state: str, at: datetime) -> None:
+        """记录清理意图或结果。"""
         ...
 
     def list_for_experiment(

@@ -204,6 +204,26 @@ class ReagentCheckRow(Base):
     experiment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
+class MediaPurgeRow(Base):
+    """受控媒体保留清理的持久结果。"""
+
+    __tablename__ = "media_purge_records"
+    file_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    path: Mapped[str] = mapped_column(Text, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(UtcDateTime)
+
+
+class ReagentAttentionDismissalRow(Base):
+    """批次列表移除水位；历史校验保持不变。"""
+
+    __tablename__ = "reagent_attention_dismissals"
+    kind: Mapped[str] = mapped_column(String(32), primary_key=True)
+    batch_no: Mapped[str] = mapped_column(String(128), primary_key=True)
+    through_id: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 class TubeResultRow(Base):
     """单管结果表。``auto_interpretation`` 等是阴阳性与复核信息。"""
 

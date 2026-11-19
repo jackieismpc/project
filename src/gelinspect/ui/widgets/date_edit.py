@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from PySide6.QtCore import QDate
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QFont, QMouseEvent
 from PySide6.QtWidgets import QDateEdit, QWidget
 
 _EMPTY = QDate(2000, 1, 1)
@@ -22,6 +22,11 @@ class OptionalDateEdit(QDateEdit):
             parent: 父控件。
         """
         super().__init__(parent)
+        # Qt 日历内部使用点字号；像素字体的 pointSize 为 -1。
+        font = QFont(self.font())
+        if font.pointSizeF() <= 0 and font.pixelSize() > 0:
+            font.setPointSizeF(font.pixelSize() * 72.0 / self.logicalDpiY())
+            self.setFont(font)
         self.setCalendarPopup(True)
         self.setDisplayFormat("yyyy-MM-dd")
         self.setMinimumDate(_EMPTY)

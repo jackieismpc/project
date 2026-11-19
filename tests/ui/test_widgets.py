@@ -1,10 +1,13 @@
 import pytest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QTimer, qInstallMessageHandler
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication, QDateEdit, QFileDialog, QWidget
 from pytestqt.qtbot import QtBot
 
 from gelinspect.ui.widgets.badge import StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.data_table import Column, DataTable
+from gelinspect.ui.widgets.date_edit import OptionalDateEdit
 from gelinspect.ui.widgets.icons import IconLoader, available_icons
 from gelinspect.ui.widgets.marks import WellState
 from gelinspect.ui.widgets.side_nav import DEFAULT_NAV, SideNav
@@ -137,7 +140,9 @@ def test_toast_expiry_regression_in_separate_process() -> None:
     import sys
 
     script = """
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtCore import QTimer, qInstallMessageHandler
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication, QDateEdit, QFileDialog, QWidget
 from PySide6.QtCore import QCoreApplication, QEvent
 from gelinspect.ui.widgets.toast import Toast
 app = QApplication([])
@@ -158,3 +163,87 @@ QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("dpi,pixels", [(96, 13), (144, 16)])
+def test_date_calendar_accepts_pixel_font_without_qt_warning(
+    qapp: QApplication, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, dpi: int, pixels: int
+) -> None:
+    original = qapp.font()
+    font = QFont(original)
+    font.setPixelSize(pixels)
+    qapp.setFont(font)
+    monkeypatch.setattr(OptionalDateEdit, "logicalDpiY", lambda self: dpi)
+    warnings: list[str] = []
+    previous = qInstallMessageHandler(lambda _kind, _context, message: warnings.append(message))
+    try:
+        date_edit = OptionalDateEdit()
+        qtbot.addWidget(date_edit)
+        assert date_edit.font().pointSizeF() == pytest.approx(pixels * 72 / dpi, abs=0.1)
+        assert not any("QFont::setPointSize" in message for message in warnings)
+    finally:
+        qInstallMessageHandler(previous)
+        qapp.setFont(original)
+
+
+def test_date_calendar_preserves_point_font(qapp: QApplication, qtbot: QtBot) -> None:
+    original = qapp.font()
+    font = QFont(original)
+    font.setPointSizeF(11)
+    qapp.setFont(font)
+    try:
+        date_edit = OptionalDateEdit()
+        qtbot.addWidget(date_edit)
+        assert date_edit.font().pointSizeF() == pytest.approx(11)
+    finally:
+        qapp.setFont(original)
+
+
+@pytest.mark.parametrize("palette", ["teal", "blue"])
+@pytest.mark.parametrize("font_scale", ["small", "system", "large"])
+def test_readout_curve_expands_with_card(
+    qtbot: QtBot, qapp: QApplication, palette: str, font_scale: str
+) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    apply_appearance(qapp, AppearancePreferences(palette=palette, font_scale=font_scale))
+    sparkline = Sparkline([36.8, 37.0], compact=True)
+    card = ReadoutCard("温度", "37.0", "℃", sparkline=sparkline)
+    card.body.addStretch(1)
+    qtbot.addWidget(card)
+    card.resize(700, 320)
+    card.show()
+    qtbot.wait(20)
+    assert sparkline.height() >= 180
+    assert sparkline.height() <= card.height()
+    assert sparkline.values() == [36.8, 37.0]
+    apply_appearance(qapp, AppearancePreferences())
+
+
+def test_standard_qt_calendar_and_file_dialog_keep_valid_font_sizes(
+    qapp: QApplication, qtbot: QtBot
+) -> None:
+    from gelinspect.services.appearance_service import AppearancePreferences
+    from gelinspect.ui.theme.appearance import apply_appearance
+
+    warnings: list[str] = []
+    previous = qInstallMessageHandler(lambda _kind, _context, message: warnings.append(message))
+    try:
+        for scale in ("small", "system", "large"):
+            apply_appearance(qapp, AppearancePreferences(font_scale=scale))
+            assert qapp.font().pointSizeF() > 0
+            edit = QDateEdit()
+            qtbot.addWidget(edit)
+            edit.setCalendarPopup(True)
+            edit.show()
+            qapp.processEvents()
+            dialog = QFileDialog()
+            qtbot.addWidget(dialog)
+            dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+            QTimer.singleShot(0, dialog.reject)
+            dialog.exec()
+        assert not any("QFont::setPointSize" in message for message in warnings)
+    finally:
+        qInstallMessageHandler(previous)
+        apply_appearance(qapp, AppearancePreferences())

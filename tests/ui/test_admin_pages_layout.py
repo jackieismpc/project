@@ -115,6 +115,9 @@ def test_users_and_settings_pages_fit_in_every_state(
 
     window.logout(confirm=False)
     sign_in(qapp, window, "analyst")
-    assert not window.navigate("settings")
-    assert window.page("settings") is None
+    assert window.navigate("settings")
+    analyst_settings = window.page("settings")
+    assert isinstance(analyst_settings, SettingsPage)
+    assert analyst_settings.palette_box.isEnabled()
+    assert analyst_settings.fields["incubation_minutes"].edit.isEnabled()
     assert overflow_report(window) == []

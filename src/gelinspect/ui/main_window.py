@@ -454,7 +454,15 @@ class MainWindow(QMainWindow):
             else:
                 page.reload()
         self.setWindowTitle(self._window_title())
+        _log.info("打开页面 route=%s", key)
         return True
+
+    def open_reagent_batch(self, kind: str, batch_no: str) -> None:
+        """打开试剂记录并定位工作台提醒对应的批次。"""
+        if self.navigate("reagents"):
+            page = self._pages.get("reagents")
+            if isinstance(page, ReagentsPage):
+                page.focus_batch(kind, batch_no)
 
     def _confirm_leave_current(self) -> bool:
         """离开当前页面前的确认：新试验向导里有未完成的内容时要用户确认。"""
@@ -469,6 +477,7 @@ class MainWindow(QMainWindow):
             dashboard.set_session(self._session)
             dashboard.navigationRequested.connect(self.navigate)
             dashboard.experimentRequested.connect(self.open_experiment)
+            dashboard.reagentRequested.connect(self.open_reagent_batch)
             # 用页面的槽而不是 lambda：退出登录销毁页面时 Qt 会自动断开，旧页面不会再被调用
             self.bridge.wellUpdated.connect(dashboard.on_engine_activity)
             self.bridge.rowCountdown.connect(dashboard.on_engine_activity)

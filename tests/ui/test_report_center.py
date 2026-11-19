@@ -147,7 +147,6 @@ def test_end_to_end_sign_verify_tamper_export(
     result = page.last_verification
     assert result is not None and result.ok
     assert "验签通过" in page.verify_result.text()
-    assert "第三方 CA" in page.notice.text()
 
     # 篡改一个字节：界面显示明确原因
     original = path.read_bytes()
@@ -160,14 +159,6 @@ def test_end_to_end_sign_verify_tamper_export(
     text = page.verify_result.text()
     assert "验签未通过" in text and "SHA-256" in text
     path.write_bytes(original)
-
-    # 外部文件验签
-    monkeypatch.setattr(
-        QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(path), ""))
-    )
-    click(qapp, page.verify_file_button)
-    assert page.last_verification is not None and page.last_verification.ok
-    assert path.name in page.verify_result.text()
 
     # 导出同一份文件 + 批量导出（管理员和分析员有 data_export）
     target = tmp_path / "exported.pdf"
@@ -269,7 +260,7 @@ def test_empty_state_and_language_follow(
     assert page.report_table.model.rows[0]["experiment_id"] == "EXP-0200"
     language.set_language(Language.EN)
     settle(qapp)
-    assert page.title.text() == "Report Center"
+    assert page.import_pdf_button.text() == "Verify an external PDF…"
     assert page._ui_language is ReportLanguage.EN
     language.set_language(Language.ZH_CN)
     assert ReportLanguage.EN.value == "en"

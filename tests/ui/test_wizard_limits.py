@@ -14,7 +14,7 @@ from tests.ui.wizard_helpers import (
     click,
     open_wizard,
     pass_reagents,
-    select_tubes,
+    set_tubes,
 )
 
 
@@ -25,7 +25,7 @@ def to_samples_step(app: QApplication, window: MainWindow) -> NewExperimentPage:
     pass_reagents(app, page)
     click(app, page.reagent_next)
     assert page.current_step() == STEP_SAMPLES
-    select_tubes(app, page, range(1, 19))
+    set_tubes(app, page, range(1, 19))
     return page
 
 

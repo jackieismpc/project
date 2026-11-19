@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHeaderView,
     QLineEdit,
+    QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QTableWidget,
@@ -102,6 +103,8 @@ class _Delegate(QStyledItemDelegate):
         rect = QRectF(option.rect)
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(rect, QColor(c.primary_tint))
         painter.setPen(QPen(QColor(c.border_soft), 1))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
         text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")

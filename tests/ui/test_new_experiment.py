@@ -2,13 +2,24 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QItemSelectionModel, QPoint, Qt
-from PySide6.QtGui import QContextMenuEvent
+from PySide6.QtCore import QItemSelectionModel, QPoint, Qt, QTimer
+from PySide6.QtGui import QColor, QContextMenuEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QLineEdit, QMenu
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QInputDialog,
+    QLineEdit,
+    QMenu,
+    QScrollArea,
+    QStyle,
+    QStyleOptionViewItem,
+)
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ExperimentType, ReagentKind, TubeRole
@@ -53,6 +64,7 @@ from tests.ui.wizard_helpers import (
     pass_reagents,
     scan,
     select_tubes,
+    set_tubes,
 )
 
 SENSITIVITY = BUILTIN_TEMPLATES[ExperimentType.SENSITIVITY_CONFIRMATION]
@@ -93,6 +105,9 @@ def reach_ten_tube_confirm(app: QApplication, page: NewExperimentPage) -> None:
 
 
 def click_sample_header(app: QApplication, page: NewExperimentPage, column: int) -> None:
+    scroll = page.findChild(QScrollArea)
+    assert scroll is not None
+    scroll.ensureWidgetVisible(page.sample_table.horizontalHeader())
     page.sample_table.scrollToItem(page.sample_table.cell_item(0, column))
     settle(app)
     header = page.sample_table.horizontalHeader()
@@ -141,7 +156,10 @@ def test_sample_context_menu_delete_keeps_multiselection_and_ignores_blank(
         selected_when_opened.append({index.row() for index in page.sample_table.selectedIndexes()})
         menu.actions()[0].trigger()
 
-    monkeypatch.setattr(QMenu, "exec", delete_from_menu)
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.new_experiment.QMenu",
+        type("TestMenu", (QMenu,), {"exec": delete_from_menu}),
+    )
     hit = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
     right_click_sample_row(qapp, page, hit)
 
@@ -156,7 +174,10 @@ def test_sample_context_menu_delete_keeps_multiselection_and_ignores_blank(
     def dismiss_menu(menu: QMenu, *_args: object) -> None:
         menu_actions.append(menu.actions()[0].text())
 
-    monkeypatch.setattr(QMenu, "exec", dismiss_menu)
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.new_experiment.QMenu",
+        type("TestMenu", (QMenu,), {"exec": dismiss_menu}),
+    )
     hit = page.sample_table.visualItemRect(page.sample_table.cell_item(1, COL_NAME)).center()
     right_click_sample_row(qapp, page, hit)
     assert {index.row() for index in page.sample_table.selectedIndexes()} == {1}
@@ -185,7 +206,10 @@ def test_sample_context_delete_confirms_edits_and_removes_unbound_rows(
     def trigger_delete(menu: QMenu, *_args: object) -> None:
         menu.actions()[0].trigger()
 
-    monkeypatch.setattr(QMenu, "exec", trigger_delete)
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.new_experiment.QMenu",
+        type("TestMenu", (QMenu,), {"exec": trigger_delete}),
+    )
     point = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
     right_click_sample_row(qapp, page, point)
     assert page._scan_row(row.row_id) is row and row.batch_no == "LOT-KEEP"
@@ -525,9 +549,9 @@ def test_going_back_keeps_everything_that_was_entered(
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page)
+    set_tubes(qapp, page, range(20, 38))
     page.sample_table.cell_item(1, COL_NAME).setText("样品乙")
     page.sample_table.cell_item(1, COL_BATCH).setText("B-7")
-    select_tubes(qapp, page, range(20, 38))
     click(qapp, page.sample_back)
     assert page.current_step() == STEP_REAGENTS and page.reagents_ok()
     lal = page.reagent_cards[ReagentKind.LAL_REAGENT]
@@ -572,7 +596,7 @@ def test_sample_sort_keeps_stable_sequence_and_tube_bindings(
     click_sample_header(qapp, page, COL_NAME)
     assert sample_header_text(page, COL_TUBE) == "管号 ↓"
     assert sample_header_text(page, COL_INDEX) == "序号 ↕"
-    assert page.sample_table.cell_text(0, COL_INDEX) == str(len(rows))
+    assert page.sample_table.cell_text(0, COL_INDEX) == "1"
     click_sample_header(qapp, page, COL_INDEX)
     assert sample_header_text(page, COL_INDEX) == "序号 ↑"
     assert [page.sample_table.cell_text(i, COL_INDEX) for i in range(len(rows))] == [
@@ -732,8 +756,8 @@ def test_plate_add_and_remove_preserves_stable_sequence_ids(
     template = page.draft().template
     assert template is not None
     configured = page._current_configuration_draft(template)
-    assert len(configured.items) == page.draft().expected_count == 17
-    assert configured.tube_numbers == tuple(range(1, 18))
+    assert len(configured.items) == page.draft().expected_count == 18
+    assert configured.tube_numbers == tuple(range(1, 19))
 
 
 def test_deleting_pending_scan_row_advances_by_stable_sequence(
@@ -747,7 +771,10 @@ def test_deleting_pending_scan_row_advances_by_stable_sequence(
     def trigger_delete(menu: QMenu, *_args: object) -> None:
         menu.actions()[0].trigger()
 
-    monkeypatch.setattr(QMenu, "exec", trigger_delete)
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.new_experiment.QMenu",
+        type("TestMenu", (QMenu,), {"exec": trigger_delete}),
+    )
     point = page.sample_table.visualItemRect(page.sample_table.cell_item(0, COL_NAME)).center()
     right_click_sample_row(qapp, page, point)
 
@@ -761,7 +788,7 @@ def test_changing_the_template_asks_before_discarding_entered_samples(
 ) -> None:
     page = open_wizard(qapp, window)
     reach_samples(qapp, page, "限度试验")
-    click(qapp, page.auto_button)
+    page.sample_table.cell_item(0, COL_BATCH).setText("LOT-EDITED")
     asked: list[str] = []
 
     def decline(_parent: object, title: str, *_a: object, **_k: object) -> bool:
@@ -790,7 +817,7 @@ def test_leaving_an_unfinished_wizard_asks_for_confirmation(
     assert window.navigate("dashboard")  # 什么都没做：直接离开，不打扰（对话框默认会让测试失败）
     assert window.navigate("new")
     reach_samples(qapp, page, "限度试验")
-    click(qapp, page.auto_button)
+    page.sample_table.cell_item(0, COL_BATCH).setText("LOT-EDITED")
     asked: list[str] = []
     answer = {"value": False}
 
@@ -1303,3 +1330,158 @@ def test_cancel_or_save_as_template_keeps_current_draft(
     assert saved is not None and saved.items[0].sample_name == "当前样品值"
     assert page.draft().template is original_template
     assert page.draft().rows[0].name == "当前样品值"
+
+
+def test_confirm_rejects_invalidated_draft_without_creating_experiment(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    click(qapp, page.sample_next)
+    assert page.current_step() == STEP_CONFIRM
+    page._draft.set_selected([])
+    page._confirm()
+    assert page._created_id is None
+    assert page._confirm_error is not None
+    assert experiments(app_context) == []
+
+
+def test_save_template_and_start_rejects_invalidated_draft(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    reach_samples(qapp, page)
+    click(qapp, page.sample_next)
+    assert page.current_step() == STEP_CONFIRM
+    page._draft.set_selected([])
+    called: list[bool] = []
+    monkeypatch.setattr(QInputDialog, "exec", lambda _dialog: called.append(True))
+    page._save_template_and_start()
+    assert called == []
+    assert page._created_id is None
+    assert page._confirm_error is not None
+
+
+def test_admin_blank_template_saves_and_is_selected_via_dialog(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    errors: list[Exception] = []
+
+    def fill_dialog() -> None:
+        dialog = qapp.activeModalWidget()
+        assert isinstance(dialog, TemplateEditorDialog)
+        try:
+            dialog.name.setText("Two tubes")
+            dialog.add_button.click()
+            for row, value in enumerate(("one", "two")):
+                item = dialog.table.cell_item(row, 1)
+                dialog.table.scrollToItem(item)
+                QTest.mouseDClick(
+                    dialog.table.viewport(),
+                    Qt.MouseButton.LeftButton,
+                    pos=dialog.table.visualItemRect(item).center(),
+                )
+                editor = dialog.table.focusWidget()
+                assert isinstance(editor, QLineEdit)
+                QTest.keyClick(editor, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+                QTest.keyClicks(editor, value)
+            QTest.mouseClick(dialog.save_button, Qt.MouseButton.LeftButton)
+            assert dialog.result() == QDialog.DialogCode.Accepted, dialog.error_label.text()
+        except Exception as exc:
+            errors.append(exc)
+            dialog.reject()
+
+    QTimer.singleShot(0, fill_dialog)
+    QTest.mouseClick(page.blank_button, Qt.MouseButton.LeftButton)
+    assert not errors, errors
+    template = page.draft().template
+    assert template is not None and template.template_id.startswith("custom.")
+    stored = app_context.database.templates.get(template.template_id)
+    assert stored is not None and [item.sample_name for item in stored.items] == ["one", "two"]
+    assert any(
+        option.template.template_id == template.template_id and option.property("selected")
+        for option in page._options
+    )
+    page._load_templates()
+    assert any(
+        option.template.template_id == template.template_id and option.property("selected")
+        for option in page._options
+    )
+    assert page.template_next.isEnabled()
+    settle(qapp, 8)
+    screenshot_dir = os.environ.get("GELINSPECT_UI_SCREENSHOTS")
+    if screenshot_dir:
+        assert window.grab().save(str(Path(screenshot_dir) / "template-selected.png"))
+    click(qapp, page.template_next)
+    assert page.current_step() == STEP_REAGENTS
+
+
+def test_selected_sample_row_has_theme_highlight(qapp: QApplication, window: MainWindow) -> None:
+    page = open_wizard(qapp, window)
+    reach_samples(qapp, page)
+    table = page.sample_table
+    point = table.visualItemRect(table.cell_item(0, COL_TUBE)).center()
+    QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=point)
+    assert {index.row() for index in table.selectionModel().selectedRows()} == {0}
+    screenshot_dir = os.environ.get("GELINSPECT_UI_SCREENSHOTS")
+    if screenshot_dir:
+        assert window.grab().save(str(Path(screenshot_dir) / "sample-selected.png"))
+    option = QStyleOptionViewItem()
+    option.rect = table.visualRect(table.model().index(0, COL_TUBE))
+    option.state = QStyle.StateFlag.State_Enabled | QStyle.StateFlag.State_Selected
+    from PySide6.QtGui import QImage, QPainter
+
+    from gelinspect.ui.theme.tokens import current_tokens
+
+    image = QImage(table.viewport().size(), QImage.Format.Format_ARGB32)
+    image.fill(QColor(current_tokens().colors.surface))
+    painter = QPainter(image)
+    table.itemDelegate().paint(painter, option, table.model().index(0, COL_TUBE))
+    painter.end()
+    assert image.pixelColor(option.rect.left() + 3, option.rect.top() + 3) == QColor(
+        current_tokens().colors.primary_tint
+    )
+
+
+def test_blank_template_save_failure_stays_open_and_retry_saves_once(
+    qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_wizard(qapp, window, "admin")
+    original = app_context.templates.create_template
+    attempts: list[str] = []
+
+    def submit(session: object, draft: TemplateDraft) -> ExperimentTemplate:
+        attempts.append(draft.name)
+        if len(attempts) == 1:
+            raise ServiceError("failed", ServiceErrorCode.TEMPLATE_NAME_REQUIRED)
+        return original(session, draft)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(app_context.templates, "create_template", submit)
+    errors: list[Exception] = []
+
+    def fill_dialog() -> None:
+        dialog = qapp.activeModalWidget()
+        assert isinstance(dialog, TemplateEditorDialog)
+        try:
+            dialog.name.setText("Retry template")
+            dialog.table.cell_item(0, 1).setText("one")
+            QTest.mouseClick(dialog.save_button, Qt.MouseButton.LeftButton)
+            assert dialog.isVisible() and dialog.error_label.isVisible()
+            assert dialog.table.cell_text(0, 1) == "one"
+            QTest.mouseClick(dialog.save_button, Qt.MouseButton.LeftButton)
+            assert dialog.result() == QDialog.DialogCode.Accepted
+        except Exception as exc:
+            errors.append(exc)
+            dialog.reject()
+
+    QTimer.singleShot(0, fill_dialog)
+    QTest.mouseClick(page.blank_button, Qt.MouseButton.LeftButton)
+    assert not errors, errors
+    assert attempts == ["Retry template", "Retry template"]
+    matches = [
+        info
+        for info in app_context.templates.list_templates(page._session)
+        if info.template.name == "Retry template"
+    ]
+    assert len(matches) == 1 and page.draft().template == matches[0].template

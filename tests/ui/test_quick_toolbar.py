@@ -16,8 +16,8 @@ CTRL = Qt.KeyboardModifier.ControlModifier
 
 SHORTCUT_KEYS = {
     "new_experiment": Qt.Key.Key_N,
-    "reports": Qt.Key.Key_R,
     "history": Qt.Key.Key_H,
+    "reports": Qt.Key.Key_R,
     "current_experiment": Qt.Key.Key_E,
     "instrument_settings": Qt.Key.Key_Comma,
 }

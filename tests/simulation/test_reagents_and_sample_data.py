@@ -1,5 +1,6 @@
 """试剂白名单、示例试验数据和 simulation 的隔离。"""
 
+import os
 import subprocess
 import sys
 import textwrap
@@ -137,7 +138,7 @@ def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-I", "-c", textwrap.dedent(code)],
         cwd=ROOT,
-        env={"PYTHONPATH": str(ROOT / "src")},
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
         capture_output=True,
         text=True,
         check=False,

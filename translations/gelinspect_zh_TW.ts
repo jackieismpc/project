@@ -1032,14 +1032,6 @@
         <translation>演算法說明</translation>
     </message>
     <message>
-        <source>类别</source>
-        <translation>類別</translation>
-    </message>
-    <message>
-        <source>内容</source>
-        <translation>內容</translation>
-    </message>
-    <message>
         <source>序号</source>
         <translation>序號</translation>
     </message>
@@ -2305,6 +2297,10 @@
         <translation>現有實驗尚未放棄，無法返回修改。</translation>
     </message>
     <message>
+        <source>请返回检查 MVD 和内毒素限值。</source>
+        <translation>請返回檢查 MVD 與內毒素限值。</translation>
+    </message>
+    <message>
         <source>现有试验未能放弃，无法返回修改试剂。</source>
         <translation>現有實驗無法放棄，無法返回修改試劑。</translation>
     </message>
@@ -2868,6 +2864,18 @@
         <translation>結果</translation>
     </message>
     <message>
+        <source>当前账号没有关闭试剂提醒的权限。</source>
+        <translation>目前帳號沒有關閉試劑提醒的權限。</translation>
+    </message>
+    <message>
+        <source>关闭提醒</source>
+        <translation>關閉提醒</translation>
+    </message>
+    <message>
+        <source>关闭 {kind} {batch} 的处理提醒？批次、校验历史和实验记录保留。</source>
+        <translation>關閉 {kind} {batch} 的處理提醒？批次、驗證歷史和實驗記錄保留。</translation>
+    </message>
+    <message>
         <source>{kind} · 查询结果不写入校验记录</source>
         <translation>{kind} · 查詢結果不寫入驗證紀錄</translation>
     </message>
@@ -3204,10 +3212,6 @@
         <translation>已簽署，報告已儲存：{name}</translation>
     </message>
     <message>
-        <source>选择要验证的 PDF</source>
-        <translation>選擇要驗證的 PDF</translation>
-    </message>
-    <message>
         <source>PDF 文件 (*.pdf)</source>
         <translation>PDF 檔案 (*.pdf)</translation>
     </message>
@@ -3230,10 +3234,6 @@
     <message>
         <source>待签署</source>
         <translation>待簽署</translation>
-    </message>
-    <message>
-        <source>导入外部 PDF</source>
-        <translation>匯入外部 PDF</translation>
     </message>
     <message>
         <source>数字签名有效，报告内容和签署记录已匹配。</source>
@@ -3300,10 +3300,6 @@
         <translation>所選實驗沒有已簽署的報告可匯出。</translation>
     </message>
     <message>
-        <source>报告中心</source>
-        <translation>報告中心</translation>
-    </message>
-    <message>
         <source>刷新</source>
         <translation>重新整理</translation>
     </message>
@@ -3316,16 +3312,16 @@
         <translation>重新整理清單</translation>
     </message>
     <message>
-        <source>导入外部 PDF…</source>
-        <translation>匯入外部 PDF…</translation>
-    </message>
-    <message>
         <source>打开匹配的报告</source>
         <translation>開啟相符的報告</translation>
     </message>
     <message>
         <source>实验</source>
         <translation>實驗</translation>
+    </message>
+    <message>
+        <source>验证外部 PDF</source>
+        <translation>驗證外部 PDF</translation>
     </message>
     <message>
         <source>时间</source>
@@ -3854,6 +3850,10 @@
         <translation>操作失敗：{reason}</translation>
     </message>
     <message>
+        <source>开始日期不能晚于结束日期。</source>
+        <translation>開始日期不能晚於結束日期。</translation>
+    </message>
+    <message>
         <source>导出诊断包</source>
         <translation>匯出診斷套件</translation>
     </message>
@@ -3926,16 +3926,28 @@
         <translation>診斷套件</translation>
     </message>
     <message>
+        <source>指定日期范围（默认全部）</source>
+        <translation>指定日期範圍（預設全部）</translation>
+    </message>
+    <message>
+        <source>开始日期</source>
+        <translation>開始日期</translation>
+    </message>
+    <message>
+        <source>结束日期</source>
+        <translation>結束日期</translation>
+    </message>
+    <message>
         <source>导出诊断包…</source>
         <translation>匯出診斷套件…</translation>
     </message>
     <message>
         <source>收集实验摘要、审计和可用媒体，并附校验清单。不含数据库、密码、令牌或私钥；生成过程可取消。</source>
-        <translation>收集實驗摘要、稽核紀錄與可用媒體，並附上校驗清單。不含資料庫、密碼、權杖或私鑰；可隨時取消產生程序。</translation>
+        <translation>收集實驗摘要、稽核紀錄與可用媒體，並附上驗證清單。不含資料庫、密碼、權杖或私鑰；可隨時取消產生程序。</translation>
     </message>
     <message>
         <source>诊断包还包含算法输出、复核记录和轮转日志；缺失或校验失败的媒体会列入清单。</source>
-        <translation>診斷套件也包含演算法輸出、複核紀錄與輪替記錄檔；缺少或校驗失敗的媒體會列入清單。</translation>
+        <translation>診斷套件也包含演算法輸出、複核紀錄與輪替記錄檔；缺少或驗證失敗的媒體會列入清單。</translation>
     </message>
     <message>
         <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
@@ -3944,6 +3956,14 @@
     <message>
         <source>日志默认保留，不自动删除。</source>
         <translation>記錄檔預設保留，不會自動刪除。</translation>
+    </message>
+    <message>
+        <source>诊断数据保留全部。</source>
+        <translation>診斷資料全部保留。</translation>
+    </message>
+    <message>
+        <source>诊断数据保留最近 {days} 天。 </source>
+        <translation>診斷資料保留最近 {days} 天。 </translation>
     </message>
     <message>
         <source>敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）</source>
@@ -4030,8 +4050,8 @@
         <translation>檢測設定檔（選填）</translation>
     </message>
     <message>
-        <source>留空表示不自动删除（默认）。当前版本不会自动删除数据。</source>
-        <translation>留白表示不自動刪除（預設）。目前版本不會自動刪除資料。</translation>
+        <source>留空或 0 表示全部保留；有限天数将清理超期诊断日志及未签署已完成实验的受管视频图像，签署证据和外部原文件保留。</source>
+        <translation>留空或 0 表示全部保留；有限天數將清理逾期診斷日誌及未簽署已完成實驗的受管影片影像，簽署證據和外部原始檔保留。</translation>
     </message>
     <message>
         <source>写入之后新建的每个实验和报告。</source>
@@ -4343,6 +4363,10 @@
     <message>
         <source>共 {count} 支试管</source>
         <translation>共 {count} 支試管</translation>
+    </message>
+    <message>
+        <source>编辑本次试管配置</source>
+        <translation>編輯本次試管配置</translation>
     </message>
     <message>
         <source>编辑模板</source>
@@ -5115,10 +5139,6 @@
     <message>
         <source>验签未通过：</source>
         <translation>驗章未通過：</translation>
-    </message>
-    <message>
-        <source>签名用的是本机自签证书：能证明文件签署后没有被改动，但不具有第三方 CA 的法律效力。</source>
-        <translation>簽章用的是本機自簽憑證：能證明檔案簽署後沒有被改動，但不具有第三方 CA 的法律效力。</translation>
     </message>
 </context>
 <context>

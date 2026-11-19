@@ -7,17 +7,83 @@ from datetime import date, timedelta
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QAbstractButton, QApplication
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import AuditAction, ReagentCheckStatus, ReagentKind
 from gelinspect.interfaces.storage import PageRequest, ReagentCheckRecord
 from gelinspect.ui.main_window import MainWindow
+from gelinspect.ui.pages.dashboard import DashboardPage
 from gelinspect.ui.pages.reagents_page import ReagentsPage
 from simulation.reagents import SAMPLE_CODES
 from tests.ui.conftest import FIXED_NOW, settle, sign_in
 from tests.ui.test_new_experiment import audit_actions
 from tests.ui.wizard_helpers import choose_template, click, open_wizard, scan
+
+
+def test_dashboard_expired_batch_can_be_removed_after_confirmation(
+    qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app_context.database.reagent_checks.add(
+        ReagentCheckRecord(
+            checked_at=FIXED_NOW,
+            actor="experimenter",
+            kind=ReagentKind.LAL_REAGENT,
+            batch_no="LAL2501B",
+            product_code="P",
+            status=ReagentCheckStatus.EXPIRED,
+            registered=True,
+            expiry_date=FIXED_NOW.date() - timedelta(days=10),
+        )
+    )
+    sign_in(qapp, window, "experimenter")
+    dashboard = window.page("dashboard")
+    assert isinstance(dashboard, DashboardPage)
+    links = [dashboard.attention_box.itemAt(i) for i in range(dashboard.attention_box.count())]
+    link = next(
+        widget
+        for item in links
+        if item is not None
+        if isinstance((widget := item.widget()), QAbstractButton)
+        and "LAL2501B" in widget.accessibleName()
+    )
+    link.click()
+    page = window.page("reagents")
+    assert isinstance(page, ReagentsPage)
+    selected = page.batch_table.view.selectionModel().selectedRows()
+    assert (
+        len(selected) == 1 and page.batch_table.model.rows[selected[0].row()]["batch"] == "LAL2501B"
+    )
+    assert not hasattr(page, "action_card")
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.reagents_page.ConfirmDialog.ask", lambda *a, **kw: True
+    )
+    page.batch_table.view.clicked.emit(page.batch_table.model.index(selected[0].row(), 0))
+    assert page.batch_table.row_count() == 1
+    assert app_context.database.reagent_checks.query(PageRequest()).total == 1
+    assert app_context.reagents.attention_dismissed(
+        window.session, ReagentKind.LAL_REAGENT, "LAL2501B"
+    )
+    assert not app_context.reagents.dismiss_attention(
+        window.session, ReagentKind.LAL_REAGENT, "LAL2501B", 1
+    )
+    assert len(audit_actions(app_context, AuditAction.REAGENT_ATTENTION_DISMISSED)) == 1
+    assert window.navigate("dashboard")
+    assert all(item.batch_no != "LAL2501B" for item in dashboard._attention)
+    app_context.database.reagent_checks.add(
+        ReagentCheckRecord(
+            checked_at=FIXED_NOW,
+            actor="experimenter",
+            kind=ReagentKind.LAL_REAGENT,
+            batch_no="LAL2501B",
+            product_code="P",
+            status=ReagentCheckStatus.EXPIRED,
+            registered=True,
+            expiry_date=FIXED_NOW.date() - timedelta(days=10),
+        )
+    )
+    dashboard.refresh()
+    assert any(item.batch_no == "LAL2501B" for item in dashboard._attention)
 
 
 def open_reagents(app: QApplication, win: MainWindow, username: str) -> ReagentsPage:

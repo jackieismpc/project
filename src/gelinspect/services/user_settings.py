@@ -106,7 +106,7 @@ NUMBER_LIMITS: dict[str, tuple[float, float]] = {
     "temperature_target_c": (20.0, 45.0),
     "temperature_tolerance_c": (0.1, 5.0),
     "temperature_hold_s": (0.0, 3600.0),
-    "retention_days": (1, 36500),
+    "retention_days": (0, 36500),
 }
 """数值项的允许范围（含两端）。"""
 
@@ -309,7 +309,7 @@ def parse_draft(
         parsed = _parse_number(
             "retention_days", draft.retention_days, problems, lenient=unchanged("retention_days")
         )
-        retention = None if parsed is None else int(parsed)
+        retention = None if parsed is None or parsed == 0 else int(parsed)
     path = ""
     if draft.video_input is not VideoInput.CONFIG:
         if check_paths and not (unchanged("video_input") and unchanged("video_path")):
@@ -419,7 +419,7 @@ class _Overrides(BaseModel):
     temperature_hold_s: float = Field(ge=0, le=3600)
     video_input: VideoInput
     video_path: str
-    retention_days: int | None = Field(ge=1, le=36500)
+    retention_days: int | None = Field(ge=0, le=36500)
     copyright_holder: str = Field(min_length=1, max_length=MAX_HOLDER_LENGTH)
     encrypt_exports: bool
 

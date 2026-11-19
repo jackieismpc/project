@@ -36,6 +36,18 @@ def test_valid_code_passes_and_is_recorded(stack: Stack) -> None:
     assert any("LAL2606A" in d and "valid" in d for d in stack.audit(AuditAction.REAGENT_CHECKED))
 
 
+def test_dismissing_old_reminder_does_not_hide_new_scan(stack: Stack) -> None:
+    session = stack.login("experimenter")
+    stack.reagents.scan(session, SAMPLE_CODES["lal_expired"])
+    first = stack.reagents.list_batches(session)[0]
+    stack.reagents.scan(session, SAMPLE_CODES["lal_expired"])
+    assert stack.reagents.dismiss_attention(
+        session, first.kind, first.batch_no, first.last_check_id
+    )
+    assert not stack.reagents.attention_dismissed(session, first.kind, first.batch_no)
+    assert len(stack.reagents.recent_checks(session).items) == 2
+
+
 def test_water_code_without_an_expiry_uses_the_registry_expiry(stack: Stack) -> None:
     """试剂码里没有有效期时，用备案清单确认的有效期；不会因此变成“有效期未知”。"""
     scan = stack.reagents.evaluate(SAMPLE_CODES["water_valid"], ReagentKind.WATER)

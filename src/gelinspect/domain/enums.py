@@ -171,6 +171,7 @@ class AuditAction(StrEnum):
     SETTINGS_CHANGED = "settings_changed"
     TEMPLATE_CHANGED = "template_changed"
     REAGENT_CHECKED = "reagent_checked"
+    REAGENT_ATTENTION_DISMISSED = "reagent_attention_dismissed"
     EXPERIMENT_CREATED = "experiment_created"
     EXPERIMENT_STATE_CHANGED = "experiment_state_changed"
     EXPERIMENT_QUERIED = "experiment_queried"

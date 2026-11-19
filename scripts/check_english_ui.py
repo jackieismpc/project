@@ -193,9 +193,10 @@ def scan_dialogs(
     rig: support.Rig, username: str, experiment_id: str, hits: dict[str, set[str]]
 ) -> None:
     """实例化各个对话框（不进入事件循环）并扫描。"""
+    from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
+
     from gelinspect.domain.enums import Role
     from gelinspect.services.reporting.report_service import ReportService
-    from gelinspect.ui.pages.appearance_dialog import AppearanceDialog
     from gelinspect.ui.pages.auth_pages import ChangePasswordDialog
     from gelinspect.ui.pages.export_password import ExportPasswordDialog
     from gelinspect.ui.pages.report_dialogs import BatchExportDialog, SignDialog

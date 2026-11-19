@@ -192,7 +192,9 @@ def test_packaged_mode_reads_the_bundled_config_and_prefers_the_deployers_copy(
 ) -> None:
     app, data = tmp_path / "app", tmp_path / "AppData" / "GelInspect"
     (app / "config").mkdir(parents=True)
-    (app / "config" / "gelinspect.yaml").write_text(RELEASE_CONFIG.read_text(encoding="utf-8"))
+    (app / "config" / "gelinspect.yaml").write_text(
+        RELEASE_CONFIG.read_text(encoding="utf-8"), encoding="utf-8"
+    )
     simulation = app / "simulation"
     simulation.mkdir()
     (simulation / "analyzer.example.yaml").write_text(

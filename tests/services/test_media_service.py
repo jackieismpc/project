@@ -154,3 +154,48 @@ def test_unknown_session_is_refused_by_the_real_auth(stack: Stack) -> None:
     with pytest.raises(PermissionDeniedError):
         media.recordings(None, "E1")
     assert media.recordings(stack.login("analyst"), "E1") == {}
+
+
+@pytest.mark.parametrize("failure", ["copy", "capture", "metadata", "release"])
+def test_clip_constructor_cleans_resources_on_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    from gelinspect.services import replay
+
+    source = tmp_path / "录像.mp4"
+    source.write_bytes(b"video")
+    scratch = tmp_path / "scratch"
+    released: list[bool] = []
+
+    def make_scratch() -> Path:
+        scratch.mkdir()
+        return scratch
+
+    def fail(*_args: object) -> None:
+        raise OSError("injected failure")
+
+    class Capture:
+        def isOpened(self) -> bool:  # noqa: N802
+            return True
+
+        def get(self, _property: int) -> float:
+            raise OSError("injected failure")
+
+        def release(self) -> None:
+            released.append(True)
+            if failure == "release":
+                raise RuntimeError("release failed")
+
+    monkeypatch.setattr(replay, "needs_ascii_path", lambda _path: True)
+    monkeypatch.setattr(replay, "make_ascii_scratch_dir", make_scratch)
+    if failure == "copy":
+        monkeypatch.setattr("gelinspect.services.replay.os.link", fail)
+        monkeypatch.setattr("gelinspect.services.replay.shutil.copyfile", fail)
+    elif failure == "capture":
+        monkeypatch.setattr("gelinspect.services.replay.cv2.VideoCapture", fail)
+    else:
+        monkeypatch.setattr("gelinspect.services.replay.cv2.VideoCapture", lambda _path: Capture())
+    with pytest.raises(OSError, match="injected failure"):
+        VideoClip(source)
+    assert not scratch.exists()
+    assert released == ([True] if failure in {"metadata", "release"} else [])

@@ -207,6 +207,8 @@ class DashboardService:
         )
         items += [AttentionItem(AttentionKind.FAULTED, s.experiment_id) for s in faulted.items]
         for batch in self._reagents.list_batches(session):
+            if self._reagents.attention_dismissed(session, batch.kind, batch.batch_no):
+                continue
             days = self._reagents.days_remaining(batch.expiry_date)
             if days is None or days > EXPIRY_WARN_DAYS:
                 continue

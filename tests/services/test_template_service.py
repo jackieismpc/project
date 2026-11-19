@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -347,3 +348,26 @@ def test_custom_template_preserves_sparse_tube_numbers(stack: Stack) -> None:
     assert [item.tube_no for item in created.items] == [17, 25]
     copied = stack.templates.copy_template(stack.login("admin"), created.template_id)
     assert [item.tube_no for item in copied.items] == [17, 25]
+
+
+def test_delete_rechecks_permissions_inside_transaction(
+    stack: Stack, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    admin = stack.login("admin")
+    template = stack.templates.create_template(admin, custom_draft("权限竞态"))
+    before = stack.audit(AuditAction.TEMPLATE_CHANGED)
+    original = stack.templates._require
+
+    def revoke_after_lookup(template_id: str, *, allow_hidden: bool = False) -> object:
+        info = original(template_id, allow_hidden=allow_hidden)
+        with stack.database.unit_of_work() as uow:
+            current = uow.users.get(admin.user.user_id)
+            assert current is not None
+            uow.users.update(replace(current, active=False))
+        return info
+
+    monkeypatch.setattr(stack.templates, "_require", revoke_after_lookup)
+    with pytest.raises(PermissionDeniedError):
+        stack.templates.delete_template(admin, template.template_id)
+    assert not stack.database.templates.is_deleted(template.template_id)
+    assert stack.audit(AuditAction.TEMPLATE_CHANGED) == before

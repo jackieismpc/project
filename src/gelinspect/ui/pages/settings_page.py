@@ -12,10 +12,10 @@ from __future__ import annotations
 import logging
 import shutil
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtCore import QDate, QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QHideEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -66,6 +66,7 @@ from gelinspect.ui.theme.appearance import apply_appearance
 from gelinspect.ui.widgets.badge import BadgeTone, StatusBadge
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
+from gelinspect.ui.widgets.date_edit import OptionalDateEdit
 from gelinspect.ui.widgets.imaging import bgr_to_qimage
 from gelinspect.ui.widgets.label import Label
 from gelinspect.ui.widgets.toast import Toast, ToastKind
@@ -285,8 +286,24 @@ class SettingsPage(QWidget):
         self.diagnostics_hint.setSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
         )
+        self.diagnostics_range = QCheckBox()
+        self.diagnostics_start_label = Label("", "lab")
+        self.diagnostics_end_label = Label("", "lab")
+        self.diagnostics_start = OptionalDateEdit()
+        self.diagnostics_end = OptionalDateEdit()
+        self.diagnostics_range.toggled.connect(self._apply_enabled)
+        dates = QHBoxLayout()
+        for widget in (
+            self.diagnostics_start_label,
+            self.diagnostics_start,
+            self.diagnostics_end_label,
+            self.diagnostics_end,
+        ):
+            dates.addWidget(widget)
         self.diagnostics_button = Button("", ButtonVariant.SECONDARY)
         self.diagnostics_card.body.addWidget(self.diagnostics_hint)
+        self.diagnostics_card.body.addWidget(self.diagnostics_range)
+        self.diagnostics_card.body.addLayout(dates)
         self.diagnostics_card.body.addWidget(self.diagnostics_button)
         self.diagnostics_card.body.addStretch(1)
         self.diagnostics_button.clicked.connect(self.export_diagnostics)
@@ -393,6 +410,7 @@ class SettingsPage(QWidget):
             self._fill(draft)
         finally:
             self._loading_settings = False
+        self._update_diagnostic_dates(view.settings.retention_days)
         self._clear_errors()
         self.save_message.setText("")
         self._fill_runtime_selection()
@@ -539,6 +557,10 @@ class SettingsPage(QWidget):
             and self._session.can(Permission.DIAGNOSTICS_EXPORT)
             and self._diagnostic_token is None
         )
+        range_enabled = self.diagnostics_button.isEnabled() and self.diagnostics_range.isChecked()
+        self.diagnostics_range.setEnabled(self.diagnostics_button.isEnabled())
+        self.diagnostics_start.setEnabled(range_enabled)
+        self.diagnostics_end.setEnabled(range_enabled)
         for edit in self.runtime_paths.values():
             edit.setEnabled(editable and not self._locked)
         for button in self.runtime_browse.values():
@@ -629,6 +651,7 @@ class SettingsPage(QWidget):
             self.save_message.setText(self._error_text(error))
             return False
         self._saved_draft = SettingsDraft.from_settings(result.settings)
+        self._update_diagnostic_dates(result.settings.retention_days)
         self._apply_enabled()
         self.save_message.setText(self.tr("本项已自动保存；对之后启动的实验生效。"))
         return True
@@ -803,10 +826,39 @@ class SettingsPage(QWidget):
             return describe_storage_busy()
         return self.tr("操作失败：{reason}").format(reason=str(error))
 
+    def _update_diagnostic_dates(self, retention_days: int | None) -> None:
+        if self._session is None or not self._session.can(Permission.DIAGNOSTICS_EXPORT):
+            return
+        first, last = self._services.diagnostics.available_date_range(self._session)
+        today = QDate(last.year, last.month, last.day)
+        earliest = QDate(first.year, first.month, first.day) if first else QDate(1752, 9, 14)
+        for edit in (self.diagnostics_start, self.diagnostics_end):
+            edit.setSpecialValueText("")
+            edit.setMinimumDate(earliest)
+            edit.setMaximumDate(today)
+            edit.setDate(today)
+        self._diagnostic_retention = retention_days
+        self._refresh_diagnostics_hint()
+
     def export_diagnostics(self) -> None:
         """选择目标并在后台生成诊断 ZIP。"""
         session = self._session
         if session is None or not session.can(Permission.DIAGNOSTICS_EXPORT):
+            return
+        start_qdate = self.diagnostics_start.date()
+        end_qdate = self.diagnostics_end.date()
+        start_date = (
+            date(start_qdate.year(), start_qdate.month(), start_qdate.day())
+            if self.diagnostics_range.isChecked()
+            else None
+        )
+        end_date = (
+            date(end_qdate.year(), end_qdate.month(), end_qdate.day())
+            if self.diagnostics_range.isChecked()
+            else None
+        )
+        if start_date is not None and end_date is not None and start_date > end_date:
+            self.save_message.setText(self.tr("开始日期不能晚于结束日期。"))
             return
         suggested = f"diagnostics-{datetime.now(UTC):%Y%m%d-%H%M%S}.zip"
         chosen, _ = QFileDialog.getSaveFileName(
@@ -830,6 +882,8 @@ class SettingsPage(QWidget):
             lambda: self._services.diagnostics.create_package(
                 session,
                 Path(chosen),
+                start_date=start_date,
+                end_date=end_date,
                 progress=lambda done, total: self._diagnostic_relay.updated.emit(done, total),
                 cancel=self._diagnostic_cancel,
             ),
@@ -922,6 +976,9 @@ class SettingsPage(QWidget):
             )
         )
         self.diagnostics_card.set_title(self.tr("诊断包"))
+        self.diagnostics_range.setText(self.tr("指定日期范围（默认全部）"))
+        self.diagnostics_start_label.setText(self.tr("开始日期"))
+        self.diagnostics_end_label.setText(self.tr("结束日期"))
         self._refresh_diagnostics_hint()
         self.diagnostics_button.setText(self.tr("导出诊断包…"))
 
@@ -945,11 +1002,20 @@ class SettingsPage(QWidget):
             ).format(logs=log_bytes / 1_000_000, free=free_bytes / 1_000_000_000)
         except OSError:
             capacity = self.tr("日志默认保留，不自动删除。")
-        self.diagnostics_hint.setText(f"{base}\n{capacity}")
+        retention = getattr(self, "_diagnostic_retention", None)
+        retained = (
+            self.tr("诊断数据保留全部。")
+            if not retention
+            else self.tr("诊断数据保留最近 {days} 天。 ").format(days=retention)
+        )
+        self.diagnostics_hint.setText(f"{base}\n{retained} {capacity}")
         for name, field in self.fields.items():
             field.label.setText(setting_label(name))
         self.fields["retention_days"].set_hint(
-            self.tr("留空表示不自动删除（默认）。当前版本不会自动删除数据。")
+            self.tr(
+                "留空或 0 表示全部保留；有限天数将清理超期诊断日志及未签署已完成实验的"
+                "受管视频图像，签署证据和外部原文件保留。"
+            )
         )
         self.encrypt_box.setText(self.tr("敏感导出加密（Excel、批量导出报告打成带密码的 ZIP）"))
         self.encrypt_hint.setText(

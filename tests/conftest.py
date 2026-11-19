@@ -1,6 +1,7 @@
 """全局 pytest 配置：注册契约测试的命令行选项；测试不碰系统钥匙串。"""
 
 import os
+from pathlib import Path
 
 # Windows 下通过 offscreen 平台构造 QPrinter 会触发 first-chance
 # REGDB_E_IIDNOTREG；默认改用验证通过的 Windows 原生 QPA。
@@ -26,3 +27,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=None,
         help="传给 GelAnalyzer.load 的配置文件路径",
     )
+
+
+@pytest.fixture(autouse=True)
+def isolate_runtime_selection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """测试中的启动路径选择不能读写用户的持久设置。"""
+    from gelinspect import startup
+    from gelinspect.services import runtime_paths, settings_service
+
+    path = tmp_path / "runtime-selection.json"
+    monkeypatch.setattr(runtime_paths, "runtime_selection_file", lambda *_args: path)
+    monkeypatch.setattr(startup, "runtime_selection_file", lambda *_args: path)
+    monkeypatch.setattr(settings_service, "runtime_selection_file", lambda *_args: path)

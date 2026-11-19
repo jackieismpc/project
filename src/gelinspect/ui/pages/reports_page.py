@@ -61,7 +61,6 @@ from gelinspect.ui.punctuation import join_items
 from gelinspect.ui.report_labels import (
     describe_signing_blocks,
     describe_verification,
-    self_signed_notice,
 )
 from gelinspect.ui.widgets.button import Button, ButtonVariant
 from gelinspect.ui.widgets.card import Card
@@ -210,7 +209,6 @@ class ReportsPage(QWidget):
     def _build_header(self) -> None:
         top = QHBoxLayout()
         top.setSpacing(12)
-        self.title = Label("", "h1")
         self.meta = Label("", "meta", mono=True)
         self.experiment_label = Label("", "lab")
         self.experiment_box = QComboBox()
@@ -220,7 +218,6 @@ class ReportsPage(QWidget):
         self.back_to_list = Button("", ButtonVariant.SECONDARY)
         self.back_to_list.setVisible(False)
         top.addWidget(self.back_to_list)
-        top.addWidget(self.title)
         top.addWidget(self.meta)
         top.addStretch(1)
         top.addWidget(self.experiment_label)
@@ -334,16 +331,11 @@ class ReportsPage(QWidget):
             self._kv_values[key] = value
         self.status_card.body.addLayout(grid)
         self.verify_button = Button("", ButtonVariant.SECONDARY, icon="shield-check")
-        self.verify_file_button = Button("", ButtonVariant.SECONDARY)
         self.verify_result = Label("", "body")
         self.verify_result.setWordWrap(True)
         self.verify_result.setVisible(False)
-        self.notice = Label("", "meta")
-        self.notice.setWordWrap(True)
-        for widget in (self.verify_button, self.verify_file_button):
-            self.status_card.body.addWidget(widget)
+        self.status_card.body.addWidget(self.verify_button)
         self.status_card.body.addWidget(self.verify_result)
-        self.status_card.body.addWidget(self.notice)
         column.addWidget(self.status_card)
 
         # 签署和导出
@@ -374,7 +366,6 @@ class ReportsPage(QWidget):
                 wrapped.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.sign_button.clicked.connect(self.request_sign)
         self.verify_button.clicked.connect(self.verify_current)
-        self.verify_file_button.clicked.connect(self.verify_external)
         self.print_button.clicked.connect(self.request_print)
         self.export_button.clicked.connect(self.export_current)
         self.excel_button.clicked.connect(self.export_excel)
@@ -585,7 +576,7 @@ class ReportsPage(QWidget):
         if self._session is None:
             return
         filename, _ = QFileDialog.getOpenFileName(
-            self, self.tr("导入外部 PDF"), "", self.tr("PDF 文件 (*.pdf)")
+            self, self.tr("验证外部 PDF"), "", self.tr("PDF 文件 (*.pdf)")
         )
         if not filename:
             return
@@ -870,23 +861,6 @@ class ReportsPage(QWidget):
         self._verification = (result, Path(record.path).name, True)
         self._render_verification()
 
-    def verify_external(self) -> None:
-        """选一个外部的 PDF 文件验签。"""
-        if self._session is None:
-            return
-        chosen, _ = QFileDialog.getOpenFileName(
-            self, self.tr("选择要验证的 PDF"), "", self.tr("PDF 文件 (*.pdf)")
-        )
-        if not chosen:
-            return
-        try:
-            result = self._services.reports.verify_file(self._session, Path(chosen))
-        except (AuthError, ServiceError) as error:
-            self._fail(error)
-            return
-        self._verification = (result, Path(chosen).name, False)
-        self._render_verification()
-
     def request_print(self) -> None:
         """打印当前报告：弹出系统打印对话框。"""
         if self._preview is None:
@@ -1051,13 +1025,12 @@ class ReportsPage(QWidget):
 
     def retranslate(self) -> None:
         """按当前语言刷新全部文字。"""
-        self.title.setText(self.tr("报告中心"))
         self.experiment_label.setText(self.tr("实验"))
         self.refresh_button.setText(self.tr("刷新"))
         self.back_to_list.setText(self.tr("返回报告列表"))
         self.list_refresh.setText(self.tr("刷新列表"))
         self.list_export.setText(self.tr("批量导出…"))
-        self.import_pdf_button.setText(self.tr("导入外部 PDF…"))
+        self.import_pdf_button.setText(self.tr("验证外部 PDF…"))
         self.import_open.setText(self.tr("打开匹配的报告"))
         self.report_table.set_columns(
             [
@@ -1093,8 +1066,6 @@ class ReportsPage(QWidget):
         ):
             self._kv_labels[key].setText(text)
         self.verify_button.setText(self.tr("重新验签"))
-        self.verify_file_button.setText(self.tr("验证外部 PDF…"))
-        self.notice.setText(self_signed_notice())
         self.actions_card.set_title(self.tr("签署和导出"))
         self.sign_button.setText(self.tr("签署并生成 PDF"))
         self.print_button.setText(self.tr("打印"))

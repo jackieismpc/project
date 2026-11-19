@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QApplication, QFileDialog, QSizePolicy
 
@@ -63,7 +63,7 @@ def test_shows_every_setting_with_the_effective_values(
     assert text["temperature_hold_s"] == "60" and text["retention_days"] == ""  # 默认不自动删除
     assert text["copyright_holder"] == "厦门鲎试剂生物科技股份有限公司"
     assert page.range_label.text() == "有效温度范围 36 – 38 ℃"
-    assert "自动删除" in page.fields["retention_days"].hint.text()
+    assert "全部保留" in page.fields["retention_days"].hint.text()
     assert not hasattr(page, "backend_card")
     assert page.runtime_card.isVisibleTo(page)
     assert page.diagnostics_button.isEnabled()
@@ -209,10 +209,10 @@ def test_invalid_values_get_a_clear_message_per_field_and_nothing_is_saved(
     assert errors == {
         "incubation_minutes": "孵育时间（分钟）必须是数字，范围 0.1–1440",
         "temperature_target_c": "目标温度（℃）应在 20–45 之间",
-        "retention_days": "数据保留天数必须是整数，范围 1–36500",
+        "retention_days": "数据保留天数必须是整数，范围 0–36500",
         "instrument_no": "仪器编号不能为空",
     }
-    assert "没有保存" in page.save_message.text()
+    assert "未保存" in page.save_message.text()
     assert not settings_file(app_context.config.data_dir).exists()
     assert app_context.engine.config.incubation_minutes == 60
     # 改正后保存成功，错误提示消失
@@ -393,3 +393,34 @@ def test_browse_fills_the_path_and_previews(
     assert wait_for(qapp, lambda: not page.previewing)
     assert page.probe_label.text().startswith("640×360")
     settle(qapp)
+
+
+def test_diagnostic_export_uses_selected_dates_and_creates_zip(
+    qapp: QApplication, window: MainWindow, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_settings(qapp, window)
+    target = tmp_path / "diagnostic.zip"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *_a, **_k: (str(target), ""))
+    today = QDate.currentDate()
+    page.diagnostics_range.setChecked(True)
+    page.diagnostics_start.setDate(today.addDays(-1))
+    page.diagnostics_end.setDate(today)
+    page.diagnostics_button.click()
+    assert wait_for(qapp, lambda: page._diagnostic_token is None, 30)
+    assert target.is_file()
+    assert "诊断包已生成" in page.save_message.text()
+
+
+def test_diagnostic_export_rejects_inverted_dates(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = open_settings(qapp, window)
+    page.diagnostics_range.setChecked(True)
+    today = QDate.currentDate()
+    page.diagnostics_start.setDate(today)
+    page.diagnostics_end.setDate(today.addDays(-1))
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *_a, **_k: pytest.fail("unexpected dialog")
+    )
+    page.diagnostics_button.click()
+    assert "开始日期不能晚于结束日期" in page.save_message.text()

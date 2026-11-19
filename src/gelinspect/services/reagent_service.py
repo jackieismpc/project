@@ -610,6 +610,35 @@ class ReagentService:
         self._auth.authorize(session, Permission.REAGENT_VIEW)
         return self._storage.reagent_checks.list_batches(limit)
 
+    def dismiss_attention(
+        self, session: Session | None, kind: ReagentKind, batch_no: str, through_id: int
+    ) -> bool:
+        """关闭当前校验对应的提醒，批次和历史保持不变。"""
+        user = self._auth.authorize(session, Permission.REAGENT_MANAGE)
+        with self._storage.unit_of_work() as uow:
+            removed = uow.reagent_checks.dismiss_attention(kind, batch_no, through_id)
+            if removed:
+                uow.audit.append(
+                    AuditEvent(
+                        occurred_at=self._clock(),
+                        actor=user.username,
+                        actor_role=user.role,
+                        action=AuditAction.REAGENT_ATTENTION_DISMISSED,
+                        detail=(
+                            f"关闭{KIND_NAMES[kind]}批号 {batch_no}的处理提醒；"
+                            "保留批次、校验和实验记录"
+                        ),
+                    )
+                )
+        return removed
+
+    def attention_dismissed(
+        self, session: Session | None, kind: ReagentKind, batch_no: str
+    ) -> bool:
+        """检查当前批次提醒是否已关闭。"""
+        self._auth.authorize(session, Permission.REAGENT_VIEW)
+        return self._storage.reagent_checks.attention_dismissed(kind, batch_no)
+
     def recent_checks(self, session: Session | None, limit: int = 100) -> Page[ReagentCheckRecord]:
         """最近的校验记录。
 

@@ -72,8 +72,6 @@ _SOURCES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("Export", "配置版本")),
     str(QT_TRANSLATE_NOOP("Export", "分析耗时（ms）")),
     str(QT_TRANSLATE_NOOP("Export", "算法说明")),
-    str(QT_TRANSLATE_NOOP("Export", "类别")),
-    str(QT_TRANSLATE_NOOP("Export", "内容")),
     str(QT_TRANSLATE_NOOP("Export", "序号")),
     str(QT_TRANSLATE_NOOP("Export", "时间")),
     str(QT_TRANSLATE_NOOP("Export", "操作者")),

@@ -88,8 +88,12 @@ def test_readonly_and_error_states_are_english_too(
 ) -> None:
     language.set_language(Language.EN, persist=False)
     sign_in(qapp, window, "analyst")
-    assert not window.navigate("settings")
-    assert window.page("settings") is None
+    assert window.navigate("settings")
+    settings = window.page("settings")
+    assert isinstance(settings, SettingsPage)
+    assert settings.personal_card.isVisibleTo(settings)
+    assert not settings.configuration_area.isVisibleTo(settings)
+    assert chinese_left(settings) == []
     window.navigate("audit")
     audit = window.page("audit")
     assert isinstance(audit, AuditPage)

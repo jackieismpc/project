@@ -206,7 +206,9 @@ def test_slow_preview_callback_does_not_block_capture(tmp_path: Path, no_thread_
         # 回调卡到 gate 放行，这段时间里采集照常出帧。
         assert wait_until(lambda: pipeline.stats().frames_captured - before >= 100, 30.0)
         stats = pipeline.stats()
-        assert stats.preview_dropped > 50 and stats.preview_delivered == 0
+        # 一帧在回调中，最多一帧在单槽；其余帧被限速跳过或被覆盖。
+        assert stats.preview_dropped > 0 and stats.preview_delivered == 0
+        assert stats.preview_skipped + stats.preview_dropped >= stats.preview_offered - 2
         assert len(seen) == 1
     finally:
         gate.set()
