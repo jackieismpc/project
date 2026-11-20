@@ -438,3 +438,18 @@ def test_templates_reagents_pages_and_editor_fit(
     dialog._show_error("x " * 60)
     assert overflow_report(dialog) == []
     dialog.close()
+
+
+def test_attention_link_fits_across_narrow_widths(qapp: QApplication) -> None:
+    button = _AttentionLinkButton("实验 EXP-REVIEW-" + "1234567890" * 6)
+    button.show()
+    try:
+        for width in range(1, 401):
+            button.resize(width, button.height())
+            button._update_elided_text()
+            assert QFontMetrics(button.font()).horizontalAdvance(button.text()) <= (
+                button.available_text_width()
+            )
+        assert button.accessibleName() == button.toolTip()
+    finally:
+        button.close()

@@ -82,10 +82,15 @@ class _AttentionLinkButton(Button):
         return max(0, content.width() - 2 * padding)
 
     def _update_elided_text(self) -> None:
-        text = QFontMetrics(self.font()).elidedText(
-            self._full_text, Qt.TextElideMode.ElideRight, self.available_text_width()
-        )
-        super().setText(text)
+        metrics = QFontMetrics(self.font())
+        available = self.available_text_width()
+        width = available
+        text = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, width)
+        # Qt may round the elided text to one pixel wider than the requested width.
+        while text and metrics.horizontalAdvance(text) > available and width > 0:
+            width -= 1
+            text = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, width)
+        super().setText(text if metrics.horizontalAdvance(text) <= available else "")
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
