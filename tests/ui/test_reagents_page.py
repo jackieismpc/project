@@ -202,3 +202,28 @@ def test_scan_query_checks_without_recording(
     page.query_input.setText("   ")
     page.run_query()  # 空输入什么都不做
     assert result.status.text() == "无法识别这个码，请重新扫码"
+
+
+def test_valid_batch_click_does_not_prompt(
+    qapp: QApplication, window: MainWindow, app_context: AppContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app_context.database.reagent_checks.add(
+        ReagentCheckRecord(
+            checked_at=FIXED_NOW,
+            actor="experimenter",
+            kind=ReagentKind.LAL_REAGENT,
+            batch_no="VALID",
+            product_code="P",
+            status=ReagentCheckStatus.VALID,
+            registered=True,
+            expiry_date=FIXED_NOW.date() + timedelta(days=365),
+        )
+    )
+    page = open_reagents(qapp, window, "experimenter")
+    calls = []
+    monkeypatch.setattr(
+        "gelinspect.ui.pages.reagents_page.ConfirmDialog.ask", lambda *a, **kw: calls.append(True)
+    )
+    row = next(i for i, item in enumerate(page.batch_table.model.rows) if item["batch"] == "VALID")
+    page.batch_table.view.clicked.emit(page.batch_table.model.index(row, 0))
+    assert not calls

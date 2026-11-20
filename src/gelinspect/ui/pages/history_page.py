@@ -98,6 +98,8 @@ class HistoryPage(QWidget):
         top.addWidget(self.title)
         top.addWidget(self.hint)
         top.addStretch(1)
+        column.addLayout(top)
+        actions = QHBoxLayout()
         for button in (
             self.refresh_button,
             self.open_button,
@@ -105,8 +107,9 @@ class HistoryPage(QWidget):
             self.export_selected_button,
             self.export_list_button,
         ):
-            top.addWidget(button)
-        column.addLayout(top)
+            actions.addWidget(button)
+        actions.addStretch(1)
+        column.addLayout(actions)
 
         self.filter_card = Card()
         row = QHBoxLayout()
@@ -127,14 +130,20 @@ class HistoryPage(QWidget):
         self.operator_label = Label("", "lab")
         self.operator_box = QComboBox()
         self.operator_box.setMinimumHeight(44)
-        for label, field in (
+        fields: tuple[tuple[Label, QWidget], ...] = (
             (self.type_label, self.type_box),
             (self.start_label, self.start_edit),
             (self.end_label, self.end_edit),
             (self.batch_label, self.batch_edit),
             (self.state_label, self.state_box),
             (self.operator_label, self.operator_box),
-        ):
+        )
+        for label, field in fields[:3]:
+            row.addLayout(labeled(label, field), 1)
+        self.filter_card.body.addLayout(row)
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        for label, field in fields[3:]:
             row.addLayout(labeled(label, field), 1)
         self.search_button = Button("", ButtonVariant.PRIMARY, icon="search")
         self.reset_button = Button("")

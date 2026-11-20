@@ -318,3 +318,16 @@ def test_export_password_dialog_checks_length_and_confirmation(qapp: QApplicatio
     dialog.ok_button.click()
     assert dialog.result() == 1 and dialog.value() == "Export#2026"
     dialog.deleteLater()
+
+
+def test_history_fits_with_pinned_navigation(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    from gelinspect.ui.widgets.app_shell import NavMode
+    from tests.ui.test_layout_languages import overflow_report
+
+    window.resize(1024, 700)
+    page = open_history(qapp, window, app_context, count=2)
+    window.shell.set_mode(NavMode.PINNED)
+    settle(qapp)
+    assert overflow_report(page) == []

@@ -456,6 +456,10 @@ class UserRepository(Protocol):
         """
         ...
 
+    def delete(self, user_id: str) -> None:
+        """删除用户账号。"""
+        ...
+
     def get(self, user_id: str) -> User | None:
         """按标识查询用户。"""
         ...

@@ -78,6 +78,14 @@ class SqlUserRepository(UserRepository):
         except IntegrityError as error:
             raise DuplicateError(f"用户已存在：{user.username}") from error
 
+    def delete(self, user_id: str) -> None:
+        """删除账号，历史记录保留其快照。"""
+        with translate_lock_errors(), self._sessions() as session:
+            row = session.get(UserRow, user_id)
+            if row is None:
+                raise NotFoundError(f"用户不存在：{user_id}")
+            session.delete(row)
+
     def get(self, user_id: str) -> User | None:
         """按标识查询用户。
 

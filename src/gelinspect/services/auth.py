@@ -416,7 +416,7 @@ class AuthService:
             PermissionDeniedError: 会话已失效或已锁屏。
             InvalidCredentialsError: 当前密码错误。
             AccountLockedError: 失败次数过多。
-            PasswordPolicyError: 新密码过短，或与当前密码、登录名相同。
+            PasswordPolicyError: 新密码过短，或与登录名相同。
             AuthStorageBusyError: 数据库正忙，密码没有修改，稍后重试。
         """
         with self._lock:
@@ -636,10 +636,6 @@ class AuthService:
                 f"密码不能少于 {self._policy.min_password_length} 个字符",
                 AuthErrorCode.PASSWORD_TOO_SHORT,
                 min=self._policy.min_password_length,
-            )
-        if new == old:
-            raise PasswordPolicyError(
-                "新密码不能与当前密码相同", AuthErrorCode.PASSWORD_SAME_AS_OLD
             )
         if new.casefold() == username.casefold():
             raise PasswordPolicyError(

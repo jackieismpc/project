@@ -83,7 +83,7 @@ def test_create_a_user_shows_the_temporary_password_once_and_forces_a_change(
     assert issued is not None and usernames(page) == ["admin", "analyst", "experimenter", "newbie"]
     assert seen_credentials == [("newbie", issued.temporary_password)]
     session = app_context.auth.login("newbie", issued.temporary_password)
-    assert session.must_change_password and session.role is Role.USER
+    assert not session.must_change_password and session.role is Role.USER
     assert not any(issued.temporary_password in line for line in audit_lines(app_context))
     assert page.selected() is not None and page.selected().user.username == "newbie"  # type: ignore[union-attr]
 
@@ -111,34 +111,19 @@ def test_the_new_user_dialog_shows_why_it_cannot_save_and_stays_open(
     assert dialog.submit() and dialog.issued is not None
 
 
-def test_disable_and_enable(
+def test_delete_user(
     qapp: QApplication,
     window: MainWindow,
     app_context: AppContext,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = open_users(qapp, window)
-    asked: list[str] = []
-
-    def accept(_parent: object, title: str, *_a: object, **_k: object) -> bool:
-        asked.append(title)
-        return True
-
-    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(accept))
+    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_a, **_k: True))
     assert page.select_user("analyst")
-    assert page.toggle_button.text() == "停用" and page.toggle_button.isEnabled()
-    assert page.request_toggle_active()
-    assert asked == ["停用账号？"]
-    row = next(r for r in page.users_table.model.rows if r["username"] == "analyst")
-    assert row["state"] == "已停用" and row["_tone"] == "warning"
-    assert page.toggle_button.text() == "启用"  # 选中的是已停用账号，按钮变成“启用”
-    assert not app_context.database.users.get_by_username("analyst").active  # type: ignore[union-attr]
-    assert page.request_toggle_active()  # 启用不需要确认
-    assert asked == ["停用账号？"]
-    assert app_context.database.users.get_by_username("analyst").active  # type: ignore[union-attr]
-    assert "停用用户 analyst" in audit_lines(app_context) and "启用用户 analyst" in audit_lines(
-        app_context
-    )
+    assert page.toggle_button.text() == "删除用户" and page.toggle_button.isEnabled()
+    assert page.request_delete_user()
+    assert app_context.database.users.get_by_username("analyst") is None
+    assert any("删除用户 analyst" in line for line in audit_lines(app_context))
 
 
 def test_declining_the_confirmation_changes_nothing(
@@ -150,7 +135,7 @@ def test_declining_the_confirmation_changes_nothing(
     page = open_users(qapp, window)
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *_a, **_k: False))
     page.select_user("analyst")
-    assert not page.request_toggle_active() and page.request_reset_password() is None
+    assert not page.request_delete_user() and page.request_reset_password() is None
     assert app_context.database.users.get_by_username("analyst").active  # type: ignore[union-attr]
     assert audit_lines(app_context) == []
 
@@ -160,7 +145,7 @@ def test_you_cannot_disable_or_reset_yourself_and_the_buttons_say_so(
 ) -> None:
     page = open_users(qapp, window)
     page.select_user("admin")
-    assert not page.toggle_button.isEnabled() and "不能停用自己" in page.toggle_button.toolTip()
+    assert not page.toggle_button.isEnabled() and "不能删除自己" in page.toggle_button.toolTip()
     assert not page.reset_button.isEnabled() and not page.role_button.isEnabled()
     page.select_user("analyst")
     assert page.toggle_button.isEnabled() and page.reset_button.isEnabled()

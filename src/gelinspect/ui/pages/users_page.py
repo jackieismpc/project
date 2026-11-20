@@ -1,6 +1,6 @@
-"""用户与权限页：账号列表、新建、停用和启用、重置密码、改角色，以及只读的角色权限矩阵。
+"""用户与权限页：账号列表、新建、删除、重置密码、改角色，以及只读的角色权限矩阵。
 
-需要 ``user_manage``（管理员）。规则在服务层（``UserService``）：不能停用自己，不能停用或降级
+需要 ``user_manage``（管理员）。规则在服务层（``UserService``）：不能删除自己，不能删除或降级
 最后一个管理员；改角色后该账号已登录的会话立即采用新角色；重置密码后对方首次登录必须改密。
 本页只收集输入、显示结果，每个操作都会写审计。
 """
@@ -102,7 +102,7 @@ class UsersPage(QWidget):
         self.new_button.clicked.connect(self.request_new_user)
         self.reset_button.clicked.connect(self.request_reset_password)
         self.role_button.clicked.connect(self.request_change_role)
-        self.toggle_button.clicked.connect(self.request_toggle_active)
+        self.toggle_button.clicked.connect(self.request_delete_user)
         self.users_table.selectionChanged.connect(self._update_buttons)
         self.retranslate()
 
@@ -220,9 +220,8 @@ class UsersPage(QWidget):
             self.tr("自己的密码请用用户菜单里的“修改密码”") if is_self else ""
         )
         self.toggle_button.setEnabled(manageable and not is_self)
-        self.toggle_button.setToolTip(self.tr("不能停用自己的账号") if is_self else "")
-        active = record is None or record.user.active
-        self.toggle_button.setText(self.tr("停用") if active else self.tr("启用"))
+        self.toggle_button.setToolTip(self.tr("不能删除自己的账号") if is_self else "")
+        self.toggle_button.setText(self.tr("删除用户"))
 
     # ------------------------------------------------------------------ 操作
 
@@ -315,39 +314,26 @@ class UsersPage(QWidget):
             self.sessionChanged.emit()
         return True
 
-    def request_toggle_active(self) -> bool:
-        """确认后停用或启用选中的用户。
-
-        Returns:
-            已改变时为 True。
-        """
+    def request_delete_user(self) -> bool:
+        """确认后删除账号，保留历史记录。"""
         record = self.selected()
-        if record is None:
+        if record is None or not ConfirmDialog.ask(
+            self,
+            self.tr("删除用户？"),
+            self.tr("删除 {name} 的账号？该用户将无法登录，实验和审计记录会保留。").format(
+                name=record.user.username
+            ),
+            confirm_text=self.tr("删除"),
+            danger=True,
+        ):
             return False
-        target_active = not record.user.active
-        if not target_active:
-            confirmed = ConfirmDialog.ask(
-                self,
-                self.tr("停用账号？"),
-                self.tr("{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。").format(
-                    name=record.user.username
-                ),
-                confirm_text=self.tr("停用"),
-                danger=True,
-            )
-            if not confirmed:
-                return False
         try:
-            self._services.users.set_active(self._session, record.user.user_id, target_active)
+            self._services.users.delete_user(self._session, record.user.user_id)
         except (AuthError, ServiceError, StorageBusyError) as error:
             self._fail(error)
             return False
         self.refresh()
-        self.select_user(record.user.username)
-        self._toast(
-            self.tr("已启用 {name}") if target_active else self.tr("已停用 {name}"),
-            record.user.username,
-        )
+        self._toast(self.tr("已删除 {name}"), record.user.username)
         return True
 
     def _show_credentials(self, issued: CredentialIssue) -> None:
@@ -397,7 +383,7 @@ class UsersPage(QWidget):
         self.role_button.setText(self.tr("授予／剥夺权限…"))
         self.rule_note.setText(
             self.tr(
-                "不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。"
+                "不能删除自己，也不能删除或降级最后一个管理员。重置密码后，对方首次登录必须先改密。"
             )
         )
         self.users_table.set_columns(self._user_columns())

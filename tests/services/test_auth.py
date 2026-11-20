@@ -212,8 +212,7 @@ def test_change_password_flow(auth: AuthService, database: Database) -> None:
         auth.change_password(session, "wrong", "NewPassw0rd!")
     with pytest.raises(PasswordPolicyError):
         auth.change_password(session, "12345678", "short")
-    with pytest.raises(PasswordPolicyError):
-        auth.change_password(session, "12345678", "12345678")
+    auth.change_password(session, "12345678", "12345678")
     auth.change_password(session, "12345678", "NewPassw0rd!")
     assert audit_of(database, AuditAction.PASSWORD_CHANGED, "admin")
     with pytest.raises(InvalidCredentialsError):

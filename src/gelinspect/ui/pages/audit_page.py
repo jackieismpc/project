@@ -14,6 +14,7 @@ from datetime import datetime, time, timedelta
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtGui import QHideEvent
 from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLineEdit, QWidget
 
 from gelinspect.domain.permissions import Permission
@@ -85,6 +86,7 @@ class AuditPage(QWidget):
         self._total = 0
         self._loading = False
         self._verifying = False
+        self._verification_discarded = False
         self._exporting = False
         self._query_token: int | None = None
         self._snapshot_seq: int | None = None
@@ -388,12 +390,24 @@ class AuditPage(QWidget):
 
     # ------------------------------------------------------------------ 校验
 
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """离开页面时丢弃校验提示，包括仍在执行的校验结果。"""
+        self._verification_discarded = True
+        self._last_verification = None
+        self._bad_seq = None
+        self._banner_content = None
+        self.banner.clear()
+        self.progress_card.setVisible(False)
+        self._render()
+        super().hideEvent(event)
+
     def verify_integrity(self) -> None:
         """在后台校验整条哈希链，显示进度，结束后用横幅给出结果。"""
         session = self._session
         if session is None or self._verifying:
             return
         self._verifying = True
+        self._verification_discarded = False
         self._banner_content = None
         self.banner.clear()
         self.progress_bar.set_value(0.0)
@@ -416,6 +430,11 @@ class AuditPage(QWidget):
 
     def _on_verified(self, result: ChainVerification) -> None:
         self._verifying = False
+        if self._verification_discarded:
+            self.progress_card.setVisible(False)
+            self._sync_state()
+            self.verified.emit()
+            return
         self._last_verification = result
         self.progress_card.setVisible(False)
         self._bad_seq = None if result.ok else result.first_bad_seq
@@ -458,6 +477,10 @@ class AuditPage(QWidget):
     def _on_verify_failed(self, error: Exception) -> None:
         self._verifying = False
         self.progress_card.setVisible(False)
+        if self._verification_discarded:
+            self._sync_state()
+            self.verified.emit()
+            return
         reason = self._describe(error)
         self._banner_content = lambda: (
             "warning",

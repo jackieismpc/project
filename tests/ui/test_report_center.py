@@ -332,3 +332,44 @@ def test_preview_layout_settles_instead_of_oscillating(
     settle(qapp, 30)
     qapp.removeEventFilter(counter)
     assert resizes < 200, resizes
+
+
+def test_external_verification_selects_match_and_resets_on_navigation(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    sign_in(qapp, window, "analyst")
+    assert window.navigate("reports")
+    page = reports_of(window)
+    page._report_items = [
+        ReportListItem(
+            experiment_id=f"EXP-{number}",
+            experiment_type="sensitivity",
+            created_at=datetime(2026, 11, 17, tzinfo=UTC),
+            state=ExperimentState.COMPLETED,
+            sample_batch_nos=(f"SAMPLE-{number}",),
+            lal_batch_no="LAL",
+            endotoxin_batch_no="ENDO",
+            water_batch_no="WATER",
+            latest_report=None,
+        )
+        for number in range(2)
+    ]
+    page._refresh_report_list()
+    page.sample_filter.setCurrentIndex(page.sample_filter.findData("SAMPLE-0"))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **kw: ("sample.pdf", ""))
+    result = SimpleNamespace(signature_status="valid", experiment_id="EXP-1", message="matched")
+    monkeypatch.setattr(page._services.reports, "verify_imported_file", lambda *a: result)
+    page.import_external_pdf()
+    assert page.import_result.property("role") == "ok"
+    assert (
+        page.report_table.model.rows[page.report_table.selected_rows()[0]]["experiment_id"]
+        == "EXP-1"
+    )
+    result.signature_status = "invalid"
+    page.import_external_pdf()
+    assert page.import_result.property("role") == "danger"
+    assert not page.report_table.selected_rows()
+    assert window.navigate("dashboard")
+    assert page.import_result.text() == "" and page._import_verification is None

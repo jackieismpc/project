@@ -594,7 +594,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>请当面告知用户。对方首次登录时必须先修改密码。</source>
+        <source>请当面告知用户。重置密码后首次登录须修改密码。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2336,7 +2336,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>新账号首次登录必须先修改密码。</source>
+        <source>新账号可使用初始密码直接登录。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4952,10 +4952,6 @@
 <context>
     <name>UsersPage</name>
     <message>
-        <source>启用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>已停用</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4980,14 +4976,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>不能停用自己的账号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>停用</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>重置密码？</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4997,22 +4985,6 @@
     </message>
     <message>
         <source>重置</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>停用账号？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已启用 {name}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>已停用 {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5052,6 +5024,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>不能删除自己，也不能删除或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>权限组说明</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5064,6 +5040,30 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>不能删除自己的账号</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除用户</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除用户？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除 {name} 的账号？该用户将无法登录，实验和审计记录会保留。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>已删除 {name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>新建用户</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5073,10 +5073,6 @@
     </message>
     <message>
         <source>重置密码</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

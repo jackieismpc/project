@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtGui import QHideEvent
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewWidget
 from PySide6.QtWidgets import (
     QApplication,
@@ -580,9 +581,12 @@ class ReportsPage(QWidget):
         )
         if not filename:
             return
+        self.report_table.view.clearSelection()
         try:
             result = self._services.reports.verify_imported_file(self._session, Path(filename))
         except (AuthError, ServiceError) as error:
+            self._import_verification = None
+            self.import_result.set_role("danger")
             self.import_result.setText(self._error_text(error))
             self.import_open.setVisible(False)
             return
@@ -596,8 +600,34 @@ class ReportsPage(QWidget):
             "corrupt": self.tr("PDF 损坏或无法读取，请检查文件权限并联系后台检查。"),
             "external": self.tr("数字签名有效，但不是本系统已知报告。"),
         }.get(status, self.tr("无法确认 PDF 状态，请检查文件权限并联系后台检查。"))
+        self.import_result.set_role("ok" if status in ("valid", "external") else "danger")
         self.import_result.setText(f"{status_text}\n{result.message}")
+        if status == "valid" and result.experiment_id:
+            matched = str(result.experiment_id)
+            if not any(str(item.experiment_id) == matched for item in self._visible_report_items):
+                for box in (
+                    self.sample_filter,
+                    self.lal_filter,
+                    self.buffer_filter,
+                    self.endotoxin_filter,
+                ):
+                    box.setCurrentIndex(0)
+            for row, item in enumerate(self._visible_report_items):
+                if str(item.experiment_id) == matched:
+                    self.report_table.view.clearSelection()
+                    self.report_table.view.selectRow(row)
+                    self.report_table.view.scrollTo(self.report_table.view.model().index(row, 0))
+                    break
         self.import_open.setVisible(bool(result.experiment_id and status == "valid"))
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """离开页面后清除临时校验结果。"""
+        self._import_verification = None
+        self.import_result.clear()
+        self.import_open.setVisible(False)
+        self.verify_result.clear()
+        self.verify_result.setVisible(False)
+        super().hideEvent(event)
 
     def open_imported_match(self) -> None:
         """打开有效签名匹配到的实验报告。"""

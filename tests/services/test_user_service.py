@@ -81,14 +81,12 @@ def test_create_user_issues_a_temporary_password_and_forces_a_change(
     assert issued.user.role is Role.USER and issued.user.active
     assert len(issued.temporary_password) >= 8
     listed = {r.user.username: r for r in users.list_users(admin)}
-    assert listed["newbie"].must_change_password
+    assert not listed["newbie"].must_change_password
     assert not listed["admin"].must_change_password
-    # 用临时密码登录：必须先改密，改密前什么都做不了
+    # 新用户可直接登录，也允许新旧密码相同。
     session = stack.auth.login("newbie", issued.temporary_password)
-    assert session.must_change_password
-    with pytest.raises(PermissionDeniedError):
-        stack.auth.authorize(session, Permission.EXPERIMENT_VIEW)
-    stack.auth.change_password(session, issued.temporary_password, "Brand-new-pass1")
+    assert not session.must_change_password
+    stack.auth.change_password(session, issued.temporary_password, issued.temporary_password)
     assert not session.permissions()
     users.set_permission_groups(admin, session.user.user_id, frozenset({PermissionGroup.VIEW}))
     stack.auth.authorize(session, Permission.EXPERIMENT_VIEW)
@@ -132,7 +130,7 @@ def test_a_chosen_initial_password_is_used(stack: Stack, users: UserService) -> 
         admin, username="chosen", display_name="", role=Role.USER, password="Chosen-Pass-9"
     )
     assert issued.temporary_password == "Chosen-Pass-9" and issued.user.display_name == "chosen"
-    assert stack.auth.login("chosen", "Chosen-Pass-9").must_change_password
+    assert not stack.auth.login("chosen", "Chosen-Pass-9").must_change_password
 
 
 def test_generated_passwords_are_long_random_and_mixed() -> None:
@@ -255,3 +253,20 @@ def test_reset_password_rules(stack: Stack, users: UserService) -> None:
     )
     chosen = users.reset_password(admin, target.user_id, "Chosen-Reset-7")
     assert chosen.temporary_password == "Chosen-Reset-7"
+
+
+def test_delete_user_revokes_sessions_and_audits(stack: Stack, users: UserService) -> None:
+    admin = stack.login("admin")
+    target = stack.login("analyst")
+    user_id = target.user.user_id
+    users.delete_user(admin, user_id)
+    assert stack.database.users.get(user_id) is None
+    assert not target.valid
+    assert any(
+        "删除用户 analyst" in line and user_id in line
+        for line in stack.audit(AuditAction.USER_CHANGED)
+    )
+    with pytest.raises(InvalidCredentialsError):
+        stack.auth.login("analyst", PASSWORDS["analyst"])
+    with pytest.raises(ServiceError):
+        users.delete_user(admin, admin.user.user_id)

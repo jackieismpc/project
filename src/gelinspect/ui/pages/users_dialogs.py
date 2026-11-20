@@ -164,7 +164,7 @@ class NewUserDialog(QDialog):
             self.role_box.setItemText(index, role_label(Role(self.role_box.itemData(index))))
         self.password_label.setText(self.tr("初始密码（可选）"))
         self.password.setPlaceholderText(self.tr("留空则自动生成临时密码"))
-        self.note.setText(self.tr("新账号首次登录必须先修改密码。"))
+        self.note.setText(self.tr("新账号可使用初始密码直接登录。"))
         self.cancel_button.setText(self.tr("取消"))
         self.create_button.setText(self.tr("创建"))
 
@@ -326,7 +326,7 @@ class CredentialDialog(QDialog):
         """按当前语言刷新全部文字。"""
         self.setWindowTitle(self.tr("临时密码"))
         self.heading.setText(self.tr("{name} 的临时密码").format(name=self._username))
-        self.intro.setText(self.tr("请当面告知用户。对方首次登录时必须先修改密码。"))
+        self.intro.setText(self.tr("请当面告知用户。重置密码后首次登录须修改密码。"))
         self.note.setText(self.tr("这个密码只显示这一次，关闭后无法再查看；忘了只能重新重置。"))
         self.copy_button.setText(self.tr("复制"))
         self.close_button.setText(self.tr("关闭"))

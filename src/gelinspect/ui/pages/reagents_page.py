@@ -167,6 +167,8 @@ class ReagentsPage(QWidget):
         if not index.isValid() or not (0 <= index.row() < len(self._batches)):
             return
         batch = self._batches[index.row()]
+        if self._status(batch, self._services.reagents.today())[1] is None:
+            return
         if self._session is None or not self._session.can(Permission.REAGENT_MANAGE):
             self._error = self.tr("当前账号没有关闭试剂提醒的权限。")
             self.query_error.setText(self._error)

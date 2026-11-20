@@ -74,7 +74,7 @@ class UserRecord:
 
     Attributes:
         user: 用户。
-        must_change_password: 下次登录是否必须先改密（新建或重置之后还没改）。
+        must_change_password: 下次登录是否必须先改密。
     """
 
     user: User
@@ -215,8 +215,7 @@ class UserService:
         )
         event = self._event(
             actor,
-            f"新建用户 {name}（{_ROLE_NAMES[role]}），"
-            f"权限组 {sorted(g.value for g in groups)}；首次登录须改密",
+            f"新建用户 {name}（{_ROLE_NAMES[role]}），权限组 {sorted(g.value for g in groups)}",
         )
         try:
             with self._storage.unit_of_work() as uow:
@@ -227,7 +226,9 @@ class UserService:
                         raise ServiceError("登录名不可用", ServiceErrorCode.USER_NOT_FOUND)
                     raise DuplicateError(name)
                 uow.users.add(
-                    user, password_hash=self._auth.hash_password(initial), must_change_password=True
+                    user,
+                    password_hash=self._auth.hash_password(initial),
+                    must_change_password=False,
                 )
                 uow.audit.append(event)
         except DuplicateError as error:
@@ -237,6 +238,20 @@ class UserService:
         return CredentialIssue(user, initial)
 
     # ------------------------------------------------------------------ 停用、启用、改角色
+
+    def delete_user(self, session: Session | None, user_id: str) -> None:
+        """删除账号并记录审计，保留实验及历史记录。"""
+        actor = self._auth.authorize(session, Permission.USER_MANAGE)
+        if user_id == actor.user_id:
+            raise ServiceError("不能删除自己的账号", ServiceErrorCode.USER_SELF_DISABLE)
+        with self._storage.unit_of_work() as uow:
+            self._check_actor(uow.users, actor, session)
+            target = self._require(uow.users, user_id)
+            self._protect_target(actor, target)
+            self._require_other_admin(uow.users, target, "删除")
+            uow.users.delete(user_id)
+            uow.audit.append(self._event(actor, f"删除用户 {target.username}（{target.user_id}）"))
+        self._auth.revoke_sessions(user_id)
 
     def set_active(self, session: Session | None, user_id: str, active: bool) -> User:
         """停用或启用账号。停用后该账号已登录的会话立即失效。

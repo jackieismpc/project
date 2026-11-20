@@ -594,8 +594,8 @@
         <translation>Temporary password for {name}</translation>
     </message>
     <message>
-        <source>请当面告知用户。对方首次登录时必须先修改密码。</source>
-        <translation>Tell the user in person. They must change it at their first sign-in.</translation>
+        <source>请当面告知用户。重置密码后首次登录须修改密码。</source>
+        <translation>Tell the user in person. After a password reset, they must change it at the next login.</translation>
     </message>
     <message>
         <source>这个密码只显示这一次，关闭后无法再查看；忘了只能重新重置。</source>
@@ -2336,8 +2336,8 @@
         <translation>Leave empty to generate a temporary password</translation>
     </message>
     <message>
-        <source>新账号首次登录必须先修改密码。</source>
-        <translation>The new account must change its password at first sign-in.</translation>
+        <source>新账号可使用初始密码直接登录。</source>
+        <translation>The new user can sign in directly with the initial password.</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4954,10 +4954,6 @@ Correct the configuration file and restart the application.</translation>
 <context>
     <name>UsersPage</name>
     <message>
-        <source>启用</source>
-        <translation>Enable</translation>
-    </message>
-    <message>
         <source>已停用</source>
         <translation>Disabled</translation>
     </message>
@@ -4982,14 +4978,6 @@ Correct the configuration file and restart the application.</translation>
         <translation>Use Change password in the user menu for your own password</translation>
     </message>
     <message>
-        <source>不能停用自己的账号</source>
-        <translation>You cannot disable your own account</translation>
-    </message>
-    <message>
-        <source>停用</source>
-        <translation>Disable</translation>
-    </message>
-    <message>
         <source>重置密码？</source>
         <translation>Reset password?</translation>
     </message>
@@ -5000,22 +4988,6 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>重置</source>
         <translation>Reset</translation>
-    </message>
-    <message>
-        <source>停用账号？</source>
-        <translation>Disable account?</translation>
-    </message>
-    <message>
-        <source>{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。</source>
-        <translation>{name} will no longer be able to sign in and signed-in sessions end immediately. You can enable the account again at any time.</translation>
-    </message>
-    <message>
-        <source>已启用 {name}</source>
-        <translation>{name} enabled</translation>
-    </message>
-    <message>
-        <source>已停用 {name}</source>
-        <translation>{name} disabled</translation>
     </message>
     <message>
         <source>登录名</source>
@@ -5054,6 +5026,10 @@ Correct the configuration file and restart the application.</translation>
         <translation>Edit permissions…</translation>
     </message>
     <message>
+        <source>不能删除自己，也不能删除或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
+        <translation>You cannot delete yourself or delete or demote the last administrator. After a reset, the user must change their password at the next login.</translation>
+    </message>
+    <message>
         <source>权限组说明</source>
         <translation>Permission groups</translation>
     </message>
@@ -5066,6 +5042,30 @@ Correct the configuration file and restart the application.</translation>
         <translation>Changes take effect immediately and are recorded in the audit trail</translation>
     </message>
     <message>
+        <source>不能删除自己的账号</source>
+        <translation>You cannot delete your own account</translation>
+    </message>
+    <message>
+        <source>删除用户</source>
+        <translation>Delete user</translation>
+    </message>
+    <message>
+        <source>删除用户？</source>
+        <translation>Delete user?</translation>
+    </message>
+    <message>
+        <source>删除 {name} 的账号？该用户将无法登录，实验和审计记录会保留。</source>
+        <translation>Delete the account for {name}? The user will no longer be able to sign in. Experiment and audit records will be retained.</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <source>已删除 {name}</source>
+        <translation>Deleted {name}</translation>
+    </message>
+    <message>
         <source>新建用户</source>
         <translation>New user</translation>
     </message>
@@ -5076,10 +5076,6 @@ Correct the configuration file and restart the application.</translation>
     <message>
         <source>重置密码</source>
         <translation>Reset password</translation>
-    </message>
-    <message>
-        <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
-        <translation>You cannot disable yourself, nor disable or demote the last administrator. After a reset, the user must change the password at the next sign-in.</translation>
     </message>
     <message>
         <source>还没有账号</source>

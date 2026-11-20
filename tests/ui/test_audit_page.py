@@ -399,3 +399,15 @@ def test_paging_is_stable_while_new_records_arrive(
     assert wait_for(qapp, lambda: page.page_index == 1 and not page.loading)
     second = {int(str(v)) for v in column_values(page.table, "seq")}
     assert not first & second and max(second) < min(first)
+
+
+def test_verification_is_cleared_when_leaving_page(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_audit(qapp, window, app_context, count=2)
+    page.verify_integrity()
+    assert wait_for(qapp, lambda: not page.verifying)
+    assert page.last_verification is not None
+    assert window.navigate("dashboard")
+    assert page.last_verification is None
+    assert page._banner_content is None

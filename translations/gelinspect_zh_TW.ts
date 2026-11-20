@@ -594,8 +594,8 @@
         <translation>{name} 的臨時密碼</translation>
     </message>
     <message>
-        <source>请当面告知用户。对方首次登录时必须先修改密码。</source>
-        <translation>請當面告知使用者。對方首次登入時必須先修改密碼。</translation>
+        <source>请当面告知用户。重置密码后首次登录须修改密码。</source>
+        <translation>請當面告知使用者。重設密碼後首次登入須修改密碼。</translation>
     </message>
     <message>
         <source>这个密码只显示这一次，关闭后无法再查看；忘了只能重新重置。</source>
@@ -2336,8 +2336,8 @@
         <translation>留空則自動產生臨時密碼</translation>
     </message>
     <message>
-        <source>新账号首次登录必须先修改密码。</source>
-        <translation>新帳號首次登入必須先修改密碼。</translation>
+        <source>新账号可使用初始密码直接登录。</source>
+        <translation>新帳號可使用初始密碼直接登入。</translation>
     </message>
     <message>
         <source>取消</source>
@@ -4978,18 +4978,6 @@
         <translation>自己的密碼請用使用者選單裡的“修改密碼”</translation>
     </message>
     <message>
-        <source>不能停用自己的账号</source>
-        <translation>不能停用自己的帳號</translation>
-    </message>
-    <message>
-        <source>停用</source>
-        <translation>停用</translation>
-    </message>
-    <message>
-        <source>启用</source>
-        <translation>啟用</translation>
-    </message>
-    <message>
         <source>重置密码？</source>
         <translation>重設密碼？</translation>
     </message>
@@ -5000,22 +4988,6 @@
     <message>
         <source>重置</source>
         <translation>重設</translation>
-    </message>
-    <message>
-        <source>停用账号？</source>
-        <translation>停用帳號？</translation>
-    </message>
-    <message>
-        <source>{name} 将不能再登录，已登录的会话立即失效。可以随时重新启用。</source>
-        <translation>{name} 將不能再登入，已登入的工作階段立即失效。可以隨時重新啟用。</translation>
-    </message>
-    <message>
-        <source>已启用 {name}</source>
-        <translation>已啟用 {name}</translation>
-    </message>
-    <message>
-        <source>已停用 {name}</source>
-        <translation>已停用 {name}</translation>
     </message>
     <message>
         <source>登录名</source>
@@ -5054,6 +5026,10 @@
         <translation>授予／撤銷權限…</translation>
     </message>
     <message>
+        <source>不能删除自己，也不能删除或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
+        <translation>不能刪除自己，也不能刪除或降級最後一位管理員。重設密碼後，對方首次登入須先修改密碼。</translation>
+    </message>
+    <message>
         <source>权限组说明</source>
         <translation>權限群組說明</translation>
     </message>
@@ -5066,6 +5042,30 @@
         <translation>改動立即生效，並記入稽核軌跡</translation>
     </message>
     <message>
+        <source>不能删除自己的账号</source>
+        <translation>不能刪除自己的帳號</translation>
+    </message>
+    <message>
+        <source>删除用户</source>
+        <translation>刪除使用者</translation>
+    </message>
+    <message>
+        <source>删除用户？</source>
+        <translation>刪除使用者？</translation>
+    </message>
+    <message>
+        <source>删除 {name} 的账号？该用户将无法登录，实验和审计记录会保留。</source>
+        <translation>刪除 {name} 的帳號？該使用者將無法登入，實驗和稽核記錄會保留。</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <source>已删除 {name}</source>
+        <translation>已刪除 {name}</translation>
+    </message>
+    <message>
         <source>新建用户</source>
         <translation>新增使用者</translation>
     </message>
@@ -5076,10 +5076,6 @@
     <message>
         <source>重置密码</source>
         <translation>重設密碼</translation>
-    </message>
-    <message>
-        <source>不能停用自己，也不能停用或降级最后一个管理员。重置密码后，对方首次登录必须先改密。</source>
-        <translation>不能停用自己，也不能停用或降級最後一個管理員。重設密碼後，對方首次登入必須先改密碼。</translation>
     </message>
     <message>
         <source>还没有账号</source>
