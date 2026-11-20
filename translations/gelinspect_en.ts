@@ -3950,8 +3950,8 @@
         <translation>The diagnostic package also includes algorithm output, review records, and rotated logs. Missing or failed media checks are listed in the manifest.</translation>
     </message>
     <message>
-        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
-        <translation>Logs use about {logs:.1f} MB (retained by default and not deleted automatically); {free:.1f} GB is available on the data drive.</translation>
+        <source>日志约 {logs:.6f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <translation>Logs use about {logs:.6f} MB (retained by default and not deleted automatically); {free:.1f} GB is available on the data drive.</translation>
     </message>
     <message>
         <source>日志默认保留，不自动删除。</source>

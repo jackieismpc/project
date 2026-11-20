@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import logging
 import shutil
+import time
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from PySide6.QtCore import QDate, QEvent, QObject, Qt, Signal
+from PySide6.QtCore import QDate, QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QHideEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -73,6 +74,21 @@ from gelinspect.ui.widgets.toast import Toast, ToastKind
 from gelinspect.ui.widgets.video_view import VideoView
 
 _log = logging.getLogger(__name__)
+_CAPACITY_REFRESH_SECONDS = 60
+
+
+def _diagnostic_capacity(log_dir: Path, data_dir: Path) -> tuple[int, int]:
+    """在后台读取日志大小及数据盘可用空间。"""
+    log_bytes = sum(
+        path.stat().st_size
+        for path in (
+            *log_dir.glob("gelinspect.log*"),
+            *(data_dir / "diagnostics" / "logs").glob("*.log"),
+        )
+        if path.is_file() and not path.is_symlink()
+    )
+    return log_bytes, shutil.disk_usage(data_dir).free
+
 
 _TEXT_FIELDS = (
     "instrument_no",
@@ -145,6 +161,13 @@ class SettingsPage(QWidget):
         self._preview_token: int | None = None
         self._previewing = False
         self._runner = BackgroundRunner(self)
+        self._capacity_token: int | None = None
+        self._capacity: tuple[int, int] | None = None
+        self._capacity_updated_at = 0.0
+        self._capacity_timer = QTimer(self)
+        self._capacity_timer.setTimerType(Qt.TimerType.PreciseTimer)
+        self._capacity_timer.setInterval(_CAPACITY_REFRESH_SECONDS * 1000)
+        self._capacity_timer.timeout.connect(self._request_diagnostic_capacity)
         self._diagnostic_cancel = diagnostic_cancel_token()
         self._diagnostic_progress: QProgressDialog | None = None
         self._diagnostic_relay = _DiagnosticProgress(self)
@@ -378,6 +401,7 @@ class SettingsPage(QWidget):
         self._locked = False
         session = self._session
         if session is None:
+            self._capacity_timer.stop()
             self.personal_card.hide()
             self.configuration_area.hide()
             return
@@ -386,6 +410,7 @@ class SettingsPage(QWidget):
         can_view_settings = session.can(Permission.SETTINGS_VIEW)
         self.configuration_area.setVisible(can_view_settings)
         if not can_view_settings:
+            self._capacity_timer.stop()
             # 普通账号仍能使用个人外观偏好；设备设置服务继续独立执行权限校验。
             self._view = None
             self._editable = False
@@ -411,6 +436,8 @@ class SettingsPage(QWidget):
         finally:
             self._loading_settings = False
         self._update_diagnostic_dates(view.settings.retention_days)
+        self._request_diagnostic_capacity()
+        self._capacity_timer.start()
         self._clear_errors()
         self.save_message.setText("")
         self._fill_runtime_selection()
@@ -700,6 +727,7 @@ class SettingsPage(QWidget):
     def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
         """离开设置页时保存已经完成编辑的有效值。"""
         self._save_pending_fields()
+        self._capacity_timer.stop()
         super().hideEvent(event)
 
     # ------------------------------------------------------------------ 视频预览
@@ -895,7 +923,9 @@ class SettingsPage(QWidget):
     def shutdown(self) -> None:
         """Cancel diagnostic exports and discard callbacks before leaving the session."""
         self._diagnostic_cancel.set()
+        self._capacity_timer.stop()
         self._runner.cancel()
+        self._capacity_token = None
         self._runner.wait(5000)
         self._finish_diagnostics()
 
@@ -982,6 +1012,30 @@ class SettingsPage(QWidget):
         self._refresh_diagnostics_hint()
         self.diagnostics_button.setText(self.tr("导出诊断包…"))
 
+    def _request_diagnostic_capacity(self) -> None:
+        if self._capacity_token is not None:
+            return
+        if (
+            self._capacity_updated_at
+            and time.monotonic() - self._capacity_updated_at < _CAPACITY_REFRESH_SECONDS
+        ):
+            return
+        log_dir, data_dir = self._services.log_dir, self._services.data_dir
+        self._capacity_updated_at = time.monotonic()
+        self._capacity_token = self._runner.submit(
+            lambda: _diagnostic_capacity(log_dir, data_dir),
+            self._capacity_ready,
+            self._capacity_failed,
+        )
+
+    def _capacity_ready(self, result: tuple[int, int]) -> None:
+        self._capacity_token = None
+        self._capacity = result
+        self._refresh_diagnostics_hint()
+
+    def _capacity_failed(self, _error: Exception) -> None:
+        self._capacity_token = None
+
     def _refresh_diagnostics_hint(self) -> None:
         base = self.tr(
             "收集实验摘要、审计和可用媒体，并附校验清单。不含数据库、密码、令牌或私钥；生成过程可取消。"
@@ -989,18 +1043,12 @@ class SettingsPage(QWidget):
         self.diagnostics_hint.setToolTip(
             self.tr("诊断包还包含算法输出、复核记录和轮转日志；缺失或校验失败的媒体会列入清单。")
         )
-        try:
-            log_dir = self._services.log_dir
-            log_bytes = sum(
-                path.stat().st_size
-                for path in log_dir.glob("gelinspect.log*")
-                if path.is_file() and not path.is_symlink()
-            )
-            free_bytes = shutil.disk_usage(self._services.data_dir).free
+        if self._capacity is not None:
+            log_bytes, free_bytes = self._capacity
             capacity = self.tr(
-                "日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。"
+                "日志约 {logs:.6f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。"
             ).format(logs=log_bytes / 1_000_000, free=free_bytes / 1_000_000_000)
-        except OSError:
+        else:
             capacity = self.tr("日志默认保留，不自动删除。")
         retention = getattr(self, "_diagnostic_retention", None)
         retained = (

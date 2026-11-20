@@ -3950,8 +3950,8 @@
         <translation>診斷套件也包含演算法輸出、複核紀錄與輪替記錄檔；缺少或驗證失敗的媒體會列入清單。</translation>
     </message>
     <message>
-        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
-        <translation>記錄檔約 {logs:.1f} MB（預設保留，不會自動刪除）；資料磁碟可用 {free:.1f} GB。</translation>
+        <source>日志约 {logs:.6f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <translation>記錄檔約 {logs:.6f} MB（預設保留，不會自動刪除）；資料磁碟可用 {free:.1f} GB。</translation>
     </message>
     <message>
         <source>日志默认保留，不自动删除。</source>

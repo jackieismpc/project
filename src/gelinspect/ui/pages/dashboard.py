@@ -66,6 +66,7 @@ class _AttentionLinkButton(Button):
     def __init__(self, text: str) -> None:
         self._full_text = text
         super().__init__(text)
+        self.setStyleSheet("text-align: left; padding-left: 0px;")
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setAccessibleName(text)
@@ -198,6 +199,7 @@ class DashboardPage(QWidget):
         self.attention_box = QVBoxLayout(attention_content)
         self.attention_box.setContentsMargins(0, 0, 0, 0)
         self.attention_box.setSpacing(10)
+        self.attention_box.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.attention_scroll.setWidget(attention_content)
         self.attention_card.body.addWidget(self.attention_scroll, 1)
         cards = QGridLayout()

@@ -3950,7 +3950,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>日志约 {logs:.1f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
+        <source>日志约 {logs:.6f} MB（默认保留、不自动删除）；数据盘可用 {free:.1f} GB。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

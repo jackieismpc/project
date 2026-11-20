@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -70,6 +71,44 @@ def test_shows_every_setting_with_the_effective_values(
     assert "默认保留" in page.diagnostics_hint.text()
     assert page.runtime_paths["data_dir"].text().endswith("data")
     assert all(page.fields[n].edit.isEnabled() == (n != "copyright_holder") for n in page.fields)
+
+
+def test_diagnostic_log_size_refreshes_periodically(qapp: QApplication, window: MainWindow) -> None:
+    page = open_settings(qapp, window)
+    assert wait_for(qapp, lambda: page._capacity_token is None)
+    data_dir = page._services.data_dir
+    log_dir = data_dir / "diagnostics" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log = log_dir / "2026-01-01.log"
+    log.write_bytes(b"x" * 1234)
+    page._capacity_updated_at = 0
+    page._request_diagnostic_capacity()
+    assert wait_for(qapp, lambda: "0.001234 MB" in page.diagnostics_hint.text())
+    log.write_bytes(b"x" * 2345)
+    assert window.navigate("dashboard")
+    assert window.navigate("settings")
+    assert "0.001234 MB" in page.diagnostics_hint.text()
+    page._capacity_updated_at = 0
+    page._capacity_timer.timeout.emit()
+    assert wait_for(qapp, lambda: "0.002345 MB" in page.diagnostics_hint.text())
+
+
+def test_diagnostic_capacity_is_read_in_background(
+    qapp: QApplication, window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gelinspect.ui.pages import settings_page
+
+    worker_threads: list[int] = []
+    original = settings_page._diagnostic_capacity
+
+    def measure(log_dir: Path, data_dir: Path) -> tuple[int, int]:
+        worker_threads.append(threading.get_ident())
+        return original(log_dir, data_dir)
+
+    monkeypatch.setattr(settings_page, "_diagnostic_capacity", measure)
+    page = open_settings(qapp, window)
+    assert wait_for(qapp, lambda: page._capacity is not None)
+    assert worker_threads and worker_threads[0] != threading.get_ident()
 
 
 @pytest.mark.parametrize("lang", ["zh_CN", "zh_TW", "en"])

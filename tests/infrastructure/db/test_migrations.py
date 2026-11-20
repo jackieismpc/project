@@ -291,3 +291,14 @@ def test_fresh_database_supports_attention_and_media_purge_queries_after_reopen(
                 )
         finally:
             database.close()
+
+
+def test_existing_database_upgrades_attention_table(tmp_path: Path) -> None:
+    path = tmp_path / "legacy.db"
+    _alembic(path, "upgrade", "0011")
+    database = open_database(path)
+    try:
+        assert not database.reagent_checks.attention_dismissed(ReagentKind.WATER, "WAT2607A")
+        assert database.media.purge_state("missing-file") is None
+    finally:
+        database.close()
