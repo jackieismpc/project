@@ -100,7 +100,7 @@ def well_accessible_name(tube_no: int, state: WellState, *, selected: bool = Fal
         selected: 选择模式下是否已选中。
 
     Returns:
-        例如 ``7 号管，待复核``。
+        例如 ``7 号管，阳性``。
     """
     text = QCoreApplication.translate("PlateGrid", "{no} 号管，{state}").format(
         no=tube_no, state=state_label(state)
@@ -668,7 +668,6 @@ class PlateLegend(QWidget):
         states: Sequence[WellState] = (
             WellState.POSITIVE,
             WellState.NEGATIVE,
-            WellState.REVIEW,
             WellState.READING,
             WellState.INCUBATING,
         ),

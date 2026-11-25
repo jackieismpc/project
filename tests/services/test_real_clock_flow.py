@@ -14,7 +14,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import build_app_context
-from gelinspect.domain.enums import AuditAction, Interpretation, ReagentKind
+from gelinspect.domain.enums import AuditAction, ReagentKind
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.config import DEFAULT_CONFIG, parse_config
@@ -70,18 +70,11 @@ def test_start_complete_and_sign_are_ordered_and_the_report_shows_them(
 
         def finished() -> bool:
             found = context.database.experiments.get(experiment_id)
-            return found is not None and found.state in (
-                ExperimentState.PENDING_REVIEW,
-                ExperimentState.COMPLETED,
-            )
+            return found is not None and found.state is ExperimentState.COMPLETED
 
         assert eventually(finished, 60)
         assert context.engine.wait(30)
         analyst = context.auth.login("analyst", PASSWORDS["analyst"])
-        for tube in context.database.experiments.get(experiment_id).pending_review_tubes:  # type: ignore[union-attr]
-            context.reviews.review_tube(
-                analyst, experiment_id, tube, Interpretation.POSITIVE, "复核"
-            )
         reports: ReportService = context.reports
         signed = reports.sign(analyst, experiment_id, PASSWORDS["analyst"])
         after = datetime.now(UTC)

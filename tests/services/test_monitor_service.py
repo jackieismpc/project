@@ -93,9 +93,9 @@ def test_default_experiment_falls_back_to_the_most_recent(stack: object) -> None
     monitor = MonitorService(stack.auth, stack.database, _IdleEngine())
     assert monitor.default_experiment_id(stack.login("analyst")) == "EXP-REV-1"
     view = monitor.view(stack.login("analyst"), "EXP-REV-1")
-    assert view.pending_review == (3, 5) and view.state is ExperimentState.PENDING_REVIEW
+    assert view.state is ExperimentState.COMPLETED
     assert view.last_elapsed_ms == 12.0
-    assert result_status(view.tubes[2].result) is WellStatus.PENDING_REVIEW  # type: ignore[arg-type]
+    assert result_status(view.tubes[2].result) is WellStatus.ERROR  # type: ignore[arg-type]
     assert view.tubes[0].status is WellStatus.POSITIVE
 
 

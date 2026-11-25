@@ -32,4 +32,4 @@ class IllegalTransitionError(DomainError):
 
 
 class TransitionGuardError(DomainError):
-    """转换本身合法，但业务前置条件不满足，例如仍有待复核的试管时签署。"""
+    """转换本身合法，但业务前置条件不满足，例如缺少有效结果时签署。"""

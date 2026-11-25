@@ -41,17 +41,15 @@ def mono_span(text: str) -> str:
 
 
 def monitor_states() -> dict[int, WellState]:
-    """设计稿示例的孔状态：1–6 阳性，7 待复核，8 阴性，9–16 读数中，17 孵育中。
+    """设计稿示例的孔状态：1–7 阳性，8 阴性，9–16 读数中，17 孵育中。
 
     Returns:
         管号到状态的映射。
     """
     states: dict[int, WellState] = {}
     for n in range(1, 18):
-        if n <= 6:
+        if n <= 7:
             states[n] = WellState.POSITIVE
-        elif n == 7:
-            states[n] = WellState.REVIEW
         elif n == 8:
             states[n] = WellState.NEGATIVE
         elif n <= 16:

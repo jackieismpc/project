@@ -108,7 +108,7 @@ def test_a_changed_file_is_reported_not_hidden(harness: HarnessFactory) -> None:
 
 def test_a_tube_without_masks_is_cropped_by_position(harness: HarnessFactory) -> None:
     h = harness(tubes_of_rows(1))
-    h.analyzer.drop_tubes = {4}  # 算法没返回 4 号管：转待复核，没有掩码
+    h.analyzer.drop_tubes = {4}  # 算法没返回 4 号管：记为分析失败，没有掩码
     h.save_and_start()
     h.incubating()
     h.fire_rows()

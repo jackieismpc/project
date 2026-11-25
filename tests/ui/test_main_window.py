@@ -341,8 +341,8 @@ def test_engine_events_after_switching_accounts_do_not_reach_destroyed_pages(
             "EXP-X",
             datetime.now(UTC),
             ExperimentState.ANALYZING,
-            ExperimentState.PENDING_REVIEW,
-            ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW,
+            ExperimentState.COMPLETED,
+            ExperimentEvent.ALL_ANALYZED_CLEAN,
             "system",
         )
     )

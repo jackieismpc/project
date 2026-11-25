@@ -1,10 +1,10 @@
 # MockAnalyzer 的配置，传给 GelAnalyzer.load。全部为可选项。
 scripted: true           # 固定种子生成固定可重复的替代结果，不作为真实检测判定
 seed: 0
-state_ratios: [0.5, 0.2, 0.3]   # 完全凝固 / 部分凝固 / 未凝固
+state_ratios: [0.5, 0.0, 0.5]   # 完全凝固 / 部分凝固 / 未凝固
 tube_states:             # 按管号指定状态（脚本化模式使用）；null 表示没有试管
   1: fully_gelled
-  7: partially_gelled
+  7: fully_gelled
   8: not_gelled
 tube_faults: {}          # 例如 { 3: low_quality, 5: failed, 6: tube_not_found }
 delay_ms: 0              # 模拟每排耗时

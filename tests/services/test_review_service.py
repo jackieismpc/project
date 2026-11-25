@@ -40,15 +40,28 @@ def _result(tube_no: int, state: GelState) -> TubeResult:
 
 
 def make_pending(stack: Stack, *, finish: bool = True) -> Experiment:
-    """八管试验：3、5 号部分凝固（待复核），其余明确。"""
+    """八管试验：3、5 号分析失败（无自动判读），其余阳性。"""
     experiment = ready_experiment(range(1, 9), "EXP-REV-1")
     for event in (ExperimentEvent.START, ExperimentEvent.ROW_DUE, ExperimentEvent.ROW_CAPTURED):
         experiment.apply(event)
     for no in range(1, 9):
-        state = GelState.PARTIALLY_GELLED if no in PARTIAL else GelState.FULLY_GELLED
-        experiment.record_result(_result(no, state))
+        if no in PARTIAL:
+            experiment.record_result(
+                TubeResult.from_analysis(
+                    tube_no=no,
+                    status=TubeAnalysisStatus.FAILED,
+                    state=None,
+                    mapping=GelStateMapping(),
+                    model_version="m1",
+                    config_version="c1",
+                    message="分析失败",
+                    elapsed_ms=12.0,
+                )
+            )
+        else:
+            experiment.record_result(_result(no, GelState.FULLY_GELLED))
     if finish:
-        experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
+        experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
     stack.database.experiments.save(experiment)
     return experiment
 
@@ -63,31 +76,30 @@ def stored(stack: Stack) -> Experiment:
     return experiment
 
 
-def test_analyst_reviews_and_the_last_review_makes_the_experiment_signable(stack: Stack) -> None:
+def test_analyst_reviews_tube_and_keeps_original_result(stack: Stack) -> None:
     make_pending(stack)
     reviews = service(stack)
     analyst = stack.login("analyst")
 
     first = reviews.review_tube(analyst, "EXP-REV-1", 3, Interpretation.POSITIVE, "  凝胶完整  ")
-    assert first.remaining == (5,) and first.state is ExperimentState.PENDING_REVIEW
+    assert first.state is ExperimentState.COMPLETED
     result = stored(stack).results[3]
     assert result.reviewed_interpretation is Interpretation.POSITIVE
     assert result.reviewed_by == "analyst" and result.reviewed_at == NOW
     assert result.review_note == "凝胶完整"  # 去掉首尾空白
     assert result.review_status is ReviewStatus.REVIEWED
     # 算法的原始结果保留
-    assert result.gel_state is GelState.PARTIALLY_GELLED
-    assert result.auto_interpretation is Interpretation.PENDING_REVIEW
+    assert result.gel_state is None
+    assert result.auto_interpretation is None
     assert result.final_interpretation is Interpretation.POSITIVE
-    assert stored(stack).state is ExperimentState.PENDING_REVIEW
+    assert stored(stack).state is ExperimentState.COMPLETED
 
     last = reviews.review_tube(analyst, "EXP-REV-1", 5, Interpretation.NEGATIVE, "流动明显")
-    assert last.remaining == () and last.state is ExperimentState.COMPLETED
+    assert last.state is ExperimentState.COMPLETED
     assert stored(stack).state is ExperimentState.COMPLETED
     details = stack.audit(AuditAction.TUBE_REVIEWED)
-    assert len(details) == 2 and "部分凝固" not in details[0]
-    assert "partially_gelled" in details[0] and "人工 positive" in details[0]
-    assert any("review_completed" in d for d in stack.audit(AuditAction.EXPERIMENT_STATE_CHANGED))
+    assert len(details) == 2
+    assert "人工 positive" in details[0]
 
 
 def test_other_roles_cannot_review_and_are_audited(stack: Stack) -> None:
@@ -128,7 +140,7 @@ def test_review_interpretation_must_be_positive_or_negative(stack: Stack) -> Non
     make_pending(stack)
     with pytest.raises(ServiceError) as caught:
         service(stack).review_tube(
-            stack.login("analyst"), "EXP-REV-1", 3, Interpretation.PENDING_REVIEW, "x"
+            stack.login("analyst"), "EXP-REV-1", 3, cast(Interpretation, "invalid"), "x"
         )
     assert caught.value.code is ServiceErrorCode.REVIEW_CONCLUSION_INVALID
 
@@ -163,7 +175,7 @@ class _StaleStorage:
         class Repo:
             def get(self, experiment_id: str) -> Experiment | None:
                 experiment = real.get(experiment_id)
-                real.update_state(experiment_id, ExperimentState.COMPLETED)
+                real.update_state(experiment_id, ExperimentState.SIGNED)
                 return experiment
 
         return Repo()
@@ -235,7 +247,7 @@ def test_completed_result_can_be_re_reviewed_and_keeps_history(
     reviewer = stack.login("analyst")
     reviews = service(stack)
     reviews.review_tube(reviewer, "EXP-REV-1", 3, Interpretation.POSITIVE, "首次原因")
-    reviews.review_tube(reviewer, "EXP-REV-1", 5, Interpretation.NEGATIVE, "完成待复核")
+    reviews.review_tube(reviewer, "EXP-REV-1", 5, Interpretation.NEGATIVE, "人工核验")
     assert stored(stack).state is ExperimentState.COMPLETED
 
     result = reviews.review_tube(

@@ -80,7 +80,6 @@ QLabel[role="badge"][tone="info"] { background: $primary_soft; color: $primary_h
 QLabel[role="badge"][tone="success"] { background: $success_bg; color: $success; }
 QLabel[role="badge"][tone="warning"] { background: $warning_bg; color: $warning; }
 QLabel[role="badge"][tone="danger"] { background: $danger_bg; color: $danger; }
-QLabel[role="badge"][tone="review"] { background: $review_bg; color: $review; }
 QLabel[role="badge"][tone="neutral"] { background: $step_idle; color: $ink_muted; }
 
 QFrame[role="tabs"] { background: transparent; border: 0; border-bottom: 1px solid $tab_line; }

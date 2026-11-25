@@ -93,17 +93,13 @@ def make_completed(
                 tube_no=no, status=TubeAnalysisStatus.OK, state=state, mapping=GelStateMapping()
             )
         )
-    if experiment.pending_review_tubes:
-        experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
-        stack.database.experiments.save(experiment)
-        service = ReviewService(stack.auth, stack.database, clock=lambda: NOW)
-        for tube in experiment.pending_review_tubes:
-            service.review_tube(stack.login(reviewer), experiment_id, tube, review_to, "复核")
-    else:
-        # 没有待复核的管：直接记录完成时间，不计算试验级结论。
-        experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
-        experiment.completed_at = NOW
-        stack.database.experiments.save(experiment)
+    experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
+    experiment.completed_at = NOW
+    stack.database.experiments.save(experiment)
+    if 7 in experiment.results:
+        ReviewService(stack.auth, stack.database, clock=lambda: NOW).review_tube(
+            stack.login(reviewer), experiment_id, 7, review_to, "复核"
+        )
     stored = stack.database.experiments.get(experiment_id)
     assert stored is not None
     return stored

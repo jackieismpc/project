@@ -425,6 +425,9 @@ class InspectionReplayAnalyzer:
         media = self._dataset.prepare_media(image_result, request.image_size)
         instances = sorted(image_result.instances, key=lambda inst: inst.position)
 
+        threshold = self._dataset.run.summary.score_threshold
+        score_threshold = float(threshold) if threshold is not None else 0.6
+
         tubes_out: list[TubeAnalysis] = []
         slots_sorted = sorted(request.tubes, key=lambda s: s.position_in_row)
         for idx, slot in enumerate(slots_sorted):
@@ -456,6 +459,7 @@ class InspectionReplayAnalyzer:
                     target_shape=request.image_size,
                     transform_before=media.transform_before,
                     transform_after=media.transform_after,
+                    score_threshold=score_threshold,
                 )
             )
 

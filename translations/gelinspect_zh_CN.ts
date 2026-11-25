@@ -661,10 +661,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>实验 {id} 有 {n} 管待复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>实验 {id} 处于异常状态，需要人工处理</source>
         <translation type="unfinished"></translation>
     </message>
@@ -706,10 +702,6 @@
     </message>
     <message>
         <source>{tubes} 管 · 已完成 {done} / {total} 排</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{n} 管待复核</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -787,10 +779,6 @@
     </message>
     <message>
         <source>分析中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待复核</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -913,10 +901,6 @@
     </message>
     <message>
         <source>管数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待复核管数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1114,10 +1098,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>待复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>完全凝固</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1131,10 +1111,6 @@
     </message>
     <message>
         <source>无需复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>等待复核</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1354,7 +1330,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>待复核</source>
+        <source>无结果</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1409,15 +1385,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>阴阳性：按下表换算；图像质量差、找不到试管、分析失败的试管一律待人工复核，不会默认判为阴性。</source>
+        <source>阴阳性：算法输出阳性和阴性两类结果；图像质量差、找不到试管或分析失败的试管显示异常，不会默认判为阴性，可由人工核验补全。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>凝固状态与阴阳性（当前配置）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>置信度低于 {t} 的结果也转人工复核。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1494,10 +1466,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>实验 {id} 检测完成，{count} 管待复核。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>实验 {id} 已完成，可查看报告。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1515,10 +1483,6 @@
     </message>
     <message>
         <source>继续实验</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>若干</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1564,10 +1528,6 @@
     </message>
     <message>
         <source>第 {n} 排分析中</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待复核 · {n} 管</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3097,10 +3057,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>待复核</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>无结果</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3264,10 +3220,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>可以签署：全部待复核已处理，实验已完成</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>签署需要再次输入密码；后续复核将生成需重新签署的修订版。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3321,6 +3273,10 @@
     </message>
     <message>
         <source>验证外部 PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>可以签署：实验已完成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4257,11 +4213,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>实验还没有完成（当前状态：{state}），完成并复核后才能签署。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>{tubes} 号管等待人工复核，复核全部完成后才能签署。</source>
+        <source>实验还没有完成（当前状态：{state}），完成后才能签署。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4731,6 +4683,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>检测异常 · 可人工核验</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>未凝固 ≤ {low} · 部分凝固 · 完全凝固 ≥ {high}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4827,10 +4783,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>检测结果 · 需要人工复核后才能签署</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>检测结果 · {v}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4840,10 +4792,6 @@
     </message>
     <message>
         <source>{when} · {who} · {v} · {note}</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>全部待复核的试管已处理，实验可以签署</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5183,10 +5131,6 @@
     </message>
     <message>
         <source>阴性</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>待复核</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

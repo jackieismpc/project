@@ -109,7 +109,7 @@ def history(database: Database) -> Database:
     specs = [
         ("E1", ExperimentType.SENSITIVITY_CONFIRMATION, 0, "LAL-A", "S-1", ExperimentState.SIGNED),
         ("E2", ExperimentType.LIMIT, 1, "LAL-A", "S-2", ExperimentState.COMPLETED),
-        ("E3", ExperimentType.LIMIT, 2, "LAL-B", "S-3", ExperimentState.PENDING_REVIEW),
+        ("E3", ExperimentType.LIMIT, 2, "LAL-B", "S-3", ExperimentState.COMPLETED),
         ("E4", ExperimentType.SEMI_QUANTITATIVE, 3, "LAL-C", "LAL-B", ExperimentState.STOPPED),
         ("E5", ExperimentType.LIMIT, 4, "LAL-C", None, ExperimentState.SIGNED),
     ]

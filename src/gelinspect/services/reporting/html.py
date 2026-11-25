@@ -88,8 +88,6 @@ def result_text(texts: ReportTexts, row: ReportRowData) -> str:
         text = texts.s(S.POSITIVE)
     elif row.interpretation is Interpretation.NEGATIVE:
         text = texts.s(S.NEGATIVE)
-    elif row.interpretation is Interpretation.PENDING_REVIEW:
-        return texts.s(S.PENDING)
     else:
         return texts.s(S.NO_RESULT)
     if row.reviewed:
@@ -228,8 +226,8 @@ class _Builder:
         for row in section.rows:
             positive = row.interpretation is Interpretation.POSITIVE
             weight = "font-weight:700;" if positive else ""
-            pending = row.interpretation in (None, Interpretation.PENDING_REVIEW)
-            colour = f"color:{WARN};" if pending else ""
+            missing = row.interpretation is None
+            colour = f"color:{WARN};" if missing else ""
             body.append(
                 "<tr>"
                 f'<td style="{cell}{pad}">{_mono(str(row.tube_no))}</td>'

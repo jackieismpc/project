@@ -1,7 +1,7 @@
 """试验状态机。
 
 转换表 :data:`TRANSITIONS` 是唯一事实来源，不在表中的组合都是非法转换。
-本模块只判断“状态和事件”是否合法；需要读取试验数据的前置条件（例如有待复核的试管时
+本模块只判断“状态和事件”是否合法；需要读取试验数据的前置条件（例如缺少结果或存在未核验的异常管时
 不能签署）由 :class:`gelinspect.domain.entities.Experiment` 检查。
 
 一个试验的每一排各有独立倒计时，因此 ``INCUBATING``、``READING``、``ANALYZING`` 描述的是
@@ -34,10 +34,8 @@ class ExperimentState(StrEnum):
     """读数中：翻转一排并抓帧。"""
     ANALYZING = "analyzing"
     """分析中：算法处理一排。"""
-    PENDING_REVIEW = "pending_review"
-    """待复核：全部排已分析，有试管等待人工复核。"""
     COMPLETED = "completed"
-    """完成：全部试管都有明确结论，可以签署。"""
+    """完成：全部排已分析，可查看或人工核验后签署。"""
     SIGNED = "signed"
     """已签署，终态。"""
     STOPPED = "stopped"
@@ -68,13 +66,7 @@ class ExperimentEvent(StrEnum):
     ROW_ANALYZED = "row_analyzed"
     """该排分析完成，还有未读的排，回到孵育。"""
     ALL_ANALYZED_CLEAN = "all_analyzed_clean"
-    """全部排分析完成，没有待复核的试管。"""
-    ALL_ANALYZED_NEEDS_REVIEW = "all_analyzed_needs_review"
-    """全部排分析完成，有待复核的试管。"""
-    REVIEW_COMPLETED = "review_completed"
-    """全部待复核的试管已复核。"""
-    REOPEN_REVIEW = "reopen_review"
-    """签署前重新打开复核。"""
+    """全部排分析完成，试验结束。"""
     SIGN = "sign"
     """签署。"""
     STOP = "stop"
@@ -115,11 +107,8 @@ TRANSITIONS: Mapping[tuple[ExperimentState, ExperimentEvent], ExperimentState] =
         (_S.ANALYZING, _E.ROW_ANALYZED): _S.INCUBATING,
         (_S.ANALYZING, _E.ROW_DUE): _S.READING,
         (_S.ANALYZING, _E.ALL_ANALYZED_CLEAN): _S.COMPLETED,
-        (_S.ANALYZING, _E.ALL_ANALYZED_NEEDS_REVIEW): _S.PENDING_REVIEW,
         (_S.ANALYZING, _E.STOP): _S.STOPPED,
         (_S.ANALYZING, _E.FAULT): _S.FAULTED,
-        (_S.PENDING_REVIEW, _E.REVIEW_COMPLETED): _S.COMPLETED,
-        (_S.COMPLETED, _E.REOPEN_REVIEW): _S.PENDING_REVIEW,
         (_S.COMPLETED, _E.SIGN): _S.SIGNED,
         (_S.FAULTED, _E.RESUME_INCUBATION): _S.INCUBATING,
         (_S.FAULTED, _E.RESUME_READING): _S.READING,

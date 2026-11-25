@@ -19,7 +19,6 @@ from gelinspect.domain.interpretation import GelStateMapping
 from gelinspect.domain.state_machine import ExperimentEvent
 from gelinspect.domain.templates import BUILTIN_TEMPLATES
 from gelinspect.interfaces.storage import ExperimentQuery, PageRequest
-from gelinspect.services.config import DEFAULT_CONFIG, ConfigError, parse_config
 from gelinspect.services.errors import ServiceError, ServiceErrorCode
 from gelinspect.services.experiment_draft import ExperimentDraft
 from gelinspect.services.review_service import ReviewService
@@ -31,7 +30,7 @@ from .conftest import GOOD_CODES, NOW, Stack, build_stack
 
 
 def pending_sample(stack: Stack, experiment: Experiment | None = None) -> Experiment:
-    """灵敏度示例：1–6 号阳性，7 号待复核，其余阴性，λ=0.5。"""
+    """灵敏度示例：1–7 号阳性，其余阴性，λ=0.5。"""
     target = experiment or sensitivity_experiment()
     for event in (
         ExperimentEvent.SUBMIT_FOR_REAGENT_CHECK,
@@ -47,7 +46,8 @@ def pending_sample(stack: Stack, experiment: Experiment | None = None) -> Experi
                 tube_no=no, status=TubeAnalysisStatus.OK, state=state, mapping=GelStateMapping()
             )
         )
-    target.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
+    target.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
+    target.completed_at = NOW
     stack.database.experiments.save(target)
     return target
 
@@ -174,17 +174,8 @@ def test_draft_tracks_lambda_changes_and_formats_without_float_tails() -> None:
     assert draft.lambda_missing and draft.rows[0].spiked_endotoxin is None
 
 
-def test_config_threshold_reaches_the_mapping() -> None:
-    enabled = parse_config({**DEFAULT_CONFIG, "low_confidence_threshold": 0.7})
-    assert enabled.mapping().low_confidence_threshold == 0.7
-    assert parse_config(dict(DEFAULT_CONFIG)).mapping().low_confidence_threshold is None
-    with pytest.raises(ConfigError):
-        parse_config({**DEFAULT_CONFIG, "low_confidence_threshold": 1.5})
-
-
 def test_summaries_carry_the_completion_time(stack: Stack) -> None:
     pending_sample(stack)
-    review(stack, 7, Interpretation.POSITIVE)
     page = stack.database.experiments.query(ExperimentQuery(), PageRequest(limit=5))
     assert page.items[0].completed_at == NOW
 

@@ -9,10 +9,10 @@ from openpyxl import load_workbook
 from PySide6.QtWidgets import QApplication, QFileDialog
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction
+from gelinspect.domain.enums import AuditAction, Interpretation
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.ui.main_window import MainWindow
-from tests.ui.conftest import sign_in
+from tests.ui.conftest import DEMO_PASSWORDS, sign_in
 from tests.ui.test_report_center import finish_experiment, reports_of
 
 
@@ -24,6 +24,10 @@ def test_excel_button_exports_per_tube_results_and_review_without_rule_summary(
     tmp_path: Path,
 ) -> None:
     experiment_id = finish_experiment(qapp, fast_window, fast_context)
+    analyst = fast_context.auth.login("analyst", DEMO_PASSWORDS["analyst"])
+    fast_context.reviews.review_tube(
+        analyst, experiment_id, 7, Interpretation.POSITIVE, "人工判阳性"
+    )
     sign_in(qapp, fast_window, "analyst")
     assert fast_window.navigate("reports")
     page = reports_of(fast_window)

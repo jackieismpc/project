@@ -35,7 +35,7 @@ FAST_VIDEO = {"source": "simulation.sim_video:SimVideoSource", "device": "sim",
 FAST_ENGINE: dict[str, object] = {"incubation_minutes": 0.05, "time_scale": 60}
 """孵育 3 设备秒（真实 0.05 秒）：试验几秒内跑完。"""
 
-FINISHED = (ExperimentState.PENDING_REVIEW, ExperimentState.COMPLETED)
+FINISHED = (ExperimentState.COMPLETED,)
 
 
 LIVE_ENGINE: dict[str, object] = {"incubation_minutes": 60, "time_scale": 60}

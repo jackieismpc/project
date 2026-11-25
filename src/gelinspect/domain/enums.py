@@ -75,8 +75,6 @@ class Interpretation(StrEnum):
     """阳性。"""
     NEGATIVE = "negative"
     """阴性。"""
-    PENDING_REVIEW = "pending_review"
-    """待复核，人工确认前不能签署。"""
 
 
 class ConclusionVerdict(StrEnum):
@@ -98,9 +96,7 @@ class ReviewStatus(StrEnum):
     """单管人工复核状态。"""
 
     NOT_REQUIRED = "not_required"
-    """自动判读已有明确结果，无需复核。"""
-    PENDING = "pending"
-    """等待人工复核。"""
+    """使用算法判读结果（或尚未人工复核）。"""
     REVIEWED = "reviewed"
     """已人工复核，以复核结论为准。"""
 

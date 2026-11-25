@@ -92,7 +92,7 @@ def test_values_are_shown_on_the_confirm_step_and_stored_with_the_experiment(
         qapp,
         lambda: (
             (e := fast_context.database.experiments.get(experiment_id)) is not None
-            and e.state in (ExperimentState.PENDING_REVIEW, ExperimentState.COMPLETED)
+            and e.state is ExperimentState.COMPLETED
         ),
         60,
     )

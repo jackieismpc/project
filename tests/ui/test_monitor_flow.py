@@ -59,8 +59,7 @@ def test_full_review_flow_from_wizard_to_signable(
     assert wait_for(
         qapp,
         lambda: any(
-            monitor.plate.state(t) in (WellState.POSITIVE, WellState.NEGATIVE, WellState.REVIEW)
-            for t in range(1, 19)
+            monitor.plate.state(t) in (WellState.POSITIVE, WellState.NEGATIVE) for t in range(1, 19)
         ),
         60.0,
     )
@@ -70,21 +69,17 @@ def test_full_review_flow_from_wizard_to_signable(
     assert wait_for(qapp, lambda: not monitor.read_only or monitor.badge.text() != "", 10.0)
     assert wait_for(qapp, lambda: monitor.view_model is not None and not monitor.view_model.live)
     stored = context.database.experiments.get(experiment_id)
-    assert stored is not None and stored.state is ExperimentState.PENDING_REVIEW
-    pending = list(stored.pending_review_tubes)
-    assert pending, "默认场景下应有部分凝固的试管等待复核"
+    assert stored is not None and stored.state is ExperimentState.COMPLETED
     expected = {
         n: (
-            WellState.REVIEW
-            if r.needs_review
-            else WellState.POSITIVE
+            WellState.POSITIVE
             if r.final_interpretation is Interpretation.POSITIVE
             else WellState.NEGATIVE
         )
         for n, r in stored.results.items()
     }
     assert wait_for(qapp, lambda: all(monitor.plate.state(n) == s for n, s in expected.items()))
-    assert monitor.badge.text().startswith("待复核")
+    assert "已完成" in monitor.badge.text()
 
     # 点击 Row 标题会选中整排并切换右侧对应录像。
     QTest.mouseClick(
@@ -98,7 +93,7 @@ def test_full_review_flow_from_wizard_to_signable(
     assert monitor.replay_player.clip is not None or 1 not in monitor._recordings
 
     # 点孔进详情：原图、掩码文件存在，掩码能叠加
-    tube = pending[0]
+    tube = 7
     click_well(monitor.plate, tube)
     assert window.current_route == "tube"
     detail = window.page("tube")
@@ -128,10 +123,10 @@ def test_full_review_flow_from_wizard_to_signable(
     )
     assert monitor.table.selected_rows() == [tube_row]
 
-    # 实验与结果处理组可以复核，服务端与界面能力一致。
+    # 实验与结果处理组可以人工核验/复核，服务端与界面能力一致。
     assert detail.submit_button.isEnabled()
-    # 同一普通用户继续复核：意见必填；全部处理后试验转可签署。
-    for number, tube_no in enumerate(pending):
+    # 同一普通用户继续核验：意见必填；保留算法原始结果。
+    for number, tube_no in enumerate((7,)):
         assert window.open_tube(experiment_id, tube_no)
         detail = tube_page(window)
         assert wait_for(qapp, lambda: tube_page(window).images is not None, 30.0)
@@ -152,7 +147,7 @@ def test_full_review_flow_from_wizard_to_signable(
         result = row.results[tube_no]
         assert result.reviewed_interpretation is Interpretation.POSITIVE
         assert result.reviewed_by == "experimenter" and result.review_note == f"复核意见 {number}"
-        assert result.auto_interpretation is Interpretation.PENDING_REVIEW  # 算法结果不被覆盖
+        assert result.auto_interpretation is not None  # 算法结果不被覆盖
         assert (
             "检测结果：" in detail.verdict_title.text()
             and "复核结论：阳性" in detail.verdict_title.text()
@@ -164,7 +159,7 @@ def test_full_review_flow_from_wizard_to_signable(
     page = context.database.audit.query(
         AuditQuery(action=AuditAction.TUBE_REVIEWED), PageRequest(limit=100)
     )
-    assert len(page.items) == len(pending)
+    assert len(page.items) == 1
     window.navigate("monitor")
     reopened = window.page("monitor")
     assert isinstance(reopened, MonitorPage)
@@ -174,7 +169,7 @@ def test_full_review_flow_from_wizard_to_signable(
 def check_judgment(
     qapp: QApplication, detail: TubeDetailPage, experiment: Experiment, tube_no: int
 ) -> None:
-    """判读过程卡：四个评分分项、加权和、阈值、三态到阴阳性；判读依据对话框列出映射。"""
+    """判读过程卡：四个评分分项、加权和、阈值、凝固状态到阴阳性；判读依据对话框列出映射。"""
     result = experiment.results[tube_no]
     basis = read_judgment(result.features)
     assert [t.feature for t in basis.terms] == list(SCORE_FEATURES)
@@ -183,10 +178,9 @@ def check_judgment(
     assert basis.thresholds.state_for(result.score or 0) is result.gel_state
     assert detail.score_bar.thresholds == basis.thresholds
     assert detail.judgment_cells[4][4].text() == f"{basis.total:.3f}"
-    assert "→ 待复核" in detail.mapping_label.text()
     guide = detail.open_guide()
     settle(qapp)
     assert guide.isVisible()
-    assert [r[1] for r in guide.mapping_rows] == ["阳性", "待复核", "阴性"]
+    assert [r[1] for r in guide.mapping_rows] == ["阳性", "阴性"]
     guide.close()
     settle(qapp)

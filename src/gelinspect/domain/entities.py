@@ -215,7 +215,7 @@ class TubeResult:
     tube_no: int
     analysis_status: TubeAnalysisStatus
     gel_state: GelState | None
-    auto_interpretation: Interpretation
+    auto_interpretation: Interpretation | None
     review_status: ReviewStatus
     score: float | None = None
     confidence: float | None = None
@@ -262,32 +262,19 @@ class TubeResult:
             elapsed_ms: 分析耗时（毫秒）。
 
         Returns:
-            单管结果。判读为待复核时，复核状态为 ``PENDING``。
+            单管结果。
 
         Raises:
             InvalidPlatePositionError: 管号超出范围。
         """
         tube_to_position(tube_no)
-        interpretation = mapping.interpret(status, state, confidence)
-        if (
-            message is None
-            and interpretation is Interpretation.PENDING_REVIEW
-            and state is not None
-            and mapping.for_state(state) is not Interpretation.PENDING_REVIEW
-            and mapping.is_low_confidence(confidence)
-        ):
-            shown = "缺失" if confidence is None else f"{confidence:.2f}"
-            message = f"置信度 {shown} 低于阈值 {mapping.low_confidence_threshold:g}，转人工复核"
+        interpretation = mapping.interpret(status, state)
         return cls(
             tube_no=tube_no,
             analysis_status=status,
             gel_state=state,
             auto_interpretation=interpretation,
-            review_status=(
-                ReviewStatus.PENDING
-                if interpretation is Interpretation.PENDING_REVIEW
-                else ReviewStatus.NOT_REQUIRED
-            ),
+            review_status=ReviewStatus.NOT_REQUIRED,
             score=score,
             confidence=confidence,
             features=dict(features or {}),
@@ -298,14 +285,9 @@ class TubeResult:
         )
 
     @property
-    def final_interpretation(self) -> Interpretation:
+    def final_interpretation(self) -> Interpretation | None:
         """最终判读：有人工复核结论时以复核为准。"""
         return self.reviewed_interpretation or self.auto_interpretation
-
-    @property
-    def needs_review(self) -> bool:
-        """是否仍在等待人工复核。"""
-        return self.final_interpretation is Interpretation.PENDING_REVIEW
 
     def with_review(
         self,
@@ -327,9 +309,9 @@ class TubeResult:
             新的单管结果。
 
         Raises:
-            ValueError: 复核结论为待复核，或时间不带时区。
+            ValueError: 复核结论无效或时间不带时区。
         """
-        if interpretation is Interpretation.PENDING_REVIEW:
+        if interpretation not in (Interpretation.POSITIVE, Interpretation.NEGATIVE):
             raise ValueError("复核结论只能是阳性或阴性")
         _require_aware(reviewed_at, "reviewed_at")
         return replace(
@@ -404,11 +386,6 @@ class Experiment:
         if len(set(tube_nos)) != len(tube_nos):
             raise ValueError("试验的管号重复")
 
-    @property
-    def pending_review_tubes(self) -> tuple[int, ...]:
-        """仍在等待人工复核的管号，升序排列。"""
-        return tuple(sorted(no for no, result in self.results.items() if result.needs_review))
-
     def _require_all_results(self) -> None:
         """要求每支试管都有结果。
 
@@ -419,14 +396,20 @@ class Experiment:
         if missing:
             raise TransitionGuardError(f"以下管号尚无结果：{sorted(missing)}")
 
-    def _require_no_pending_review(self) -> None:
-        """要求没有待复核的试管。
+    def _require_all_interpretations(self) -> None:
+        """要求每支试管都有明确的阳/阴性判读结果（算法判读或人工核验）。
 
         Raises:
-            TransitionGuardError: 有试管等待复核。
+            TransitionGuardError: 有试管没有有效判读结果。
         """
-        if self.pending_review_tubes:
-            raise TransitionGuardError(f"以下管号等待复核：{list(self.pending_review_tubes)}")
+        self._require_all_results()
+        undetermined = sorted(
+            assignment.tube_no
+            for assignment in self.assignments
+            if self.results[assignment.tube_no].final_interpretation is None
+        )
+        if undetermined:
+            raise TransitionGuardError(f"以下管号尚无有效判读结果：{undetermined}")
 
     def _check_guards(self, event: ExperimentEvent) -> None:
         """检查事件的业务前置条件。
@@ -439,17 +422,10 @@ class Experiment:
         """
         if event is ExperimentEvent.START and not self.assignments:
             raise TransitionGuardError("试验没有安排任何试管")
-        if event in (
-            ExperimentEvent.ALL_ANALYZED_CLEAN,
-            ExperimentEvent.REVIEW_COMPLETED,
-            ExperimentEvent.SIGN,
-        ):
+        if event is ExperimentEvent.ALL_ANALYZED_CLEAN:
             self._require_all_results()
-            self._require_no_pending_review()
-        if event is ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW:
-            self._require_all_results()
-            if not self.pending_review_tubes:
-                raise TransitionGuardError("没有待复核的试管")
+        if event is ExperimentEvent.SIGN:
+            self._require_all_interpretations()
 
     def apply(self, event: ExperimentEvent) -> ExperimentState:
         """应用状态机事件。

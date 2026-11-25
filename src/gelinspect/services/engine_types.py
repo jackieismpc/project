@@ -111,7 +111,6 @@ class WellStatus(StrEnum):
     ANALYZING = "analyzing"
     POSITIVE = "positive"
     NEGATIVE = "negative"
-    PENDING_REVIEW = "pending_review"
     ERROR = "error"
 
 

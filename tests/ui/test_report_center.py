@@ -13,7 +13,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.enums import AuditAction, Interpretation, PermissionGroup
+from gelinspect.domain.enums import AuditAction, PermissionGroup
 from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.reporting.report_service import ReportListItem
@@ -40,13 +40,8 @@ def finish_experiment(app: QApplication, window: MainWindow, context: AppContext
     experiment_id = monitor.experiment_id
     assert experiment_id is not None
     wait_finished(app, context)
-    operator = context.auth.login("experimenter", DEMO_PASSWORDS["experimenter"])
     stored = context.database.experiments.get(experiment_id)
     assert stored is not None
-    for tube in stored.pending_review_tubes:
-        context.reviews.review_tube(
-            operator, experiment_id, tube, Interpretation.POSITIVE, "人工判阳性"
-        )
     window.logout(confirm=False)
     settle(app)
     return experiment_id

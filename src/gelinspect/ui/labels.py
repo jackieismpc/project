@@ -47,7 +47,6 @@ _EXPERIMENT_STATES: dict[ExperimentState, str] = {
     ExperimentState.INCUBATING: str(QT_TRANSLATE_NOOP("ExperimentState", "孵育中")),
     ExperimentState.READING: str(QT_TRANSLATE_NOOP("ExperimentState", "读数中")),
     ExperimentState.ANALYZING: str(QT_TRANSLATE_NOOP("ExperimentState", "分析中")),
-    ExperimentState.PENDING_REVIEW: str(QT_TRANSLATE_NOOP("ExperimentState", "待复核")),
     ExperimentState.COMPLETED: str(QT_TRANSLATE_NOOP("ExperimentState", "已完成")),
     ExperimentState.SIGNED: str(QT_TRANSLATE_NOOP("ExperimentState", "已签署")),
     ExperimentState.STOPPED: str(QT_TRANSLATE_NOOP("ExperimentState", "已停止")),

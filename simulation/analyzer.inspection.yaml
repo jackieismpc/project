@@ -2,5 +2,5 @@
 inspection_dir: "inspection"
 run_id: "latest"            # "latest" 自动选择最新有效 run（例如 20261125_094748）
 row_mapping: "best_fit"     # best_fit（按管数优先选图）| sequential（按排号顺序轮换）
-missing_policy: "tube_not_found"  # tube_not_found（超出样本数转待复核）| cycle（循环复用）
+missing_policy: "tube_not_found"  # tube_not_found（超出样本数记为未找到试管）| cycle（循环复用）
 review_margin: 0.01

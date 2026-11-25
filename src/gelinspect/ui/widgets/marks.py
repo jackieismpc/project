@@ -1,6 +1,6 @@
 """孔与状态标记的绘制，PlateGrid、图例和表格共用。
 
-状态靠形状区分，不只靠颜色：阳性实心、阴性 3px 空心环、待复核下半填充、
+状态靠形状区分，不只靠颜色：阳性实心、阴性 3px 空心环、
 读数中实环淡底、孵育中虚线环、空孔细线。
 """
 
@@ -28,8 +28,6 @@ class WellState(Enum):
     """阳性。"""
     NEGATIVE = "negative"
     """阴性。"""
-    REVIEW = "review"
-    """待复核。"""
     ERROR = "error"
     """读数或分析失败（没有结果），需要人工处理。图例不列出，只在故障时出现。"""
 
@@ -40,7 +38,6 @@ STATE_LABELS: dict[WellState, str] = {
     WellState.READING: str(QT_TRANSLATE_NOOP("WellState", "读数中")),
     WellState.POSITIVE: str(QT_TRANSLATE_NOOP("WellState", "阳性")),
     WellState.NEGATIVE: str(QT_TRANSLATE_NOOP("WellState", "阴性")),
-    WellState.REVIEW: str(QT_TRANSLATE_NOOP("WellState", "待复核")),
     WellState.ERROR: str(QT_TRANSLATE_NOOP("WellState", "异常")),
 }
 """状态的源文本（简体中文），翻译用 :func:`state_label`。"""
@@ -58,20 +55,20 @@ def state_label(state: WellState) -> str:
     return QCoreApplication.translate("WellState", STATE_LABELS[state])
 
 
-def well_state_from_interpretation(value: Interpretation) -> WellState:
+def well_state_from_interpretation(value: Interpretation | None) -> WellState:
     """把判读结果映射为孔的显示状态。
 
     Args:
-        value: 软件侧判读结果。
+        value: 软件侧判读结果，无有效结果时为 None。
 
     Returns:
         对应的 :class:`WellState`。
     """
-    return {
-        Interpretation.POSITIVE: WellState.POSITIVE,
-        Interpretation.NEGATIVE: WellState.NEGATIVE,
-        Interpretation.PENDING_REVIEW: WellState.REVIEW,
-    }[value]
+    if value is Interpretation.POSITIVE:
+        return WellState.POSITIVE
+    if value is Interpretation.NEGATIVE:
+        return WellState.NEGATIVE
+    return WellState.ERROR
 
 
 def paint_well(
@@ -117,8 +114,6 @@ def paint_well(
         fill, border, text_color = QColor(c.positive), QColor(c.positive), QColor(c.on_accent)
     elif state is WellState.NEGATIVE:
         fill, border, border_w = QColor(c.surface), QColor(c.negative), 3.0
-    elif state is WellState.REVIEW:
-        fill, border, border_w = QColor(c.surface), QColor(c.review), 2.0
     elif state is WellState.ERROR:
         fill, border, border_w = QColor(c.danger_bg), QColor(c.danger), 2.0
         text_color = QColor(c.danger)
@@ -136,12 +131,6 @@ def paint_well(
     painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(fill)
     painter.drawPath(outer)
-    if state is WellState.REVIEW and not selected:
-        painter.save()
-        painter.setClipPath(outer)
-        painter.setBrush(QColor(c.review_soft))
-        painter.drawRect(QRectF(rect.left(), rect.center().y(), rect.width(), rect.height() / 2))
-        painter.restore()
 
     inset = border_w / 2
     ring = rect.adjusted(inset, inset, -inset, -inset)

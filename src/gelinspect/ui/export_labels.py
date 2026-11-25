@@ -43,7 +43,6 @@ _SOURCES: tuple[str, ...] = (
     str(QT_TRANSLATE_NOOP("Export", "MVD")),
     str(QT_TRANSLATE_NOOP("Export", "内毒素限值")),
     str(QT_TRANSLATE_NOOP("Export", "管数")),
-    str(QT_TRANSLATE_NOOP("Export", "待复核管数")),
     str(QT_TRANSLATE_NOOP("Export", "管号")),
     str(QT_TRANSLATE_NOOP("Export", "排")),
     str(QT_TRANSLATE_NOOP("Export", "样品名称")),
@@ -86,7 +85,6 @@ _SOURCES: tuple[str, ...] = (
 _INTERPRETATIONS: dict[Interpretation, str] = {
     Interpretation.POSITIVE: str(QT_TRANSLATE_NOOP("ExportValue", "阳性")),
     Interpretation.NEGATIVE: str(QT_TRANSLATE_NOOP("ExportValue", "阴性")),
-    Interpretation.PENDING_REVIEW: str(QT_TRANSLATE_NOOP("ExportValue", "待复核")),
 }
 _GEL_STATES: dict[GelState, str] = {
     GelState.FULLY_GELLED: str(QT_TRANSLATE_NOOP("ExportValue", "完全凝固")),
@@ -95,7 +93,6 @@ _GEL_STATES: dict[GelState, str] = {
 }
 _REVIEW: dict[ReviewStatus, str] = {
     ReviewStatus.NOT_REQUIRED: str(QT_TRANSLATE_NOOP("ExportValue", "无需复核")),
-    ReviewStatus.PENDING: str(QT_TRANSLATE_NOOP("ExportValue", "等待复核")),
     ReviewStatus.REVIEWED: str(QT_TRANSLATE_NOOP("ExportValue", "已复核")),
 }
 _ANALYSIS: dict[TubeAnalysisStatus, str] = {

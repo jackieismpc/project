@@ -17,10 +17,7 @@ _BLOCKS: dict[SigningBlocker, str] = {
         QT_TRANSLATE_NOOP("Signing", "已签署的报告版本会保留；后续复核将生成修订版，需重新签署。")
     ),
     SigningBlocker.NOT_COMPLETED: str(
-        QT_TRANSLATE_NOOP("Signing", "实验还没有完成（当前状态：{state}），完成并复核后才能签署。")
-    ),
-    SigningBlocker.PENDING_REVIEW: str(
-        QT_TRANSLATE_NOOP("Signing", "{tubes} 号管等待人工复核，复核全部完成后才能签署。")
+        QT_TRANSLATE_NOOP("Signing", "实验还没有完成（当前状态：{state}），完成后才能签署。")
     ),
     SigningBlocker.RESULT_MISSING: str(QT_TRANSLATE_NOOP("Signing", "{tubes} 号管还没有结果。")),
 }

@@ -704,21 +704,7 @@ class MainWindow(QMainWindow):
         )
         if self._screen is not Screen.SHELL:
             return
-        if event.current is ExperimentState.PENDING_REVIEW:
-            monitor = self._pages.get("monitor")
-            pending = 0
-            if isinstance(monitor, MonitorPage) and monitor.experiment_id == event.experiment_id:
-                monitor.reload()
-                view = monitor.view_model
-                pending = 0 if view is None else len(view.pending_review)
-            text = self.tr("实验 {id} 检测完成，{count} 管待复核。")
-            Toast.show_message(
-                self,
-                text.format(id=event.experiment_id, count=pending or self.tr("若干")),
-                ToastKind.WARNING,
-                6000,
-            )
-        elif event.current is ExperimentState.COMPLETED:
+        if event.current is ExperimentState.COMPLETED:
             Toast.show_message(
                 self,
                 self.tr("实验 {id} 已完成，可查看报告。").format(id=event.experiment_id),

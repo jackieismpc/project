@@ -1,4 +1,4 @@
-"""签署前提：试验已完成、结果齐全且待复核已处理。"""
+"""签署前提：试验已完成且全部试管均有有效结果。"""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ class SigningBlocker(StrEnum):
 
     ALREADY_SIGNED = "already_signed"
     NOT_COMPLETED = "not_completed"
-    PENDING_REVIEW = "pending_review"
     RESULT_MISSING = "result_missing"
 
 
@@ -33,21 +32,21 @@ def signing_blocks(
     """列出试验当前不能签署的原因；空元组表示可以签署。"""
     if experiment.state is ExperimentState.SIGNED and not allow_signed_revision:
         return (SigningBlock(SigningBlocker.ALREADY_SIGNED),)
-    if experiment.state is ExperimentState.PENDING_REVIEW:
-        return (SigningBlock(SigningBlocker.PENDING_REVIEW, tubes=experiment.pending_review_tubes),)
     if experiment.state not in {ExperimentState.COMPLETED, ExperimentState.SIGNED}:
         return (SigningBlock(SigningBlocker.NOT_COMPLETED, state=experiment.state),)
     expected = {assignment.tube_no for assignment in experiment.assignments}
-    missing = tuple(sorted(expected - set(experiment.results)))
-    blocks: list[SigningBlock] = []
+    missing = tuple(
+        sorted(
+            no
+            for no in expected
+            if (r := experiment.results.get(no)) is None or r.final_interpretation is None
+        )
+    )
     if missing:
-        blocks.append(SigningBlock(SigningBlocker.RESULT_MISSING, tubes=missing))
-    pending = experiment.pending_review_tubes
-    if pending:
-        blocks.append(SigningBlock(SigningBlocker.PENDING_REVIEW, tubes=pending))
-    return tuple(blocks)
+        return (SigningBlock(SigningBlocker.RESULT_MISSING, tubes=missing),)
+    return ()
 
 
 def can_sign(experiment: Experiment) -> bool:
-    """试验完成、结果齐全并处理完待复核管位后可以签署。"""
+    """试验完成且结果齐全后可以签署。"""
     return not signing_blocks(experiment)

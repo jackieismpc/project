@@ -44,7 +44,9 @@ def sign_blocked(stack: Stack, tmp_path: Path, experiment_id: str) -> SigningNot
     return caught.value
 
 
-def test_pending_review_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -> None:
+def test_undetermined_tube_blocks_signing_until_reviewed(
+    signing_stack: Stack, tmp_path: Path
+) -> None:
     stack = signing_stack
     experiment = sensitivity_experiment()
     for event in (
@@ -56,18 +58,27 @@ def test_pending_review_cannot_be_signed(signing_stack: Stack, tmp_path: Path) -
     ):
         experiment.apply(event)
     for no, state in SENSITIVITY_STATES.items():
-        experiment.record_result(
-            TubeResult.from_analysis(
-                tube_no=no, status=TubeAnalysisStatus.OK, state=state, mapping=GelStateMapping()
+        if no == 7:
+            experiment.record_result(
+                TubeResult.from_analysis(
+                    tube_no=no,
+                    status=TubeAnalysisStatus.FAILED,
+                    state=None,
+                    mapping=GelStateMapping(),
+                    message="分析失败",
+                )
             )
-        )
-    experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
+        else:
+            experiment.record_result(
+                TubeResult.from_analysis(
+                    tube_no=no, status=TubeAnalysisStatus.OK, state=state, mapping=GelStateMapping()
+                )
+            )
+    experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
     stack.database.experiments.save(experiment)
     error = sign_blocked(stack, tmp_path, "EXP-SAMPLE-0001")
-    assert blockers(error) == [SigningBlocker.PENDING_REVIEW]
+    assert blockers(error) == [SigningBlocker.RESULT_MISSING]
     assert error.blocks[0].tubes == (7,)
-    stored = stack.database.experiments.get("EXP-SAMPLE-0001")
-    assert stored is not None and stored.state is ExperimentState.PENDING_REVIEW
 
 
 def test_running_and_stopped_experiments_cannot_be_signed(
@@ -80,7 +91,7 @@ def test_running_and_stopped_experiments_cannot_be_signed(
     assert blockers(error) == [SigningBlocker.NOT_COMPLETED]
 
 
-def test_sparse_ten_tube_experiment_needs_review_then_can_be_signed(
+def test_sparse_ten_tube_experiment_failed_tube_reviewed_then_can_be_signed(
     signing_stack: Stack, tmp_path: Path
 ) -> None:
     stack = signing_stack
@@ -89,20 +100,30 @@ def test_sparse_ten_tube_experiment_needs_review_then_can_be_signed(
     for event in (ExperimentEvent.START, ExperimentEvent.ROW_DUE, ExperimentEvent.ROW_CAPTURED):
         experiment.apply(event)
     for tube_no in tube_nos:
-        state = GelState.PARTIALLY_GELLED if tube_no == 42 else GelState.FULLY_GELLED
-        experiment.record_result(
-            TubeResult.from_analysis(
-                tube_no=tube_no,
-                status=TubeAnalysisStatus.OK,
-                state=state,
-                mapping=GelStateMapping(),
+        if tube_no == 42:
+            experiment.record_result(
+                TubeResult.from_analysis(
+                    tube_no=tube_no,
+                    status=TubeAnalysisStatus.FAILED,
+                    state=None,
+                    mapping=GelStateMapping(),
+                    message="分析失败",
+                )
             )
-        )
-    experiment.apply(ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW)
+        else:
+            experiment.record_result(
+                TubeResult.from_analysis(
+                    tube_no=tube_no,
+                    status=TubeAnalysisStatus.OK,
+                    state=GelState.FULLY_GELLED,
+                    mapping=GelStateMapping(),
+                )
+            )
+    experiment.apply(ExperimentEvent.ALL_ANALYZED_CLEAN)
     stack.database.experiments.save(experiment)
 
     error = sign_blocked(stack, tmp_path, experiment.experiment_id)
-    assert blockers(error) == [SigningBlocker.PENDING_REVIEW]
+    assert blockers(error) == [SigningBlocker.RESULT_MISSING]
     assert error.blocks[0].tubes == (42,)
 
     ReviewService(stack.auth, stack.database, clock=lambda: NOW).review_tube(

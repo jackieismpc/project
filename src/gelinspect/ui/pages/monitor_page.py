@@ -381,7 +381,6 @@ class MonitorPage(QWidget):
             or view.live
             or view.state
             not in {
-                ExperimentState.PENDING_REVIEW,
                 ExperimentState.COMPLETED,
                 ExperimentState.SIGNED,
             }
@@ -768,7 +767,6 @@ class MonitorPage(QWidget):
             and not view.live
             and view.state
             in {
-                ExperimentState.PENDING_REVIEW,
                 ExperimentState.COMPLETED,
                 ExperimentState.SIGNED,
             }

@@ -85,14 +85,6 @@ def completed_experiment() -> Experiment:
     return experiment
 
 
-def pending_review_experiment() -> Experiment:
-    experiment = analyzing_experiment()
-    experiment.record_result(result(1, GelState.FULLY_GELLED))
-    experiment.record_result(result(2, GelState.PARTIALLY_GELLED))
-    experiment.apply(E.ALL_ANALYZED_NEEDS_REVIEW)
-    return experiment
-
-
 @pytest.mark.parametrize(
     ("reagent", "expected"),
     [
@@ -149,22 +141,21 @@ def test_start_requires_assignments() -> None:
     assert experiment.state is S.READY
 
 
-def test_failed_tube_goes_to_pending_review_not_negative() -> None:
+def test_failed_tube_has_no_auto_interpretation_not_negative() -> None:
     failed = result(1, None)
-    assert failed.auto_interpretation is Interpretation.PENDING_REVIEW
-    assert failed.review_status is ReviewStatus.PENDING
-    assert failed.needs_review
+    assert failed.auto_interpretation is None
+    assert failed.final_interpretation is None
+    assert failed.review_status is ReviewStatus.NOT_REQUIRED
 
 
 def test_clear_result_needs_no_review() -> None:
     positive = result(1, GelState.FULLY_GELLED)
     assert positive.final_interpretation is Interpretation.POSITIVE
     assert positive.review_status is ReviewStatus.NOT_REQUIRED
-    assert not positive.needs_review
 
 
 def test_review_overrides_auto_and_can_be_repeated() -> None:
-    reviewed = result(1, GelState.PARTIALLY_GELLED).with_review(
+    reviewed = result(1, GelState.FULLY_GELLED).with_review(
         interpretation=Interpretation.NEGATIVE, reviewed_by="a", reviewed_at=NOW
     )
     assert reviewed.final_interpretation is Interpretation.NEGATIVE
@@ -173,15 +164,11 @@ def test_review_overrides_auto_and_can_be_repeated() -> None:
         interpretation=Interpretation.POSITIVE, reviewed_by="b", reviewed_at=NOW, note="改判"
     )
     assert again.final_interpretation is Interpretation.POSITIVE
-    assert again.auto_interpretation is Interpretation.PENDING_REVIEW
+    assert again.auto_interpretation is Interpretation.POSITIVE
 
 
-def test_review_rejects_pending_interpretation_and_naive_time() -> None:
-    tube = result(1, GelState.PARTIALLY_GELLED)
-    with pytest.raises(ValueError):
-        tube.with_review(
-            interpretation=Interpretation.PENDING_REVIEW, reviewed_by="a", reviewed_at=NOW
-        )
+def test_review_rejects_naive_time() -> None:
+    tube = result(1, GelState.FULLY_GELLED)
     with pytest.raises(ValueError):
         tube.with_review(
             interpretation=Interpretation.NEGATIVE,
@@ -205,73 +192,43 @@ def test_all_analyzed_requires_every_result() -> None:
     experiment.record_result(result(1, GelState.FULLY_GELLED))
     with pytest.raises(TransitionGuardError):
         experiment.apply(E.ALL_ANALYZED_CLEAN)
-    with pytest.raises(TransitionGuardError):
-        experiment.apply(E.ALL_ANALYZED_NEEDS_REVIEW)
     assert experiment.state is S.ANALYZING
 
 
-def test_clean_event_is_rejected_when_review_is_pending() -> None:
+def test_cannot_sign_with_undetermined_tube_until_reviewed() -> None:
     experiment = analyzing_experiment()
     experiment.record_result(result(1, GelState.FULLY_GELLED))
     experiment.record_result(result(2, None))
+    assert experiment.apply(E.ALL_ANALYZED_CLEAN) is S.COMPLETED
     with pytest.raises(TransitionGuardError):
-        experiment.apply(E.ALL_ANALYZED_CLEAN)
-
-
-def test_needs_review_event_is_rejected_when_nothing_is_pending() -> None:
-    experiment = analyzing_experiment()
-    experiment.record_result(result(1, GelState.FULLY_GELLED))
-    experiment.record_result(result(2, GelState.NOT_GELLED))
-    with pytest.raises(TransitionGuardError):
-        experiment.apply(E.ALL_ANALYZED_NEEDS_REVIEW)
-
-
-def test_review_flow_blocks_completion_until_all_reviewed() -> None:
-    experiment = pending_review_experiment()
-    assert list(experiment.pending_review_tubes) == [2]
-    with pytest.raises(TransitionGuardError):
-        experiment.apply(E.REVIEW_COMPLETED)
+        experiment.sign("a", NOW)
+    assert experiment.signed_by is None
     experiment.review_tube(
         2, interpretation=Interpretation.POSITIVE, reviewed_by="a", reviewed_at=NOW
     )
-    assert list(experiment.pending_review_tubes) == []
-    assert experiment.apply(E.REVIEW_COMPLETED) is S.COMPLETED
-
-
-def test_cannot_sign_while_review_is_pending() -> None:
-    experiment = pending_review_experiment()
-    with pytest.raises(IllegalTransitionError):
-        experiment.sign("a", NOW)
-    assert experiment.signed_by is None
+    assert experiment.sign("a", NOW) is S.SIGNED
 
 
 def test_completed_result_can_be_reviewed_without_changing_state() -> None:
     experiment = completed_experiment()
-    result = experiment.review_tube(
+    reviewed = experiment.review_tube(
         1, interpretation=Interpretation.NEGATIVE, reviewed_by="a", reviewed_at=NOW
     )
-    assert result.final_interpretation is Interpretation.NEGATIVE
+    assert reviewed.final_interpretation is Interpretation.NEGATIVE
     assert experiment.state is S.COMPLETED
 
 
 def test_review_of_unknown_tube_is_rejected() -> None:
     with pytest.raises(TransitionGuardError):
-        pending_review_experiment().review_tube(
+        completed_experiment().review_tube(
             9, interpretation=Interpretation.NEGATIVE, reviewed_by="a", reviewed_at=NOW
         )
-
-
-def test_reopen_review_before_signing() -> None:
-    experiment = completed_experiment()
-    assert experiment.apply(E.REOPEN_REVIEW) is S.PENDING_REVIEW
 
 
 def test_sign_records_signer_and_is_final() -> None:
     experiment = completed_experiment()
     assert experiment.sign("a", NOW) is S.SIGNED
     assert (experiment.signed_by, experiment.signed_at) == ("a", NOW)
-    with pytest.raises(IllegalTransitionError):
-        experiment.apply(E.REOPEN_REVIEW)
     with pytest.raises(IllegalTransitionError):
         experiment.sign("b", NOW)
     assert experiment.signed_by == "a"

@@ -615,7 +615,7 @@ class ReportService:
 
         Raises:
             PermissionDeniedError: 没有权限。
-            SigningNotAllowedError: 有待复核、缺少结果或状态不对。
+            SigningNotAllowedError: 缺少有效结果或状态不对。
             InvalidCredentialsError: 密码错误（计入登录失败次数，写审计）。
             ServiceError: 试验不存在、签署失败（``SIGN_FAILED``）、
                 试验被别处改过（``SIGN_CONFLICT``）。

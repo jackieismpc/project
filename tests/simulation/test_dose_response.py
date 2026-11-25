@@ -34,11 +34,6 @@ def test_dose_relation_holds_for_every_seed(seed: int, labeled: float) -> None:
         assert GelState.FULLY_GELLED not in readings[first_negative:]
 
 
-def test_default_seed_has_tubes_for_review() -> None:
-    states = dose_response_states(plan(0.25), 0)
-    assert GelState.PARTIALLY_GELLED in states.values()
-
-
 def test_some_seeds_differ_but_the_same_seed_repeats() -> None:
     assert dose_response_states(plan(), 3) == dose_response_states(plan(), 3)
     assert len({tuple(sorted(dose_response_states(plan(), s).items())) for s in range(20)}) > 1

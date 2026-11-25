@@ -123,9 +123,33 @@ def test_experiment_roundtrip_with_results_and_review(database: Database) -> Non
     assert loaded.results[1].features["centroid_before"] == (10.5, 20.25)
     assert loaded.results[1].elapsed_ms == 812.5
     assert loaded.results[2].review_status is ReviewStatus.REVIEWED
-    assert loaded.results[3].review_status is ReviewStatus.PENDING
+    assert loaded.results[3].review_status is ReviewStatus.NOT_REQUIRED
+    assert loaded.results[3].auto_interpretation is None
     assert loaded.results[3].gel_state is None
     assert database.experiments.get("nope") is None
+
+
+def test_legacy_pending_review_rows_load_cleanly(database: Database) -> None:
+    from sqlalchemy import text
+
+    experiment = make_experiment("LEGACY-PR")
+    experiment.state = ExperimentState.COMPLETED
+    database.experiments.save(experiment)
+    with database.session() as session:
+        session.execute(
+            text("UPDATE experiments SET state='pending_review' WHERE experiment_id='LEGACY-PR'")
+        )
+        session.execute(
+            text(
+                "UPDATE tube_results SET auto_interpretation='pending_review', "
+                "review_status='pending' WHERE experiment_id='LEGACY-PR' AND tube_no=1"
+            )
+        )
+    loaded = database.experiments.get("LEGACY-PR")
+    assert loaded is not None
+    assert loaded.state is ExperimentState.COMPLETED
+    assert loaded.results[1].auto_interpretation is None
+    assert loaded.results[1].review_status is ReviewStatus.NOT_REQUIRED
 
 
 def test_experiment_template_snapshot_roundtrip(database: Database) -> None:

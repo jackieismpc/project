@@ -17,7 +17,6 @@ class BadgeTone(StrEnum):
     SUCCESS = "success"
     WARNING = "warning"
     DANGER = "danger"
-    REVIEW = "review"
     NEUTRAL = "neutral"
 
 

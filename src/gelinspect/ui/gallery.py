@@ -173,7 +173,6 @@ class GalleryPage(QWidget):
             "positive",
             "negative",
             "review",
-            "review_soft",
             "danger",
             "success",
             "warning",
@@ -234,7 +233,6 @@ class GalleryPage(QWidget):
         tones = [
             ("第 2 排读数中", BadgeTone.INFO),
             ("已签署", BadgeTone.SUCCESS),
-            ("待复核", BadgeTone.REVIEW),
             ("效期临近", BadgeTone.WARNING),
             ("已过期", BadgeTone.DANGER),
             ("空闲", BadgeTone.NEUTRAL),
@@ -314,7 +312,7 @@ class GalleryPage(QWidget):
         extra = QHBoxLayout()
         extra.setSpacing(24)
         legend_rows = QVBoxLayout()
-        legend_rows.addWidget(Label("六种状态单独放大（形状可区分，不依赖颜色）", "lab"))
+        legend_rows.addWidget(Label("五种状态单独放大（形状可区分，不依赖颜色）", "lab"))
         big = PlateGrid()
         big.set_countdowns_visible(False)
         big.setMinimumHeight(HOLES_PER_ROW * 48 + 24)
@@ -326,12 +324,11 @@ class GalleryPage(QWidget):
                     [
                         WellState.POSITIVE,
                         WellState.NEGATIVE,
-                        WellState.REVIEW,
                         WellState.READING,
                         WellState.INCUBATING,
                         WellState.EMPTY,
                     ]
-                    * 14,
+                    * 16,
                     strict=False,
                 )
             }
@@ -408,7 +405,7 @@ class GalleryPage(QWidget):
                     "run": "FileId 62",
                     "kind": "半定量试验",
                     "tubes": 16,
-                    "result": WellState.REVIEW,
+                    "result": WellState.POSITIVE,
                     "done": "11-03 17:26",
                 },
             ]

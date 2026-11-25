@@ -246,7 +246,6 @@ class ExperimentView:
         labeled_sensitivity: 标示灵敏度 λ（EU/ml）。
         tubes: 全部试管，按管号升序。
         rows: 有样品的排，按排号升序。
-        pending_review: 待复核的管号。
         live: 引擎正在运行这个试验。
         fault_reason: 异常原因。
         temperature_c: 引擎最近一次温度读数。
@@ -275,7 +274,6 @@ class ExperimentView:
     labeled_sensitivity: float | None
     tubes: tuple[TubeRow, ...]
     rows: tuple[RowInfo, ...]
-    pending_review: tuple[int, ...]
     live: bool
     fault_reason: str | None
     temperature_c: float | None
@@ -325,11 +323,12 @@ def result_status(result: TubeResult) -> WellStatus:
     Returns:
         孔的显示状态。
     """
-    return {
-        Interpretation.POSITIVE: WellStatus.POSITIVE,
-        Interpretation.NEGATIVE: WellStatus.NEGATIVE,
-        Interpretation.PENDING_REVIEW: WellStatus.PENDING_REVIEW,
-    }[result.final_interpretation]
+    final = result.final_interpretation
+    if final is Interpretation.POSITIVE:
+        return WellStatus.POSITIVE
+    if final is Interpretation.NEGATIVE:
+        return WellStatus.NEGATIVE
+    return WellStatus.ERROR
 
 
 class MonitorService:
@@ -574,7 +573,6 @@ class MonitorService:
             labeled_sensitivity=labeled,
             tubes=tuple(tubes),
             rows=rows,
-            pending_review=experiment.pending_review_tubes,
             live=live,
             fault_reason=snapshot.fault_reason if snapshot is not None else None,
             temperature_c=snapshot.temperature_c if snapshot is not None else None,

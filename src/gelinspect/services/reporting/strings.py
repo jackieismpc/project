@@ -39,7 +39,6 @@ class S(StrEnum):
     COL_RESULT = "col_result"
     POSITIVE = "positive"
     NEGATIVE = "negative"
-    PENDING = "pending"
     NO_RESULT = "no_result"
     REVIEWED = "reviewed"
     LABELED_LAMBDA = "labeled_lambda"
@@ -85,7 +84,6 @@ SOURCES: dict[S, str] = {
     S.COL_RESULT: str(QT_TRANSLATE_NOOP("Report", "阴阳性")),
     S.POSITIVE: str(QT_TRANSLATE_NOOP("Report", "阳性")),
     S.NEGATIVE: str(QT_TRANSLATE_NOOP("Report", "阴性")),
-    S.PENDING: str(QT_TRANSLATE_NOOP("Report", "待复核")),
     S.NO_RESULT: str(QT_TRANSLATE_NOOP("Report", "无结果")),
     S.REVIEWED: str(QT_TRANSLATE_NOOP("Report", "（已复核）")),
     S.LABELED_LAMBDA: str(QT_TRANSLATE_NOOP("Report", "标示灵敏度 λ")),

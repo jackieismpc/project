@@ -715,8 +715,8 @@ class TubeDetailPage(QWidget):
         else:
             self.mark.set_state(interpretation_state(result.auto_interpretation))
             self.verdict_title.setText(algorithm)
-            if result.needs_review:
-                sub = self.tr("检测结果 · 需要人工复核后才能签署")
+            if result.auto_interpretation is None:
+                sub = self.tr("检测异常 · 可人工核验")
             else:
                 sub = self.tr("检测结果 · {v}").format(
                     v=interpretation_label(result.auto_interpretation)
@@ -957,7 +957,7 @@ class TubeDetailPage(QWidget):
             self._fail(self.tr("请先选择判为阳性或判为阴性"))
             return False
         try:
-            outcome = self._services.reviews.review_tube(
+            self._services.reviews.review_tube(
                 self._session,
                 view.experiment_id,
                 self._tube_no,
@@ -978,9 +978,7 @@ class TubeDetailPage(QWidget):
         if self._session is not None:
             Toast.show_message(
                 self,
-                self.tr("复核已提交")
-                if outcome.remaining
-                else self.tr("全部待复核的试管已处理，实验可以签署"),
+                self.tr("复核已提交"),
                 ToastKind.SUCCESS,
             )
         self.reviewed.emit(view.experiment_id)

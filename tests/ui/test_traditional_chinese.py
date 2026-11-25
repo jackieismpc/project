@@ -111,7 +111,6 @@ GLOSSARY = {
     ("SideNav", "模板管理"): "範本管理",
     ("Interpretation", "阳性"): "陽性",
     ("Interpretation", "阴性"): "陰性",
-    ("Interpretation", "待复核"): "待複核",
     ("ReagentKind", "鲎试剂"): "鱟試劑",
     ("ReagentKind", "内毒素"): "內毒素",
     ("GelState", "完全凝固"): "完全凝固",

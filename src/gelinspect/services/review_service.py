@@ -1,8 +1,6 @@
-"""人工复核：分析员对单管结果判阳性或阴性，意见必填，写审计。
+"""人工核验/复核：分析员对单管结果判阳性或阴性，意见必填，写审计。
 
-遵守试验状态机：只有“待复核”状态（全部排已分析）才能复核；最后一支待复核的试管处理完，
-同一个事务里把试验转为“已完成”（可签署），签署由报告服务实现。算法的原始结果不被
-覆盖：复核结论存在 ``reviewed_*`` 字段，``final_interpretation`` 以它为准。
+算法的原始结果不被覆盖：复核结论存在 ``reviewed_*`` 字段，``final_interpretation`` 以它为准。
 """
 
 from __future__ import annotations
@@ -17,7 +15,7 @@ from gelinspect.domain.entities import TubeResult
 from gelinspect.domain.enums import AuditAction, Interpretation
 from gelinspect.domain.errors import TransitionGuardError
 from gelinspect.domain.permissions import Permission
-from gelinspect.domain.state_machine import ExperimentEvent, ExperimentState
+from gelinspect.domain.state_machine import ExperimentState
 from gelinspect.interfaces.storage import (
     ExperimentRepository,
     StateConflictError,
@@ -51,12 +49,10 @@ class ReviewOutcome:
 
     Attributes:
         result: 更新后的单管结果。
-        remaining: 还在等待复核的管号。
-        state: 复核后的试验状态（全部处理完为已完成）。
+        state: 复核后的试验状态。
     """
 
     result: TubeResult
-    remaining: tuple[int, ...]
     state: ExperimentState
 
 
@@ -115,7 +111,7 @@ class ReviewService:
             raise ServiceError(
                 "复核意见过长", ServiceErrorCode.REVIEW_NOTE_REQUIRED, max=MAX_NOTE_LENGTH
             )
-        if interpretation is Interpretation.PENDING_REVIEW:
+        if interpretation not in (Interpretation.POSITIVE, Interpretation.NEGATIVE):
             raise ServiceError(
                 "复核结论只能是阳性或阴性", ServiceErrorCode.REVIEW_CONCLUSION_INVALID
             )
@@ -146,32 +142,17 @@ class ReviewService:
             raise ServiceError(
                 str(exc), ServiceErrorCode.REVIEW_NOT_ALLOWED, state=before.value
             ) from exc
+        auto_text = auto.auto_interpretation.value if auto.auto_interpretation else "-"
         events = [
             audit_event(
                 user,
                 AuditAction.TUBE_REVIEWED,
                 f"{tube_no} 号管：算法 {auto.gel_state.value if auto.gel_state else '-'}"
-                f"（{auto.auto_interpretation.value}）→ 人工 {interpretation.value}；意见：{text}",
+                f"（{auto_text}）→ 人工 {interpretation.value}；意见：{text}",
                 experiment_id,
                 now,
             )
         ]
-        completed_now = (
-            before is ExperimentState.PENDING_REVIEW and not experiment.pending_review_tubes
-        )
-        if completed_now:
-            current = experiment.apply(ExperimentEvent.REVIEW_COMPLETED)
-            events.append(
-                audit_event(
-                    user,
-                    AuditAction.EXPERIMENT_STATE_CHANGED,
-                    f"{before.value} → {current.value}"
-                    f"（{ExperimentEvent.REVIEW_COMPLETED.value}）：全部待复核的试管已处理，可以签署",
-                    experiment_id,
-                    now,
-                )
-            )
-            experiment.completed_at = now
         try:
             with self._storage.unit_of_work() as uow:
                 # 总是带上“预期状态”写一次：别处改过试验状态时在这里发现，整个事务回滚。
@@ -183,14 +164,9 @@ class ReviewService:
                 if persisted is None or review_snapshot(persisted) != expected_reviews:
                     raise StateConflictError(f"试验 {experiment_id} 的复核历史已被其他操作修改")
                 uow.experiments.save_results(experiment_id, [reviewed])
-                if completed_now and experiment.completed_at is not None:
-                    uow.experiments.record_completion(
-                        experiment_id,
-                        completed_at=experiment.completed_at,
-                    )
                 uow.audit.append_many(events)
         except StateConflictError as exc:
             raise ServiceError(
                 "试验状态已被其他操作改变，请刷新后重试", ServiceErrorCode.REVIEW_CONFLICT
             ) from exc
-        return ReviewOutcome(reviewed, experiment.pending_review_tubes, experiment.state)
+        return ReviewOutcome(reviewed, experiment.state)

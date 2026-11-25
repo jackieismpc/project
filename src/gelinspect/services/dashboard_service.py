@@ -28,7 +28,6 @@ EXPIRY_WARN_DAYS = 30
 """试剂距有效期不足这么多天时在工作台提醒。"""
 _FINISHED = frozenset(
     {
-        ExperimentState.PENDING_REVIEW,
         ExperimentState.COMPLETED,
         ExperimentState.SIGNED,
         ExperimentState.STOPPED,
@@ -48,7 +47,6 @@ class DashboardStorage(Protocol):
 class AttentionKind(StrEnum):
     """需要处理的事项种类。"""
 
-    REVIEW_PENDING = "review_pending"
     FAULTED = "faulted"
     REAGENT_EXPIRING = "reagent_expiring"
     REAGENT_EXPIRED = "reagent_expired"
@@ -61,7 +59,7 @@ class AttentionItem:
     Attributes:
         kind: 种类。
         experiment_id: 相关试验，试剂事项为 None。
-        count: 待复核的管数；试剂事项为剩余（或已过期）天数。
+        count: 试剂事项为剩余（或已过期）天数。
         label: 试剂种类，非试剂事项为 None。
         batch_no: 试剂批号。
     """
@@ -84,7 +82,6 @@ class RecentResult:
         state: 状态。
         positives: 阳性管数。
         negatives: 阴性管数。
-        pending: 待复核管数。
         finished: 是否已有结果可以汇总。
         created_at: 创建时间。
         completed_at: 完成时间，还没完成时为 None。
@@ -96,7 +93,6 @@ class RecentResult:
     state: ExperimentState
     positives: int
     negatives: int
-    pending: int
     finished: bool
     created_at: datetime
     completed_at: datetime | None = None
@@ -169,14 +165,13 @@ class DashboardService:
             state=item.state,
             positives=final.count(Interpretation.POSITIVE),
             negatives=final.count(Interpretation.NEGATIVE),
-            pending=final.count(Interpretation.PENDING_REVIEW),
             finished=item.state in _FINISHED and bool(results),
             created_at=item.created_at,
             completed_at=item.completed_at,
         )
 
     def attention(self, session: Session | None) -> list[AttentionItem]:
-        """需要处理的事项：待复核、异常的试验，临期和过期的试剂。
+        """需要处理的事项：异常的试验，临期和过期的试剂。
 
         Args:
             session: 调用者的会话，需要 ``experiment_view`` 权限。
@@ -189,19 +184,6 @@ class DashboardService:
         """
         self._auth.authorize(session, Permission.EXPERIMENT_VIEW)
         items: list[AttentionItem] = []
-        reviewing = self._storage.experiments.query(
-            ExperimentQuery(state=ExperimentState.PENDING_REVIEW), PageRequest(limit=10)
-        )
-        for summary in reviewing.items:
-            experiment = self._storage.experiments.get(summary.experiment_id)
-            if experiment is not None:
-                items.append(
-                    AttentionItem(
-                        AttentionKind.REVIEW_PENDING,
-                        summary.experiment_id,
-                        len(experiment.pending_review_tubes),
-                    )
-                )
         faulted = self._storage.experiments.query(
             ExperimentQuery(state=ExperimentState.FAULTED), PageRequest(limit=10)
         )

@@ -105,8 +105,8 @@ class JudgmentGuideDialog(QDialog):
                 "其余为部分凝固。"
             ),
             self.tr(
-                "阴阳性：按下表换算；图像质量差、找不到试管、分析失败的试管一律待人工复核，"
-                "不会默认判为阴性。"
+                "阴阳性：算法输出阳性和阴性两类结果；图像质量差、找不到试管或分析失败的试管"
+                "显示异常，不会默认判为阴性，可由人工核验补全。"
             ),
         )
         for index, text in enumerate(steps, start=1):
@@ -118,9 +118,7 @@ class JudgmentGuideDialog(QDialog):
         table.setHorizontalSpacing(24)
         table.setVerticalSpacing(4)
         self.mapping_rows: list[tuple[str, str]] = []
-        for row, state in enumerate(
-            (GelState.FULLY_GELLED, GelState.PARTIALLY_GELLED, GelState.NOT_GELLED)
-        ):
+        for row, state in enumerate((GelState.FULLY_GELLED, GelState.NOT_GELLED)):
             state_text = gel_state_label(state)
             result_text = interpretation_label(mapping.for_state(state))
             self.mapping_rows.append((state_text, result_text))
@@ -128,14 +126,6 @@ class JudgmentGuideDialog(QDialog):
             table.addWidget(Label("→ " + result_text, "body"), row, 1)
         table.setColumnStretch(2, 1)
         layout.addLayout(table)
-        if mapping.low_confidence_threshold is not None:
-            layout.addWidget(
-                self._meta(
-                    self.tr("置信度低于 {t} 的结果也转人工复核。").format(
-                        t=f"{mapping.low_confidence_threshold:g}"
-                    )
-                )
-            )
         layout.addStretch(1)
 
         buttons = QHBoxLayout()

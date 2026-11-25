@@ -48,7 +48,6 @@ def test_monitor_tube_and_history_pages_fit_in_both_languages(
     assert wait_for(qapp, lambda: monitor.view_model is not None and not monitor.view_model.live)
     assert window.logout()
     sign_in(qapp, window, "analyst")
-    pending = fast_context.database.experiments.get(experiment_id).pending_review_tubes  # type: ignore[union-attr]
     for lang in (Language.ZH_CN, Language.ZH_TW, Language.EN):
         for size in SIZES:
             use(window, language, lang, size)
@@ -63,7 +62,7 @@ def test_monitor_tube_and_history_pages_fit_in_both_languages(
                 report = overflow_report(window)
                 assert report == [], f"监控页标签 {tab} / {lang.value} / {size}：{report}"
             page.tabs.set_current(0)
-            assert window.open_tube(experiment_id, pending[0])
+            assert window.open_tube(experiment_id, 1)
             detail = window.page("tube")
             assert isinstance(detail, TubeDetailPage)
             assert wait_for(qapp, partial(has_images, detail), 30.0)
@@ -139,7 +138,7 @@ def test_new_pages_speak_english_when_switched(
         "Images",
         "Report preview",
     ]
-    assert monitor.badge.text().startswith("Pending review")
+    assert monitor.badge.text() == "Completed"
     assert monitor.table_card._title.text() == "Experiment data"  # type: ignore[union-attr]  # noqa: SLF001
     assert window.open_tube(experiment_id, 1)
     detail = window.page("tube")

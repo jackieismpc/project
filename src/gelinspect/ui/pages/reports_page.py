@@ -766,7 +766,7 @@ class ReportsPage(QWidget):
         if signed:
             self._tone("success", self.tr("已签署"))
         elif preview.can_sign:
-            text = self.tr("可以签署：全部待复核已处理，实验已完成")
+            text = self.tr("可以签署：实验已完成")
             self._tone("info", text)
         else:
             reasons = describe_signing_blocks(preview.blocks)

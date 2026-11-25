@@ -386,10 +386,7 @@ def test_a_new_experiment_really_uses_the_newly_chosen_video_source(
 
     def finished() -> bool:
         experiment = context.database.experiments.get(experiment_id)
-        return experiment is not None and experiment.state in (
-            ExperimentState.PENDING_REVIEW,
-            ExperimentState.COMPLETED,
-        )
+        return experiment is not None and experiment.state is ExperimentState.COMPLETED
 
     assert eventually(finished, 60)
     assert context.engine.wait(30)

@@ -488,6 +488,7 @@ def test_a_review_during_rendering_cannot_be_signed_as_an_older_snapshot(
             assert concurrent is not None
             tube_no = next(iter(concurrent.results))
             previous = concurrent.results[tube_no]
+            assert previous.final_interpretation is not None
             concurrent.review_tube(
                 tube_no,
                 interpretation=previous.final_interpretation,

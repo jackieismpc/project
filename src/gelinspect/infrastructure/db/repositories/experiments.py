@@ -126,6 +126,27 @@ def _template_from_payload(raw: dict[str, Any] | None) -> ExperimentTemplate | N
     )
 
 
+def _parse_experiment_state(raw: str) -> ExperimentState:
+    """兼容读取旧版数据库中的 ``pending_review`` 状态并映射为 ``completed``。"""
+    if raw == "pending_review":
+        return ExperimentState.COMPLETED
+    return ExperimentState(raw)
+
+
+def _parse_auto_interpretation(raw: str) -> Interpretation | None:
+    """读取自动判读；空串或旧版 ``pending_review`` 映射为 None。"""
+    if not raw or raw == "pending_review":
+        return None
+    return Interpretation(raw)
+
+
+def _parse_review_status(raw: str) -> ReviewStatus:
+    """兼容读取旧版数据库中的 ``pending`` 复核状态并映射为 ``not_required``。"""
+    if raw == "pending":
+        return ReviewStatus.NOT_REQUIRED
+    return ReviewStatus(raw)
+
+
 def _result_row(experiment_id: str, result: TubeResult) -> TubeResultRow:
     """领域单管结果转 ORM 行。"""
     return TubeResultRow(
@@ -133,7 +154,9 @@ def _result_row(experiment_id: str, result: TubeResult) -> TubeResultRow:
         tube_no=result.tube_no,
         analysis_status=result.analysis_status.value,
         gel_state=None if result.gel_state is None else result.gel_state.value,
-        auto_interpretation=result.auto_interpretation.value,
+        auto_interpretation=(
+            "" if result.auto_interpretation is None else result.auto_interpretation.value
+        ),
         review_status=result.review_status.value,
         score=result.score,
         confidence=result.confidence,
@@ -166,8 +189,8 @@ def _to_result(row: TubeResultRow) -> TubeResult:
         tube_no=row.tube_no,
         analysis_status=TubeAnalysisStatus(row.analysis_status),
         gel_state=None if row.gel_state is None else GelState(row.gel_state),
-        auto_interpretation=Interpretation(row.auto_interpretation),
-        review_status=ReviewStatus(row.review_status),
+        auto_interpretation=_parse_auto_interpretation(row.auto_interpretation),
+        review_status=_parse_review_status(row.review_status),
         score=row.score,
         confidence=row.confidence,
         features=_features_from_json(row.features),
@@ -541,7 +564,7 @@ class SqlExperimentRepository(ExperimentRepository):
                 created_at=row.created_at,
                 assignments=tuple(_to_assignment(a) for a in assignments),
                 reagents=tuple(_to_reagent(r) for r in reagents),
-                state=ExperimentState(row.state),
+                state=_parse_experiment_state(row.state),
                 results={r.tube_no: _to_result(r) for r in results},
                 measured_sensitivity=row.measured_sensitivity,
                 mvd=row.mvd,
@@ -597,7 +620,7 @@ class SqlExperimentRepository(ExperimentRepository):
                     instrument_no=row.instrument_no,
                     operator=row.operator,
                     created_at=row.created_at,
-                    state=ExperimentState(row.state),
+                    state=_parse_experiment_state(row.state),
                     tube_count=int(count),
                     signed_by=row.signed_by,
                     signed_at=row.signed_at,

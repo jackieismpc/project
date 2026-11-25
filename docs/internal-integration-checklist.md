@@ -36,14 +36,14 @@
 
 针对算法端实际产出的 `result.json`（含 `20261125_094748` 等双帧综合评分格式与早期单帧面积格式），`src/gelinspect/infrastructure/analysis/algorithm_json.py` 已提供通用 Pydantic 解析与契约转换器：
 
-- `prediction` 映射：`positive` → `OK + FULLY_GELLED`；`negative` → `OK + NOT_GELLED`；`REVIEW`（复核区间）→ `OK + PARTIALLY_GELLED`；`REVIEW` 且 `t2_instance is None`（缺帧/未匹配）→ `GEL_MISSING + state=None`（严格将缺失侧特征置 `None`）。
+- `prediction` 映射：`positive` → `OK + FULLY_GELLED`；`negative` → `OK + NOT_GELLED`；历史离线文件中的 `REVIEW` → 按 `score >= score_threshold` 归并为 `OK + FULLY_GELLED` / `NOT_GELLED`；缺帧/未匹配（如 `t2_instance is None`）→ `GEL_MISSING + state=None`（严格将缺失侧特征置 `None`）。
 - 掩码匹配：算法端 YOLO 独立检出的 `tube_inst` 与 `gel_inst` 序号不一定一致，适配器按空间包含率与 x 质心距离为每个凝胶掩码匹配对应的试管掩码。
 - 扩展特征保留：`fill_ratio_t0`、`height_norm_t2`、`curvature_t2`、`fill_score`、`height_score`、`flatness_score`、`x_center`、`raw_prediction` 等写入 `GelFeatures.extra` 随结果入库和诊断包归档。
 - 本地 `inspection/`（已加入 `.gitignore`）可通过 `uv run gelinspect --config simulation/config.inspection.yaml` 回放，支持 `best_fit` / `sequential` 排号映射与 `tube_not_found` / `cycle` 缺失策略。
 
 ## 3. 检测方法与验收输入
 
-当前内置灵敏度复核为18管；干扰28管；限度8管并支持10管复试；半定量20管；通用96管。这些都是可调整的起始配置，不构成强制管数、布局或合规判定规则。实际规则由使用人员确定；软件保留逐管阳性／阴性和人工复核，部分凝固、质量异常或识别失败保留待复核等处理状态，不默认判阴性。
+当前内置灵敏度复核为18管；干扰28管；限度8管并支持10管复试；半定量20管；通用96管。这些都是可调整的起始配置，不构成强制管数、布局或合规判定规则。实际规则由使用人员确定；软件保留逐管阳性／阴性和人工核验功能，算法质量异常或识别失败时显示异常、不默认判阴性，可由人工核验补全后签署。
 
 需甲方提供：各实验实际操作规程、浓度与平行数、对照和无效／待定条件、不连续阴阳系列处理、MVD／限值口径、异常恢复后是否允许重复翻转，以及数据保留与归档要求。已批准的软件权限、菜单和修订报告行为不再作为待决定问题。
 
@@ -145,10 +145,10 @@ class GelAnalyzer(Protocol):
 | `status` | 含义 | `state` | `score`、`confidence` | `masks` | `message` | 软件的处理 |
 |---|---|---|---|---|---|---|
 | `ok` | 分析成功 | **必填** | 可选 | **必填** | 可选 | 按映射规则判读 |
-| `gel_missing` | 翻转前或翻转后凝胶缺失 | 可选 | 可选 | 可选 | 可选 | 有 `state` 时按映射规则判读，否则待复核 |
-| `low_quality` | 图像质量不足 | 可选，软件不采信 | 可选 | 可选 | **必填** | 待复核 |
-| `tube_not_found` | 未找到试管 | 必须为 `None` | 必须为 `None` | 必须为 `None` | **必填** | 待复核 |
-| `failed` | 该支分析失败 | 必须为 `None` | 必须为 `None` | 必须为 `None` | **必填** | 待复核 |
+| `gel_missing` | 翻转前或翻转后凝胶缺失 | 可选 | 可选 | 可选 | 可选 | 有 `state` 时按映射规则判读，否则显示异常 |
+| `low_quality` | 图像质量不足 | 可选，软件不采信 | 可选 | 可选 | **必填** | 显示异常（不默认判阴，可人工核验） |
+| `tube_not_found` | 未找到试管 | 必须为 `None` | 必须为 `None` | 必须为 `None` | **必填** | 显示异常（不默认判阴，可人工核验） |
+| `failed` | 该支分析失败 | 必须为 `None` | 必须为 `None` | 必须为 `None` | **必填** | 显示异常（不默认判阴，可人工核验） |
 
 ### `GelFeatures`
 
@@ -201,7 +201,7 @@ class GelAnalyzer(Protocol):
 
 建议把每支试管的处理放在 `try/except` 里，把意外异常转换成 `status=failed`，并把异常信息写入 `message`。
 
-软件把失败的试管标记为待人工复核，绝不默认判阴性。`analyze_row` 抛出的 `AnalyzerError`，会使该排全部试管进入待复核。
+软件把失败的试管显示为异常，绝不默认判阴性，需由人工核验补全结论后方可签署。`analyze_row` 抛出的 `AnalyzerError`，会使该排记录分析失败并进入异常恢复。
 
 ## 6. 耗时和线程
 

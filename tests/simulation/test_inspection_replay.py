@@ -175,7 +175,7 @@ def test_inspection_replay_analyzer_best_fit_and_missing_policies(tmp_path: Path
     by_no = {t.tube_no: t for t in res3.tubes}
     assert by_no[1].state is GelState.FULLY_GELLED
     assert by_no[2].state is GelState.NOT_GELLED
-    assert by_no[3].state is GelState.PARTIALLY_GELLED
+    assert by_no[3].state is GelState.FULLY_GELLED
 
     # 5 管超出 Video_B 的 3 支 → tube_not_found
     req5 = _request_for([1, 2, 3, 4, 5])

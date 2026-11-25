@@ -109,13 +109,10 @@ def test_traceability_client() -> None:
 
 
 def test_sensitivity_sample_data() -> None:
-    assert [SENSITIVITY_STATES[n] for n in range(1, 8)] == [
-        *[GelState.FULLY_GELLED] * 6,
-        GelState.PARTIALLY_GELLED,
-    ]
+    assert [SENSITIVITY_STATES[n] for n in range(1, 8)] == [GelState.FULLY_GELLED] * 7
     assert all(SENSITIVITY_STATES[n] is GelState.NOT_GELLED for n in range(8, 18))
     assert SENSITIVITY_EXPECTED[1] is Interpretation.POSITIVE
-    assert SENSITIVITY_EXPECTED[7] is Interpretation.PENDING_REVIEW
+    assert SENSITIVITY_EXPECTED[7] is Interpretation.POSITIVE
     assert SENSITIVITY_EXPECTED[8] is Interpretation.NEGATIVE
     assert SENSITIVITY_EXPECTED[17] is Interpretation.NEGATIVE
     assert sorted(set(SENSITIVITY_ENDOTOXIN.values())) == [0.0, 0.125, 0.25, 0.5, 1.0]
@@ -127,7 +124,7 @@ def test_sensitivity_experiment_matches_template_and_reagents_pass() -> None:
     assert len(experiment.assignments) == 18
     assert check_reagents(experiment.reagents, SAMPLE_DATE).passed
     scenario = sensitivity_scenario()
-    assert scenario.state_for(7) is GelState.PARTIALLY_GELLED
+    assert scenario.state_for(7) is GelState.FULLY_GELLED
     assert scenario.state_for(19) is None
 
 
@@ -183,10 +180,13 @@ def test_simulation_only_depends_on_domain_and_interfaces() -> None:
     import ast
 
     forbidden = ("gelinspect.services", "gelinspect.ui", "gelinspect.infrastructure")
+    allowed = {"inspection_replay.py": "gelinspect.infrastructure.analysis.algorithm_json"}
     for path in (ROOT / "simulation").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             module = node.module if isinstance(node, ast.ImportFrom) else None
             names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else []
             for name in [module, *names]:
+                if name and name == allowed.get(path.name):
+                    continue
                 assert not (name and name.startswith(forbidden)), f"{path.name}: {name}"

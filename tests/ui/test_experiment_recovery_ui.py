@@ -99,8 +99,7 @@ def test_retry_analysis_from_the_monitor_page(
     assert wait_for(
         qapp,
         lambda: (
-            (s := context.engine.snapshot()) is not None
-            and s.state in (ExperimentState.PENDING_REVIEW, ExperimentState.COMPLETED)
+            (s := context.engine.snapshot()) is not None and s.state is ExperimentState.COMPLETED
         ),
         60.0,
     )
@@ -167,8 +166,7 @@ def test_resume_requires_confirmation_and_permission(
     assert wait_for(
         qapp,
         lambda: (
-            (s := context.engine.snapshot()) is not None
-            and s.state in (ExperimentState.PENDING_REVIEW, ExperimentState.COMPLETED)
+            (s := context.engine.snapshot()) is not None and s.state is ExperimentState.COMPLETED
         ),
         60.0,
     )
@@ -221,7 +219,7 @@ def test_after_restart_only_retry_and_stop_are_offered(
             qapp,
             lambda: (
                 (e := second.database.experiments.get(experiment_id)) is not None
-                and e.state in (ExperimentState.PENDING_REVIEW, ExperimentState.COMPLETED)
+                and e.state is ExperimentState.COMPLETED
             ),
             60.0,
         )

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.enums import ReagentCheckStatus, ReagentKind
@@ -136,19 +136,17 @@ def test_history_opens_a_finished_experiment_read_only(
     # 只读：没有停止按钮、实时视频和温度，有结果、回放和图像
     assert not page.stop_button.isVisibleTo(page) and not page.temperature.isVisibleTo(page)
     assert not page.video_card.isVisibleTo(page) and page.replay_card.isVisibleTo(page)
-    assert page.table.row_count() == 18 and page.badge.text().startswith("待复核")
+    assert page.table.row_count() == 18 and "已完成" in page.badge.text()
     stored = fast_context.database.experiments.get(experiment_id)
     assert stored is not None
-    pending = list(stored.pending_review_tubes)
-    assert all(page.plate.state(n) is WellState.REVIEW for n in pending)
     assert (
         page.plate.countdown_text(1) == "已读数" if hasattr(page.plate, "countdown_text") else True
     )
     page.tabs.set_current(1)
     assert wait_for(qapp, lambda: len(page.images_tab.loaded_rows()) == 3, 30.0)
-    # 点孔进详情，详情能看到掩码，并以只读状态显示复核入口
+    # 点孔进详情，详情能看到掩码，并保留人工核验入口
     page.tabs.set_current(0)
-    assert fast_window.open_tube(experiment_id, pending[0])
+    assert fast_window.open_tube(experiment_id, 1)
     detail = fast_window.page("tube")
     assert isinstance(detail, TubeDetailPage)
     assert wait_for(qapp, lambda: detail.images is not None, 30.0)
@@ -172,9 +170,7 @@ def test_a_finished_experiment_can_be_reviewed_again_after_a_restart(
     first.experiments.start_experiment(session, experiment_id)
     assert wait_for(
         qapp,
-        lambda: (
-            (s := first.engine.snapshot()) is not None and s.state is ExperimentState.PENDING_REVIEW
-        ),
+        lambda: (s := first.engine.snapshot()) is not None and s.state is ExperimentState.COMPLETED,
         90.0,
     )
     assert first.engine.wait(30.0)
@@ -192,15 +188,14 @@ def test_a_finished_experiment_can_be_reviewed_again_after_a_restart(
         assert isinstance(page, MonitorPage)
         assert page.read_only and page.table.row_count() == 18
         after = second.database.experiments.get(experiment_id)
-        assert after is not None and after.state is ExperimentState.PENDING_REVIEW
+        assert after is not None and after.state is ExperimentState.COMPLETED
         assert {n: r.auto_interpretation for n, r in after.results.items()} == {
             n: r.auto_interpretation for n, r in before.results.items()
         }
         view = page.view_model
         assert view is not None and view.started_at is not None
         assert wait_for(qapp, lambda: page.replay_player.clip is not None)  # 录像还能播放
-        pending = view.pending_review
-        assert window.open_tube(experiment_id, pending[0])
+        assert window.open_tube(experiment_id, 1)
         detail = window.page("tube")
         assert isinstance(detail, TubeDetailPage)
         assert wait_for(qapp, lambda: detail.images is not None, 30.0)
@@ -253,7 +248,7 @@ def test_dashboard_shows_the_running_experiment_results_and_things_to_handle(
     assert window.current_route == "monitor"
 
 
-def test_dashboard_lists_pending_reviews_and_opens_them(
+def test_dashboard_shows_recent_completed_experiment(
     qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
 ) -> None:
     experiment_id = finished_experiment(qapp, fast_window, fast_context)
@@ -264,12 +259,10 @@ def test_dashboard_lists_pending_reviews_and_opens_them(
     dashboard.refresh()
     assert not dashboard.running_state.isVisibleTo(dashboard)
     assert dashboard.recent_table.row_count() == 1
-    item = dashboard.attention_box.itemAt(0)
-    assert item is not None
-    link = item.widget()
-    assert isinstance(link, QPushButton)
-    assert "待复核" in link.text() and experiment_id in link.text()
-    link.click()
+    assert dashboard.attention_box.count() == 1
+    widget = dashboard.attention_box.itemAt(0).widget()  # type: ignore[union-attr]
+    assert isinstance(widget, QLabel) and "没有需要处理的事项" in widget.text()
+    dashboard.recent_table.rowActivated.emit(0)
     assert fast_window.current_route == "monitor"
     page = fast_window.page("monitor")
     assert isinstance(page, MonitorPage) and page.experiment_id == experiment_id

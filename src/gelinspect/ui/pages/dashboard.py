@@ -400,8 +400,6 @@ class DashboardPage(QWidget):
     def _result_text(self, item: RecentResult) -> str:
         if not item.finished:
             return ""
-        if item.pending:
-            return self.tr("{n} 管待复核").format(n=item.pending)
         if item.positives == 0:
             return self.tr("全部阴性")
         return self.tr("阳性 {p} · 阴性 {n}").format(p=item.positives, n=item.negatives)
@@ -427,9 +425,6 @@ class DashboardPage(QWidget):
 
     def _attention_line(self, item: AttentionItem) -> tuple[str, str, str | None]:
         """（样式角色, 文字, 点击后打开的试验）。"""
-        if item.kind is AttentionKind.REVIEW_PENDING:
-            text = self.tr("实验 {id} 有 {n} 管待复核").format(id=item.experiment_id, n=item.count)
-            return "link", text, item.experiment_id
         if item.kind is AttentionKind.FAULTED:
             text = self.tr("实验 {id} 处于异常状态，需要人工处理").format(id=item.experiment_id)
             return "link", text, item.experiment_id

@@ -341,6 +341,7 @@ def convert_instance_to_tube_analysis(
     transform_after: LetterboxTransform | None = None,
     cached_tubes_before: Sequence[Uint8Array] | None = None,
     cached_tubes_after: Sequence[Uint8Array] | None = None,
+    score_threshold: float = 0.6,
 ) -> TubeAnalysis:
     """将算法实例转换为符合 ``GelInspect`` 契约的 ``TubeAnalysis``。"""
     stem = image_result.stem
@@ -498,7 +499,11 @@ def convert_instance_to_tube_analysis(
         state = GelState.NOT_GELLED
         status = TubeAnalysisStatus.OK
     elif pred == "review":
-        state = GelState.PARTIALLY_GELLED
+        # 兼容历史离线样本中的 review 标记：按评分阈值归并为二分类，不再输出待复核。
+        if score is not None and score >= score_threshold:
+            state = GelState.FULLY_GELLED
+        else:
+            state = GelState.NOT_GELLED
         status = TubeAnalysisStatus.OK
     else:
         return TubeAnalysis(
@@ -518,5 +523,5 @@ def convert_instance_to_tube_analysis(
         score=score,
         features=features,
         masks=masks,
-        message=instance.note if pred == "review" else None,
+        message=None,
     )

@@ -21,19 +21,16 @@ _STATUS_STATE = {
     WellStatus.ANALYZING: WellState.READING,
     WellStatus.POSITIVE: WellState.POSITIVE,
     WellStatus.NEGATIVE: WellState.NEGATIVE,
-    WellStatus.PENDING_REVIEW: WellState.REVIEW,
     WellStatus.ERROR: WellState.ERROR,
 }
 _INTERPRETATION_STATE = {
     Interpretation.POSITIVE: WellState.POSITIVE,
     Interpretation.NEGATIVE: WellState.NEGATIVE,
-    Interpretation.PENDING_REVIEW: WellState.REVIEW,
 }
 
 _INTERPRETATION_NAMES = {
     Interpretation.POSITIVE: str(QT_TRANSLATE_NOOP("Interpretation", "阳性")),
     Interpretation.NEGATIVE: str(QT_TRANSLATE_NOOP("Interpretation", "阴性")),
-    Interpretation.PENDING_REVIEW: str(QT_TRANSLATE_NOOP("Interpretation", "待复核")),
 }
 _GEL_NAMES = {
     GelState.FULLY_GELLED: str(QT_TRANSLATE_NOOP("GelState", "完全凝固")),
@@ -61,27 +58,31 @@ def well_state(status: WellStatus | None) -> WellState:
     return WellState.EMPTY if status is None else _STATUS_STATE[status]
 
 
-def interpretation_state(value: Interpretation) -> WellState:
+def interpretation_state(value: Interpretation | None) -> WellState:
     """判读转成显示状态。
 
     Args:
-        value: 判读。
+        value: 判读，无有效结果时为 None。
 
     Returns:
         显示状态。
     """
+    if value is None:
+        return WellState.ERROR
     return _INTERPRETATION_STATE[value]
 
 
-def interpretation_label(value: Interpretation) -> str:
+def interpretation_label(value: Interpretation | None) -> str:
     """判读的当前语言名称。
 
     Args:
-        value: 判读。
+        value: 判读，无有效结果时为 None。
 
     Returns:
         例如“阳性”。
     """
+    if value is None:
+        return QCoreApplication.translate("Interpretation", "无结果")
     return QCoreApplication.translate("Interpretation", _INTERPRETATION_NAMES[value])
 
 
@@ -157,11 +158,6 @@ def status_badge(view: ExperimentView) -> tuple[str, BadgeTone]:
         return QCoreApplication.translate("MonitorPage", "第 {n} 排分析中").format(
             n=active.row_index
         ), BadgeTone.INFO
-    if state is ExperimentState.PENDING_REVIEW:
-        text = QCoreApplication.translate("MonitorPage", "待复核 · {n} 管").format(
-            n=len(view.pending_review)
-        )
-        return text, BadgeTone.REVIEW
     tone = {
         ExperimentState.COMPLETED: BadgeTone.SUCCESS,
         ExperimentState.SIGNED: BadgeTone.SUCCESS,

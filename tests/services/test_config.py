@@ -281,7 +281,7 @@ def test_app_context_runs_an_experiment_end_to_end(tmp_path: Path, thread_baseli
         assert context.engine.wait(60.0)
         stored = context.database.experiments.get("EXP-T-1")
         assert stored is not None
-        assert stored.state in (S.COMPLETED, S.PENDING_REVIEW)
+        assert stored.state is S.COMPLETED
         assert len(stored.results) == 8
         media = context.database.media.list_for_experiment("EXP-T-1")
         assert len(media) == 1 + 6 + 8 * 4  # 录像、原图、每管 4 个掩码（P9）
@@ -325,6 +325,6 @@ def test_default_backends_load_and_run_one_row(tmp_path: Path, thread_baseline: 
         context.engine.start("EXP-T-1", OPERATOR)
         assert context.engine.wait(60.0)
         stored = context.database.experiments.get("EXP-T-1")
-        assert stored is not None and stored.state in (S.COMPLETED, S.PENDING_REVIEW)
+        assert stored is not None and stored.state is S.COMPLETED
     finally:
         context.close()

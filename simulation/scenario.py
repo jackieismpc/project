@@ -21,25 +21,20 @@ from gelinspect.domain.plate import HOLES_PER_ROW, tubes_in_row
 from gelinspect.interfaces.device import PlatePlan
 from simulation.image_synth import TubeSpec, sample_tube_spec
 
-_ORDER = (GelState.FULLY_GELLED, GelState.PARTIALLY_GELLED, GelState.NOT_GELLED)
+_ORDER = (GelState.FULLY_GELLED, GelState.NOT_GELLED)
 _ALWAYS_POSITIVE_RATIO = 2.0
 """外加内毒素不低于 2λ 的管总是完全凝固。"""
 _ALWAYS_NEGATIVE_RATIO = 0.25
 """外加内毒素不高于 λ/4 的管总是未凝固。"""
 _ENDPOINT_AT_LAMBDA = 0.6
 """一个系列的真实终点落在 λ 的概率，其余落在 λ/2。"""
-_PARTIAL_AT_ENDPOINT = 0.3
-"""终点那一管表现为部分凝固的概率。"""
-_PARTIAL_BELOW_ENDPOINT = 0.2
-"""比终点低一档的那一管表现为部分凝固的概率。"""
 
 
 def dose_response_states(plan: PlatePlan, seed: int = 0) -> dict[int, GelState]:
     """按外加内毒素和 λ 生成符合剂量关系的状态。
 
-    同一浓度内按管号排序的第 k 支属于第 k 个系列。每个系列抽一个真实终点（λ 或 λ/2）：高于终点的
-    完全凝固，低于终点两档及以下的未凝固，终点和低一档有机会表现为部分凝固，留给人工复核。
-    这样同一系列不会出现阴性之后又阳性。
+    同一浓度内按管号排序的第 k 支属于第 k 个系列。每个系列抽一个真实终点（λ 或 λ/2）：
+    不低于终点的完全凝固，低于终点的未凝固。这样同一系列不会出现阴性之后又阳性。
 
     Args:
         plan: 孔板内容。
@@ -71,21 +66,12 @@ def dose_response_states(plan: PlatePlan, seed: int = 0) -> dict[int, GelState]:
         ranks[ratio] = rank + 1
         endpoint_rng = np.random.default_rng([seed, rank, 7])
         endpoint = 1.0 if float(endpoint_rng.uniform()) < _ENDPOINT_AT_LAMBDA else 0.5
-        draw = float(np.random.default_rng([seed, tube.tube_no, 8]).uniform())
-        if ratio >= _ALWAYS_POSITIVE_RATIO:
+        if ratio >= _ALWAYS_POSITIVE_RATIO or ratio >= endpoint:
             state = GelState.FULLY_GELLED
         elif ratio <= _ALWAYS_NEGATIVE_RATIO:
             state = GelState.NOT_GELLED
-        elif ratio > endpoint:
-            state = GelState.FULLY_GELLED
-        elif ratio == endpoint:
-            state = (
-                GelState.PARTIALLY_GELLED if draw < _PARTIAL_AT_ENDPOINT else GelState.FULLY_GELLED
-            )
         else:
-            state = (
-                GelState.PARTIALLY_GELLED if draw < _PARTIAL_BELOW_ENDPOINT else GelState.NOT_GELLED
-            )
+            state = GelState.NOT_GELLED
         states[tube.tube_no] = state
     return states
 
@@ -96,13 +82,13 @@ class Scenario:
 
     Attributes:
         seed: 随机种子。
-        state_ratios: 完全凝固、部分凝固、未凝固的比例，不要求和为 1。
+        state_ratios: 完全凝固、部分凝固、未凝固的比例（或仅完全凝固与未凝固），不要求和为 1。
         tube_states: 按管号显式指定的状态，优先于比例；值为 None 表示该管位没有试管。
         plate_plan: 孔板内容。设置后，不在孔板上的管位没有试管，其余按剂量关系。
     """
 
     seed: int = 0
-    state_ratios: tuple[float, float, float] = (0.5, 0.2, 0.3)
+    state_ratios: tuple[float, float, float] = (0.5, 0.0, 0.5)
     tube_states: Mapping[int, GelState | None] = field(default_factory=dict)
     plate_plan: PlatePlan | None = None
     _doses: dict[int, GelState] = field(default_factory=dict, init=False, repr=False)
@@ -149,8 +135,9 @@ class Scenario:
                 return self._doses[tube_no]
         total = sum(self.state_ratios)
         draw = float(np.random.default_rng([self.seed, tube_no, 1]).uniform(0, total))
+        binary_ratios = (self.state_ratios[0], self.state_ratios[1] + self.state_ratios[2])
         running = 0.0
-        for state, ratio in zip(_ORDER, self.state_ratios, strict=True):
+        for state, ratio in zip(_ORDER, binary_ratios, strict=True):
             running += ratio
             if draw < running:
                 return state

@@ -165,7 +165,6 @@ EXPORT_TEXTS: tuple[str, ...] = (
     "MVD",
     "内毒素限值",
     "管数",
-    "待复核管数",
     "管号",
     "排",
     "样品名称",
@@ -306,7 +305,6 @@ def write_results(
         "MVD",
         "内毒素限值",
         "管数",
-        "待复核管数",
     )
     summary = _SheetWriter(workbook, t("试验"), [t(h) for h in summary_heads])
     tubes = _SheetWriter(
@@ -370,7 +368,6 @@ def write_results(
                 experiment.mvd,
                 experiment.endotoxin_limit,
                 len(experiment.assignments),
-                len(experiment.pending_review_tubes),
             ]
         )
         for assignment in sorted(experiment.assignments, key=lambda a: a.tube_no):
@@ -395,9 +392,17 @@ def write_results(
                     *common,
                     lab.analysis_status(result.analysis_status),
                     "" if result.gel_state is None else lab.gel_state(result.gel_state),
-                    lab.interpretation(result.auto_interpretation),
+                    (
+                        ""
+                        if result.auto_interpretation is None
+                        else lab.interpretation(result.auto_interpretation)
+                    ),
                     lab.review_status(result.review_status),
-                    lab.interpretation(result.final_interpretation),
+                    (
+                        ""
+                        if result.final_interpretation is None
+                        else lab.interpretation(result.final_interpretation)
+                    ),
                     result.reviewed_by or "",
                     _stamp(result.reviewed_at),
                     result.review_note or "",

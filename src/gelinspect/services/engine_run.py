@@ -113,7 +113,7 @@ ACTIVE_STATES = frozenset(
 )
 """运行中的状态。进程退出后还停留在这些状态，说明上次没有正常结束。"""
 
-_FINISHED_STATES = frozenset({ExperimentState.COMPLETED, ExperimentState.PENDING_REVIEW})
+_FINISHED_STATES = frozenset({ExperimentState.COMPLETED})
 _MAX_CONSECUTIVE_ERRORS = 3
 _FUTURE_POLL_S = 0.02
 _FRAME_POLL_S = 0.05
@@ -1025,12 +1025,10 @@ class EngineRun:
                 "已抓帧的排已经重新分析。这个试验只能停止"
             )
             return (ExperimentEvent.FAULT,)
-        if self._exp.pending_review_tubes:
-            return (ExperimentEvent.ALL_ANALYZED_NEEDS_REVIEW,)
         return (ExperimentEvent.ALL_ANALYZED_CLEAN,)
 
     def _map_results(self, row: _Row, result: RowAnalysisResult) -> list[TubeResult]:
-        """把算法结果映射成单管结果。缺的、重复的管号转待复核，绝不默认判阴性。"""
+        """把算法结果映射成单管结果。缺的、重复的管号记为失败，绝不默认判阴性。"""
         info = result.analyzer_info
         thresholds = (
             None
@@ -1105,7 +1103,8 @@ class EngineRun:
     ) -> AuditEvent:
         tubes = "；".join(
             f"{r.tube_no}号 {r.analysis_status.value}/"
-            f"{r.gel_state.value if r.gel_state else '-'}→{r.auto_interpretation.value}"
+            f"{r.gel_state.value if r.gel_state else '-'}→"
+            f"{r.auto_interpretation.value if r.auto_interpretation else '-'}"
             f"（score={'-' if r.score is None else format(r.score, '.3f')}）"
             for r in mapped
         )
@@ -1118,11 +1117,12 @@ class EngineRun:
 
     def _result_event(self, row: _Row, result: TubeResult) -> WellUpdated:
         interpretation = result.auto_interpretation
-        status = {
-            Interpretation.POSITIVE: WellStatus.POSITIVE,
-            Interpretation.NEGATIVE: WellStatus.NEGATIVE,
-            Interpretation.PENDING_REVIEW: WellStatus.PENDING_REVIEW,
-        }[interpretation]
+        if interpretation is Interpretation.POSITIVE:
+            status = WellStatus.POSITIVE
+        elif interpretation is Interpretation.NEGATIVE:
+            status = WellStatus.NEGATIVE
+        else:
+            status = WellStatus.ERROR
         return WellUpdated(
             experiment_id=self.experiment_id,
             at=self._clock.now(),

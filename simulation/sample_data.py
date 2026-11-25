@@ -1,8 +1,7 @@
 """示例试验数据：灵敏度复核（2λ:1）。
 
 18 支试管，λ=0.5 时外加内毒素列为 1 / 0.5 / 0.25 / 0.125 各 4 管加 2 支 0（阴性对照）。
-状态：1–6 号完全凝固（阳性），7 号部分凝固（待复核），8 号及 9–18 号未凝固（阴性）。
-7 号复核为阳性时，4 个系列的终点是 0.5、0.5、0.5、1，λc≈0.59。
+状态：1–7 号完全凝固（阳性），8–18 号未凝固（阴性），4 个系列的终点是 0.5、0.5、0.5、1，λc≈0.59。
 """
 
 from __future__ import annotations
@@ -21,8 +20,7 @@ from simulation.scenario import Scenario
 
 SENSITIVITY_STATES: Mapping[int, GelState] = MappingProxyType(
     {
-        **dict.fromkeys(range(1, 7), GelState.FULLY_GELLED),
-        7: GelState.PARTIALLY_GELLED,
+        **dict.fromkeys(range(1, 8), GelState.FULLY_GELLED),
         **dict.fromkeys(range(8, 19), GelState.NOT_GELLED),
     }
 )
@@ -31,7 +29,7 @@ SENSITIVITY_STATES: Mapping[int, GelState] = MappingProxyType(
 SENSITIVITY_EXPECTED: Mapping[int, Interpretation] = MappingProxyType(
     {no: GelStateMapping().for_state(state) for no, state in SENSITIVITY_STATES.items()}
 )
-"""按默认映射得到的预期判读：1–6 阳性，7 待复核，其余阴性。"""
+"""按默认映射得到的预期判读：1–7 阳性，其余阴性。"""
 
 SAMPLE_LAMBDA = 0.5
 """示例试验的标示灵敏度，取参考视频里的 0.5（模拟白名单的 ``LAL2606A`` 是 0.25）。"""

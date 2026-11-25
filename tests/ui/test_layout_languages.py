@@ -210,8 +210,8 @@ def test_dashboard_with_data_fits(
             dashboard.attention_card,
         )
         empty_bounds = tuple(card.geometry() for card in dashboard_cards)
-        long_id = "EXP-REVIEW-" + "1234567890" * 6
-        review_item = AttentionItem(AttentionKind.REVIEW_PENDING, experiment_id=long_id, count=12)
+        long_id = "EXP-FAULT-" + "1234567890" * 6
+        review_item = AttentionItem(AttentionKind.FAULTED, experiment_id=long_id)
         dashboard._attention = [
             review_item,
             *[
@@ -257,7 +257,6 @@ def test_dashboard_with_data_fits(
             labeled_sensitivity=0.25,
             tubes=(),
             rows=(),
-            pending_review=(),
             live=True,
             fault_reason=None,
             temperature_c=None,

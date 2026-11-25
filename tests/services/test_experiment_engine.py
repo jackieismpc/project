@@ -75,7 +75,7 @@ def accelerated(**overrides: object) -> EngineConfig:
     return fast_config(time_scale=36000.0, **overrides)
 
 
-def test_sensitivity_18_tubes_runs_to_pending_review(harness: HarnessFactory) -> None:
+def test_sensitivity_18_tubes_runs_to_completed(harness: HarnessFactory) -> None:
     tubes = tuple(range(1, 19))
     h = harness(
         tubes, scenario=sensitivity_scenario(), config=accelerated(), use_scaled_schedule=True
@@ -84,11 +84,10 @@ def test_sensitivity_18_tubes_runs_to_pending_review(harness: HarnessFactory) ->
     h.finished()
 
     stored = h.stored()
-    assert stored.state is S.PENDING_REVIEW
-    assert stored.pending_review_tubes == (7,)
+    assert stored.state is S.COMPLETED
     assert {no: r.auto_interpretation for no, r in stored.results.items()} == SENSITIVITY_EXPECTED
     assert {no: r.gel_state for no, r in stored.results.items()} == SENSITIVITY_STATES
-    assert stored.results[7].review_status is ReviewStatus.PENDING
+    assert stored.results[7].review_status is ReviewStatus.NOT_REQUIRED
     first = stored.results[1]
     assert first.model_version == "mock-1.0"
     assert first.elapsed_ms is not None and first.features["delta_s"] is not None
@@ -110,7 +109,7 @@ def test_sensitivity_18_tubes_runs_to_pending_review(harness: HarnessFactory) ->
 
     # 状态路径合法，审计与状态一一对应，哈希链完好。
     assert h.log.states()[0] is S.INCUBATING
-    assert h.log.states()[-1] is S.PENDING_REVIEW
+    assert h.log.states()[-1] is S.COMPLETED
     changes = h.audit_details(AuditAction.EXPERIMENT_STATE_CHANGED)
     assert len(changes) == len(h.log.states())
     assert len(h.audit_details(AuditAction.ROW_ANALYZED)) == 3
@@ -118,10 +117,10 @@ def test_sensitivity_18_tubes_runs_to_pending_review(harness: HarnessFactory) ->
     h.assert_clean()
     assert h.device.read_status().tray_position is TrayPosition.OUT
 
-    # 孔状态：18 支管都走完了，7 号待复核。
+    # 孔状态：18 支管都走完了，7 号阳性。
     wells = [e for e in h.log.of(WellUpdated) if isinstance(e, WellUpdated)]
     final = {e.tube_no: e.status for e in wells}
-    assert final[7] is WellStatus.PENDING_REVIEW
+    assert final[7] is WellStatus.POSITIVE
     assert final[1] is WellStatus.POSITIVE and final[17] is WellStatus.NEGATIVE
     assert len(final) == 18
     assert h.log.of(RowCountdown) and h.log.of(TemperatureChanged)
@@ -278,23 +277,23 @@ def test_single_tube_failures_go_to_review_never_negative(
     h.save_and_start()
     h.finished()
     stored = h.stored()
-    assert stored.state is S.PENDING_REVIEW
+    assert stored.state is S.COMPLETED
     assert stored.results[3].analysis_status is status
-    assert stored.results[3].auto_interpretation is Interpretation.PENDING_REVIEW
+    assert stored.results[3].auto_interpretation is None
     assert stored.results[3].message
     assert stored.results[1].auto_interpretation is Interpretation.NEGATIVE
 
 
-def test_tube_missing_from_result_goes_to_review(harness: HarnessFactory) -> None:
+def test_tube_missing_from_result_is_marked_failed(harness: HarnessFactory) -> None:
     scenario = gelled_scenario(range(1, 9), GelState.NOT_GELLED)
     h = harness(scenario=scenario, config=accelerated(), use_scaled_schedule=True)
     h.analyzer.drop_tubes = {5}
     h.save_and_start()
     h.finished()
     stored = h.stored()
-    assert stored.state is S.PENDING_REVIEW
+    assert stored.state is S.COMPLETED
     assert stored.results[5].analysis_status is TubeAnalysisStatus.FAILED
-    assert stored.results[5].auto_interpretation is Interpretation.PENDING_REVIEW
+    assert stored.results[5].auto_interpretation is None
     assert h.log.alerts(AlertCode.ANALYSIS_CONTRACT)
 
 

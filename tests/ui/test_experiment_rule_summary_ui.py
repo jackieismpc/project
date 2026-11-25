@@ -74,5 +74,5 @@ def test_monitor_history_and_reports_keep_per_tube_review_and_signing_without_ru
     preview = reports.current_preview
     assert preview is not None and preview.can_sign
     assert reports.sign_button.isEnabled()
-    assert reports.status_text.text() == "可以签署：全部待复核已处理，实验已完成"
+    assert reports.status_text.text() == "可以签署：实验已完成"
     _assert_no_fixed_rule_text(reports)

@@ -112,7 +112,7 @@ def test_the_engine_finishes_while_the_main_thread_never_pumps_events(
 
     def finished() -> bool:  # 不调用 processEvents：界面完全没有响应
         snapshot = context.engine.snapshot()
-        return snapshot is not None and snapshot.state is ExperimentState.PENDING_REVIEW
+        return snapshot is not None and snapshot.state is ExperimentState.COMPLETED
 
     deadline = time.monotonic() + 90.0
     while not finished() and time.monotonic() < deadline:
