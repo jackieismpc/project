@@ -9,11 +9,13 @@ analysis:
   timeout_ms: 2000
 
 video:
-  source: "simulation.sim_video:SimVideoSource"
-  device: "sim"           # 模拟视频源忽略该值，但接口要求非空
+  source: "simulation.sim_video:SimVideoSource"  # 真实海康相机可改为 "hikvision"
+  device: "sim"           # 模拟视频源忽略该值；海康相机可写 "auto" 或序列号
   width: 1920             # 可以改为 4000 / 3000 做压力测试
   height: 1080
   fps: 15
+  # exposure_auto: "off"  # 海康相机可选：off / once / continuous
+  # exposure_us: 5000     # 海康相机手动曝光时间（微秒）
 
 device:
   backend: "simulation.sim_device:SimDevice"

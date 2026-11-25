@@ -9,8 +9,8 @@
 | 项目 | 当前实现与接入位置 | 还需提供与验收 |
 |---|---|---|
 | 设备控制 | `interfaces/device.py`；模板`infrastructure/device/adapter_template.py`；当前`simulation/sim_device.py` | 控制器型号、通信协议、动作／状态／故障码、急停与门禁、超时重试和恢复边界；真实机械翻转、温控与运动由硬件／下位团队负责 |
-| 工业相机 | `interfaces/video.py`；模板`infrastructure/video/industrial_template.py`；当前`simulation/sim_video.py` | 相机／镜头／照明／SDK、触发与曝光、成像坐标、分辨率、时钟同步；验收断流、重连、掉帧、抓拍、录像与长时运行 |
-| 判读算法 | `interfaces/analysis.py`；模板`infrastructure/analysis/adapter_template.py`；当前`simulation/mock_analyzer.py` | 正式算法包、模型和阈值版本、真实标定／验证数据、异常契约和性能；下文保留详细契约及可执行最小示例 |
+| 工业相机 | `interfaces/video.py`；已实现海康威视 MVS 适配器 `infrastructure/video/hikvision_sdk.py` + `hikvision_source.py`（别名 `hikvision`，配置样例 `packaging/config/hikvision.yaml`）；默认替代实现仍为 `simulation/sim_video.py` | 现场真机（镜头／照明／序列号或 `auto`）、触发与曝光参数标定、成像坐标、分辨率、时钟同步；在目标 Windows 机验收断流、重连、掉帧、抓拍、录像与长时运行 |
+| 判读算法 | `interfaces/analysis.py`；模板 `infrastructure/analysis/adapter_template.py`；通用 JSON 协议适配 `infrastructure/analysis/algorithm_json.py`；`inspection/` 离线回放 `simulation/inspection_replay.py`；默认模拟 `simulation/mock_analyzer.py` | 正式算法包、模型和阈值版本、真实标定／验证数据、异常契约和性能；下文保留详细契约、JSON 协议字段映射及可执行最小示例 |
 | 试剂与政府接口 | `interfaces/traceability.py`；当前`simulation/reagents.py` | 正式编码规范、可信产品／备案数据、鉴权、网络接口、撤销／过期／不可用处理；在资料与授权到位前不声称已连接真实政府平台 |
 | 检测规程与报告 | `domain/templates.py`及报告服务 | 实际检测方法、管位、复试方式由使用人员确定；内置模板仅作起点，软件不按固定药典布局自动作整次实验合规判定。验收逐管结果、人工复核和报告字段 |
 | 现场账号和数据 | 当前新数据目录按配置初始化，原数据目录保留账号 | 现场名单及权限、初始凭据交付／轮换、备份恢复、存储位置及保留期；最终清库／重建必须在交付窗口确认，不在本轮执行 |
@@ -27,7 +27,19 @@
 - `VideoFrame.captured_at`与`FlipResult`使用同一台设备上的带时区时钟。翻转前帧须早于动作开始，翻转后帧须晚于动作完成及稳定等待，每侧至少3帧。实际相机触发／时间戳误差需现场测量。
 - 真实设备`engine.time_scale`必须为1。设备动作若同步阻塞，停止请求只能在安全点处理，控制器必须提供有界超时。Python不能安全强杀卡死的驱动／算法线程；原生驱动错误也不属于离线单测能够排除的范围。
 - 图像写入管线后按只读共享，不得由适配器或消费者原地修改。预览、录像、抓拍使用有界缓冲或队列，实际内存与磁盘容量在目标设备确认。
-- 文件、图像序列视频输入已有实现，可先独立验证相机，再接控制器和正式算法。协议、SDK与模型未确定前，不凭空实现真实适配器。
+- 文件、图像序列视频输入已有实现，可先独立验证相机，再接控制器和正式算法。海康威视相机适配器已实现跨平台 MVS SDK 自动发现：
+  - `macOS` 开发环境自动探测 `/Library/Frameworks/MvCameraControl.framework/MvCameraControl`（及用户目录 / `MVS.app`）；
+  - `Windows` 部署环境自动探测 `GELINSPECT_HIKVISION_SDK`、应用目录 `sdk/`、`%MVCAM_COMMON_RUNENV%\Win64_x64\MvCameraControl.dll`、`Common Files\MVS\Runtime\Win64_x64\MvCameraControl.dll` 及 `MVS\Development\Bin\win64\MvCameraControl.dll`，加载前通过 `os.add_dll_directory()` 登记依赖目录；
+  - `video.source` 配置为 `"hikvision"`，`video.device` 支持 `"auto"`、序列号、IP 或自定义名；支持 `exposure_auto`（`off`/`once`/`continuous`）与 `exposure_us`（设置页支持直接调整并实时预览）；可用 `gelinspect --diagnose` 查看 `hikvision_sdk` 自动发现结果。
+
+## 算法 JSON 协议预适配（`algorithm_json.py`）
+
+针对算法端实际产出的 `result.json`（含 `20261125_094748` 等双帧综合评分格式与早期单帧面积格式），`src/gelinspect/infrastructure/analysis/algorithm_json.py` 已提供通用 Pydantic 解析与契约转换器：
+
+- `prediction` 映射：`positive` → `OK + FULLY_GELLED`；`negative` → `OK + NOT_GELLED`；`REVIEW`（复核区间）→ `OK + PARTIALLY_GELLED`；`REVIEW` 且 `t2_instance is None`（缺帧/未匹配）→ `GEL_MISSING + state=None`（严格将缺失侧特征置 `None`）。
+- 掩码匹配：算法端 YOLO 独立检出的 `tube_inst` 与 `gel_inst` 序号不一定一致，适配器按空间包含率与 x 质心距离为每个凝胶掩码匹配对应的试管掩码。
+- 扩展特征保留：`fill_ratio_t0`、`height_norm_t2`、`curvature_t2`、`fill_score`、`height_score`、`flatness_score`、`x_center`、`raw_prediction` 等写入 `GelFeatures.extra` 随结果入库和诊断包归档。
+- 本地 `inspection/`（已加入 `.gitignore`）可通过 `uv run gelinspect --config simulation/config.inspection.yaml` 回放，支持 `best_fit` / `sequential` 排号映射与 `tube_not_found` / `cycle` 缺失策略。
 
 ## 3. 检测方法与验收输入
 

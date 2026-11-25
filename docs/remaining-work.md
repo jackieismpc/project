@@ -122,6 +122,13 @@ README补充目标机完整执行步骤：冻结源码、全量自动化（含�
 
 Windows安装追加要求已在代码落实：安装向导始终允许自选位置，默认当前用户程序目录；首次默认业务数据为实际安装位置下的`data/`，便携包同样以EXE目录为基准，macOS目录不变。设置中可自动保存另一数据位置、重启使用；不搬移、不合并、不删除旧数据。安装与卸载保留用户数据，应用不靠常态提权运行；不可写位置明确报错。业务`data/`不属于程序完整性清单的扫描范围，避免大量媒体影响启动；构建开始和替换旧产物前拒绝删除非空运行数据目录。相关默认路径、程序资源目录边界、显式路径持久化、清单剪枝及构建保护回归已编写，尚未执行。上述安装行为、含空格／中文目录、权限、升级／卸载及重启路径记忆均待Windows目标机验证。
 
+## 海康相机自动发现、`inspection/` 回放与算法 JSON 预适配（2026-11-25）
+
+- **海康威视 MVS SDK 跨平台自动发现与接入**：新增 `src/gelinspect/infrastructure/video/hikvision_sdk.py` 与 `hikvision_source.py`（`video.source: hikvision`，配置样例 `packaging/config/hikvision.yaml`），移除已过时的空模板 `industrial_template.py`。Mac 与 Windows 部署机均支持自动探测 SDK 动态库并按 `auto`/序列号连接相机；`--diagnose` 新增 `hikvision_sdk` 探测输出。
+- **设置页相机曝光控制**：在“视频输入”卡片仅保留原有三项视频类型，针对配置文件相机模式新增“曝光模式”与“曝光时间（µs）”控制，支持自动保存、审计与实时预览生效（不含增益 dB）。
+- **算法 JSON 协议预适配与 `inspection/` 替换模拟数据**：将 `/inspection/` 加入 `.gitignore`；在 `GelFeatures` 增加 `extra` 扩展字典，新增通用协议适配器 `src/gelinspect/infrastructure/analysis/algorithm_json.py`（含 `tube_inst`/`gel_inst` 空间防错位匹配与 v1/v2 兼容），并提供 `simulation/inspection_replay.py` 与 `simulation/config.inspection.yaml` 用于本地真实样本回放。
+- **待目标机/真机验证**：真实海康相机在 Windows 目标机的实机取流、断流重连与曝光范围标定，以及正式算法模型权重接入后的端到端准确率与节拍验收，仍须在目标硬件环境执行。
+
 ## 需要在目标机器执行：本轮跳过
 
 用户于2026-11-18明确要求Mac仅开发，构建和测试只在目标机做。收到该要求后停止动态测试；未完成的全量测试与覆盖率不算通过。

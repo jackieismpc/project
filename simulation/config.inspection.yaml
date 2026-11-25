@@ -1,0 +1,36 @@
+# 使用 inspection/ 真实算法结果与样本图像替换模拟数据（配合 SimDevice 完成全流程联调）
+data_dir: "data"
+
+analysis:
+  backend: "simulation.inspection_replay:InspectionReplayAnalyzer"
+  config_path: "simulation/analyzer.inspection.yaml"
+  timeout_ms: 2000
+
+video:
+  source: "simulation.inspection_replay:InspectionVideoSource"
+  device: "inspection"
+  width: 1280
+  height: 1024
+  fps: 15
+  options:
+    inspection_dir: "inspection"
+    run_id: "latest"
+    row_mapping: "best_fit"
+
+device:
+  backend: "simulation.sim_device:SimDevice"
+
+engine:
+  incubation_minutes: 60
+  time_scale: 600
+
+bootstrap:
+  hook: "simulation.demo_accounts:DemoAccounts"
+
+traceability:
+  parser:
+    backend: "simulation.reagents:SimReagentCodeParser"
+  registry:
+    backend: "simulation.reagents:SimReagentRegistry"
+  government:
+    backend: "simulation.reagents:SimTraceabilityClient"

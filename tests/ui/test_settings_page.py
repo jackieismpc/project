@@ -463,3 +463,30 @@ def test_diagnostic_export_rejects_inverted_dates(
     )
     page.diagnostics_button.click()
     assert "开始日期不能晚于结束日期" in page.save_message.text()
+
+
+def test_camera_exposure_controls_visibility_and_auto_save(
+    qapp: QApplication, window: MainWindow, app_context: AppContext
+) -> None:
+    page = open_settings(qapp, window)
+    assert page.camera_exposure_box.isVisibleTo(page)
+    assert page.exposure_mode_box.isEnabled()
+    assert page.exposure_us_edit.isEnabled()
+
+    # 切换到连续自动曝光时，曝光时间输入框置灰
+    page.exposure_mode_box.setCurrentIndex(page.exposure_mode_box.findData("continuous"))
+    assert not page.exposure_us_edit.isEnabled()
+    assert app_context.config.video.exposure_auto == "continuous"
+
+    # 切回手动并输入有效曝光时间
+    page.exposure_mode_box.setCurrentIndex(page.exposure_mode_box.findData("off"))
+    assert page.exposure_us_edit.isEnabled()
+    page.exposure_us_edit.setText("12000")
+    page.exposure_us_edit.editingFinished.emit()
+    saved_video = app_context.config.video
+    assert saved_video.exposure_auto == "off"
+    assert saved_video.exposure_us == 12000.0
+
+    # 切换到视频文件时，隐藏相机曝光控制
+    page.type_box.setCurrentIndex(page.type_box.findData(VideoInput.FILE.value))
+    assert not page.camera_exposure_box.isVisibleTo(page)

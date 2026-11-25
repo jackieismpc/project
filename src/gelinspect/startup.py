@@ -556,6 +556,8 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
     """
     import importlib.util
 
+    from gelinspect.infrastructure.video.hikvision_sdk import probe_hikvision_sdk
+
     info = build_info()
     result: dict[str, object] = {
         "mode": run_mode().value,
@@ -564,6 +566,7 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
         "default_data_dir": str(default_data_dir()),
         "config_file": str(config_path or default_config_file() or "<DEFAULT_CONFIG>"),
         "simulation_importable": importlib.util.find_spec("simulation") is not None,
+        "hikvision_sdk": probe_hikvision_sdk(),
     }
     try:
         config = load_config(config_path)

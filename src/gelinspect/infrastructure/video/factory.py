@@ -1,7 +1,7 @@
 """按配置创建视频源。
 
 配置值是 ``"包.模块:类名"`` 或 ``"包.模块.类名"``
-（也接受别名 ``file``、``images``；真实相机选型后按类路径配置）。
+（也接受内置别名 ``file``、``images``、``hikvision``）。
 这样主代码不需要导入 ``simulation``：模拟配置写 ``simulation.sim_video:SimVideoSource`` 即可。
 创建失败时抛 :class:`VideoSourceConfigError`，**不会回退到模拟实现**。
 """
@@ -17,6 +17,7 @@ from gelinspect.interfaces.video import VideoError, VideoSource
 ALIASES: dict[str, str] = {
     "file": "gelinspect.infrastructure.video.file_source:FileVideoSource",
     "images": "gelinspect.infrastructure.video.image_sequence:ImageSequenceSource",
+    "hikvision": "gelinspect.infrastructure.video.hikvision_source:HikvisionCameraSource",
 }
 """内置视频源的别名。"""
 

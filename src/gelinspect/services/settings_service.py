@@ -26,7 +26,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import cv2
 import numpy as np
@@ -37,7 +37,7 @@ from gelinspect.domain.entities import AuditEvent
 from gelinspect.domain.enums import AuditAction
 from gelinspect.domain.permissions import Permission
 from gelinspect.interfaces.storage import ExperimentRepository, UnitOfWork
-from gelinspect.interfaces.video import VideoConfig, VideoError, VideoSource
+from gelinspect.interfaces.video import ExposureAutoMode, VideoConfig, VideoError, VideoSource
 from gelinspect.services.auth import AuthService, Session
 from gelinspect.services.config import AppConfig, ConfigError, load_config
 from gelinspect.services.engine_types import EngineBusyError
@@ -56,6 +56,7 @@ from gelinspect.services.user_settings import (
     apply_settings,
     check_video_path,
     overrides_between,
+    parse_camera_exposure,
     parse_draft,
     settings_file,
     settings_of,
@@ -198,17 +199,29 @@ _FIELD_LABELS: dict[str, str] = {
     "retention_days": "数据保留天数",
     "copyright_holder": "版权方名称",
     "encrypt_exports": "导出加密",
+    "camera_exposure_auto": "曝光模式",
+    "camera_exposure_us": "曝光时间（µs）",
 }
 _INPUT_LABELS = {
     VideoInput.CONFIG: "沿用配置文件",
     VideoInput.FILE: "视频文件",
     VideoInput.IMAGES: "图片文件夹",
 }
+_EXPOSURE_MODE_LABELS = {
+    "": "沿用默认",
+    "off": "手动",
+    "once": "单次自动",
+    "continuous": "连续自动",
+}
 
 
 def _show(name: str, value: object) -> str:
     if name == "video_input" and isinstance(value, VideoInput):
         return _INPUT_LABELS[value]
+    if name == "camera_exposure_auto" and isinstance(value, str):
+        return _EXPOSURE_MODE_LABELS.get(value, value)
+    if name == "camera_exposure_us" and value is None:
+        return "沿用默认"
     if name == "retention_days" and value is None:
         return "不自动删除"
     if name == "video_path" and value == "":
@@ -601,6 +614,9 @@ class InstrumentSettingsService:
         session: Session | None,
         kind: VideoInput | None = None,
         path: str | None = None,
+        *,
+        exposure_auto: str | None = None,
+        exposure_us: str | None = None,
     ) -> VideoProbe:
         """读取视频输入的第一帧和参数，用于设置页预览。会读文件，应放在后台线程调用。
 
@@ -611,6 +627,8 @@ class InstrumentSettingsService:
             session: 调用者的会话。
             kind: 视频输入类型；None 表示当前生效的。
             path: 视频文件或图片文件夹。
+            exposure_auto: 可选预览曝光模式覆盖。
+            exposure_us: 可选预览曝光时间覆盖（微秒字符串）。
 
         Returns:
             第一帧和参数。
@@ -625,14 +643,37 @@ class InstrumentSettingsService:
             video = self._effective.video
             spec, options, device = video.source, video.options, video.device
             config = VideoConfig(
-                device=device, width=video.width, height=video.height, fps=video.fps
+                device=device,
+                width=video.width,
+                height=video.height,
+                fps=video.fps,
+                exposure_auto=video.exposure_auto,
+                exposure_us=video.exposure_us,
             )
         else:
             self._auth.authorize(session, Permission.INSTRUMENT_CONFIGURE)
             if kind is VideoInput.CONFIG:
                 video = self._base.video  # “沿用配置文件”预览的是默认配置的视频源
+                resolved_auto = video.exposure_auto
+                resolved_us = video.exposure_us
+                if exposure_auto is not None or exposure_us is not None:
+                    exp_problems: list[SettingsProblem] = []
+                    mode_str, us_val = parse_camera_exposure(
+                        "" if exposure_auto is None else exposure_auto,
+                        "" if exposure_us is None else exposure_us,
+                        exp_problems,
+                    )
+                    if exp_problems:
+                        raise SettingsError(exp_problems)
+                    resolved_auto = cast(ExposureAutoMode, mode_str) if mode_str else None
+                    resolved_us = us_val
                 config = VideoConfig(
-                    device=video.device, width=video.width, height=video.height, fps=video.fps
+                    device=video.device,
+                    width=video.width,
+                    height=video.height,
+                    fps=video.fps,
+                    exposure_auto=resolved_auto,
+                    exposure_us=resolved_us,
                 )
                 return self._probe(video.source, video.options, config)
             problems: list[SettingsProblem] = []

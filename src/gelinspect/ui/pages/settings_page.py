@@ -269,6 +269,38 @@ class SettingsPage(QWidget):
         self.video_card.body.addWidget(self.path_label)
         self.video_card.body.addLayout(path_row)
         self.video_card.body.addWidget(self.path_error)
+        self.camera_exposure_box = QWidget()
+        exposure_layout = QVBoxLayout(self.camera_exposure_box)
+        exposure_layout.setContentsMargins(0, 0, 0, 0)
+        exposure_layout.setSpacing(4)
+        exposure_row = QHBoxLayout()
+        exposure_row.setSpacing(8)
+        mode_col = QVBoxLayout()
+        mode_col.setContentsMargins(0, 0, 0, 0)
+        mode_col.setSpacing(4)
+        self.exposure_mode_label = Label("", "lab")
+        self.exposure_mode_box = QComboBox()
+        self.exposure_mode_box.setMinimumHeight(44)
+        for mode_value in ("", "off", "once", "continuous"):
+            self.exposure_mode_box.addItem("", mode_value)
+        mode_col.addWidget(self.exposure_mode_label)
+        mode_col.addWidget(self.exposure_mode_box)
+        us_col = QVBoxLayout()
+        us_col.setContentsMargins(0, 0, 0, 0)
+        us_col.setSpacing(4)
+        self.exposure_us_label = Label("", "lab")
+        self.exposure_us_edit = QLineEdit()
+        self.exposure_us_edit.setMinimumHeight(44)
+        us_col.addWidget(self.exposure_us_label)
+        us_col.addWidget(self.exposure_us_edit)
+        exposure_row.addLayout(mode_col, 1)
+        exposure_row.addLayout(us_col, 1)
+        exposure_layout.addLayout(exposure_row)
+        self.exposure_error = Label("", "danger")
+        self.exposure_error.setWordWrap(True)
+        self.exposure_error.setVisible(False)
+        exposure_layout.addWidget(self.exposure_error)
+        self.video_card.body.addWidget(self.camera_exposure_box)
         probe_row = QHBoxLayout()
         probe_row.setSpacing(12)
         self.preview_button = Button("")
@@ -348,6 +380,10 @@ class SettingsPage(QWidget):
         self.type_box.currentIndexChanged.connect(self._on_video_type_changed)
         self.path_edit.editingFinished.connect(
             lambda: self._save_fields({"video_input", "video_path"})
+        )
+        self.exposure_mode_box.currentIndexChanged.connect(self._on_exposure_mode_changed)
+        self.exposure_us_edit.editingFinished.connect(
+            lambda: self._save_fields({"camera_exposure_auto", "camera_exposure_us"})
         )
         self.browse_button.clicked.connect(self.browse)
         self.preview_button.clicked.connect(self.preview)
@@ -517,6 +553,8 @@ class SettingsPage(QWidget):
             retention_days=text["retention_days"],
             copyright_holder=text["copyright_holder"],
             encrypt_exports=self.encrypt_box.isChecked(),
+            camera_exposure_auto=str(self.exposure_mode_box.currentData() or ""),
+            camera_exposure_us=self.exposure_us_edit.text(),
         )
 
     def video_input(self) -> VideoInput:
@@ -550,6 +588,11 @@ class SettingsPage(QWidget):
         self.type_box.blockSignals(False)
         self.path_edit.setText(draft.video_path)
         self.encrypt_box.setChecked(draft.encrypt_exports)
+        self.exposure_mode_box.blockSignals(True)
+        mode_idx = self.exposure_mode_box.findData(draft.camera_exposure_auto)
+        self.exposure_mode_box.setCurrentIndex(mode_idx if mode_idx >= 0 else 0)
+        self.exposure_mode_box.blockSignals(False)
+        self.exposure_us_edit.setText(draft.camera_exposure_us)
         self._on_type_changed()
         self._update_range()
 
@@ -578,6 +621,9 @@ class SettingsPage(QWidget):
         self.type_box.setEnabled(video_enabled)
         self.path_edit.setEnabled(video_enabled and self.video_input() is not VideoInput.CONFIG)
         self.browse_button.setEnabled(video_enabled and self.video_input() is not VideoInput.CONFIG)
+        self.exposure_mode_box.setEnabled(video_enabled)
+        manual_exposure = self.exposure_mode_box.currentData() in ("", "off")
+        self.exposure_us_edit.setEnabled(video_enabled and manual_exposure)
         self.preview_button.setEnabled(editable and not self._previewing)
         self.diagnostics_button.setEnabled(
             self._session is not None
@@ -635,6 +681,9 @@ class SettingsPage(QWidget):
         self.path_label.setVisible(needs_path)
         self.path_edit.setVisible(needs_path)
         self.browse_button.setVisible(needs_path)
+        self.camera_exposure_box.setVisible(not needs_path)
+        manual_exposure = self.exposure_mode_box.currentData() in ("", "off")
+        self.exposure_us_edit.setEnabled(video_enabled and manual_exposure)
         if kind is VideoInput.FILE:
             self.path_edit.setPlaceholderText(self.tr("视频文件的完整路径"))
         else:
@@ -646,6 +695,13 @@ class SettingsPage(QWidget):
             self.video_input() is VideoInput.CONFIG or self.path_edit.text().strip()
         ):
             self._save_fields({"video_input", "video_path"})
+
+    def _on_exposure_mode_changed(self) -> None:
+        video_enabled = self._editable and not self._locked
+        manual_exposure = self.exposure_mode_box.currentData() in ("", "off")
+        self.exposure_us_edit.setEnabled(video_enabled and manual_exposure)
+        if not self._loading_settings:
+            self._save_fields({"camera_exposure_auto", "camera_exposure_us"})
 
     # ------------------------------------------------------------------ 保存
 
@@ -662,6 +718,8 @@ class SettingsPage(QWidget):
             names = names | {"temperature_target_c", "temperature_tolerance_c"}
         if names & {"video_input", "video_path"}:
             names = names | {"video_input", "video_path"}
+        if names & {"camera_exposure_auto", "camera_exposure_us"}:
+            names = names | {"camera_exposure_auto", "camera_exposure_us"}
         self._clear_errors(names)
         entered = self.draft()
         candidate = replace(base, **{name: getattr(entered, name) for name in names})
@@ -689,6 +747,9 @@ class SettingsPage(QWidget):
             if problem.name == "video_path":
                 self.path_error.setText(text)
                 self.path_error.setVisible(True)
+            elif problem.name in ("camera_exposure_auto", "camera_exposure_us"):
+                self.exposure_error.setText(text)
+                self.exposure_error.setVisible(True)
             else:
                 self.fields[problem.name].set_error(text)
         self.save_message.setText(
@@ -701,6 +762,8 @@ class SettingsPage(QWidget):
                 field.set_error("")
         if names is None or "video_path" in names:
             self.path_error.setVisible(False)
+        if names is None or bool(names & {"camera_exposure_auto", "camera_exposure_us"}):
+            self.exposure_error.setVisible(False)
 
     def _save_pending_fields(self) -> None:
         """页面离开前逐项提交已完成且有效的输入。"""
@@ -720,6 +783,11 @@ class SettingsPage(QWidget):
                 base = self._saved_draft
         if (self.video_input(), self.path_edit.text()) != (base.video_input, base.video_path):
             self._save_fields({"video_input", "video_path"})
+        if (
+            str(self.exposure_mode_box.currentData() or ""),
+            self.exposure_us_edit.text(),
+        ) != (base.camera_exposure_auto, base.camera_exposure_us):
+            self._save_fields({"camera_exposure_auto", "camera_exposure_us"})
         selection = self._services.settings.runtime_selection()
         if any(edit.text() != selection[key] for key, edit in self.runtime_paths.items()):
             self.save_runtime_selection()
@@ -794,9 +862,24 @@ class SettingsPage(QWidget):
     def preview(self) -> None:
         """预览输入框里的视频输入（不保存）。"""
         kind = self.video_input()
-        self._start_preview(kind, self.path_edit.text())
+        if kind is VideoInput.CONFIG:
+            self._start_preview(
+                kind,
+                self.path_edit.text(),
+                exposure_auto=str(self.exposure_mode_box.currentData() or ""),
+                exposure_us=self.exposure_us_edit.text(),
+            )
+        else:
+            self._start_preview(kind, self.path_edit.text())
 
-    def _start_preview(self, kind: VideoInput | None, path: str) -> None:
+    def _start_preview(
+        self,
+        kind: VideoInput | None,
+        path: str,
+        *,
+        exposure_auto: str | None = None,
+        exposure_us: str | None = None,
+    ) -> None:
         session = self._session
         if session is None:
             return
@@ -807,7 +890,13 @@ class SettingsPage(QWidget):
         self.path_error.setVisible(False)
         self.probe_label.setText(self.tr("正在读取……"))
         self._preview_token = self._runner.submit(
-            lambda: self._services.settings.preview_video(session, kind, path),
+            lambda: self._services.settings.preview_video(
+                session,
+                kind,
+                path,
+                exposure_auto=exposure_auto,
+                exposure_us=exposure_us,
+            ),
             self._on_probe,
             self._on_probe_failed,
         )
@@ -1081,6 +1170,13 @@ class SettingsPage(QWidget):
             self.type_box.setItemText(index, text)
         self.browse_button.setText(self.tr("浏览…"))
         self.preview_button.setText(self.tr("预览"))
+        self.exposure_mode_label.setText(setting_label("camera_exposure_auto"))
+        self.exposure_us_label.setText(setting_label("camera_exposure_us"))
+        for index, text in enumerate(
+            (self.tr("沿用默认"), self.tr("手动"), self.tr("单次自动"), self.tr("连续自动"))
+        ):
+            self.exposure_mode_box.setItemText(index, text)
+        self.exposure_us_edit.setPlaceholderText(self.tr("默认"))
         self._on_type_changed()
         self._update_range()
         if self._view is not None:

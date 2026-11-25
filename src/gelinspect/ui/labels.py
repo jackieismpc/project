@@ -527,6 +527,8 @@ SETTING_LABELS: dict[str, str] = {
     "retention_days": str(QT_TRANSLATE_NOOP("Settings", "数据保留天数")),
     "copyright_holder": str(QT_TRANSLATE_NOOP("Settings", "版权方名称")),
     "encrypt_exports": str(QT_TRANSLATE_NOOP("Settings", "导出加密")),
+    "camera_exposure_auto": str(QT_TRANSLATE_NOOP("Settings", "曝光模式")),
+    "camera_exposure_us": str(QT_TRANSLATE_NOOP("Settings", "曝光时间（µs）")),
 }
 """设置项的显示名（带单位），设置页的标签和校验提示共用。"""
 

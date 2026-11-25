@@ -64,7 +64,7 @@ def test_infrastructure_templates_do_not_import_heavy_drivers() -> None:
     templates = [
         SRC / "infrastructure" / "analysis" / "adapter_template.py",
         SRC / "infrastructure" / "device" / "adapter_template.py",
-        SRC / "infrastructure" / "video" / "industrial_template.py",
+        SRC / "infrastructure" / "video" / "hikvision_sdk.py",
     ]
     for path in templates:
         assert not {module.split(".")[0] for module in imported_roots(path)} & forbidden

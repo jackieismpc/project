@@ -3762,6 +3762,14 @@
         <source>导出加密</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>曝光模式</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>曝光时间（µs）</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>SettingsPage</name>
@@ -3899,6 +3907,26 @@
     </message>
     <message>
         <source>只能选择有效的配置文件和已存在的数据目录。切换数据目录不会搬动或删除现有数据；原目录保留。实验运行中不能切换。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>沿用默认</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>手动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>单次自动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>连续自动</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>默认</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -17,7 +17,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from gelinspect.domain.interpretation import GelStateMapping
-from gelinspect.interfaces.video import VideoConfig
+from gelinspect.interfaces.video import ExposureAutoMode, VideoConfig
 from gelinspect.services.engine_types import EngineConfig
 from gelinspect.services.runtime_paths import (
     PACKAGED_CONFIG,
@@ -126,6 +126,8 @@ class VideoSection(_Section):
     height: int | None = Field(default=None, gt=0)
     fps: float | None = Field(default=None, gt=0)
     read_timeout_ms: int = Field(default=1000, gt=0)
+    exposure_auto: ExposureAutoMode | None = None
+    exposure_us: float | None = Field(default=None, gt=0)
     options: dict[str, Any] = Field(default_factory=dict)
     buffer: BufferConfig = BufferConfig()
     preview: PreviewConfig = PreviewConfig()
@@ -337,6 +339,8 @@ class AppConfig(_Section):
                 height=video.height,
                 fps=video.fps,
                 read_timeout_ms=video.read_timeout_ms,
+                exposure_auto=video.exposure_auto,
+                exposure_us=video.exposure_us,
             ),
             buffer=video.buffer,
             preview=video.preview,

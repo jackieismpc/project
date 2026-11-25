@@ -6,11 +6,14 @@
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import AwareDatetime, Field
 
 from gelinspect.interfaces._base import BgrImage, ContractModel
+
+ExposureAutoMode = Literal["off", "once", "continuous"]
+"""相机自动曝光模式：关闭（手动）、单次自动、连续自动。"""
 
 
 class VideoError(Exception):
@@ -38,6 +41,8 @@ class VideoConfig(ContractModel):
         height: 期望高度，None 表示使用设备默认值。
         fps: 期望帧率，None 表示使用设备默认值。
         read_timeout_ms: ``read`` 的最长阻塞时间，单位毫秒。
+        exposure_auto: 自动曝光模式，None 表示沿用设备或配置默认值。
+        exposure_us: 手动曝光时间（微秒），None 表示沿用设备或配置默认值。
     """
 
     device: str = Field(min_length=1)
@@ -45,6 +50,8 @@ class VideoConfig(ContractModel):
     height: int | None = Field(default=None, gt=0)
     fps: float | None = Field(default=None, gt=0)
     read_timeout_ms: int = Field(default=1000, gt=0)
+    exposure_auto: ExposureAutoMode | None = None
+    exposure_us: float | None = Field(default=None, gt=0)
 
 
 class VideoInfo(ContractModel):

@@ -1,0 +1,37 @@
+# 海康威视工业相机现场部署配置样例（需配合真实设备控制器与正式算法后端使用）。
+# 如需在开发机单独验证海康相机，可临时把 device / analysis / traceability 指向模拟或实机后端。
+data_dir: "data"
+
+analysis:
+  backend: "simulation.mock_analyzer:MockAnalyzer"
+  config_path: "simulation/analyzer.example.yaml"
+  timeout_ms: 2000
+
+video:
+  source: "hikvision"        # 使用海康威视 MVS SDK（Mac/Windows 自动发现）
+  device: "auto"             # "auto" 自动连接首台在线相机，或填相机序列号 / IP / 自定义名称
+  # width: 4000              # 可选：留空则沿用相机当前分辨率
+  # height: 3000
+  fps: 15
+  exposure_auto: "off"       # off（手动）| once（单次自动）| continuous（连续自动）
+  exposure_us: 5000          # 手动曝光时间（微秒），可在设置页直接调整
+  # options:
+  #   sdk_path: ""           # 可选：显式覆盖 MVS SDK 路径（一般无需填写）
+
+device:
+  backend: "simulation.sim_device:SimDevice"
+
+engine:
+  incubation_minutes: 60
+  time_scale: 1              # 真实硬件必须设为 1
+
+bootstrap:
+  hook: "simulation.demo_accounts:DemoAccounts"
+
+traceability:
+  parser:
+    backend: "simulation.reagents:SimReagentCodeParser"
+  registry:
+    backend: "simulation.reagents:SimReagentRegistry"
+  government:
+    backend: "simulation.reagents:SimTraceabilityClient"

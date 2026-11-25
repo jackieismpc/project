@@ -254,6 +254,7 @@ class GelFeatures(ContractModel):
     sigma_axial: float | None = Field(default=None, ge=0)
     gel_missing_before: bool = False
     gel_missing_after: bool = False
+    extra: dict[str, float | int | str | bool | None] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _check_gel_missing(self) -> Self:

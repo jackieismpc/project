@@ -52,7 +52,7 @@ uv run gelinspect --data-dir /absolute/data
 uv run python scripts/build.py
 ```
 
-自定义配置为完整配置，不与默认替代后端隐式合并。发行构建及产物测试仅在目标机执行，Mac开发环境本轮不构建。构建采用Nuitka目录模式：Windows输出EXE目录及ZIP，macOS输出APP及DMG（无hdiutil时为ZIP）；构建报告为`dist/build-report.json`。配置样例在`simulation/config.example.yaml`和`packaging/config/release.yaml`。目标平台验证和正式签名状态以未完成任务文档为准。
+自定义配置为完整配置，不与默认替代后端隐式合并。发行构建及产物测试仅在目标机执行，Mac开发环境本轮不构建。构建采用Nuitka目录模式：Windows输出EXE目录及ZIP，macOS输出APP及DMG（无hdiutil时为ZIP）；构建报告为`dist/build-report.json`。配置样例在`simulation/config.example.yaml`、`simulation/config.inspection.yaml`（本地`inspection/`真实算法样本回放）、`packaging/config/hikvision.yaml`（海康工业相机现场配置）和`packaging/config/release.yaml`。`--diagnose`同时输出海康MVS SDK跨平台自动发现状态（`hikvision_sdk`）。目标平台验证和正式签名状态以未完成任务文档为准。
 
 默认后端的接入边界、正式算法／设备／试剂接口需求见[待接入文档](docs/internal-integration-checklist.md)，不能用合成测试证明真实检测准确率和整机节拍。
 

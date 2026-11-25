@@ -542,3 +542,28 @@ def test_runtime_path_selection_rejects_bad_paths_and_running_experiment(
             admin(context), config_path="", data_dir=str(target_data)
         )
     assert caught.value.code is ServiceErrorCode.SETTINGS_BUSY
+
+
+def test_camera_exposure_settings_validate_save_audit_and_preview(
+    context: AppContext,
+) -> None:
+    session = admin(context)
+    with pytest.raises(SettingsError) as caught:
+        context.settings.save(
+            session, draft_of(context, camera_exposure_auto="off", camera_exposure_us="2")
+        )
+    assert [p.name for p in caught.value.problems] == ["camera_exposure_us"]
+
+    saved = context.settings.save(
+        session, draft_of(context, camera_exposure_auto="off", camera_exposure_us="8000")
+    )
+    assert saved.settings.camera_exposure_auto == "off"
+    assert saved.settings.camera_exposure_us == 8000.0
+    assert context.config.video.exposure_auto == "off"
+    assert context.config.video.exposure_us == 8000.0
+    assert any("曝光时间" in line for line in audit_lines(context))
+
+    probe = context.settings.preview_video(
+        session, VideoInput.CONFIG, exposure_auto="once", exposure_us="5000"
+    )
+    assert probe.width == 640 and probe.height == 360

@@ -19,10 +19,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, replace
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from gelinspect.interfaces.video import ExposureAutoMode
 from gelinspect.services.config import AppConfig, ConfigError
 
 USER_SETTINGS_FILE = "user_settings.json"
@@ -39,14 +40,18 @@ MAX_HOLDER_LENGTH = 120
 
 
 class VideoInput(StrEnum):
-    """视频输入的类型。实时摄像头尚未实现，工业相机等型号确定后接入，所以这里没有它们。"""
+    """视频输入的类型。"""
 
     CONFIG = "config"
-    """沿用配置文件里的视频源（模拟或接入的真实相机）。"""
+    """沿用配置文件里的视频源（海康工业相机或模拟源）。"""
     FILE = "file"
     """视频文件，循环回放。"""
     IMAGES = "images"
     """图片文件夹，按文件名顺序循环回放。"""
+
+
+CAMERA_EXPOSURE_AUTO_VALUES: tuple[str, ...] = ("", "off", "once", "continuous")
+"""相机自动曝光模式的可选值：空串表示沿用配置文件或相机默认值。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +81,8 @@ class InstrumentSettings:
     retention_days: int | None
     copyright_holder: str
     encrypt_exports: bool = False
+    camera_exposure_auto: str = ""
+    camera_exposure_us: float | None = None
 
     @property
     def temperature_range_c(self) -> tuple[float, float]:
@@ -97,6 +104,8 @@ IMPACTING_FIELDS: frozenset[str] = frozenset(
         "temperature_hold_s",
         "video_input",
         "video_path",
+        "camera_exposure_auto",
+        "camera_exposure_us",
     }
 )
 """影响试验运行的设置项：试验进行中不能修改。其余项（仪器编号、保留天数、版权方、导出加密）随时可改。"""
@@ -107,6 +116,7 @@ NUMBER_LIMITS: dict[str, tuple[float, float]] = {
     "temperature_tolerance_c": (0.1, 5.0),
     "temperature_hold_s": (0.0, 3600.0),
     "retention_days": (0, 36500),
+    "camera_exposure_us": (10.0, 1_000_000.0),
 }
 """数值项的允许范围（含两端）。"""
 
@@ -179,6 +189,8 @@ class SettingsDraft:
     retention_days: str
     copyright_holder: str
     encrypt_exports: bool = False
+    camera_exposure_auto: str = ""
+    camera_exposure_us: str = ""
 
     @classmethod
     def from_settings(cls, settings: InstrumentSettings) -> SettingsDraft:
@@ -201,6 +213,10 @@ class SettingsDraft:
             retention_days="" if settings.retention_days is None else str(settings.retention_days),
             copyright_holder=settings.copyright_holder,
             encrypt_exports=settings.encrypt_exports,
+            camera_exposure_auto=settings.camera_exposure_auto,
+            camera_exposure_us=(
+                "" if settings.camera_exposure_us is None else f"{settings.camera_exposure_us:g}"
+            ),
         )
 
 
@@ -272,6 +288,25 @@ def _check_text(name: str, text: str, maximum: int, problems: list[SettingsProbl
     return value
 
 
+def parse_camera_exposure(
+    exposure_auto: str,
+    exposure_us_text: str,
+    problems: list[SettingsProblem],
+    *,
+    lenient_us: bool = False,
+) -> tuple[str, float | None]:
+    """校验相机曝光模式与曝光时间，问题追加到 ``problems``。"""
+    mode = exposure_auto.strip()
+    if mode not in CAMERA_EXPOSURE_AUTO_VALUES:
+        problems.append(SettingsProblem("camera_exposure_auto", SettingsProblemCode.BAD_CHARACTERS))
+        mode = ""
+    exposure_us: float | None = None
+    if exposure_us_text.strip():
+        parsed = _parse_number("camera_exposure_us", exposure_us_text, problems, lenient=lenient_us)
+        exposure_us = None if parsed is None else float(parsed)
+    return mode, exposure_us
+
+
 def parse_draft(
     draft: SettingsDraft,
     *,
@@ -302,7 +337,7 @@ def parse_draft(
     numbers = {
         name: _parse_number(name, getattr(draft, name), problems, lenient=unchanged(name))
         for name in NUMBER_LIMITS
-        if name != "retention_days"
+        if name not in {"retention_days", "camera_exposure_us"}
     }
     retention: int | None = None
     if draft.retention_days.strip():
@@ -318,6 +353,12 @@ def parse_draft(
             path = draft.video_path.strip()
             if not path:
                 problems.append(SettingsProblem("video_path", SettingsProblemCode.REQUIRED))
+    exposure_mode, exposure_us = parse_camera_exposure(
+        draft.camera_exposure_auto,
+        draft.camera_exposure_us,
+        problems,
+        lenient_us=unchanged("camera_exposure_us"),
+    )
     if problems:
         return None, problems
     return (
@@ -332,6 +373,8 @@ def parse_draft(
             retention_days=retention,
             copyright_holder=holder,
             encrypt_exports=draft.encrypt_exports,
+            camera_exposure_auto=exposure_mode,
+            camera_exposure_us=exposure_us,
         ),
         [],
     )
@@ -362,6 +405,8 @@ def settings_of(config: AppConfig) -> InstrumentSettings:
         retention_days=config.retention_days,
         copyright_holder=config.reports.copyright_holder,
         encrypt_exports=config.exports.encrypt,
+        camera_exposure_auto=video.exposure_auto or "",
+        camera_exposure_us=video.exposure_us,
     )
 
 
@@ -389,6 +434,16 @@ def apply_settings(base: AppConfig, settings: InstrumentSettings) -> AppConfig:
             source=settings.video_input.value,
             device=settings.video_path,
             options={"loop": True},  # 试验比一段视频长得多：播完从头再来，不能断流
+        )
+    else:
+        exposure_mode: ExposureAutoMode | None = (
+            cast(ExposureAutoMode, settings.camera_exposure_auto)
+            if settings.camera_exposure_auto
+            else None
+        )
+        video_update.update(
+            exposure_auto=exposure_mode,
+            exposure_us=settings.camera_exposure_us,
         )
     return base.model_copy(
         update={
@@ -422,6 +477,8 @@ class _Overrides(BaseModel):
     retention_days: int | None = Field(ge=0, le=36500)
     copyright_holder: str = Field(min_length=1, max_length=MAX_HOLDER_LENGTH)
     encrypt_exports: bool
+    camera_exposure_auto: ExposureAutoMode | Literal[""]
+    camera_exposure_us: float | None = Field(ge=10.0, le=1_000_000.0)
 
 
 def settings_file(data_dir: Path) -> Path:
@@ -488,6 +545,8 @@ _FILLERS: dict[str, Any] = {
     "retention_days": None,
     "copyright_holder": "x",
     "encrypt_exports": False,
+    "camera_exposure_auto": "",
+    "camera_exposure_us": None,
 }
 """校验用的占位值：让只写了部分项的文件也能过模型的必填检查，占位值不会被返回。"""
 
