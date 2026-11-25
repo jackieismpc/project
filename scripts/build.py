@@ -399,9 +399,28 @@ def install_data(app_dir: Path, staging: Path) -> None:
     text = yaml.safe_dump(config, allow_unicode=True, sort_keys=False)
     (config_dir / "gelinspect.yaml").write_text(text, encoding="utf-8")
     (config_dir / "config.example.yaml").write_text(text, encoding="utf-8")
+    inspection_raw = yaml.safe_load(
+        (ROOT / "simulation" / "config.inspection.yaml").read_text(encoding="utf-8")
+    )
+    if isinstance(inspection_raw, dict):
+        inspection_cfg = {k: v for k, v in inspection_raw.items() if k != "data_dir"}
+        inspection_cfg["security"] = {"key_protection": "auto", "integrity_check": True}
+        (config_dir / "config.inspection.yaml").write_text(
+            yaml.safe_dump(inspection_cfg, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
     simulation_dir = app_dir / "simulation"
     simulation_dir.mkdir(exist_ok=True)
     shutil.copy2(ROOT / "simulation" / "analyzer.example.yaml", simulation_dir)
+    shutil.copy2(ROOT / "simulation" / "analyzer.inspection.yaml", simulation_dir)
+    inspection_src = ROOT / "inspection"
+    if inspection_src.is_dir():
+        shutil.copytree(
+            inspection_src,
+            app_dir / "inspection",
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(".DS_Store", "__pycache__"),
+        )
 
 
 def check_backend_included(app_dir: Path, report: Path) -> None:

@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QApplication, QDialog
 from pytestqt.qtbot import QtBot
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.entities import User
 from gelinspect.domain.enums import Role
 from gelinspect.domain.permissions import Permission
 from gelinspect.domain.permissions import PermissionGroup as G
@@ -93,16 +92,11 @@ def test_disabling_signed_in_user_returns_to_login(
     assert not session.permissions()
 
 
-def test_developer_menu_and_company_permission_are_available_without_default_account(
+def test_developer_menu_and_company_permission_are_available(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
-    assert all(u.role is not Role.DEVELOPER for u in app_context.database.users.list_all())
-    app_context.database.users.add(
-        User("dev", "developer", "开发人员", Role.DEVELOPER),
-        password_hash=app_context.auth.hash_password("Developer-Test1"),
-        must_change_password=False,
-    )
-    window._on_login_submitted("developer", "Developer-Test1")
+    assert any(u.role is Role.DEVELOPER for u in app_context.database.users.list_all())
+    window._on_login_submitted("developer", "12345678")
     settle(qapp)
     assert window.navigate("users") and window.navigate("settings")
     item = next(i for i in window.shell.nav.items() if i.entry.key == "users")

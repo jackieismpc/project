@@ -172,14 +172,7 @@ def test_cannot_disable_yourself(stack: Stack, users: UserService) -> None:
 def test_the_last_admin_cannot_be_disabled_or_demoted_but_a_second_one_allows_it(
     stack: Stack, users: UserService
 ) -> None:
-    from gelinspect.domain.entities import User
-
-    stack.database.users.add(
-        User("dev", "developer", "开发", Role.DEVELOPER),
-        password_hash=stack.auth.hash_password("Dev-Test-Pass1"),
-        must_change_password=False,
-    )
-    dev = stack.auth.login("developer", "Dev-Test-Pass1")
+    dev = stack.auth.login("developer", "12345678")
     admin = stack.database.users.get_by_username("admin")
     assert admin is not None
     assert (

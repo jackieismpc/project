@@ -43,6 +43,3 @@ nuitka-crash-report.xml
 # 文档修订的本地渲染和检查产物
 /docx_revision_qa/
 /data-formal/
-
-# 算法离线检测结果目录（本地联调样本，不纳入版本库）
-/inspection/

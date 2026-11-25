@@ -5,7 +5,6 @@ from dataclasses import replace
 import pytest
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.entities import User
 from gelinspect.domain.enums import Role
 from gelinspect.domain.permissions import PERMISSION_GROUPS, Permission
 from gelinspect.domain.permissions import PermissionGroup as G
@@ -17,11 +16,7 @@ from tests.services.conftest import Stack
 
 
 def developer(stack: Stack) -> Session:
-    user = User("developer-id", "developer", "开发人员", Role.DEVELOPER)
-    stack.database.users.add(
-        user, password_hash=stack.auth.hash_password("Developer-Test1"), must_change_password=False
-    )
-    return stack.auth.login("developer", "Developer-Test1")
+    return stack.auth.login("developer", "12345678")
 
 
 @pytest.mark.parametrize("group", list(G))

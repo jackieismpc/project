@@ -126,7 +126,7 @@ Windows安装追加要求已在代码落实：安装向导始终允许自选位�
 
 - **海康威视 MVS SDK 跨平台自动发现与接入**：新增 `src/gelinspect/infrastructure/video/hikvision_sdk.py` 与 `hikvision_source.py`（`video.source: hikvision`，配置样例 `packaging/config/hikvision.yaml`），移除已过时的空模板 `industrial_template.py`。Mac 与 Windows 部署机均支持自动探测 SDK 动态库并按 `auto`/序列号连接相机；`--diagnose` 新增 `hikvision_sdk` 探测输出。
 - **设置页相机曝光控制**：在“视频输入”卡片仅保留原有三项视频类型，针对配置文件相机模式新增“曝光模式”与“曝光时间（µs）”控制，支持自动保存、审计与实时预览生效（不含增益 dB）。
-- **算法 JSON 协议预适配与 `inspection/` 替换模拟数据**：将 `/inspection/` 加入 `.gitignore`；在 `GelFeatures` 增加 `extra` 扩展字典，新增通用协议适配器 `src/gelinspect/infrastructure/analysis/algorithm_json.py`（含 `tube_inst`/`gel_inst` 空间防错位匹配与 v1/v2 兼容），并提供 `simulation/inspection_replay.py` 与 `simulation/config.inspection.yaml` 用于本地真实样本回放。
+- **算法 JSON 协议预适配与 `inspection/` 替换模拟数据**：在 `GelFeatures` 增加 `extra` 扩展字典，新增通用协议适配器 `src/gelinspect/infrastructure/analysis/algorithm_json.py`（含 `tube_inst`/`gel_inst` 空间防错位匹配与 v1/v2 兼容），并提供 `simulation/inspection_replay.py` 与 `simulation/config.inspection.yaml` 用于本地真实样本回放。开发联调期间临时将 `inspection/` 纳入仓库并由 `scripts/build.py` 一并打包至发布包（生成 `config/config.inspection.yaml` 供直接在设置页选择切换），同时演示模式默认初始化 `developer` 账号（密码 `12345678`）。
 - **待目标机/真机验证**：真实海康相机在 Windows 目标机的实机取流、断流重连与曝光范围标定，以及正式算法模型权重接入后的端到端准确率与节拍验收，仍须在目标硬件环境执行。
 
 ## 需要在目标机器执行：本轮跳过
@@ -152,6 +152,7 @@ Windows安装追加要求已在代码落实：安装向导始终允许自选位�
 ## 交付依赖与待确认动作
 
 - 正式算法、工业相机、控制器、试剂规范和政府平台资料：按待接入文档取得资料后实施适配与验收。
+- **正式发布前清理**：清理临时纳入仓库与打包的 `inspection/` 目录、`config/config.inspection.yaml` 构建复制逻辑，并按交付要求移除或调整演示默认 `developer` 密码初始化。
 - Developer ID、公证、Windows代码签名及正式字体／模型许可来源：需证书、权限及交付方确认，不能由本轮自动化代办或宣称完成。
 - 最终数据重建和账号凭据交付：在现场交付窗口按验收方案执行，本轮不清理业务数据。
 - 数据默认全部保留；设置有限保留天数后，软件对受控诊断文件及符合条件的已完成、未签署实验媒体执行审计清理，保留签署及活动实验。正式交付仍需按现场制度确认保留期限及验收，详见 diagnostics.md。

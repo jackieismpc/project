@@ -260,6 +260,7 @@ def test_default_config_has_fixed_backends_and_initial_accounts(tmp_path: Path) 
             "admin",
             "experimenter",
             "analyst",
+            "developer",
         }
         status = context.device.read_status()
         assert not status.connected  # 启动流程后才连接设备接口
@@ -542,3 +543,21 @@ def test_package_resources_resolve_from_the_package_not_the_working_directory(
     monkeypatch.chdir(tmp_path)
     assert (Path(gelinspect.__file__).parent / "ui" / "assets" / "fonts").is_dir()
     assert runtime_paths.translations_dir().is_dir()
+
+
+def test_build_install_data_bundles_inspection_config_and_samples(tmp_path: Path) -> None:
+    from scripts.build import install_data
+
+    app_dir = tmp_path / "app"
+    staging = tmp_path / "staging"
+    (staging / "translations").mkdir(parents=True)
+    app_dir.mkdir()
+    install_data(app_dir, staging)
+
+    inspection_config = app_dir / "config" / "config.inspection.yaml"
+    assert inspection_config.is_file()
+    assert (app_dir / "simulation" / "analyzer.inspection.yaml").is_file()
+    assert (app_dir / "inspection").is_dir()
+    loaded = load_config(inspection_config, base_dir=app_dir)
+    assert loaded.analysis.backend == "simulation.inspection_replay:InspectionReplayAnalyzer"
+    assert loaded.video.source == "simulation.inspection_replay:InspectionVideoSource"

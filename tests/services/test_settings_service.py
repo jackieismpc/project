@@ -69,10 +69,10 @@ def developer(context: AppContext) -> Session:
     if context.database.users.get_by_username("developer") is None:
         context.database.users.add(
             User("dev", "developer", "开发人员", Role.DEVELOPER),
-            password_hash=context.auth.hash_password("Developer-Test1"),
+            password_hash=context.auth.hash_password("12345678"),
             must_change_password=False,
         )
-    return context.auth.login("developer", "Developer-Test1")
+    return context.auth.login("developer", "12345678")
 
 
 def draft_of(context: AppContext, **changes: object) -> SettingsDraft:

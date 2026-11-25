@@ -13,8 +13,7 @@ from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QApplication, QFileDialog, QSizePolicy
 
 from gelinspect.app_context import AppContext
-from gelinspect.domain.entities import User
-from gelinspect.domain.enums import AuditAction, Role
+from gelinspect.domain.enums import AuditAction
 from gelinspect.infrastructure.video.image_io import write_image
 from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.auth import PermissionDeniedError
@@ -298,12 +297,7 @@ def test_a_bad_video_path_is_explained_next_to_the_path(
 def test_save_persists_audits_and_applies_to_the_runtime(
     qapp: QApplication, window: MainWindow, app_context: AppContext
 ) -> None:
-    app_context.database.users.add(
-        User("dev", "developer", "开发人员", Role.DEVELOPER),
-        password_hash=app_context.auth.hash_password("Developer-Test1"),
-        must_change_password=False,
-    )
-    window._on_login_submitted("developer", "Developer-Test1")
+    window._on_login_submitted("developer", "12345678")
     assert window.navigate("settings")
     page = window.page("settings")
     assert isinstance(page, SettingsPage)

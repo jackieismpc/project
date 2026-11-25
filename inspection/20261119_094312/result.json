@@ -1,0 +1,283 @@
+{
+  "summary": {
+    "total_images": 6,
+    "total_instances": 17,
+    "positive": 3,
+    "negative": 13,
+    "review": 1
+  },
+  "images": [
+    {
+      "stem": "Video_1",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_1/t2.jpg",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_1/t0.jpg",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_1_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 7,
+          "gel_area": 1578,
+          "fill_ratio_t0": 0.2459,
+          "height_norm_t2": 0.4557,
+          "curvature_t2": 0.2278,
+          "t2_instance": 6,
+          "prediction": "negative",
+          "note": "t0占比过小(0.25)，翻转已流失",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst7.png",
+          "x_center": 266.2
+        },
+        {
+          "position": 2,
+          "orig_instance": 6,
+          "gel_area": 1635,
+          "fill_ratio_t0": 0.3936,
+          "height_norm_t2": 0.3684,
+          "curvature_t2": 0.1316,
+          "t2_instance": 5,
+          "prediction": "negative",
+          "note": "t2高度过小(0.37)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst6.png",
+          "x_center": 386.8
+        },
+        {
+          "position": 3,
+          "orig_instance": 2,
+          "gel_area": 1555,
+          "fill_ratio_t0": 0.3847,
+          "height_norm_t2": 0.4167,
+          "curvature_t2": 0.1528,
+          "t2_instance": 7,
+          "prediction": "negative",
+          "note": "t2高度过小(0.42)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst2.png",
+          "x_center": 506.2
+        },
+        {
+          "position": 4,
+          "orig_instance": 1,
+          "gel_area": 1653,
+          "fill_ratio_t0": 0.287,
+          "height_norm_t2": 0.3919,
+          "curvature_t2": 0.0946,
+          "t2_instance": 4,
+          "prediction": "negative",
+          "note": "t2高度过小(0.39)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst1.png",
+          "x_center": 622.2
+        },
+        {
+          "position": 5,
+          "orig_instance": 4,
+          "gel_area": 1885,
+          "fill_ratio_t0": 0.292,
+          "height_norm_t2": 0.4133,
+          "curvature_t2": 0.1333,
+          "t2_instance": 3,
+          "prediction": "negative",
+          "note": "t2高度过小(0.41)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst4.png",
+          "x_center": 722.1
+        },
+        {
+          "position": 6,
+          "orig_instance": 3,
+          "gel_area": 1624,
+          "fill_ratio_t0": 0.3123,
+          "height_norm_t2": 0.4143,
+          "curvature_t2": 0.1143,
+          "t2_instance": 2,
+          "prediction": "negative",
+          "note": "t2高度过小(0.41)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst3.png",
+          "x_center": 826.0
+        },
+        {
+          "position": 7,
+          "orig_instance": 0,
+          "gel_area": 2242,
+          "fill_ratio_t0": 0.4383,
+          "height_norm_t2": 0.4935,
+          "curvature_t2": 0.0909,
+          "t2_instance": 0,
+          "prediction": "positive",
+          "note": "初始量达标，高度合理，底部平整",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst0.png",
+          "x_center": 925.7
+        },
+        {
+          "position": 8,
+          "orig_instance": 5,
+          "gel_area": 1759,
+          "fill_ratio_t0": 0.4344,
+          "height_norm_t2": 0.4521,
+          "curvature_t2": 0.1507,
+          "t2_instance": 1,
+          "prediction": "negative",
+          "note": "t2变形严重(0.15)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_1_t0_gel_inst5.png",
+          "x_center": 1027.9
+        }
+      ]
+    },
+    {
+      "stem": "Video_2",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_2/t2.jpg",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_2/t0.jpg",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_2_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 2688,
+          "fill_ratio_t0": 0.391,
+          "height_norm_t2": 0.4828,
+          "curvature_t2": 0.1379,
+          "t2_instance": 0,
+          "prediction": "negative",
+          "note": "t2变形严重(0.14)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_2_t0_gel_inst0.png",
+          "x_center": 440.3
+        }
+      ]
+    },
+    {
+      "stem": "Video_3",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_3/t2.jpg",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_3/t0.jpg",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_3_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 2,
+          "gel_area": 1803,
+          "fill_ratio_t0": 0.6776,
+          "height_norm_t2": 0.5211,
+          "curvature_t2": 0.169,
+          "t2_instance": 2,
+          "prediction": "negative",
+          "note": "t2变形严重(0.17)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_3_t0_gel_inst2.png",
+          "x_center": 797.4
+        },
+        {
+          "position": 2,
+          "orig_instance": 0,
+          "gel_area": 1655,
+          "fill_ratio_t0": 0.3109,
+          "height_norm_t2": 0.5147,
+          "curvature_t2": 0.1765,
+          "t2_instance": 0,
+          "prediction": "negative",
+          "note": "t2变形严重(0.18)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_3_t0_gel_inst0.png",
+          "x_center": 891.3
+        },
+        {
+          "position": 3,
+          "orig_instance": 1,
+          "gel_area": 1441,
+          "fill_ratio_t0": 0.3145,
+          "height_norm_t2": 0.4583,
+          "curvature_t2": 0.1806,
+          "t2_instance": 1,
+          "prediction": "negative",
+          "note": "t2变形严重(0.18)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_3_t0_gel_inst1.png",
+          "x_center": 983.9
+        }
+      ]
+    },
+    {
+      "stem": "Video_4",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_4/t2.jpg",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_4/t0.jpg",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_4_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 2667,
+          "fill_ratio_t0": 0.3577,
+          "height_norm_t2": 0.4643,
+          "curvature_t2": 0.0833,
+          "t2_instance": 0,
+          "prediction": "positive",
+          "note": "初始量达标，高度合理，底部平整",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_4_t0_gel_inst0.png",
+          "x_center": 461.6
+        },
+        {
+          "position": 2,
+          "orig_instance": 1,
+          "gel_area": 2347,
+          "fill_ratio_t0": 0.418,
+          "height_norm_t2": 0.4868,
+          "curvature_t2": 0.0789,
+          "t2_instance": 2,
+          "prediction": "positive",
+          "note": "初始量达标，高度合理，底部平整",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_4_t0_gel_inst1.png",
+          "x_center": 553.3
+        },
+        {
+          "position": 3,
+          "orig_instance": 2,
+          "gel_area": 2314,
+          "fill_ratio_t0": 0.3986,
+          "height_norm_t2": 0.475,
+          "curvature_t2": 0.1125,
+          "t2_instance": 1,
+          "prediction": "negative",
+          "note": "t2变形严重(0.11)，液面高度符合要求",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_4_t0_gel_inst2.png",
+          "x_center": 637.6
+        }
+      ]
+    },
+    {
+      "stem": "Video_5",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_5/t2.png",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_5/t0.png",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_5_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 2621,
+          "fill_ratio_t0": 0.0,
+          "height_norm_t2": 0.0,
+          "curvature_t2": 0.0,
+          "t2_instance": null,
+          "prediction": "REVIEW",
+          "note": "某一帧未检测到或无法匹配",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_5_t0_gel_inst0.png",
+          "x_center": 447.8
+        }
+      ]
+    },
+    {
+      "stem": "Video_6",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_6/t2.png",
+      "t0_image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/split_output/Video_6/t0.png",
+      "vis_path": "runs/inspection/20261119_094312/vis/Video_6_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 1785,
+          "fill_ratio_t0": 0.4294,
+          "height_norm_t2": 0.4079,
+          "curvature_t2": 0.1579,
+          "t2_instance": 0,
+          "prediction": "negative",
+          "note": "t2高度过小(0.41)，液体摊平",
+          "mask_path": "runs/inspection/20261119_094312/masks/Video_6_t0_gel_inst0.png",
+          "x_center": 478.1
+        }
+      ]
+    }
+  ],
+  "csv_path": "runs/inspection/20261119_094312/judge_result.csv",
+  "sorted_csv_path": "runs/inspection/20261119_094312/judge_result_sorted.csv",
+  "output_dir": "runs/inspection/20261119_094312"
+}

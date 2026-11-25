@@ -1,0 +1,37 @@
+﻿stem,instance,gel_area,prediction,note
+test0001,0,1755,positive,面积高于阈值+缓冲
+test0002,0,1740,positive,面积高于阈值+缓冲
+test0002,1,1420,REVIEW,"面积落在临界区 [1400, 1600]"
+test0003,0,1978,positive,面积高于阈值+缓冲
+test0003,1,1740,positive,面积高于阈值+缓冲
+test0003,2,1371,negative,面积低于阈值-缓冲
+test0004,0,1950,positive,面积高于阈值+缓冲
+test0004,1,1480,REVIEW,"面积落在临界区 [1400, 1600]"
+test0004,2,1738,positive,面积高于阈值+缓冲
+test0004,3,1361,negative,面积低于阈值-缓冲
+test0005,0,1971,positive,面积高于阈值+缓冲
+test0005,1,1730,positive,面积高于阈值+缓冲
+test0005,2,1379,negative,面积低于阈值-缓冲
+test0005,3,1175,negative,面积低于阈值-缓冲
+test0005,4,1306,negative,面积低于阈值-缓冲
+test0006,0,1945,positive,面积高于阈值+缓冲
+test0006,1,1308,negative,面积低于阈值-缓冲
+test0006,2,1739,positive,面积高于阈值+缓冲
+test0006,3,1371,negative,面积低于阈值-缓冲
+test0006,4,1167,negative,面积低于阈值-缓冲
+test0006,5,1302,negative,面积低于阈值-缓冲
+test0007,0,1913,positive,面积高于阈值+缓冲
+test0007,1,1260,negative,面积低于阈值-缓冲
+test0007,2,1228,negative,面积低于阈值-缓冲
+test0007,3,1700,positive,面积高于阈值+缓冲
+test0007,4,1366,negative,面积低于阈值-缓冲
+test0007,5,1165,negative,面积低于阈值-缓冲
+test0007,6,1271,negative,面积低于阈值-缓冲
+test0008,0,1876,positive,面积高于阈值+缓冲
+test0008,1,1277,negative,面积低于阈值-缓冲
+test0008,2,1255,negative,面积低于阈值-缓冲
+test0008,3,1333,negative,面积低于阈值-缓冲
+test0008,4,1804,positive,面积高于阈值+缓冲
+test0008,5,1404,REVIEW,"面积落在临界区 [1400, 1600]"
+test0008,6,1217,negative,面积低于阈值-缓冲
+test0008,7,1213,negative,面积低于阈值-缓冲

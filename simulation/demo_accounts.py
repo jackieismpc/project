@@ -22,7 +22,10 @@ DEMO_ACCOUNTS: tuple[DemoAccount, ...] = (
         frozenset({G.VIEW, G.EXPERIMENT, G.OUTPUT, G.AUDIT}),
     ),
 )
-"""三个角色各一个演示账号。"""
+"""三个角色各一个演示账号（显示在登录页快捷填入列表中）。"""
+
+DEFAULT_DEVELOPER_ACCOUNT = DemoAccount("developer", DEMO_PASSWORD, "开发人员", Role.DEVELOPER)
+"""默认开发账号，随新数据目录初始化，但不显示在登录页快捷填入列表中。"""
 
 
 class DemoAccounts:
@@ -37,12 +40,12 @@ class DemoAccounts:
         return DEMO_ACCOUNTS
 
     def initialize(self, provisioner: AccountProvisioner) -> None:
-        """创建演示账号，已存在的不覆盖。
+        """创建演示账号与默认开发账号，已存在的不覆盖。
 
         Args:
             provisioner: 账号创建接口。
         """
-        for account in DEMO_ACCOUNTS:
+        for account in (*DEMO_ACCOUNTS, DEFAULT_DEVELOPER_ACCOUNT):
             provisioner.create_user(
                 username=account.username,
                 display_name=account.display_name,

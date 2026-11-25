@@ -18,13 +18,15 @@ uv run gelinspect
 | `admin` | `12345678` | 管理员 |
 | `experimenter` | `12345678` | 实验与结果处理 |
 | `analyst` | `12345678` | 查看、实验与结果处理、输出、审计 |
-| `developer`（需下述命令创建） | 创建时自行输入，无默认密码 | 全部权限，包括版权方配置 |
+| `developer` | `12345678` | 全部权限，包括版权方配置（随新数据目录自动创建，不显示在登录页快捷填入与普通用户管理列表中） |
 
 已有目录保留原账号及数据。普通用户按六组授权，实验操作、复核和签署属于同一组；服务层重新检查权限。维护身份的受控初始化见待接入文档。
 
 ### 开发人员账号与权限测试
 
-开发人员账号不随三个演示账号自动创建，也不在普通用户管理列表中显示。关闭软件后，在源码目录对**实际要登录的数据目录**执行一次：
+演示模式下新数据目录首次初始化会自动创建 `developer` 账号，初始密码为 `12345678`（不会显示在登录页快捷填入卡片中，也不会出现在普通用户管理列表里）。
+
+若为无 `DemoAccounts` 初始化钩子的正式环境，或已在旧数据目录中缺少 `developer` 账号，可先关闭软件，再对**实际要登录的数据目录**执行一次受控创建工具：
 
 ```powershell
 # 测试安装后的Windows程序：使用实际安装目录及当前数据目录
@@ -55,6 +57,25 @@ uv run python scripts/build.py
 自定义配置为完整配置，不与默认替代后端隐式合并。发行构建及产物测试仅在目标机执行，Mac开发环境本轮不构建。构建采用Nuitka目录模式：Windows输出EXE目录及ZIP，macOS输出APP及DMG（无hdiutil时为ZIP）；构建报告为`dist/build-report.json`。配置样例在`simulation/config.example.yaml`、`simulation/config.inspection.yaml`（本地`inspection/`真实算法样本回放）、`packaging/config/hikvision.yaml`（海康工业相机现场配置）和`packaging/config/release.yaml`。`--diagnose`同时输出海康MVS SDK跨平台自动发现状态（`hikvision_sdk`）。目标平台验证和正式签名状态以未完成任务文档为准。
 
 默认后端的接入边界、正式算法／设备／试剂接口需求见[待接入文档](docs/internal-integration-checklist.md)，不能用合成测试证明真实检测准确率和整机节拍。
+
+### 使用 `inspection/` 真实算法样本回放
+
+> 注意：设置页中的 **“视频输入 → 图片模式”**（`images`）仅用指定文件夹的图片替换摄像头视频帧，判读仍运行默认模拟算法 `MockAnalyzer`；若要同时使用 `inspection/` 中的真实算法结果 JSON、掩码和拼接图进行全流程联调，必须通过配置启用成对的 `InspectionVideoSource` 与 `InspectionReplayAnalyzer`。
+>
+> 当前开发阶段，`inspection/` 已临时纳入仓库，并在 `scripts/build.py` 编译打包时自动打包进发布包目录，同时生成 `config/config.inspection.yaml` 供直接切换（正式版本发布前将统一清理）。
+
+1. **源码开发运行**：直接指定回放配置启动：
+
+   ```bash
+   uv run gelinspect --config simulation/config.inspection.yaml
+   ```
+
+2. **编译打包后运行（最简便方式）**：
+   - 打开软件 → 进入 **设置 → 启动配置与数据目录 → 配置文件**；
+   - 选择程序安装目录下的 `config/config.inspection.yaml`（“检测配置文件（可选）”留空或选择 `simulation/analyzer.inspection.yaml`）；
+   - 关闭并重启软件，即可直接加载随包打包的 `inspection/` 样本进行全流程联调。
+   - 如需切回默认模拟数据：清空设置页中的“配置文件”或改选 `config/gelinspect.yaml` 后重启。
+   - 也支持命令行直接启动：`& "C:\...\GelInspect.exe" --config "C:\...\config\config.inspection.yaml"`；若需在外部使用独立更新的 `inspection/` 目录，可参考 `simulation/config.inspection.yaml` 在外部新建配置文件并将 `analysis.options.inspection_dir` 与 `video.options.inspection_dir` 指向该目录（**不要**直接修改安装目录下的文件，以免触发完整性校验）。
 
 ## 当前操作约定
 

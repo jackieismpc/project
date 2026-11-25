@@ -1,0 +1,396 @@
+{
+  "summary": {
+    "total_images": 8,
+    "total_instances": 36,
+    "positive": 14,
+    "negative": 19,
+    "review": 3,
+    "threshold": 1500,
+    "buffer": 100
+  },
+  "images": [
+    {
+      "stem": "test0001",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0001.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0001_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 1755,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0001_gel_inst0.png",
+          "x_center": 323.4
+        }
+      ]
+    },
+    {
+      "stem": "test0002",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0002.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0002_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 0,
+          "gel_area": 1740,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0002_gel_inst0.png",
+          "x_center": 323.3
+        },
+        {
+          "position": 2,
+          "orig_instance": 1,
+          "gel_area": 1420,
+          "prediction": "REVIEW",
+          "note": "面积落在临界区 [1400, 1600]",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0002_gel_inst1.png",
+          "x_center": 425.9
+        }
+      ]
+    },
+    {
+      "stem": "test0003",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0003.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0003_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 1,
+          "gel_area": 1740,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0003_gel_inst1.png",
+          "x_center": 323.3
+        },
+        {
+          "position": 2,
+          "orig_instance": 2,
+          "gel_area": 1371,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0003_gel_inst2.png",
+          "x_center": 425.7
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1978,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0003_gel_inst0.png",
+          "x_center": 540.2
+        }
+      ]
+    },
+    {
+      "stem": "test0004",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0004.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0004_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 2,
+          "gel_area": 1738,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0004_gel_inst2.png",
+          "x_center": 322.8
+        },
+        {
+          "position": 2,
+          "orig_instance": 3,
+          "gel_area": 1361,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0004_gel_inst3.png",
+          "x_center": 425.6
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1950,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0004_gel_inst0.png",
+          "x_center": 540.0
+        },
+        {
+          "position": 4,
+          "orig_instance": 1,
+          "gel_area": 1480,
+          "prediction": "REVIEW",
+          "note": "面积落在临界区 [1400, 1600]",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0004_gel_inst1.png",
+          "x_center": 649.1
+        }
+      ]
+    },
+    {
+      "stem": "test0005",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0005.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0005_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 1,
+          "gel_area": 1730,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0005_gel_inst1.png",
+          "x_center": 323.5
+        },
+        {
+          "position": 2,
+          "orig_instance": 4,
+          "gel_area": 1306,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0005_gel_inst4.png",
+          "x_center": 427.0
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1971,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0005_gel_inst0.png",
+          "x_center": 540.0
+        },
+        {
+          "position": 4,
+          "orig_instance": 2,
+          "gel_area": 1379,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0005_gel_inst2.png",
+          "x_center": 648.2
+        },
+        {
+          "position": 5,
+          "orig_instance": 3,
+          "gel_area": 1175,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0005_gel_inst3.png",
+          "x_center": 731.5
+        }
+      ]
+    },
+    {
+      "stem": "test0006",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0006.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0006_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 2,
+          "gel_area": 1739,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst2.png",
+          "x_center": 323.3
+        },
+        {
+          "position": 2,
+          "orig_instance": 5,
+          "gel_area": 1302,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst5.png",
+          "x_center": 426.9
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1945,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst0.png",
+          "x_center": 540.1
+        },
+        {
+          "position": 4,
+          "orig_instance": 3,
+          "gel_area": 1371,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst3.png",
+          "x_center": 648.3
+        },
+        {
+          "position": 5,
+          "orig_instance": 4,
+          "gel_area": 1167,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst4.png",
+          "x_center": 731.3
+        },
+        {
+          "position": 6,
+          "orig_instance": 1,
+          "gel_area": 1308,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0006_gel_inst1.png",
+          "x_center": 830.1
+        }
+      ]
+    },
+    {
+      "stem": "test0007",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0007.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0007_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 3,
+          "gel_area": 1700,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst3.png",
+          "x_center": 324.4
+        },
+        {
+          "position": 2,
+          "orig_instance": 6,
+          "gel_area": 1271,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst6.png",
+          "x_center": 427.4
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1913,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst0.png",
+          "x_center": 539.8
+        },
+        {
+          "position": 4,
+          "orig_instance": 4,
+          "gel_area": 1366,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst4.png",
+          "x_center": 648.2
+        },
+        {
+          "position": 5,
+          "orig_instance": 5,
+          "gel_area": 1165,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst5.png",
+          "x_center": 731.2
+        },
+        {
+          "position": 6,
+          "orig_instance": 1,
+          "gel_area": 1260,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst1.png",
+          "x_center": 829.7
+        },
+        {
+          "position": 7,
+          "orig_instance": 2,
+          "gel_area": 1228,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0007_gel_inst2.png",
+          "x_center": 956.5
+        }
+      ]
+    },
+    {
+      "stem": "test0008",
+      "image_path": "/data/users/jiawenshen/ultralytics-yolov8-seg/dataset/test/test0008.jpg",
+      "vis_path": "runs/inspection/20261105_205508/vis/test0008_judge.jpg",
+      "instances": [
+        {
+          "position": 1,
+          "orig_instance": 4,
+          "gel_area": 1804,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst4.png",
+          "x_center": 325.9
+        },
+        {
+          "position": 2,
+          "orig_instance": 7,
+          "gel_area": 1213,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst7.png",
+          "x_center": 429.1
+        },
+        {
+          "position": 3,
+          "orig_instance": 0,
+          "gel_area": 1876,
+          "prediction": "positive",
+          "note": "面积高于阈值+缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst0.png",
+          "x_center": 541.0
+        },
+        {
+          "position": 4,
+          "orig_instance": 5,
+          "gel_area": 1404,
+          "prediction": "REVIEW",
+          "note": "面积落在临界区 [1400, 1600]",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst5.png",
+          "x_center": 649.1
+        },
+        {
+          "position": 5,
+          "orig_instance": 6,
+          "gel_area": 1217,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst6.png",
+          "x_center": 733.9
+        },
+        {
+          "position": 6,
+          "orig_instance": 1,
+          "gel_area": 1277,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst1.png",
+          "x_center": 831.2
+        },
+        {
+          "position": 7,
+          "orig_instance": 2,
+          "gel_area": 1255,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst2.png",
+          "x_center": 957.9
+        },
+        {
+          "position": 8,
+          "orig_instance": 3,
+          "gel_area": 1333,
+          "prediction": "negative",
+          "note": "面积低于阈值-缓冲",
+          "mask_path": "runs/inspection/20261105_205508/masks/test0008_gel_inst3.png",
+          "x_center": 1046.6
+        }
+      ]
+    }
+  ],
+  "csv_path": "runs/inspection/20261105_205508/judge_result.csv",
+  "sorted_csv_path": "runs/inspection/20261105_205508/judge_result_sorted.csv",
+  "output_dir": "runs/inspection/20261105_205508"
+}

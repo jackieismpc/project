@@ -39,7 +39,7 @@
 - `prediction` 映射：`positive` → `OK + FULLY_GELLED`；`negative` → `OK + NOT_GELLED`；`REVIEW`（复核区间）→ `OK + PARTIALLY_GELLED`；`REVIEW` 且 `t2_instance is None`（缺帧/未匹配）→ `GEL_MISSING + state=None`（严格将缺失侧特征置 `None`）。
 - 掩码匹配：算法端 YOLO 独立检出的 `tube_inst` 与 `gel_inst` 序号不一定一致，适配器按空间包含率与 x 质心距离为每个凝胶掩码匹配对应的试管掩码。
 - 扩展特征保留：`fill_ratio_t0`、`height_norm_t2`、`curvature_t2`、`fill_score`、`height_score`、`flatness_score`、`x_center`、`raw_prediction` 等写入 `GelFeatures.extra` 随结果入库和诊断包归档。
-- 本地 `inspection/`（已加入 `.gitignore`）可通过 `uv run gelinspect --config simulation/config.inspection.yaml` 回放，支持 `best_fit` / `sequential` 排号映射与 `tube_not_found` / `cycle` 缺失策略。
+- 本地 `inspection/`（当前临时纳入仓库并随 `scripts/build.py` 一起打包，正式版本发布前统一清理）可通过 `uv run gelinspect --config simulation/config.inspection.yaml` 回放，编译打包后可在设置页选择安装目录下的 `config/config.inspection.yaml` 切换，支持 `best_fit` / `sequential` 排号映射与 `tube_not_found` / `cycle` 缺失策略。
 
 ## 3. 检测方法与验收输入
 
@@ -53,7 +53,7 @@
 
 后端按`包.模块:类名`配置，构造函数不连接设备或加载模型，耗时资源在协议的`connect/open/load`中取得。自定义配置为完整配置，不与替代默认值隐式合并。参考`simulation/config.example.yaml`及`packaging/config/release.yaml`，真实参数必须由交付方核对。
 
-维护账号仅通过受控工具初始化，无默认密码：先关闭软件，再运行`uv run python scripts/provision_developer.py --data-dir /absolute/path/to/data`。工具交互输入密码，不放入参数、环境变量或日志，不覆盖已有维护账号。内部维护身份不能由普通账号管理查询或修改，历史审计不改写。
+演示模式下新数据目录首次初始化会自动创建 `developer` 账号（默认密码 `12345678`）。无 `DemoAccounts` 钩子的正式交付环境或已有数据目录仍使用受控初始化工具：先关闭软件，再运行`uv run python scripts/provision_developer.py --data-dir /absolute/path/to/data`。工具交互输入密码，不放入参数、环境变量或日志，不覆盖已有维护账号。内部维护身份不能由普通账号管理查询或修改，历史审计不改写。
 
 备份必须在关闭软件后复制完整数据目录，包括数据库、媒体、报告及`keys/`。DPAPI和钥匙串保护与电脑／系统用户绑定，跨机器迁移前须在原环境按部署方案转换密钥保护并验证恢复；不能只复制数据库。签署输出使用同目录硬链接实现原子不覆盖，现场报告目录须支持该能力且可写；不支持时服务拒绝签署并回滚，不覆盖既有文件。默认不自动删除历史日志和业务数据。分发包不得包含签名私钥、现场凭据或工作数据。
 
