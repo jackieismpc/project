@@ -1,0 +1,42 @@
+# 正式现场运行配置：海康威视 MVS 工业相机 + YOLOv8-Seg ONNX 真实算法。
+# 当前机械控制仍由 SimDevice（time_scale: 1）占位，下位机协议到位后仅需替换 device.backend。
+data_dir: "data"
+
+analysis:
+  backend: "gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer"
+  config_path: "packaging/config/analyzer.yolo_onnx.yaml"
+  timeout_ms: 5000
+
+video:
+  source: "hikvision"        # 海康威视 MVS SDK（Mac/Windows 自动发现）
+  device: "auto"             # "auto" 自动连接首台在线相机，或填相机序列号 / IP / 自定义名称
+  fps: 15
+  exposure_auto: "off"       # off（手动）| once（单次自动）| continuous（连续自动）
+  exposure_us: 5000          # 手动曝光时间（微秒），可在设置页直接调整
+  snapshot:
+    settle_s: 0.0            # 翻转刚结束即抓第 1 帧 (t0)
+    after_span_s: 2.0        # 跨度 2 秒抓第 3 帧 (t2)，与 gel_inspection 一致
+    wait_timeout_s: 15.0
+
+device:
+  backend: "simulation.sim_device:SimDevice"
+  options:
+    time_scale: 1.0
+    tray_duration_s: 1.0
+    flip_duration_s: 3.0
+    settle_duration_s: 2.0
+
+engine:
+  incubation_minutes: 60
+  time_scale: 1              # 真实设备必须为 1
+
+bootstrap:
+  hook: "simulation.demo_accounts:DemoAccounts"
+
+traceability:
+  parser:
+    backend: "simulation.reagents:SimReagentCodeParser"
+  registry:
+    backend: "simulation.reagents:SimReagentRegistry"
+  government:
+    backend: "simulation.reagents:SimTraceabilityClient"

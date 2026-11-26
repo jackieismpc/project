@@ -326,7 +326,9 @@ class InspectionVideoSource:
         img_res = self._dataset.select_image(snapshot.row_index, tube_count)
         media = self._dataset.prepare_media(img_res, (self._height, self._width))
         frame_img = (
-            media.before_image.copy() if snapshot.flip_phase < 0.5 else media.after_image.copy()
+            media.before_image.copy()
+            if snapshot.flip_phase < 0.5 or snapshot.settle < 0.5
+            else media.after_image.copy()
         )
         # 极轻量角点微调：防止静态图像触发视频管线的冻结帧检测，不影响试管区域。
         frame_img[-2:, -2:, :] = np.uint8((self._sequence % 2) * 3)

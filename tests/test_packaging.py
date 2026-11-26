@@ -561,3 +561,15 @@ def test_build_install_data_bundles_inspection_config_and_samples(tmp_path: Path
     loaded = load_config(inspection_config, base_dir=app_dir)
     assert loaded.analysis.backend == "simulation.inspection_replay:InspectionReplayAnalyzer"
     assert loaded.video.source == "simulation.inspection_replay:InspectionVideoSource"
+
+    # 默认 gelinspect.yaml 保持模拟配置，同时生成可手动切换的 production.yaml / hikvision.yaml
+    default_cfg = load_config(app_dir / "config" / "gelinspect.yaml", base_dir=app_dir)
+    assert default_cfg.analysis.backend == "simulation.mock_analyzer:MockAnalyzer"
+
+    prod_cfg = load_config(app_dir / "config" / "production.yaml", base_dir=app_dir)
+    assert (
+        prod_cfg.analysis.backend == "gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer"
+    )
+    assert prod_cfg.video.source == "hikvision"
+    assert prod_cfg.video.snapshot.after_span_s == 2.0
+    assert (app_dir / "config" / "analyzer.yolo_onnx.yaml").is_file()

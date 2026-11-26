@@ -1,0 +1,29 @@
+# YoloOnnxAnalyzer 正式算法配置文件（对应 yolov8seg_tubegel/gel_inspection ONNX 推理与三特征加权判读）
+model_path: "ckpt/gel-seg-v1.onnx"
+model_version: "gel-seg-v1"
+config_version: "yolo-onnx-v1"
+
+# post_flip_span: 实机默认，使用翻转后首帧 (t0=0s) 与末帧 (t2=+2s) 判读（需配合 snapshot.after_span_s: 2.0）
+# before_after: 兼容离线图片序列或旧回放，使用翻转前末帧与翻转后末帧判读
+frame_pair_mode: "post_flip_span"
+slot_mapping: "order"   # order（按检出从左到右对应孔位）| grid（按校准位置映射 1–8 孔）
+reverse_x: false
+
+segment:
+  conf: 0.6
+  nms_iou: 0.7
+  iou_dup_thres: 0.7
+  min_area_ratio: 0.0005
+  device: "auto"        # auto（Linux/CUDA 可用时优先 GPU，否则自动回退 CPU）| cpu
+
+scoring:
+  fill_weight: 0.2
+  height_weight: 0.4
+  flatness_weight: 0.4
+  score_threshold: 0.6
+  score_review_buffer: 0.005
+  fill_full_score_at: 0.1
+  height_full_score_range: [0.45, 0.55]
+  height_zero_score_at: [0.25, 0.75]
+  curvature_zero_score_at: 0.15
+  max_x_dist: 120.0

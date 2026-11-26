@@ -151,3 +151,55 @@ def test_new_pages_speak_english_when_switched(
     language.set_language(Language.ZH_CN, persist=False)
     settle(qapp, 8)
     assert detail.title.text() == "1 号管" and detail.positive_button.text() == "判为阳性"
+
+
+def test_tube_detail_page_shows_t0_t2_captions_for_post_flip_span_mode(
+    qapp: QApplication, fast_window: MainWindow, fast_context: AppContext
+) -> None:
+
+    from typing import Any
+
+    from gelinspect.domain.entities import TubeResult
+    from gelinspect.domain.enums import (
+        GelState,
+        Interpretation,
+        ReviewStatus,
+        TubeAnalysisStatus,
+    )
+
+    window = fast_window
+    monitor = start_sensitivity(qapp, window)
+    experiment_id = monitor.experiment_id
+    assert experiment_id is not None
+    wait_finished(qapp, fast_context)
+    assert wait_for(qapp, lambda: monitor.view_model is not None and not monitor.view_model.live)
+    exp = fast_context.database.experiments.get(experiment_id)
+    assert exp is not None
+    first_tube = exp.assignments[0].tube_no
+    features: dict[str, Any] = {
+        "flip_angle_deg": 180.0,
+        "extra": {"frame_pair_mode": "post_flip_span", "t0_t2_span_s": 2.0},
+    }
+    result = TubeResult(
+        tube_no=first_tube,
+        analysis_status=TubeAnalysisStatus.OK,
+        gel_state=GelState.FULLY_GELLED,
+        auto_interpretation=Interpretation.POSITIVE,
+        review_status=ReviewStatus.PENDING,
+        score=0.9,
+        confidence=0.95,
+        features=features,
+        model_version="gel-seg-v1",
+        config_version="yolo-onnx-v1",
+        elapsed_ms=120.0,
+    )
+    with fast_context.database.unit_of_work() as uow:
+        uow.experiments.save_results(experiment_id, [result])
+
+    assert window.open_tube(experiment_id, first_tube)
+    detail = window.page("tube")
+    assert isinstance(detail, TubeDetailPage)
+    settle(qapp)
+    assert "翻转后 t0" in detail.before_caption.text()
+    assert "翻转后 t2" in detail.after_caption.text()
+    assert "t0→t2" in detail.sequence_caption.text()

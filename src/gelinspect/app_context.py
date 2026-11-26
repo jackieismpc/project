@@ -73,7 +73,7 @@ from gelinspect.services.reagent_service import ReagentService
 from gelinspect.services.reporting.keystore import KeyStoreError, LocalKeyStore
 from gelinspect.services.reporting.report_service import ReportService
 from gelinspect.services.review_service import ReviewService
-from gelinspect.services.settings_service import InstrumentSettingsService
+from gelinspect.services.settings_service import InstrumentSettingsService, VideoProbe, _shrink
 from gelinspect.services.template_service import TemplateService
 from gelinspect.services.user_service import UserService
 from gelinspect.services.user_settings import apply_overrides, load_overrides, settings_file
@@ -333,6 +333,23 @@ class _RuntimeApplier:
             self._context.video_source = source
 
 
+def _probe_running_pipeline(pipeline: VideoPipeline) -> VideoProbe | None:
+    if not pipeline.is_running:
+        return None
+    info = pipeline.info
+    if info is None:
+        return None
+    latest = pipeline.buffer.latest()
+    return VideoProbe(
+        width=info.width,
+        height=info.height,
+        fps=info.fps,
+        frame_count=info.frame_count,
+        description=info.description,
+        frame=None if latest is None else _shrink(latest.image),
+    )
+
+
 def _create_video_source(config: AppConfig) -> VideoSource:
     spec = config.video.source
     try:
@@ -562,6 +579,7 @@ def _assemble_app_context(
             effective_config=settings,
             apply=applier.apply,
             source_factory=create_video_source,
+            live_probe=lambda: _probe_running_pipeline(pipeline),
             clock=clock,
         ),
         base_config=base_config,

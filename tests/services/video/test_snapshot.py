@@ -338,3 +338,35 @@ def test_stop_cancels_waiting_grab(tmp_path: Path, no_thread_leak: None) -> None
     threading.Timer(0.2, pipeline.stop).start()
     with pytest.raises(InsufficientFramesError, match="管线已停止"):
         future.result(5)
+
+
+def test_spanned_after_grab_captures_t0_and_t2_with_no_pin_leak(
+    tmp_path: Path, no_thread_leak: None
+) -> None:
+    cfg = make_config(tmp_path).model_copy(
+        update={
+            "snapshot": SnapshotConfig(
+                frames_per_side=3,
+                settle_s=0.0,
+                after_span_s=1.0,
+                wait_timeout_s=5.0,
+                io_workers=2,
+            )
+        }
+    )
+    pipeline = VideoPipeline(FakeSource(interval_s=0.001), cfg)
+    pipeline.start()
+    try:
+        wait_for_sequence(pipeline, 60)
+        pipeline.mark_flip_start(FLIP_START, 1)
+        snap = pipeline.grab(1, 3, experiment_id="EXP-SPAN", flip_completed_at=FLIP_END)
+        assert len(snap.frames_before) == 3
+        assert len(snap.frames_after) == 3
+        span_s = (
+            snap.frames_after[-1].captured_at - snap.frames_after[0].captured_at
+        ).total_seconds()
+        assert span_s >= 0.99
+        assert numbers(snap.frames_after) == [70, 75, 80]
+        assert pipeline.buffer.stats().pins == 0
+    finally:
+        pipeline.stop()

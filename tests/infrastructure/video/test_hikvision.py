@@ -298,3 +298,19 @@ def test_hikvision_source_selects_by_serial_and_rejects_bad_exposure() -> None:
 
     with pytest.raises(VideoOpenError, match="超出相机范围"):
         source.open(VideoConfig(device="auto", exposure_auto="off", exposure_us=999999.0))
+
+
+def test_hikvision_source_clamps_fps_when_exceeding_exposure_limit() -> None:
+    lib = _FakeMvsLibrary()
+    # _FakeMvsLibrary 中 AcquisitionFrameRate 范围是 [1.0, 60.0]
+    source = HikvisionCameraSource(sdk_loader=_loader_for(lib))
+    info = source.open(
+        VideoConfig(device="auto", fps=120.0, exposure_auto="off", exposure_us=8000.0)
+    )
+    assert info.is_live is True
+    assert ("AcquisitionFrameRate", 60.0) in lib.set_calls
+    # 曝光应在帧率之前下发
+    exp_idx = next(i for i, (k, _) in enumerate(lib.set_calls) if k == "ExposureTime")
+    fps_idx = next(i for i, (k, _) in enumerate(lib.set_calls) if k == "AcquisitionFrameRate")
+    assert exp_idx < fps_idx
+    source.close()

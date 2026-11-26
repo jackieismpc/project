@@ -4863,6 +4863,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>翻转后 t0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>翻转后 t2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3帧序列：翻转前3帧、翻转后3帧（t0→t2）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>判读过程</source>
         <translation type="unfinished"></translation>
     </message>

@@ -141,12 +141,16 @@ def test_inspection_video_source_splits_before_and_after(tmp_path: Path) -> None
 
     scene.set(row_index=1, flipped=False)
     before = source.read()
-    scene.set(row_index=1, flipped=True)
+    scene.set(row_index=1, flipped=True, settled=False)
+    t0_frame = source.read()
+    scene.set(row_index=1, flipped=True, settled=True)
     after = source.read()
-    assert before is not None and after is not None
+    assert before is not None and t0_frame is not None and after is not None
     assert before.image.shape == (200, 320, 3)
+    assert t0_frame.image.shape == (200, 320, 3)
     assert after.image.shape == (200, 320, 3)
     assert before.image[100, 160, 0] == 40
+    assert t0_frame.image[100, 160, 0] == 40
     assert after.image[100, 160, 0] == 80
     source.close()
 

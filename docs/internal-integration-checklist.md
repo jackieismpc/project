@@ -10,7 +10,7 @@
 |---|---|---|
 | 设备控制 | `interfaces/device.py`；模板`infrastructure/device/adapter_template.py`；当前`simulation/sim_device.py` | 控制器型号、通信协议、动作／状态／故障码、急停与门禁、超时重试和恢复边界；真实机械翻转、温控与运动由硬件／下位团队负责 |
 | 工业相机 | `interfaces/video.py`；已实现海康威视 MVS 适配器 `infrastructure/video/hikvision_sdk.py` + `hikvision_source.py`（别名 `hikvision`，配置样例 `packaging/config/hikvision.yaml`）；默认替代实现仍为 `simulation/sim_video.py` | 现场真机（镜头／照明／序列号或 `auto`）、触发与曝光参数标定、成像坐标、分辨率、时钟同步；在目标 Windows 机验收断流、重连、掉帧、抓拍、录像与长时运行 |
-| 判读算法 | `interfaces/analysis.py`；模板 `infrastructure/analysis/adapter_template.py`；通用 JSON 协议适配 `infrastructure/analysis/algorithm_json.py`；`inspection/` 离线回放 `simulation/inspection_replay.py`；默认模拟 `simulation/mock_analyzer.py` | 正式算法包、模型和阈值版本、真实标定／验证数据、异常契约和性能；下文保留详细契约、JSON 协议字段映射及可执行最小示例 |
+| 判读算法 | `interfaces/analysis.py`；已实现 ONNX Runtime YOLOv8-seg 推理后端 `infrastructure/analysis/yolo_onnx.py` + `gel_inspection_core.py`（别名 `yolo_onnx`，配置样例 `packaging/config/production.yaml`、`packaging/config/analyzer.yolo_onnx.yaml`，配合 `post_flip_span` + `after_span_s` 获取 `t0`/`t2` 帧对）；通用 JSON 协议适配 `infrastructure/analysis/algorithm_json.py`；`inspection/` 离线回放 `simulation/inspection_replay.py`；默认模拟 `simulation/mock_analyzer.py` | 目标部署机手动放置 `ckpt/gel-seg-v1.onnx`（Windows GPU 可选安装 `onnxruntime-gpu`），结合真机现场样本标定 `after_span_s` 窗口及特征阈值，并完成端到端准确率与节拍验收 |
 | 试剂与政府接口 | `interfaces/traceability.py`；当前`simulation/reagents.py` | 正式编码规范、可信产品／备案数据、鉴权、网络接口、撤销／过期／不可用处理；在资料与授权到位前不声称已连接真实政府平台 |
 | 检测规程与报告 | `domain/templates.py`及报告服务 | 实际检测方法、管位、复试方式由使用人员确定；内置模板仅作起点，软件不按固定药典布局自动作整次实验合规判定。验收逐管结果、人工复核和报告字段 |
 | 现场账号和数据 | 当前新数据目录按配置初始化，原数据目录保留账号 | 现场名单及权限、初始凭据交付／轮换、备份恢复、存储位置及保留期；最终清库／重建必须在交付窗口确认，不在本轮执行 |

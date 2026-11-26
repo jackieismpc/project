@@ -544,6 +544,19 @@ def describe_integrity_failure(report: IntegrityReport) -> StartupFailure:
     )
 
 
+def _probe_onnxruntime() -> dict[str, object]:
+    try:
+        import onnxruntime as ort
+    except Exception as exc:
+        return {"available": False, "version": None, "providers": [], "error": str(exc)}
+    return {
+        "available": True,
+        "version": str(getattr(ort, "__version__", "")),
+        "providers": list(ort.get_available_providers()),
+        "error": None,
+    }
+
+
 def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> dict[str, object]:
     """不启动界面，报告运行模式、路径和完整性校验结果（``--diagnose``，打包验证和排错用）。
 
@@ -567,6 +580,7 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
         "config_file": str(config_path or default_config_file() or "<DEFAULT_CONFIG>"),
         "simulation_importable": importlib.util.find_spec("simulation") is not None,
         "hikvision_sdk": probe_hikvision_sdk(),
+        "onnxruntime": _probe_onnxruntime(),
     }
     try:
         config = load_config(config_path)
@@ -575,6 +589,26 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
         result["data_dir"] = str(config.data_dir)
         result["bootstrap_hook"] = config.bootstrap.hook
         result["device_backend"] = config.device.backend
+        result["video_source"] = config.video.source
+        result["analysis_backend"] = config.analysis.backend
+        result["analysis_config_path"] = (
+            None if config.analysis.config_path is None else str(config.analysis.config_path)
+        )
+        if "yolo_onnx" in config.analysis.backend:
+            from gelinspect.infrastructure.analysis.yolo_onnx import resolve_model_path
+
+            raw_model: str | None = None
+            if config.analysis.config_path is not None:
+                loaded_algo = yaml.safe_load(
+                    config.analysis.config_path.read_text(encoding="utf-8")
+                )
+                if isinstance(loaded_algo, dict) and isinstance(loaded_algo.get("model_path"), str):
+                    raw_model = loaded_algo["model_path"]
+            model_file = resolve_model_path(raw_model, config.analysis.config_path)
+            result["analysis_model"] = {
+                "path": str(model_file),
+                "exists": model_file.is_file(),
+            }
         report = check_program_integrity(config)
         result["integrity"] = {
             "status": report.status.value,

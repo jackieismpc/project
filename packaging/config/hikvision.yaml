@@ -1,11 +1,11 @@
-# 海康威视工业相机现场部署配置样例（需配合真实设备控制器与正式算法后端使用）。
-# 如需在开发机单独验证海康相机，可临时把 device / analysis / traceability 指向模拟或实机后端。
+# 海康威视工业相机现场部署配置（已接入真实 YOLOv8-Seg ONNX 算法后端）。
+# 如需在开发机使用模拟设备联调，可直接用本配置启动；下位机控制器到位后仅需替换 device.backend。
 data_dir: "data"
 
 analysis:
-  backend: "simulation.mock_analyzer:MockAnalyzer"
-  config_path: "simulation/analyzer.example.yaml"
-  timeout_ms: 2000
+  backend: "gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer"
+  config_path: "packaging/config/analyzer.yolo_onnx.yaml"
+  timeout_ms: 5000
 
 video:
   source: "hikvision"        # 使用海康威视 MVS SDK（Mac/Windows 自动发现）
@@ -15,11 +15,20 @@ video:
   fps: 15
   exposure_auto: "off"       # off（手动）| once（单次自动）| continuous（连续自动）
   exposure_us: 5000          # 手动曝光时间（微秒），可在设置页直接调整
+  snapshot:
+    settle_s: 0.0
+    after_span_s: 2.0
+    wait_timeout_s: 15.0
   # options:
   #   sdk_path: ""           # 可选：显式覆盖 MVS SDK 路径（一般无需填写）
 
 device:
   backend: "simulation.sim_device:SimDevice"
+  options:
+    time_scale: 1.0
+    tray_duration_s: 1.0
+    flip_duration_s: 3.0
+    settle_duration_s: 2.0
 
 engine:
   incubation_minutes: 60

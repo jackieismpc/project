@@ -40,6 +40,13 @@ nuitka-crash-report.xml
 # 算法仓库（独立 git 仓库，本地 clone，不纳入本仓库）
 /yolov8seg_tubegel/
 
+# 模型权重（体积大，本地存放，目标机手工拷贝，不纳入版本库）
+/ckpt/
+
+# 临时输出与编辑器工作目录
+/output/
+/.workbuddy/
+
 # 文档修订的本地渲染和检查产物
 /docx_revision_qa/
 /data-formal/

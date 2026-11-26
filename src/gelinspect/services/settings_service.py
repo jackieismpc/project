@@ -73,6 +73,9 @@ RuntimeApplier = Callable[[AppConfig], None]
 SourceFactory = Callable[[str, Mapping[str, Any]], VideoSource]
 """按类路径或别名创建视频源（尚未打开）。由组装根提供，服务层不导入具体实现。"""
 
+LiveProbe = Callable[[], "VideoProbe | None"]
+"""当视频管线正在运行时读取当前画面与参数，避免重复以独占方式打开相机。"""
+
 
 class SettingsEngine(Protocol):
     """设置服务需要知道的引擎状态。"""
@@ -259,6 +262,7 @@ class InstrumentSettingsService:
         effective_config: AppConfig,
         apply: RuntimeApplier,
         source_factory: SourceFactory,
+        live_probe: LiveProbe | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         """创建服务。
@@ -271,6 +275,7 @@ class InstrumentSettingsService:
             effective_config: 启动时已叠加用户设置的配置。
             apply: 把新配置应用到运行中的各部分。
             source_factory: 创建视频源，用来预览视频输入。
+            live_probe: 可选的运行中视频管线帧读取器。
             clock: 返回带时区当前时间的函数，测试注入。
         """
         self._auth = auth
@@ -280,6 +285,7 @@ class InstrumentSettingsService:
         self._effective = effective_config
         self._apply = apply
         self._source_factory = source_factory
+        self._live_probe = live_probe
         self._clock = clock or (lambda: datetime.now(UTC))
         self._lock = threading.Lock()
         self._path = settings_file(base_config.data_dir)
@@ -640,6 +646,10 @@ class InstrumentSettingsService:
         """
         if kind is None:
             self._auth.authorize(session, Permission.SETTINGS_VIEW)
+            if self._live_probe is not None:
+                live = self._live_probe()
+                if live is not None:
+                    return live
             video = self._effective.video
             spec, options, device = video.source, video.options, video.device
             config = VideoConfig(

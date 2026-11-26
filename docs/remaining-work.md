@@ -122,6 +122,13 @@ README补充目标机完整执行步骤：冻结源码、全量自动化（含�
 
 Windows安装追加要求已在代码落实：安装向导始终允许自选位置，默认当前用户程序目录；首次默认业务数据为实际安装位置下的`data/`，便携包同样以EXE目录为基准，macOS目录不变。设置中可自动保存另一数据位置、重启使用；不搬移、不合并、不删除旧数据。安装与卸载保留用户数据，应用不靠常态提权运行；不可写位置明确报错。业务`data/`不属于程序完整性清单的扫描范围，避免大量媒体影响启动；构建开始和替换旧产物前拒绝删除非空运行数据目录。相关默认路径、程序资源目录边界、显式路径持久化、清单剪枝及构建保护回归已编写，尚未执行。上述安装行为、含空格／中文目录、权限、升级／卸载及重启路径记忆均待Windows目标机验证。
 
+## ONNX Runtime YOLOv8-seg 算法后端接入、`post_flip_span` 抓拍与生产配置（2026-11-26）
+
+- **纯 ONNX Runtime YOLOv8-seg 算法后端（`yolo_onnx`）**：从 `yolov8seg_tubegel`（`cleanup/onnx-export-gel-seg`）移植推理与三特征判读逻辑至 `src/gelinspect/infrastructure/analysis/gel_inspection_core.py` 与 `yolo_onnx.py`，通过 `pyproject.toml` + `uv.lock` 统一管理 `onnxruntime>=1.20.0`（支持 CUDA 优先、CPU 自动回退；Windows 目标机如需 GPU 加速可额外安装 `onnxruntime-gpu`）。默认加载 `ckpt/gel-seg-v1.onnx`（`ckpt/` 不入库，目标机需手动拷贝）。
+- **`post_flip_span` 帧对抓拍与 UI/仿真同步**：`SnapshotConfig` 新增 `after_span_s`，支持翻转后采集 `t0`（`frames_after[0]`）与 `t2`（`frames_after[-1]`）帧对；`MediaService`、`TubeDetailPage`（展示翻转后 t0/t2 对比）及 `InspectionVideoSource` 仿真回放同步更新。
+- **海康相机链路加固与生产配置**：修复 `hikvision_source.py` 曝光先于帧率设置、帧率超限自动钳位及分辨率错误提示；`SettingsService` 预览复用运行中的 `VideoPipeline` 避免双句柄冲突；新增 `packaging/config/production.yaml` 与 `analyzer.yolo_onnx.yaml`，`--diagnose` 新增 `onnxruntime`、`analysis_backend`、`analysis_model` 探测输出，Nuitka 构建脚本支持打包生产配置与 `onnxruntime`。
+- **待目标机/真机验证**：真实海康相机在 Windows 目标机的实机取流、断流重连、曝光与 `after_span_s` 节拍标定，以及放置 `ckpt/gel-seg-v1.onnx` 后的端到端准确率与长时稳定性验收，仍须在目标硬件环境执行。
+
 ## 海康相机自动发现、`inspection/` 回放与算法 JSON 预适配（2026-11-25）
 
 - **海康威视 MVS SDK 跨平台自动发现与接入**：新增 `src/gelinspect/infrastructure/video/hikvision_sdk.py` 与 `hikvision_source.py`（`video.source: hikvision`，配置样例 `packaging/config/hikvision.yaml`），移除已过时的空模板 `industrial_template.py`。Mac 与 Windows 部署机均支持自动探测 SDK 动态库并按 `auto`/序列号连接相机；`--diagnose` 新增 `hikvision_sdk` 探测输出。

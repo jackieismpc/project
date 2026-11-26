@@ -220,13 +220,10 @@ class HikvisionCameraSource:
         if self._pixel_format:
             lib.set_enum_value_by_string(handle, "PixelFormat", self._pixel_format)
         if config.width is not None:
-            lib.set_int_value(handle, "Width", config.width)
+            self._set_dimension(lib, handle, "Width", config.width)
         if config.height is not None:
-            lib.set_int_value(handle, "Height", config.height)
-        if config.fps is not None:
-            with contextlib.suppress(HikvisionSdkError):
-                lib.set_bool_value(handle, "AcquisitionFrameRateEnable", True)
-            lib.set_float_value(handle, "AcquisitionFrameRate", config.fps)
+            self._set_dimension(lib, handle, "Height", config.height)
+        # 先设曝光再设帧率：长曝光会动态压低相机的最大允许帧率。
         if config.exposure_auto is not None:
             lib.set_enum_value_by_string(
                 handle, "ExposureAuto", _EXPOSURE_AUTO_MAP[config.exposure_auto]
@@ -241,6 +238,46 @@ class HikvisionCameraSource:
                     f"曝光时间 {config.exposure_us:g} µs 超出相机范围（{min_us:g}–{max_us:g} µs）"
                 )
             lib.set_float_value(handle, "ExposureTime", config.exposure_us)
+        if config.fps is not None:
+            self._apply_fps(lib, handle, config.fps)
+
+    @staticmethod
+    def _set_dimension(lib: Any, handle: Any, key: str, value: int) -> None:
+        try:
+            lib.set_int_value(handle, key, value)
+        except HikvisionSdkError as exc:
+            try:
+                _, min_val, max_val = lib.get_int_value(handle, key)
+            except HikvisionSdkError:
+                raise exc from None
+            raise VideoOpenError(
+                f"相机 {key}={value} 超出支持范围或步进无效（{min_val}–{max_val}）"
+            ) from exc
+
+    @staticmethod
+    def _apply_fps(lib: Any, handle: Any, target_fps: float) -> None:
+        with contextlib.suppress(HikvisionSdkError):
+            lib.set_bool_value(handle, "AcquisitionFrameRateEnable", True)
+        applied = float(target_fps)
+        try:
+            _, min_fps, max_fps = lib.get_float_value(handle, "AcquisitionFrameRate")
+            if min_fps <= max_fps and not min_fps <= applied <= max_fps:
+                clamped = min(max(applied, min_fps), max_fps)
+                _log.warning(
+                    "目标帧率 %.2f fps 超出当前曝光下相机范围（%.2f–%.2f fps），"
+                    "已自动调整为 %.2f fps",
+                    applied,
+                    min_fps,
+                    max_fps,
+                    clamped,
+                )
+                applied = clamped
+        except HikvisionSdkError:
+            pass
+        try:
+            lib.set_float_value(handle, "AcquisitionFrameRate", applied)
+        except HikvisionSdkError as exc:
+            _log.warning("设置相机帧率 %.2f fps 失败，沿用相机默认帧率：%s", applied, exc)
 
     @staticmethod
     def _read_fps(lib: Any, handle: Any, fallback: float | None) -> float | None:

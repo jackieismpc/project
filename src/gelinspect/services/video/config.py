@@ -78,6 +78,8 @@ class SnapshotConfig(_Model):
     Attributes:
         frames_per_side: 翻转前后各取多少帧，算法要求至少 3 帧。
         settle_s: 翻转结束后的稳定时间，之后的帧才算翻转后的帧。
+        after_span_s: 翻转后各帧覆盖的时间跨度（秒）；0 表示连续取帧，
+            设为 2.0 且 ``settle_s=0`` 时，3 帧将依次落在 +0.0s (t0)、+1.0s、+2.0s (t2)。
         wait_timeout_s: 等待翻转后帧凑够 n 帧的最长时间（从翻转结束起算）。
         image_format: ``png`` 为无损，``jpg`` 为有损。
         png_compression: PNG 压缩级别 0–9，越大越慢越小。
@@ -87,6 +89,7 @@ class SnapshotConfig(_Model):
 
     frames_per_side: int = Field(default=3, ge=1)
     settle_s: float = Field(default=1.0, ge=0)
+    after_span_s: float = Field(default=0.0, ge=0)
     wait_timeout_s: float = Field(default=10.0, gt=0)
     image_format: Literal["png", "jpg"] = "png"
     png_compression: int = Field(default=3, ge=0, le=9)

@@ -311,6 +311,8 @@ def nuitka_command(work: Path, jobs: int, report: Path) -> list[str]:
         "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         "--include-package=gelinspect",
+        "--include-package=gelinspect.infrastructure.analysis",
+        "--include-package=onnxruntime",
         "--include-module=gelinspect._build_info",
         "--include-package-data=gelinspect",
         f"--output-dir={work}",
@@ -413,6 +415,32 @@ def install_data(app_dir: Path, staging: Path) -> None:
     simulation_dir.mkdir(exist_ok=True)
     shutil.copy2(ROOT / "simulation" / "analyzer.example.yaml", simulation_dir)
     shutil.copy2(ROOT / "simulation" / "analyzer.inspection.yaml", simulation_dir)
+
+    analyzer_onnx_src = PACKAGING / "config" / "analyzer.yolo_onnx.yaml"
+    if analyzer_onnx_src.is_file():
+        shutil.copy2(analyzer_onnx_src, config_dir / "analyzer.yolo_onnx.yaml")
+    prod_src = PACKAGING / "config" / "production.yaml"
+    if prod_src.is_file():
+        prod_raw = yaml.safe_load(prod_src.read_text(encoding="utf-8"))
+        if isinstance(prod_raw, dict):
+            prod_cfg = {k: v for k, v in prod_raw.items() if k != "data_dir"}
+            analysis_sec = prod_cfg.get("analysis")
+            if isinstance(analysis_sec, dict):
+                analysis_sec["config_path"] = "config/analyzer.yolo_onnx.yaml"
+            prod_cfg["security"] = {"key_protection": "auto", "integrity_check": True}
+            prod_text = yaml.safe_dump(prod_cfg, allow_unicode=True, sort_keys=False)
+            (config_dir / "production.yaml").write_text(prod_text, encoding="utf-8")
+            (config_dir / "hikvision.yaml").write_text(prod_text, encoding="utf-8")
+
+    ckpt_src = ROOT / "ckpt"
+    if ckpt_src.is_dir():
+        onnx_files = sorted(p for p in ckpt_src.glob("*.onnx") if p.is_file())
+        if onnx_files:
+            ckpt_dst = app_dir / "ckpt"
+            ckpt_dst.mkdir(exist_ok=True)
+            for onnx_file in onnx_files:
+                shutil.copy2(onnx_file, ckpt_dst / onnx_file.name)
+
     inspection_src = ROOT / "inspection"
     if inspection_src.is_dir():
         shutil.copytree(

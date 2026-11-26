@@ -567,3 +567,13 @@ def test_camera_exposure_settings_validate_save_audit_and_preview(
         session, VideoInput.CONFIG, exposure_auto="once", exposure_us="5000"
     )
     assert probe.width == 640 and probe.height == 360
+
+
+def test_preview_current_uses_live_probe_when_pipeline_is_running(context: AppContext) -> None:
+    session = admin(context)
+    context.pipeline.start()
+    try:
+        probe = context.settings.preview_video(session, kind=None)
+        assert probe.width == 640 and probe.height == 360
+    finally:
+        context.pipeline.stop()

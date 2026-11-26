@@ -21,6 +21,7 @@ import hashlib
 import logging
 import os
 import threading
+import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
@@ -288,7 +289,12 @@ class SnapshotGrabber:
             if started is None:
                 raise SnapshotError("缺少翻转开始时间：请先 mark_flip_start 或传入 flip_started_at")
             settle = self._config.settle_s if settle_s is None else settle_s
-            wait = self._config.wait_timeout_s if timeout_s is None else timeout_s
+            span = self._config.after_span_s
+            wait = (
+                max(self._config.wait_timeout_s, settle + span + 5.0)
+                if timeout_s is None
+                else timeout_s
+            )
             fmt = image_format or self._config.image_format
 
             before = self._buffer.frames_before(started, n)
@@ -297,11 +303,14 @@ class SnapshotGrabber:
                     "before", n, len(before), "缓冲中翻转开始之前的帧不够，或已被淘汰"
                 )
             threshold = flip_completed_at + timedelta(seconds=settle)
-            after_pin = self._buffer.pin(threshold)
-            after, cancelled = self._buffer.wait_for_frames_from(threshold, n, wait)
-            if len(after) < n:
-                detail = "管线已停止" if cancelled else f"等待 {wait:g} 秒超时"
-                raise InsufficientFramesError("after", n, len(after), detail)
+            if span <= 0.0 or n < 2:
+                after_pin = self._buffer.pin(threshold)
+                after, cancelled = self._buffer.wait_for_frames_from(threshold, n, wait)
+                if len(after) < n:
+                    detail = "管线已停止" if cancelled else f"等待 {wait:g} 秒超时"
+                    raise InsufficientFramesError("after", n, len(after), detail)
+            else:
+                after = self._grab_spanned_after(threshold, n, span, wait)
             return self._save(
                 experiment_id, row_index, before, after, fmt, started, flip_completed_at, settle
             )
@@ -310,6 +319,26 @@ class SnapshotGrabber:
                 self._buffer.unpin(after_pin)
             if pin_id is not None:
                 self._buffer.unpin(pin_id)
+
+    def _grab_spanned_after(
+        self, threshold: datetime, n: int, span: float, wait: float
+    ) -> list[VideoFrame]:
+        """按 ``span`` 等间隔时间点采集翻转后的 ``n`` 帧（如 t0、t1、t2）。"""
+        deadline = time.monotonic() + wait
+        after: list[VideoFrame] = []
+        for idx in range(n):
+            target_ts = threshold + timedelta(seconds=span * idx / (n - 1))
+            remaining = max(0.0, deadline - time.monotonic())
+            step_pin = self._buffer.pin(target_ts)
+            try:
+                frames, cancelled = self._buffer.wait_for_frames_from(target_ts, 1, remaining)
+            finally:
+                self._buffer.unpin(step_pin)
+            if not frames:
+                detail = "管线已停止" if cancelled else f"等待 {wait:g} 秒超时"
+                raise InsufficientFramesError("after", n, len(after), detail)
+            after.append(frames[0])
+        return after
 
     def grab_async(
         self,

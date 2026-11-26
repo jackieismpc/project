@@ -226,6 +226,13 @@ def _clock(value: datetime | None) -> str:
     return "" if value is None else value.astimezone().strftime("%H:%M:%S")
 
 
+def _is_post_flip_span(result: TubeResult | None) -> bool:
+    if result is None:
+        return False
+    extra = result.features.get("extra")
+    return isinstance(extra, dict) and extra.get("frame_pair_mode") == "post_flip_span"
+
+
 class TubeDetailPage(QWidget):
     """单管详情页。
 
@@ -617,7 +624,12 @@ class TubeDetailPage(QWidget):
             return
         self._images = images
         text = self.tr("这支试管没有抓拍图像")
-        for side, view in ((images.before, self.before_view), (images.after, self.after_view)):
+        left_side = (
+            images.after_initial
+            if _is_post_flip_span(self._result()) and images.after_initial is not None
+            else images.before
+        )
+        for side, view in ((left_side, self.before_view), (images.after, self.after_view)):
             view.set_text(text)
             if side is None:
                 view.set_content(None)
@@ -848,11 +860,24 @@ class TubeDetailPage(QWidget):
     def _render_captions(self) -> None:
         result = self._result()
         angle = result.features.get("flip_angle_deg") if result is not None else None
-        before = self.tr("翻转前") + " · 0.0°"
-        after = self.tr("翻转后") + (f" · {angle:.1f}°" if isinstance(angle, float) else "")
+        post_flip = _is_post_flip_span(result)
+        if post_flip:
+            angle_suffix = f" · {angle:.1f}°" if isinstance(angle, float) else ""
+            before = self.tr("翻转后 t0") + angle_suffix
+            after = self.tr("翻转后 t2") + angle_suffix
+            self.sequence_caption.setText(self.tr("3帧序列：翻转前3帧、翻转后3帧（t0→t2）"))
+        else:
+            before = self.tr("翻转前") + " · 0.0°"
+            after = self.tr("翻转后") + (f" · {angle:.1f}°" if isinstance(angle, float) else "")
+            self.sequence_caption.setText(self.tr("3帧序列：翻转前3帧、翻转后3帧"))
         images = self._images
-        if images is not None and images.before is not None:
-            before += f"    {_clock(images.before.recorded_at)}"
+        left_side = (
+            images.after_initial
+            if (post_flip and images is not None and images.after_initial is not None)
+            else (None if images is None else images.before)
+        )
+        if left_side is not None:
+            before += f"    {_clock(left_side.recorded_at)}"
         if images is not None and images.after is not None:
             after += f"    {_clock(images.after.recorded_at)}"
         self.before_caption.setText(before)

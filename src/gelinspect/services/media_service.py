@@ -106,6 +106,7 @@ class TubeImages:
         sequence_before: 翻转前各帧的缩略图（同一个裁剪框）。
         sequence_after: 翻转后各帧的缩略图。
         warnings: 读图时发现的问题。
+        after_initial: 翻转后首帧（t0）的裁剪图与掩码轮廓，供 ``post_flip_span`` 模式展示。
     """
 
     experiment_id: str
@@ -116,6 +117,7 @@ class TubeImages:
     sequence_before: tuple[Image, ...] = ()
     sequence_after: tuple[Image, ...] = ()
     warnings: tuple[ImageWarning, ...] = ()
+    after_initial: TubeSideImage | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -507,6 +509,29 @@ class MediaService:
             )
             boxes[phase_name] = box
 
+        after_initial: TubeSideImage | None = None
+        if len(raw["after"]) >= 2:
+            t0_item = raw["after"][0]
+            t0_image = reader.read(t0_item, cv2.IMREAD_COLOR)
+            if t0_image is not None:
+                tube_t0_mask = mask_of("tube", "before")
+                gel_t0_mask = mask_of("gel", "before")
+                found_t0 = _bounding_box(tube_t0_mask) if tube_t0_mask is not None else None
+                box_t0 = found_t0 or _column_box(t0_image.shape, position.hole_index)
+                crop_t0, _, _ = _crop(t0_image, box_t0, CROP_LONG_SIDE)
+                size_t0 = (crop_t0.shape[1], crop_t0.shape[0])
+                after_initial = TubeSideImage(
+                    image=crop_t0,
+                    gel=_contours(_crop_mask(gel_t0_mask, box_t0, size_t0))
+                    if gel_t0_mask is not None
+                    else (),
+                    tube=_contours(_crop_mask(tube_t0_mask, box_t0, size_t0))
+                    if tube_t0_mask is not None
+                    else (),
+                    source_name=Path(t0_item.path).name,
+                    recorded_at=t0_item.created_at,
+                )
+
         sequences: dict[str, list[Image]] = {"before": [], "after": []}
         for phase_name in ("before", "after"):
             seq_box = boxes[phase_name]
@@ -527,6 +552,7 @@ class MediaService:
             sequence_before=tuple(sequences["before"]),
             sequence_after=tuple(sequences["after"]),
             warnings=tuple(reader.warnings),
+            after_initial=after_initial,
         )
         outcome = "partial" if result.warnings else "success"
         self._audit_image_access(
