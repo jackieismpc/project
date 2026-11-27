@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 
 from gelinspect.app_context import AppContext
 from gelinspect.domain.state_machine import ExperimentState
+from gelinspect.interfaces.storage import AuditQuery, PageRequest
 from gelinspect.services.engine_types import (
     AlertCode,
     AlertLevel,
@@ -186,6 +187,59 @@ def test_other_alerts_database_busy_and_algorithm_failure_and_video_events(
     post_from_thread(bridge.handle_event, other)
     settle(qapp, 8)
     assert "engine:device_fault" not in monitor.alerts.active_keys()
+
+
+def test_video_quality_recovery_clears_only_its_banner_and_keeps_audit(
+    qapp: QApplication, live_window: MainWindow, live_context: AppContext
+) -> None:
+    monitor = start_sensitivity(qapp, live_window)
+    assert wait_for(
+        qapp,
+        lambda: (
+            (snapshot := live_context.engine.snapshot()) is not None
+            and snapshot.state is ExperimentState.INCUBATING
+        ),
+        30.0,
+    )
+    stamp = datetime.now(UTC)
+
+    def publish(code: VideoEventCode, message: str, active: bool = True) -> None:
+        live_context.pipeline._bus.emit(
+            VideoEvent(
+                code,
+                VideoEventLevel.ERROR if active else VideoEventLevel.INFO,
+                message,
+                stamp,
+                time.monotonic(),
+                active=active,
+            )
+        )
+
+    def audited(message: str) -> bool:
+        records = live_context.database.audit.query(
+            AuditQuery(experiment_id=monitor.experiment_id), PageRequest(limit=1000)
+        ).items
+        return any(message in record.event.detail for record in records)
+
+    publish(VideoEventCode.FROZEN_FRAME, "测试卡帧出现")
+    publish(VideoEventCode.BLACK_FRAME, "测试黑屏出现")
+    assert wait_for(qapp, lambda: has(monitor, "video:frozen_frame"))
+    assert wait_for(qapp, lambda: has(monitor, "video:black_frame"))
+    assert wait_for(qapp, lambda: audited("测试黑屏出现"))
+    assert "engine:video_quality" not in monitor.alerts.active_keys()
+
+    publish(VideoEventCode.FROZEN_FRAME, "测试卡帧已恢复", active=False)
+    assert wait_for(qapp, lambda: audited("测试卡帧已恢复"))
+    settle(qapp, 8)
+    assert not has(monitor, "video:frozen_frame")
+    assert has(monitor, "video:black_frame")
+    assert "engine:video_quality" not in monitor.alerts.active_keys()
+
+    publish(VideoEventCode.BLACK_FRAME, "测试黑屏已恢复", active=False)
+    assert wait_for(qapp, lambda: audited("测试黑屏已恢复"))
+    settle(qapp, 8)
+    assert not has(monitor, "video:black_frame")
+    assert "engine:video_quality" not in monitor.alerts.active_keys()
 
 
 def test_completed_experiment_can_be_saved_as_a_new_sparse_template(

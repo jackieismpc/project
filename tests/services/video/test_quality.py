@@ -101,7 +101,7 @@ def test_overexposed_vs_normal_bright_backlight() -> None:
 
 def test_frozen_frame_detection() -> None:
     events: list[VideoEvent] = []
-    mon = monitor(events, frozen_samples=3)
+    mon = monitor(events, frozen_enabled=True, frozen_samples=3)
     mon.start()
     try:
         for k in range(3):  # 画面有变化，不告警
@@ -117,6 +117,16 @@ def test_frozen_frame_detection() -> None:
         assert wait_until(lambda: VideoEventCode.FROZEN_FRAME in codes(events, active=False))
     finally:
         mon.stop(2.0)
+
+
+def test_static_incubation_scene_does_not_raise_frozen_frame_by_default() -> None:
+    events: list[VideoEvent] = []
+    mon = monitor(events)
+    for k in range(30):
+        mon._analyze(flat(120, k))
+    assert mon.stats().analyzed == 30
+    assert VideoEventCode.FROZEN_FRAME not in codes(events)
+    assert VideoEventCode.FROZEN_FRAME not in mon.stats().active_conditions
 
 
 def test_measured_fps_and_low_fps_event() -> None:

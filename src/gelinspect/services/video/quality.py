@@ -241,6 +241,8 @@ class QualityMonitor:
             threshold=self._config.overexposed_fraction,
         )
 
+        if not self._config.frozen_enabled:
+            return
         previous = self._previous
         self._previous = gray
         if previous is not None and previous.shape == gray.shape:

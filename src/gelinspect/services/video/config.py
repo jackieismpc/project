@@ -111,6 +111,7 @@ class QualityConfig(_Model):
         black_mean_max: 平均灰度低于此值判为黑屏。
         overexposed_level: 灰度不低于此值的像素算饱和。
         overexposed_fraction: 饱和像素占比超过此值判为过曝。
+        frozen_enabled: 是否以图像不变推测卡帧；孵育场景本来静止，默认关闭。
         frozen_diff_max: 相邻两次采样的平均绝对差低于此值算“无变化”。
         frozen_samples: 连续多少次无变化判为卡帧。
         expected_fps: 期望帧率，None 时用视频源报告的帧率；都没有则不检查低帧率。
@@ -126,6 +127,7 @@ class QualityConfig(_Model):
     black_mean_max: float = Field(default=8.0, ge=0)
     overexposed_level: int = Field(default=250, ge=1, le=255)
     overexposed_fraction: float = Field(default=0.6, gt=0, le=1)
+    frozen_enabled: bool = False
     frozen_diff_max: float = Field(default=0.02, ge=0)
     frozen_samples: int = Field(default=3, ge=1)
     expected_fps: float | None = Field(default=None, gt=0)

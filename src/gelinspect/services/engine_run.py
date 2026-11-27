@@ -123,6 +123,15 @@ _AUDITED_VIDEO_EVENTS = {
     VideoEventCode.BLACK_FRAME: AlertCode.VIDEO_QUALITY,
     VideoEventCode.FROZEN_FRAME: AlertCode.VIDEO_QUALITY,
 }
+_VIDEO_CONDITIONS = frozenset(
+    {
+        VideoEventCode.BLACK_FRAME,
+        VideoEventCode.OVEREXPOSED,
+        VideoEventCode.FROZEN_FRAME,
+        VideoEventCode.LOW_FPS,
+        VideoEventCode.STREAM_STALLED,
+    }
+)
 
 
 def _preserve_existing_reviews(result: TubeResult, existing: TubeResult | None) -> TubeResult:
@@ -1275,6 +1284,20 @@ class EngineRun:
             self._emit_alert(AlertCode.STORAGE_FAILED, AlertLevel.WARNING, f"温度写库失败：{exc}")
 
     def _handle_video_event(self, event: VideoEvent) -> None:
+        if event.code in _VIDEO_CONDITIONS:
+            # 监控页直接按 VideoEvent 的事件码和 active 状态管理横幅。
+            # 引擎只补充审计，避免转成无恢复状态的 VIDEO_QUALITY 重复告警。
+            if event.code in _AUDITED_VIDEO_EVENTS:
+                status = "出现" if event.active else "恢复"
+                self._transact(
+                    audit=[
+                        self._audit_event(
+                            AuditAction.ENGINE_ALERT,
+                            f"[video_quality] [{event.code.value}] {status}：{event.message}",
+                        )
+                    ]
+                )
+            return
         if event.code is VideoEventCode.DISCONNECTED:
             if self._video_down_since is None:
                 self._video_down_since = self._clock.monotonic()
