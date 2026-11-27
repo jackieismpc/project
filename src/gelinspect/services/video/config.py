@@ -62,6 +62,8 @@ class RecorderConfig(_Model):
         queue_max_frames: 写盘队列的帧数上限，满了丢录制帧。
         queue_max_bytes: 写盘队列的字节数上限，满了丢录制帧。
         finish_timeout_s: ``stop_segment`` 等待写盘线程收尾的最长时间。
+        pre_flip_s: 开始录制后等待翻转前的留白时长（秒），0 表示不等待。
+        min_duration_s: 每排录像的最短录制时长（秒），0 表示不延长。
     """
 
     long_side: int = Field(default=1920, gt=0)
@@ -70,6 +72,8 @@ class RecorderConfig(_Model):
     queue_max_frames: int = Field(default=60, gt=0)
     queue_max_bytes: int = Field(default=512 * MIB, gt=0)
     finish_timeout_s: float = Field(default=60.0, gt=0)
+    pre_flip_s: float = Field(default=0.0, ge=0)
+    min_duration_s: float = Field(default=0.0, ge=0)
 
 
 class SnapshotConfig(_Model):

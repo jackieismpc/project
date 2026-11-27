@@ -187,6 +187,11 @@ class VideoPipeline:
         return self._config.data_dir
 
     @property
+    def config(self) -> VideoPipelineConfig:
+        """当前生效的视频管线配置。"""
+        return self._config
+
+    @property
     def is_running(self) -> bool:
         """管线是否已启动（含重连中、文件已播完）。"""
         return self._running

@@ -370,3 +370,64 @@ def test_spanned_after_grab_captures_t0_and_t2_with_no_pin_leak(
         assert pipeline.buffer.stats().pins == 0
     finally:
         pipeline.stop()
+
+
+def test_spanned_after_grab_returns_distinct_frames_under_low_fps(
+    tmp_path: Path, no_thread_leak: None
+) -> None:
+    """即使帧率较低导致多个时间点落在一帧后，也不能重复返回同一帧。"""
+    cfg = make_config(tmp_path).model_copy(
+        update={
+            "snapshot": SnapshotConfig(
+                frames_per_side=3,
+                settle_s=0.0,
+                after_span_s=0.05,
+                wait_timeout_s=5.0,
+                io_workers=2,
+            )
+        }
+    )
+    pipeline = VideoPipeline(FakeSource(interval_s=0.001), cfg)
+    pipeline.start()
+    try:
+        wait_for_sequence(pipeline, 85)
+        pipeline.mark_flip_start(FLIP_START, 1)
+        snap = pipeline.grab(1, 3, experiment_id="EXP-DISTINCT", flip_completed_at=FLIP_END)
+        ts_list = [f.captured_at for f in snap.frames_after]
+        assert ts_list[0] < ts_list[1] < ts_list[2]
+        assert len(set(ts_list)) == 3
+        assert pipeline.buffer.stats().pins == 0
+    finally:
+        pipeline.stop()
+
+
+def test_wait_timeout_s_is_not_inflated_when_after_span_is_zero(
+    tmp_path: Path, no_thread_leak: None
+) -> None:
+    cfg = make_config(tmp_path).model_copy(
+        update={
+            "snapshot": SnapshotConfig(
+                frames_per_side=3,
+                settle_s=0.0,
+                after_span_s=0.0,
+                wait_timeout_s=0.15,
+                io_workers=2,
+            )
+        }
+    )
+    source = FakeSource(interval_s=0.001)
+    pipeline = VideoPipeline(source, cfg)
+    pipeline.start()
+    try:
+        wait_for_sequence(pipeline, 60)
+        pipeline.mark_flip_start(FLIP_START, 1)
+        source.paused.set()
+        import time
+
+        started = time.monotonic()
+        with pytest.raises(InsufficientFramesError):
+            pipeline.grab(1, 3, experiment_id="EXP-TIMEOUT", flip_completed_at=FLIP_END)
+        elapsed = time.monotonic() - started
+        assert elapsed < 1.5
+    finally:
+        pipeline.stop()

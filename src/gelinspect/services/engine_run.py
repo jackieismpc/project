@@ -747,6 +747,9 @@ class EngineRun:
         experiment_id = self.experiment_id
         index = row.row_index
         segment_started = False
+        segment_started_mono = 0.0
+        live_source = False
+        rec_cfg = self._pipeline.config.recorder
         marked = False
         try:
             self._check_cancelled()
@@ -758,6 +761,12 @@ class EngineRun:
                 return capture
             self._pipeline.start_segment(experiment_id, index)
             segment_started = True
+            segment_started_mono = self._clock.monotonic()
+            info = self._pipeline.info
+            live_source = info is not None and info.is_live
+            if live_source and rec_cfg.pre_flip_s > 0:
+                self._wait_recording_window(segment_started_mono + rec_cfg.pre_flip_s)
+                self._check_cancelled()
             self._pipeline.mark_flip_start(self._clock.now(), index, n=self._cfg.frames_per_side)
             marked = True
             self._check_cancelled()
@@ -786,9 +795,30 @@ class EngineRun:
                 self._pipeline.snapshots.cancel_mark(index)
             if row.maybe_flipped:
                 capture.restore_failure = self._restore(row)
+            if (
+                segment_started
+                and live_source
+                and rec_cfg.min_duration_s > 0
+                and capture.failure is None
+                and not self._stop_event.is_set()
+                and self._pipeline.recorder.active
+                and self._pipeline.state not in (PipelineState.FAILED, PipelineState.ENDED)
+            ):
+                self._wait_recording_window(segment_started_mono + rec_cfg.min_duration_s)
             if segment_started:
                 self._stop_segment(capture)
         return capture
+
+    def _wait_recording_window(self, deadline_mono: float) -> None:
+        while not self._stop_event.is_set():
+            if self._pipeline.state in (PipelineState.FAILED, PipelineState.ENDED):
+                return
+            if not self._pipeline.recorder.active:
+                return
+            remaining = deadline_mono - self._clock.monotonic()
+            if remaining <= 0:
+                return
+            self._stop_event.wait(min(remaining, 0.05))
 
     def _grab(self, row: _Row, flip: FlipResult) -> SnapshotResult:
         """抓翻转前后各 n 帧。用异步接口，等待期间能响应停止请求和视频源失败。"""

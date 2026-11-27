@@ -48,6 +48,7 @@ def test_start_complete_and_sign_are_ordered_and_the_report_shows_them(
         ),
     }
     config["engine"] = {"incubation_minutes": 0.05, "time_scale": 60}
+    config["device"] = {"backend": "simulation.sim_device:SimDevice"}
     config["video"] = {
         "source": "simulation.sim_video:SimVideoSource",
         "device": "sim",

@@ -677,6 +677,18 @@ class InstrumentSettingsService:
                         raise SettingsError(exp_problems)
                     resolved_auto = cast(ExposureAutoMode, mode_str) if mode_str else None
                     resolved_us = us_val
+                if self._live_probe is not None:
+                    live = self._live_probe()
+                    if live is not None:
+                        if (
+                            resolved_auto == self._effective.video.exposure_auto
+                            and resolved_us == self._effective.video.exposure_us
+                        ):
+                            return live
+                        raise ServiceError(
+                            "视频采集运行中，请先停止实验后再预览新的曝光参数",
+                            ServiceErrorCode.SETTINGS_BUSY,
+                        )
                 config = VideoConfig(
                     device=video.device,
                     width=video.width,

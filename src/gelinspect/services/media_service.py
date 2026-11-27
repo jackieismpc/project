@@ -444,10 +444,22 @@ class MediaService:
         )
         return result
 
-    def tube_images(self, session: Session | None, experiment_id: str, tube_no: int) -> TubeImages:
+    def tube_images(
+        self,
+        session: Session | None,
+        experiment_id: str,
+        tube_no: int,
+        *,
+        post_flip_span: bool = False,
+    ) -> TubeImages:
         """单管详情的图像：翻转前后的代表帧裁剪、掩码轮廓和 3 帧序列。
 
         Args:
+            session: 调用者的会话，需要 ``experiment_view`` 权限。
+            experiment_id: 试验标识。
+            tube_no: 管号 1–96。
+            post_flip_span: 为 True 时表示 ``before`` 槽位掩码对应翻转后首帧 ``t0``，
+                翻转前代表帧与序列改用孔位裁剪且不叠加 ``t0`` 掩码。
             session: 调用者的会话，需要 ``experiment_view`` 权限。
             experiment_id: 试验标识。
             tube_no: 管号。
@@ -494,8 +506,9 @@ class MediaService:
                 sides[phase_name] = None
                 boxes[phase_name] = None
                 continue
-            tube_mask = mask_of("tube", phase)
-            gel_mask = mask_of("gel", phase)
+            use_phase_mask = not (post_flip_span and phase == "before")
+            tube_mask = mask_of("tube", phase) if use_phase_mask else None
+            gel_mask = mask_of("gel", phase) if use_phase_mask else None
             found = _bounding_box(tube_mask) if tube_mask is not None else None
             box = found or _column_box(image.shape, position.hole_index)
             crop, _, _ = _crop(image, box, CROP_LONG_SIDE)

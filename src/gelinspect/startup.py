@@ -598,17 +598,30 @@ def diagnose(config_path: Path | None = None, data_dir: Path | None = None) -> d
             from gelinspect.infrastructure.analysis.yolo_onnx import resolve_model_path
 
             raw_model: str | None = None
+            algo_error: str | None = None
             if config.analysis.config_path is not None:
-                loaded_algo = yaml.safe_load(
-                    config.analysis.config_path.read_text(encoding="utf-8")
-                )
-                if isinstance(loaded_algo, dict) and isinstance(loaded_algo.get("model_path"), str):
-                    raw_model = loaded_algo["model_path"]
-            model_file = resolve_model_path(raw_model, config.analysis.config_path)
-            result["analysis_model"] = {
-                "path": str(model_file),
-                "exists": model_file.is_file(),
-            }
+                try:
+                    loaded_algo = yaml.safe_load(
+                        config.analysis.config_path.read_text(encoding="utf-8")
+                    )
+                    if isinstance(loaded_algo, dict) and isinstance(
+                        loaded_algo.get("model_path"), str
+                    ):
+                        raw_model = loaded_algo["model_path"]
+                except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+                    algo_error = str(exc)
+            if algo_error is not None:
+                result["analysis_model"] = {
+                    "path": None,
+                    "exists": False,
+                    "error": algo_error,
+                }
+            else:
+                model_file = resolve_model_path(raw_model, config.analysis.config_path)
+                result["analysis_model"] = {
+                    "path": str(model_file),
+                    "exists": model_file.is_file(),
+                }
         report = check_program_integrity(config)
         result["integrity"] = {
             "status": report.status.value,

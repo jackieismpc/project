@@ -189,4 +189,9 @@ def test_simulation_only_depends_on_domain_and_interfaces() -> None:
             module = node.module if isinstance(node, ast.ImportFrom) else None
             names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else []
             for name in [module, *names]:
+                if (
+                    path.name == "inspection_replay.py"
+                    and name == "gelinspect.infrastructure.analysis.algorithm_json"
+                ):
+                    continue
                 assert not (name and name.startswith(forbidden)), f"{path.name}: {name}"

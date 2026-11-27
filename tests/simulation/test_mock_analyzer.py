@@ -272,3 +272,26 @@ def test_rejects_bad_scoring_config(text: str, tmp_path: Path) -> None:
     config.write_text(text, encoding="utf-8")
     with pytest.raises(AnalyzerError):
         MockAnalyzer().load(config)
+
+
+def test_mock_analyzer_supports_post_flip_span_mode(mixed_request: Mixed) -> None:
+    request, _, _ = mixed_request
+    analyzer = MockAnalyzer(scripted=True, frame_pair_mode="post_flip_span")
+    analyzer.load(None)
+    result = analyzer.analyze_row(request)
+    assert check_row_result(request, result) == []
+    for tube in result.tubes:
+        assert tube.features is not None
+        assert tube.features.extra.get("frame_pair_mode") == "post_flip_span"
+        assert isinstance(tube.features.extra.get("t0_t2_span_s"), float)
+    analyzer.close()
+
+    meas = MockAnalyzer(scripted=False, frame_pair_mode="post_flip_span")
+    meas.load(None)
+    res_meas = meas.analyze_row(request)
+    assert check_row_result(request, res_meas) == []
+    assert all(
+        t.features is not None and t.features.extra.get("frame_pair_mode") == "post_flip_span"
+        for t in res_meas.tubes
+    )
+    meas.close()

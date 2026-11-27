@@ -290,11 +290,12 @@ class SnapshotGrabber:
                 raise SnapshotError("缺少翻转开始时间：请先 mark_flip_start 或传入 flip_started_at")
             settle = self._config.settle_s if settle_s is None else settle_s
             span = self._config.after_span_s
-            wait = (
-                max(self._config.wait_timeout_s, settle + span + 5.0)
-                if timeout_s is None
-                else timeout_s
-            )
+            if timeout_s is not None:
+                wait = timeout_s
+            elif span > 0.0:
+                wait = max(self._config.wait_timeout_s, settle + span + 3.0)
+            else:
+                wait = self._config.wait_timeout_s
             fmt = image_format or self._config.image_format
 
             before = self._buffer.frames_before(started, n)
@@ -328,10 +329,15 @@ class SnapshotGrabber:
         after: list[VideoFrame] = []
         for idx in range(n):
             target_ts = threshold + timedelta(seconds=span * idx / (n - 1))
+            effective_ts = (
+                target_ts
+                if not after
+                else max(target_ts, after[-1].captured_at + timedelta(microseconds=1))
+            )
             remaining = max(0.0, deadline - time.monotonic())
-            step_pin = self._buffer.pin(target_ts)
+            step_pin = self._buffer.pin(effective_ts)
             try:
-                frames, cancelled = self._buffer.wait_for_frames_from(target_ts, 1, remaining)
+                frames, cancelled = self._buffer.wait_for_frames_from(effective_ts, 1, remaining)
             finally:
                 self._buffer.unpin(step_pin)
             if not frames:

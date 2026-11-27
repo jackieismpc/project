@@ -1,5 +1,6 @@
 # MockAnalyzer 的配置，传给 GelAnalyzer.load。全部为可选项。
 scripted: true           # 固定种子生成固定可重复的替代结果，不作为真实检测判定
+frame_pair_mode: "post_flip_span"  # 与正式环境一致，使用翻转后 t0→t2 帧对
 seed: 0
 state_ratios: [0.5, 0.2, 0.3]   # 完全凝固 / 部分凝固 / 未凝固
 tube_states:             # 按管号指定状态（脚本化模式使用）；null 表示没有试管

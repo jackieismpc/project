@@ -17,13 +17,16 @@ video:
     settle_s: 0.0            # 翻转刚结束即抓第 1 帧 (t0)
     after_span_s: 2.0        # 跨度 2 秒抓第 3 帧 (t2)，与 gel_inspection 一致
     wait_timeout_s: 15.0
+  recorder:
+    pre_flip_s: 0.5          # 翻转前先录制 0.5 秒
+    min_duration_s: 5.0      # 每排录像至少 5 秒
 
 device:
   backend: "simulation.sim_device:SimDevice"
   options:
     time_scale: 1.0
     tray_duration_s: 1.0
-    flip_duration_s: 3.0
+    flip_duration_s: 1.0
     settle_duration_s: 2.0
 
 engine:

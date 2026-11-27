@@ -401,9 +401,149 @@ def test_end_to_end_pipeline_engine_yolo_onnx_and_media_service(
         assert isinstance(extra, dict)
         assert extra["frame_pair_mode"] == "post_flip_span"
 
-        imgs = ctx.media.tube_images(session, experiment_id, 1)
+        imgs = ctx.media.tube_images(session, experiment_id, 1, post_flip_span=True)
         assert imgs.before is not None and imgs.after is not None
         assert imgs.after_initial is not None
         assert len(imgs.sequence_before) == 3 and len(imgs.sequence_after) == 3
     finally:
         ctx.close()
+
+
+def test_config_validation_provider_and_model_resolution(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from gelinspect.infrastructure.analysis.gel_inspection_core import inference_providers
+    from gelinspect.infrastructure.analysis.yolo_onnx import YoloOnnxConfig, resolve_model_path
+
+    assert inference_providers("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]) == [
+        ("CUDAExecutionProvider", {"device_id": 0}),
+        "CPUExecutionProvider",
+    ]
+    assert inference_providers("gpu", ["CUDAExecutionProvider", "CPUExecutionProvider"]) == [
+        ("CUDAExecutionProvider", {"device_id": 0}),
+        "CPUExecutionProvider",
+    ]
+
+    with pytest.raises(ValidationError):
+        FeatureScoringConfig(fill_weight=0.0, height_weight=0.0, flatness_weight=0.0)
+    with pytest.raises(ValidationError):
+        YoloOnnxConfig(slot_x_centers=[1.0, 2.0])
+    with pytest.raises(ValidationError):
+        YoloOnnxConfig(roi_x_range=(500.0, 100.0))
+
+    deploy = tmp_path / "deploy"
+    (deploy / "config").mkdir(parents=True)
+    (deploy / "ckpt").mkdir(parents=True)
+    cfg_file = deploy / "config" / "analyzer.yolo_onnx.yaml"
+    cfg_file.write_text("model_path: 'ckpt/custom-external.onnx'\n", encoding="utf-8")
+    expected_ckpt = deploy / "ckpt" / "custom-external.onnx"
+    expected_ckpt.write_bytes(b"onnx")
+    assert resolve_model_path("ckpt/custom-external.onnx", cfg_file) == expected_ckpt
+
+
+def test_recorder_min_duration_extends_clip_and_is_interruptible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+
+    from gelinspect.app_context import build_app_context
+    from gelinspect.domain.enums import ReagentKind
+    from gelinspect.services.config import parse_config
+    from gelinspect.services.experiment_draft import ExperimentDraft, NewExperimentRequest
+
+    shape = (360, 640)
+    seg = FrameSegmentation(
+        gels=(_instance(shape, 40, 40, 120, 90),),
+        tubes=(_instance(shape, 35, 30, 125, 220),),
+    )
+
+    def _run_case(data_sub: str, min_dur: float, *, stop_early: bool) -> float:
+        model_file = tmp_path / f"{data_sub}.onnx"
+        model_file.write_bytes(b"stub")
+        algo_cfg = tmp_path / f"{data_sub}.yaml"
+        algo_cfg.write_text(
+            f"model_path: {model_file.as_posix()!r}\nframe_pair_mode: 'post_flip_span'\n",
+            encoding="utf-8",
+        )
+        cfg = parse_config(
+            {
+                "data_dir": str(tmp_path / data_sub),
+                "analysis": {
+                    "backend": "gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer",
+                    "config_path": str(algo_cfg),
+                    "timeout_ms": 5000,
+                },
+                "video": {
+                    "source": "simulation.sim_video:SimVideoSource",
+                    "device": "sim",
+                    "width": 640,
+                    "height": 360,
+                    "fps": 15,
+                    "snapshot": {"settle_s": 0.0, "after_span_s": 0.1, "wait_timeout_s": 5.0},
+                    "recorder": {"pre_flip_s": 0.2, "min_duration_s": min_dur},
+                },
+                "device": {
+                    "backend": "simulation.sim_device:SimDevice",
+                    "options": {
+                        "time_scale": 600.0,
+                        "tray_duration_s": 0.0,
+                        "flip_duration_s": 0.0,
+                        "settle_duration_s": 0.0,
+                    },
+                },
+                "engine": {"incubation_minutes": 0.005, "time_scale": 600.0},
+                "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},
+                "traceability": {
+                    "parser": {"backend": "simulation.reagents:SimReagentCodeParser"},
+                    "registry": {"backend": "simulation.reagents:SimReagentRegistry"},
+                    "government": {"backend": "simulation.reagents:SimTraceabilityClient"},
+                },
+            },
+            base_dir=ROOT,
+        )
+        ctx = build_app_context(cfg)
+        try:
+            analyzer = ctx.analyzer
+            assert isinstance(analyzer, YoloOnnxAnalyzer)
+            monkeypatch.setattr(analyzer._segmenter, "load", lambda _p, _c: None)
+            monkeypatch.setattr(analyzer._segmenter, "segment", lambda _i, _c: seg)
+            monkeypatch.setattr(type(analyzer._segmenter), "is_loaded", property(lambda _s: True))
+
+            session = ctx.auth.login("analyst", "12345678")
+            tpl = ctx.templates.get_template(session, "builtin.limit").template
+            draft = ExperimentDraft()
+            draft.choose_template(tpl)
+            draft.set_selected(range(1, len(tpl.items) + 1))
+            base = draft.to_request()
+            codes = {
+                ReagentKind.LAL_REAGENT: "GL-LAL-0.25|LAL2606A|lal_reagent|20991231|0001",
+                ReagentKind.ENDOTOXIN: "GL-CSE-10|CSE2605A|endotoxin|20991231|0001",
+                ReagentKind.WATER: "GL-BET-W|WAT2607A|water|20991231|0001",
+            }
+            exp_id = ctx.experiments.create_experiment(
+                session, NewExperimentRequest(base.template_id, base.assignments, codes)
+            )
+            started = time.monotonic()
+            ctx.experiments.start_experiment(session, exp_id)
+            if stop_early:
+                deadline = time.monotonic() + 10.0
+                while not ctx.pipeline.recorder.active and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                assert ctx.pipeline.recorder.active
+                time.sleep(0.35)
+                ctx.engine.stop(session.user, "提前停止")
+                assert ctx.engine.wait(5.0)
+                return time.monotonic() - started
+            assert ctx.engine.wait(15.0)
+            clip = ctx.media.open_clip(session, exp_id, 1)
+            try:
+                return clip.duration_s
+            finally:
+                clip.close()
+        finally:
+            ctx.close()
+
+    duration = _run_case("dur_ok", 1.2, stop_early=False)
+    assert duration >= 1.0
+    stop_elapsed = _run_case("dur_stop", 10.0, stop_early=True)
+    assert stop_elapsed < 3.0

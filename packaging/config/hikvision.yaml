@@ -19,6 +19,9 @@ video:
     settle_s: 0.0
     after_span_s: 2.0
     wait_timeout_s: 15.0
+  recorder:
+    pre_flip_s: 0.5
+    min_duration_s: 5.0
   # options:
   #   sdk_path: ""           # 可选：显式覆盖 MVS SDK 路径（一般无需填写）
 
@@ -27,7 +30,7 @@ device:
   options:
     time_scale: 1.0
     tray_duration_s: 1.0
-    flip_duration_s: 3.0
+    flip_duration_s: 1.0
     settle_duration_s: 2.0
 
 engine:

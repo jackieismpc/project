@@ -565,6 +565,9 @@ def test_build_install_data_bundles_inspection_config_and_samples(tmp_path: Path
     # 默认 gelinspect.yaml 保持模拟配置，同时生成可手动切换的 production.yaml / hikvision.yaml
     default_cfg = load_config(app_dir / "config" / "gelinspect.yaml", base_dir=app_dir)
     assert default_cfg.analysis.backend == "simulation.mock_analyzer:MockAnalyzer"
+    assert default_cfg.video.snapshot.after_span_s == 2.0
+    assert default_cfg.video.snapshot.settle_s == 0.0
+    assert default_cfg.video.recorder.min_duration_s == 5.0
 
     prod_cfg = load_config(app_dir / "config" / "production.yaml", base_dir=app_dir)
     assert (
@@ -572,4 +575,35 @@ def test_build_install_data_bundles_inspection_config_and_samples(tmp_path: Path
     )
     assert prod_cfg.video.source == "hikvision"
     assert prod_cfg.video.snapshot.after_span_s == 2.0
+    assert prod_cfg.video.snapshot.settle_s == 0.0
+    assert prod_cfg.video.recorder.min_duration_s == 5.0
     assert (app_dir / "config" / "analyzer.yolo_onnx.yaml").is_file()
+
+
+def test_diagnose_survives_missing_yolo_onnx_config_file(tmp_path: Path) -> None:
+    missing_cfg = tmp_path / "missing_analyzer.yaml"
+    cfg_path = tmp_path / "broken_prod.yaml"
+    cfg_path.write_text(
+        yaml.safe_dump(
+            {
+                "data_dir": str(tmp_path / "data"),
+                "analysis": {
+                    "backend": "gelinspect.infrastructure.analysis.yolo_onnx:YoloOnnxAnalyzer",
+                    "config_path": str(missing_cfg),
+                },
+                "video": {"source": "simulation.sim_video:SimVideoSource", "device": "sim"},
+                "device": {"backend": "simulation.sim_device:SimDevice"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    diag_missing = startup.diagnose(config_path=cfg_path)
+    assert "config_error" in diag_missing
+
+    # 存在但 YAML 损坏时，diagnose 也不应抛异常，而是记录 analysis_model.error
+    missing_cfg.write_text("key: [unclosed", encoding="utf-8")
+    diag_bad_yaml = startup.diagnose(config_path=cfg_path)
+    model_info = diag_bad_yaml.get("analysis_model")
+    assert isinstance(model_info, dict)
+    assert model_info["exists"] is False
+    assert "error" in model_info

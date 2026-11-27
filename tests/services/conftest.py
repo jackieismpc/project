@@ -134,6 +134,12 @@ def real_app(tmp_path: Path) -> Iterator[AppContext]:
     """完整装配（真实 SQLite、模拟设备、视频和算法），退出时有序关闭并确认没有线程残留。"""
     config: dict[str, object] = dict(DEFAULT_CONFIG)
     config["data_dir"] = str(tmp_path / "data")
+    config["device"] = {"backend": "simulation.sim_device:SimDevice"}
+    config["video"] = {
+        **DEFAULT_CONFIG["video"],
+        "snapshot": {"settle_s": 1.0, "after_span_s": 0.0},
+        "recorder": {"pre_flip_s": 0.0, "min_duration_s": 0.0},
+    }
     context = build_app_context(parse_config(config), clock=lambda: NOW)
     yield context
     context.close()

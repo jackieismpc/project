@@ -171,6 +171,8 @@ def test_inspection_replay_analyzer_best_fit_and_missing_policies(tmp_path: Path
     res1 = analyzer.analyze_row(req1)
     assert check_row_result(req1, res1) == []
     assert res1.tubes[0].state is GelState.FULLY_GELLED
+    assert res1.tubes[0].features is not None
+    assert res1.tubes[0].features.extra.get("frame_pair_mode") == "post_flip_span"
 
     # 3 管优先选 Video_B（positive / negative / partially_gelled）
     req3 = _request_for([3, 1, 2])

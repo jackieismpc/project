@@ -316,10 +316,10 @@ class TubeDetailPage(QWidget):
 
         self.mask_toggle.toggled.connect(self._on_mask_toggled)
         self.before_view.clicked.connect(
-            lambda: self._show_zoom(self.before_view.image(), self.tr("翻转前"))
+            lambda: self._show_zoom(self.before_view.image(), self._side_title(is_left=True))
         )
         self.after_view.clicked.connect(
-            lambda: self._show_zoom(self.after_view.image(), self.tr("翻转后"))
+            lambda: self._show_zoom(self.after_view.image(), self._side_title(is_left=False))
         )
         for index, frame_view in enumerate(self.sequence_views):
             frame_view.clicked.connect(lambda i=index: self._zoom_sequence_frame(i))
@@ -613,28 +613,42 @@ class TubeDetailPage(QWidget):
         session, experiment_id, tube = self._session, view.experiment_id, self._tube_no
         self.before_view.set_text(self.tr("正在读取图像…"))
         self.after_view.set_text(self.tr("正在读取图像…"))
+        post_flip = _is_post_flip_span(self._result())
         self._token = self._runner.submit(
-            lambda: self._services.media.tube_images(session, experiment_id, tube),
+            lambda: self._services.media.tube_images(
+                session, experiment_id, tube, post_flip_span=post_flip
+            ),
             self._on_images,
             self._on_images_failed,
         )
 
-    def _on_images(self, images: TubeImages) -> None:
-        if images.tube_no != self._tube_no:
+    def _using_t0_pair(self) -> bool:
+        post_flip = _is_post_flip_span(self._result())
+        return post_flip and (self._images is None or self._images.after_initial is not None)
+
+    def _side_title(self, *, is_left: bool) -> str:
+        if self._using_t0_pair():
+            return self.tr("翻转后 t0") if is_left else self.tr("翻转后 t2")
+        return self.tr("翻转前") if is_left else self.tr("翻转后")
+
+    def _apply_images_to_views(self) -> None:
+        images = self._images
+        if images is None:
             return
-        self._images = images
         text = self.tr("这支试管没有抓拍图像")
-        left_side = (
-            images.after_initial
-            if _is_post_flip_span(self._result()) and images.after_initial is not None
-            else images.before
-        )
+        left_side = images.after_initial if self._using_t0_pair() else images.before
         for side, view in ((left_side, self.before_view), (images.after, self.after_view)):
             view.set_text(text)
             if side is None:
                 view.set_content(None)
             else:
                 view.set_content(side.image, side.gel, side.tube)
+
+    def _on_images(self, images: TubeImages) -> None:
+        if images.tube_no != self._tube_no:
+            return
+        self._images = images
+        self._apply_images_to_views()
         warning = warning_text(images.warnings)
         self.image_warning.setText(warning)
         self.image_warning.setVisible(bool(warning))
@@ -682,6 +696,7 @@ class TubeDetailPage(QWidget):
             + self.tr("实验 {id}").format(id=view.experiment_id)
         )
         result = row.result
+        self._apply_images_to_views()
         self._render_verdict(result)
         self._render_source(result)
         self._render_review()
@@ -861,7 +876,8 @@ class TubeDetailPage(QWidget):
         result = self._result()
         angle = result.features.get("flip_angle_deg") if result is not None else None
         post_flip = _is_post_flip_span(result)
-        if post_flip:
+        using_t0 = self._using_t0_pair()
+        if using_t0:
             angle_suffix = f" · {angle:.1f}°" if isinstance(angle, float) else ""
             before = self.tr("翻转后 t0") + angle_suffix
             after = self.tr("翻转后 t2") + angle_suffix
@@ -869,11 +885,15 @@ class TubeDetailPage(QWidget):
         else:
             before = self.tr("翻转前") + " · 0.0°"
             after = self.tr("翻转后") + (f" · {angle:.1f}°" if isinstance(angle, float) else "")
-            self.sequence_caption.setText(self.tr("3帧序列：翻转前3帧、翻转后3帧"))
+            self.sequence_caption.setText(
+                self.tr("3帧序列：翻转前3帧、翻转后3帧（t0→t2）")
+                if post_flip
+                else self.tr("3帧序列：翻转前3帧、翻转后3帧")
+            )
         images = self._images
         left_side = (
             images.after_initial
-            if (post_flip and images is not None and images.after_initial is not None)
+            if (using_t0 and images is not None and images.after_initial is not None)
             else (None if images is None else images.before)
         )
         if left_side is not None:

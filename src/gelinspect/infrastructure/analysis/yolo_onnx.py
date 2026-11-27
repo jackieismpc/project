@@ -18,7 +18,7 @@ from typing import Literal
 import numpy as np
 import yaml
 from numpy.typing import NDArray
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from gelinspect.domain.enums import GelState, TubeAnalysisStatus
 from gelinspect.infrastructure.analysis.algorithm_json import match_tube_mask
@@ -72,6 +72,14 @@ class YoloOnnxConfig(BaseModel):
     segment: SegmentConfig = SegmentConfig()
     scoring: FeatureScoringConfig = FeatureScoringConfig()
 
+    @model_validator(mode="after")
+    def _validate_layout(self) -> YoloOnnxConfig:
+        if self.slot_x_centers is not None and len(self.slot_x_centers) != 8:
+            raise ValueError("slot_x_centers 必须包含 8 个孔位中心 x 坐标")
+        if self.roi_x_range is not None and self.roi_x_range[0] >= self.roi_x_range[1]:
+            raise ValueError("roi_x_range 必须满足 x_min < x_max")
+        return self
+
 
 @dataclass(frozen=True, slots=True)
 class _SlotCandidate:
@@ -99,6 +107,9 @@ def resolve_model_path(raw: str | Path | None, config_path: Path | None) -> Path
         by_config = config_path.resolve().parent / candidate
         if by_config.is_file():
             return by_config
+        by_parent = config_path.resolve().parent.parent / candidate
+        if by_parent.is_file():
+            return by_parent
     by_root = app_root() / candidate
     return by_root
 

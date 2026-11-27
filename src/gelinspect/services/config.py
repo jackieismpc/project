@@ -61,8 +61,25 @@ DEFAULT_CONFIG: Mapping[str, Any] = {
         "width": 1920,
         "height": 1080,
         "fps": 15,
+        "snapshot": {
+            "settle_s": 0.0,
+            "after_span_s": 2.0,
+            "wait_timeout_s": 15.0,
+        },
+        "recorder": {
+            "pre_flip_s": 0.5,
+            "min_duration_s": 5.0,
+        },
     },
-    "device": {"backend": "simulation.sim_device:SimDevice"},
+    "device": {
+        "backend": "simulation.sim_device:SimDevice",
+        "options": {
+            "time_scale": 1.0,
+            "tray_duration_s": 0.3,
+            "flip_duration_s": 1.0,
+            "settle_duration_s": 2.0,
+        },
+    },
     # 仅模拟设备加速；实际设备配置必须将 time_scale 设为 1。
     "engine": {"incubation_minutes": 60, "time_scale": 600},
     "bootstrap": {"hook": "simulation.demo_accounts:DemoAccounts"},

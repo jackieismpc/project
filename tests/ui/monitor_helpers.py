@@ -44,7 +44,12 @@ LIVE_ENGINE: dict[str, object] = {"incubation_minutes": 60, "time_scale": 60}
 
 def open_context(tmp_path: Path, engine: dict[str, object] = FAST_ENGINE) -> AppContext:
     """画面小的完整装配（真实 SQLite、模拟后端），数据放在 ``tmp_path/data``。"""
-    config = make_config(tmp_path, video=FAST_VIDEO, engine=engine)
+    config = make_config(
+        tmp_path,
+        video=FAST_VIDEO,
+        device={"backend": "simulation.sim_device:SimDevice"},
+        engine=engine,
+    )
     return build_app_context(parse_config(config), clock=lambda: FIXED_NOW)
 
 

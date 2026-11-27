@@ -67,6 +67,8 @@ class FeatureScoringConfig(BaseModel):
                 "height_zero_score_at 与 height_full_score_range 须满足 "
                 "zero_low < full_low <= full_high < zero_high"
             )
+        if self.fill_weight + self.height_weight + self.flatness_weight <= 0.0:
+            raise ValueError("三项特征权重之和必须大于 0")
         return self
 
 
@@ -132,7 +134,7 @@ def inference_providers(device: int | str, available_providers: Sequence[str]) -
             except OSError:
                 _log.warning("%s 不可用，回退 CPUExecutionProvider", library)
                 return ["CPUExecutionProvider"]
-    if device_str.lower() == "auto":
+    if device_str.lower() in {"auto", "cuda", "gpu"}:
         device_id = 0
     else:
         if device_str.lower().startswith("cuda:"):

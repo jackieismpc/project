@@ -203,3 +203,5 @@ def test_tube_detail_page_shows_t0_t2_captions_for_post_flip_span_mode(
     assert "翻转后 t0" in detail.before_caption.text()
     assert "翻转后 t2" in detail.after_caption.text()
     assert "t0→t2" in detail.sequence_caption.text()
+    assert detail._side_title(is_left=True) == "翻转后 t0"
+    assert detail._side_title(is_left=False) == "翻转后 t2"

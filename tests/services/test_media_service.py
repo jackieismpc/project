@@ -199,3 +199,13 @@ def test_clip_constructor_cleans_resources_on_failure(
         VideoClip(source)
     assert not scratch.exists()
     assert released == ([True] if failure in {"metadata", "release"} else [])
+
+
+def test_tube_images_post_flip_span_keeps_pre_flip_clean_and_overlays_t0(
+    harness: HarnessFactory,
+) -> None:
+    _h, media = finished_run(harness)
+    imgs = media.tube_images(SESSION, EXP_ID, 3, post_flip_span=True)  # type: ignore[arg-type]
+    assert imgs.before is not None and imgs.before.tube == () and imgs.before.gel == ()
+    assert imgs.after_initial is not None and imgs.after_initial.tube and imgs.after_initial.gel
+    assert imgs.after is not None and imgs.after.tube and imgs.after.gel

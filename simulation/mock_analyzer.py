@@ -29,7 +29,7 @@ import time
 import warnings
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import cv2
 import numpy as np
@@ -330,6 +330,7 @@ class MockAnalyzer:
         *,
         scenario: Scenario | None = None,
         scripted: bool = False,
+        frame_pair_mode: Literal["before_after", "post_flip_span"] = "before_after",
         tube_faults: Mapping[int, TubeAnalysisStatus] | None = None,
         delay_ms: float = 0.0,
         fail_load: bool = False,
@@ -341,6 +342,7 @@ class MockAnalyzer:
         Args:
             scenario: 场景，默认 ``Scenario()``。
             scripted: 是否使用脚本化模式。
+            frame_pair_mode: 帧对模式，``before_after`` 或 ``post_flip_span``。
             tube_faults: 按管号注入的故障，值只能是 ``LOW_QUALITY``、``FAILED``、
                 ``TUBE_NOT_FOUND``。
             delay_ms: 模拟耗时，毫秒。
@@ -353,6 +355,7 @@ class MockAnalyzer:
         """
         self.scenario = scenario or Scenario()
         self.scripted = scripted
+        self.frame_pair_mode: Literal["before_after", "post_flip_span"] = frame_pair_mode
         self.tube_faults = dict(tube_faults or {})
         self.delay_ms = delay_ms
         self.fail_load = fail_load
@@ -377,6 +380,8 @@ class MockAnalyzer:
             raise ValueError(f"管号 {bad} 的故障状态只能是 low_quality、failed 或 tube_not_found")
         if self.delay_ms < 0:
             raise ValueError("delay_ms 不能为负")
+        if self.frame_pair_mode not in ("before_after", "post_flip_span"):
+            raise ValueError(f"不支持的 frame_pair_mode：{self.frame_pair_mode}")
         if len(self.weights) != 4 or any(w < 0 for w in self.weights):
             raise ValueError("weights 需要 4 个非负数")
         if abs(sum(self.weights) - 1.0) > 1e-6:
@@ -426,6 +431,8 @@ class MockAnalyzer:
             seed=seed, state_ratios=(ratios[0], ratios[1], ratios[2]), tube_states=states
         )
         self.scripted = bool(data.get("scripted", self.scripted))
+        if "frame_pair_mode" in data:
+            self.frame_pair_mode = data["frame_pair_mode"]
         for key, value in (data.get("tube_faults") or {}).items():
             self.tube_faults[int(key)] = TubeAnalysisStatus(value)
         self.delay_ms = float(data.get("delay_ms", self.delay_ms))
@@ -496,9 +503,26 @@ class MockAnalyzer:
         inverted = _is_inverted(request.flip_angle_deg)
         before_series = self._series(request.frames_before, geometry, config, inverted=False)
         after_series = self._series(request.frames_after, geometry, config, inverted=inverted)
-        before, after = before_series[-1], after_series[-1]
-        tube_before = _tube_mask(geometry, config, inverted=False)
-        tube_after = _tube_mask(geometry, config, inverted=inverted)
+        post_flip = self.frame_pair_mode == "post_flip_span"
+        if post_flip:
+            before, after = after_series[0], after_series[-1]
+            tube_before = _tube_mask(geometry, config, inverted=inverted)
+            tube_after = _tube_mask(geometry, config, inverted=inverted)
+            span_s = round(
+                (
+                    request.frames_after[-1].captured_at - request.frames_after[0].captured_at
+                ).total_seconds(),
+                3,
+            )
+            extra: dict[str, float | int | str | bool | None] = {
+                "frame_pair_mode": "post_flip_span",
+                "t0_t2_span_s": span_s,
+            }
+        else:
+            before, after = before_series[-1], after_series[-1]
+            tube_before = _tube_mask(geometry, config, inverted=False)
+            tube_after = _tube_mask(geometry, config, inverted=inverted)
+            extra = {}
 
         if self.scripted:
             state = self.scenario.state_for(slot.tube_no)
@@ -508,7 +532,9 @@ class MockAnalyzer:
                     status=TubeAnalysisStatus.TUBE_NOT_FOUND,
                     message="场景中该管位没有试管",
                 )
-            return self._scripted(slot, state, geometry, before, after, tube_before, tube_after)
+            return self._scripted(
+                slot, state, geometry, before, after, tube_before, tube_after, extra=extra
+            )
 
         sigma_area, sigma_axial = self._sigmas(after_series, before_series)
         features = GelFeatures(
@@ -522,6 +548,7 @@ class MockAnalyzer:
             sigma_axial=sigma_axial,
             gel_missing_before=before.missing,
             gel_missing_after=after.missing,
+            extra=extra,
         )
         masks = TubeMasks(
             tube_before=tube_before,
@@ -531,6 +558,9 @@ class MockAnalyzer:
         )
         if before.missing or after.missing:
             state = None if before.missing else GelState.NOT_GELLED
+            missing_msg = (
+                "翻转后首帧未检出凝胶，需人工复核" if post_flip else "翻转前未检出凝胶，需人工复核"
+            )
             return TubeAnalysis(
                 tube_no=slot.tube_no,
                 status=TubeAnalysisStatus.GEL_MISSING,
@@ -539,7 +569,7 @@ class MockAnalyzer:
                 confidence=None if state is None else 0.8,
                 features=features,
                 masks=masks,
-                message="翻转前未检出凝胶，需人工复核" if before.missing else None,
+                message=missing_msg if before.missing else None,
             )
         assert before.axial is not None and after.axial is not None
         delta_area = abs(after.area - before.area) / before.area * 100
@@ -615,6 +645,8 @@ class MockAnalyzer:
         after: _Measurement,
         tube_before: Uint8Array,
         tube_after: Uint8Array,
+        *,
+        extra: Mapping[str, float | int | str | bool | None] | None = None,
     ) -> TubeAnalysis:
         """按场景给出状态，并生成与状态相符的特征。"""
         rng = np.random.default_rng([self.scenario.seed, slot.tube_no, 3])
@@ -647,6 +679,7 @@ class MockAnalyzer:
             delta_s=d_s,
             sigma_area=sig_a,
             sigma_axial=sig_s,
+            extra=dict(extra or {}),
         )
         masks = TubeMasks(
             tube_before=tube_before,

@@ -575,5 +575,12 @@ def test_preview_current_uses_live_probe_when_pipeline_is_running(context: AppCo
     try:
         probe = context.settings.preview_video(session, kind=None)
         assert probe.width == 640 and probe.height == 360
+        same_exp = context.settings.preview_video(session, VideoInput.CONFIG)
+        assert same_exp.width == 640 and same_exp.height == 360
+        with pytest.raises(ServiceError) as caught:
+            context.settings.preview_video(
+                session, VideoInput.CONFIG, exposure_auto="off", exposure_us="9000"
+            )
+        assert caught.value.code is ServiceErrorCode.SETTINGS_BUSY
     finally:
         context.pipeline.stop()

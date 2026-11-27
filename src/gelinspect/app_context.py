@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -340,6 +341,13 @@ def _probe_running_pipeline(pipeline: VideoPipeline) -> VideoProbe | None:
     if info is None:
         return None
     latest = pipeline.buffer.latest()
+    if latest is None:
+        deadline = time.monotonic() + 0.5
+        while pipeline.is_running and time.monotonic() < deadline:
+            time.sleep(0.02)
+            latest = pipeline.buffer.latest()
+            if latest is not None:
+                break
     return VideoProbe(
         width=info.width,
         height=info.height,

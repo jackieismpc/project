@@ -63,6 +63,12 @@ def make_config(tmp_path: Path, **overrides: object) -> dict[str, object]:
     """默认的模拟配置，数据目录放到临时目录。"""
     config: dict[str, object] = dict(DEFAULT_CONFIG)
     config["data_dir"] = str(tmp_path / "data")
+    config["device"] = {"backend": "simulation.sim_device:SimDevice"}
+    config["video"] = {
+        **DEFAULT_CONFIG["video"],
+        "snapshot": {"settle_s": 1.0, "after_span_s": 0.0},
+        "recorder": {"pre_flip_s": 0.0, "min_duration_s": 0.0},
+    }
     config["analysis"] = {
         **DEFAULT_CONFIG["analysis"],
         "config_path": str(

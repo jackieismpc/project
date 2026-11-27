@@ -433,6 +433,8 @@ def convert_instance_to_tube_analysis(
     )
 
     extra = _build_extra_features(instance)
+    if is_dual_frame:
+        extra["frame_pair_mode"] = "post_flip_span"
     score = min(1.0, max(0.0, float(instance.score))) if instance.score is not None else None
     pred = instance.prediction.strip().lower()
 
