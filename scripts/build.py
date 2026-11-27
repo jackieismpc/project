@@ -392,6 +392,7 @@ def install_data(app_dir: Path, staging: Path) -> None:
         ("*.py", "*.mako"),
     )
     shutil.copytree(staging / "translations", app_dir / "translations", dirs_exist_ok=True)
+    install_camera_sdk(app_dir)
     config_dir = app_dir / "config"
     config_dir.mkdir(exist_ok=True)
     config = {key: value for key, value in DEFAULT_CONFIG.items() if key != "data_dir"}
@@ -449,6 +450,17 @@ def install_data(app_dir: Path, staging: Path) -> None:
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns(".DS_Store", "__pycache__"),
         )
+
+
+def install_camera_sdk(app_dir: Path) -> None:
+    """随 Windows 发布包复制当前架构的本地 MVS 运行库及其依赖。"""
+    if sys.platform != "win32":
+        return
+    arch = "Win64_x64" if sys.maxsize > 2**32 else "Win32_i86"
+    source = ROOT / "sdk" / arch
+    if not (source / "MvCameraControl.dll").is_file():
+        raise SystemExit(f"缺少本地海康 SDK：{source}；请按 sdk/README.md 复制运行库后重试")
+    shutil.copytree(source, app_dir / "sdk" / arch, dirs_exist_ok=True)
 
 
 def check_backend_included(app_dir: Path, report: Path) -> None:

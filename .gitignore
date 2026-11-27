@@ -43,6 +43,10 @@ nuitka-crash-report.xml
 # 模型权重（体积大，本地存放，目标机手工拷贝，不纳入版本库）
 /ckpt/
 
+# 厂商 SDK 运行库：本地复制，构建时随包分发；只跟踪目录说明。
+/sdk/*
+!/sdk/README.md
+
 # 临时输出与编辑器工作目录
 /output/
 /.workbuddy/

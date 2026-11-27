@@ -222,7 +222,13 @@ def test_first_start_creates_data_dir_database_logs_and_demo_accounts(
     assert (data / "logs" / LOG_FILE_NAME).is_file()
     db = open_keyed(data)
     try:
-        assert [u.username for u in db.users.list_all()] == ["admin", "analyst", "experimenter"]
+        # 仓储包含内部维护账号；对用户的隐藏由用户管理服务负责。
+        assert [u.username for u in db.users.list_all()] == [
+            "admin",
+            "analyst",
+            "developer",
+            "experimenter",
+        ]
         assert len(db.templates.list_all()) == 6
         # 冒烟测试登录并退出了一次：登录、退出各一条审计
         events = db.audit.query(AuditQuery(actor="admin"), PageRequest(limit=50)).items

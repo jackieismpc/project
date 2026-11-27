@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import ctypes
+import platform
+import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 
+from gelinspect.infrastructure.video import hikvision_sdk
 from gelinspect.infrastructure.video.factory import create_video_source
 from gelinspect.infrastructure.video.hikvision_sdk import (
     MV_E_GC_TIMEOUT,
@@ -44,16 +47,29 @@ def test_discover_sdk_candidates_windows_and_macos(tmp_path: Path) -> None:
     }
     win_candidates = discover_sdk_candidates(platform="win32", environ=env_win, app_dir=app_dir)
     win_paths = [str(c.path) for c in win_candidates]
-    assert win_candidates[0].source == "env:GELINSPECT_HIKVISION_SDK"
+    assert win_candidates[0].source == "app_bundled"
+    assert any(c.source == "env:GELINSPECT_HIKVISION_SDK" for c in win_candidates)
     assert any(c.source == "env:MVCAM_COMMON_RUNENV" for c in win_candidates)
     assert any("MvCameraControl.dll" in p for p in win_paths)
 
     mac_candidates = discover_sdk_candidates(
         platform="darwin", environ={"HOME": "/Users/tester"}, app_dir=app_dir
     )
-    mac_paths = [str(c.path) for c in mac_candidates]
+    mac_paths = [c.path.as_posix() for c in mac_candidates]
     assert "/Library/Frameworks/MvCameraControl.framework/MvCameraControl" in mac_paths
     assert "/Users/tester/Library/Frameworks/MvCameraControl.framework/MvCameraControl" in mac_paths
+
+
+@pytest.mark.parametrize(
+    "machine, arch_dir", [("AMD64", "64"), ("aarch64", "aarch64"), ("arm64", "aarch64")]
+)
+def test_discover_linux_sdk_candidates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, machine: str, arch_dir: str
+) -> None:
+    monkeypatch.setattr(platform, "machine", lambda: machine)
+    candidates = discover_sdk_candidates(platform="linux", environ={}, app_dir=tmp_path)
+    system_paths = [c.path for c in candidates if c.source == "linux_opt_mvs"]
+    assert system_paths[0] == Path(f"/opt/MVS/lib/{arch_dir}/libMvCameraControl.so")
 
 
 def test_find_sdk_library_prefers_explicit_then_app_bundled(tmp_path: Path) -> None:
@@ -74,14 +90,52 @@ def test_find_sdk_library_prefers_explicit_then_app_bundled(tmp_path: Path) -> N
     assert found_explicit.source == "config:sdk_path"
 
 
-def test_find_sdk_library_raises_clear_error_when_missing(tmp_path: Path) -> None:
+def test_find_sdk_library_raises_clear_error_when_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # 隔离本机 SDK 安装目录和系统库搜索，确保所有候选都位于空测试目录。
+    monkeypatch.setattr(ctypes.util, "find_library", lambda _name: None)
     with pytest.raises(HikvisionSdkNotFoundError, match="未找到海康 MVS SDK"):
         find_sdk_library(
             tmp_path / "missing.dll",
             platform="win32",
-            environ={},
+            environ={
+                "ProgramFiles": str(tmp_path / "program_files"),
+                "ProgramFiles(x86)": str(tmp_path / "program_files_x86"),
+            },
             app_dir=tmp_path / "empty_app",
         )
+
+
+def test_windows_bundled_sdk_precedes_environment_but_allows_explicit_override(
+    tmp_path: Path,
+) -> None:
+    bundled = tmp_path / "app" / "sdk" / "Win64_x64" / "MvCameraControl.dll"
+    external = tmp_path / "external" / "MvCameraControl.dll"
+    for path in (bundled, external):
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"stub")
+    env = {"GELINSPECT_HIKVISION_SDK": str(external)}
+    found = find_sdk_library(platform="win32", environ=env, app_dir=tmp_path / "app")
+    assert found.path == bundled
+    explicit = find_sdk_library(external, platform="win32", environ=env, app_dir=tmp_path / "app")
+    assert explicit.path == external
+    bundled.unlink()
+    fallback = find_sdk_library(platform="win32", environ=env, app_dir=tmp_path / "app")
+    assert fallback.path == external
+
+
+def test_nuitka_sdk_root_is_the_program_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sys, "frozen", False, raising=False)
+    monkeypatch.setitem(hikvision_sdk.__dict__, "__compiled__", object())
+    monkeypatch.setattr(
+        hikvision_sdk,
+        "__file__",
+        str(tmp_path / "gelinspect/infrastructure/video/hikvision_sdk.py"),
+    )
+    assert hikvision_sdk._default_app_dir() == tmp_path
 
 
 def test_local_macos_mvs_sdk_probe_if_installed() -> None:

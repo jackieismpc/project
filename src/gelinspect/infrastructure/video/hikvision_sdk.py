@@ -15,6 +15,7 @@ import contextlib
 import ctypes
 import ctypes.util
 import os
+import platform as platform_info
 import struct
 import sys
 import threading
@@ -326,6 +327,8 @@ class MVCC_ENUMVALUE(ctypes.Structure):  # noqa: N801
 def _default_app_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
+    if "__compiled__" in globals():
+        return Path(__file__).resolve().parents[3]
     return Path(__file__).resolve().parents[4]
 
 
@@ -381,14 +384,14 @@ def discover_sdk_candidates(
         for p in _resolve_explicit_or_env(explicit_path, target_platform):
             raw_candidates.append((p, "config:sdk_path"))
 
+    for sub in (root / "sdk", root):
+        for p in _library_candidates_in_dir(sub, target_platform):
+            raw_candidates.append((p, "app_bundled"))
+
     env_path = env.get(SDK_ENV_VAR, "").strip()
     if env_path:
         for p in _resolve_explicit_or_env(env_path, target_platform):
             raw_candidates.append((p, f"env:{SDK_ENV_VAR}"))
-
-    for sub in (root / "sdk", root):
-        for p in _library_candidates_in_dir(sub, target_platform):
-            raw_candidates.append((p, "app_bundled"))
 
     if target_platform == "win32":
         arch_dir = "Win64_x64" if is_64bit else "Win32_i86"
@@ -448,7 +451,7 @@ def discover_sdk_candidates(
             ]
         )
     else:
-        arch_sub = "aarch64" if os.uname().machine.lower() in ("aarch64", "arm64") else "64"
+        arch_sub = "aarch64" if platform_info.machine().lower() in ("aarch64", "arm64") else "64"
         raw_candidates.extend(
             [
                 (Path(f"/opt/MVS/lib/{arch_sub}/libMvCameraControl.so"), "linux_opt_mvs"),
@@ -843,6 +846,9 @@ def load_mvs_library(
         HikvisionSdkError: 找到但加载失败（例如位数不匹配或缺少依赖库）。
     """
     location = find_sdk_library(explicit_path)
+    location = HikvisionSdkLocation(
+        path=location.path.resolve(), source=location.source, platform=location.platform
+    )
     try:
         if sys.platform == "win32":
             add_dll_dir = getattr(os, "add_dll_directory", None)

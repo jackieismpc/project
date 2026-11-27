@@ -11,6 +11,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
+from asn1crypto import cms
 from pyhanko.pdf_utils.reader import PdfFileReader
 
 from gelinspect.domain.enums import AuditAction, Interpretation, PermissionGroup, ReportScope
@@ -352,8 +353,15 @@ def test_tampering_with_one_byte_fails_verification_with_a_clear_reason(
 
     embedded = list(PdfFileReader(BytesIO(original)).embedded_regular_signatures)[0]
     start1, length1, start2, length2 = map(int, embedded.sig_object.get("/ByteRange"))
+    contents_start = start1 + length1
+    assert original[contents_start : contents_start + 1] == b"<"
+    assert original[start2 - 1 : start2] == b">"
+    cms_size = len(cms.ContentInfo.load(embedded.pkcs7_content).dump())
+    padding_offset = contents_start + 1 + cms_size * 2
+    assert padding_offset + 2 <= start2 - 1
+    assert original[padding_offset : padding_offset + 2] == b"00"
     signed_offsets = (start1 + 20, start1 + 700, start2 + 100, start2 + length2 // 2)
-    for offset in (*signed_offsets, len(original) - 5000):
+    for offset in (*signed_offsets, padding_offset):
         broken = bytearray(original)
         broken[offset] ^= 0x01
         outcome = verify_pdf_bytes(bytes(broken), trusted, expected_sha256=result.record.sha256)
@@ -368,7 +376,7 @@ def test_tampering_with_one_byte_fails_verification_with_a_clear_reason(
         assert not by_signature_alone.signature_intact, offset
     # 预留的签名容器填充不在PDF ByteRange内；只有数据库整文件哈希能发现其改变。
     padding = bytearray(original)
-    padding[len(original) - 5000] ^= 0x01
+    padding[padding_offset] = ord("1")
     assert verify_pdf_bytes(bytes(padding), trusted).ok
     assert not verify_pdf_bytes(bytes(padding), trusted, expected_sha256=result.record.sha256).ok
     # 签名本身（/Contents 里的十六进制）被改一个字符

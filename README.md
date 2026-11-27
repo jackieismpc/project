@@ -63,7 +63,7 @@ uv run python scripts/build.py
 该模式使用海康威视 MVS 工业相机取流，并在翻转后按 `settle_s: 0.0`、`after_span_s: 2.0` 采集 `t0` / `t2` 帧对，由 `YoloOnnxAnalyzer` 执行 ONNX 分割与三特征判读。
 
 1. **前置准备（目标机 / 开发机）**：
-   - 安装海康威视 MVS SDK（Windows / macOS 运行时自动探测）；
+   - Windows 优先使用项目内 `sdk/Win64_x64/` 的海康 MVS 运行库，准备方法见 [SDK 说明](sdk/README.md)；Windows 构建自动将其带入发布包。macOS 使用本机 MVS framework；
    - 将模型权重手动拷贝至仓库根目录 `ckpt/gel-seg-v1.onnx`（`ckpt/` 不纳入 Git 版本控制）；
    - 同步依赖 `uv sync --frozen`（默认锁定 CPU 版 `onnxruntime`；若 Windows 目标机具备 NVIDIA GPU 并需 CUDA 加速，可额外安装 `onnxruntime-gpu`）。
 

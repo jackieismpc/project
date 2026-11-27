@@ -40,10 +40,38 @@ from gelinspect.services.runtime_paths import (
 )
 from gelinspect.services.video import VideoPipeline
 from gelinspect.startup import EXIT_OK, check_program_integrity, record_integrity
+from scripts import build
 from scripts.build import ensure_no_runtime_data
 
 ROOT = Path(__file__).parents[1]
 RELEASE_CONFIG = ROOT / "packaging" / "config" / "release.yaml"
+
+
+def test_windows_bundle_copies_sdk_with_dependencies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(build, "ROOT", tmp_path)
+    monkeypatch.setattr(sys, "platform", "win32")
+    arch = "Win64_x64" if sys.maxsize > 2**32 else "Win32_i86"
+    source = tmp_path / "sdk" / arch
+    for name in ("MvCameraControl.dll", "dependency.dll", "ThirdParty/helper.dll"):
+        path = source / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(name.encode())
+    target = tmp_path / "bundle"
+    build.install_camera_sdk(target)
+    for path in source.rglob("*"):
+        if path.is_file():
+            assert (
+                target / "sdk" / arch / path.relative_to(source)
+            ).read_bytes() == path.read_bytes()
+
+
+def test_windows_bundle_requires_local_sdk(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(build, "ROOT", tmp_path)
+    monkeypatch.setattr(sys, "platform", "win32")
+    with pytest.raises(SystemExit, match="缺少本地海康 SDK"):
+        build.install_camera_sdk(tmp_path / "bundle")
 
 
 @pytest.fixture(autouse=True)
