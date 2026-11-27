@@ -58,6 +58,35 @@ uv run python scripts/build.py
 
 默认后端的接入边界、正式算法／设备／试剂接口需求见[待接入文档](docs/internal-integration-checklist.md)，不能用合成测试证明真实检测准确率和整机节拍。
 
+### 使用海康相机与 YOLOv8-Seg ONNX 算法运行与打包
+
+该模式使用海康威视 MVS 工业相机取流，并在翻转后按 `settle_s: 0.0`、`after_span_s: 2.0` 采集 `t0` / `t2` 帧对，由 `YoloOnnxAnalyzer` 执行 ONNX 分割与三特征判读。
+
+1. **前置准备（目标机 / 开发机）**：
+   - 安装海康威视 MVS SDK（Windows / macOS 运行时自动探测）；
+   - 将模型权重手动拷贝至仓库根目录 `ckpt/gel-seg-v1.onnx`（`ckpt/` 不纳入 Git 版本控制）；
+   - 同步依赖 `uv sync --frozen`（默认锁定 CPU 版 `onnxruntime`；若 Windows 目标机具备 NVIDIA GPU 并需 CUDA 加速，可额外安装 `onnxruntime-gpu`）。
+
+2. **源码直接运行与环境自检**：
+
+   ```bash
+   # 先自检海康 SDK、ONNX Runtime 与权重路径（确认 found / available / exists 均为 true）
+   uv run gelinspect --diagnose --config packaging/config/production.yaml
+
+   # 使用海康相机 + YOLOv8-Seg ONNX 算法启动
+   uv run gelinspect --config packaging/config/production.yaml
+   ```
+
+   > 联调提示：`packaging/config/production.yaml` 按真实实验设了 `engine.incubation_minutes: 60` 与 `time_scale: 1`。若现场只为快速跑通相机与算法，可将该配置文件复制一份到仓库／安装目录外，临时将 `incubation_minutes` 改为 `0.1` 再通过 `--config` 指定启动（**不要**直接修改已打包安装目录下的配置文件，以免触发完整性校验）。
+
+3. **目标机打包与切换生产配置**：
+   - 建议**先放置好 `ckpt/gel-seg-v1.onnx`** 再执行 `uv run python scripts/build.py`，构建脚本会自动把 `ckpt/*.onnx` 打入发行包并纳入完整性清单；
+   - 发行包默认仍以仿真配置 `config/gelinspect.yaml` 启动，切换为生产模式可进入 **设置 → 启动配置与数据目录 → 配置文件** 选择安装目录下的 `config/production.yaml` 后重启，或命令行直接指定：
+
+   ```powershell
+   & "C:\...\GelInspect.exe" --config "C:\...\config\production.yaml"
+   ```
+
 ### 使用 `inspection/` 真实算法样本回放
 
 > 注意：设置页中的 **“视频输入 → 图片模式”**（`images`）仅用指定文件夹的图片替换摄像头视频帧，判读仍运行默认模拟算法 `MockAnalyzer`；若要同时使用 `inspection/` 中的真实算法结果 JSON、掩码和拼接图进行全流程联调，必须通过配置启用成对的 `InspectionVideoSource` 与 `InspectionReplayAnalyzer`。
@@ -136,7 +165,7 @@ uv run python scripts/update_translations.py --check
 在单独测试目录检出待验版本。发布验收应固定提交，不要一边测试一边更新分支：
 
 ```powershell
-git clone --branch feat/client-feedback-20261116 https://github.com/jackieismpc/project.git GelInspect-source
+git clone --branch main https://github.com/jackieismpc/project.git GelInspect-source
 cd GelInspect-source
 git rev-parse HEAD
 git status --short
@@ -170,7 +199,7 @@ macOS目标机使用同一套检查和覆盖率命令；准备目录使用`mkdir
 
 ### 3. 在目标机生成发行包
 
-自动化及必要人工验收通过后，从同一份干净源码构建：
+自动化及必要人工验收通过后，从同一份干净源码构建（若发行包需内置真实 ONNX 权重，请先将 `ckpt/gel-seg-v1.onnx` 放到源码根目录后再构建）：
 
 ```powershell
 uv run python scripts/build.py
